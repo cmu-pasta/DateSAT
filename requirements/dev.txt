@@ -1,0 +1,5 @@
+# Includes requirements.txt
+-r core.txt
+
+# Pre-commit hooks
+pre-commit
