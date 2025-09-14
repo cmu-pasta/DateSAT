@@ -1,0 +1,339 @@
+"""
+Unified API for DATE-SMT constraint solving.
+
+This module provides a unified interface for both baseline and advanced
+approaches to DATE-SMT constraint solving.
+"""
+
+from typing import Any, Dict, List, Union
+
+from z3 import BoolRef
+
+from .core import Date, Period
+from .symbolic_advanced import AdvancedDateSolver
+from .symbolic_baseline import DateSolver
+
+
+class DateSMTBuilder:
+    """Unified API for DATE-SMT constraint solving."""
+
+    def __init__(self, approach: str = "advanced"):
+        """Initialize the builder with the specified approach.
+
+        Args:
+            approach: Either "baseline" or "advanced"
+        """
+        self.approach = approach
+        if approach == "baseline":
+            self.solver = DateSolver()
+        elif approach == "advanced":
+            self.solver = AdvancedDateSolver()
+        else:
+            raise ValueError(f"Unknown approach: {approach}")
+
+        self.constraints = []
+
+    def add_date_var(self, name: str):
+        """Add a symbolic date variable."""
+        return self.solver.add_date_var(name)
+
+    def add_period_var(self, name: str):
+        """Add a symbolic period variable."""
+        return self.solver.add_period_var(name)
+
+    def add_constraint(self, constraint: BoolRef, description: str = ""):
+        """Add a constraint to the solver."""
+        if description:
+            print(f"Added constraint: {description}")
+        self.constraints.append(constraint)
+        self.solver.add_constraint(constraint)
+
+    def solve(self) -> Dict[str, Any]:
+        """Solve the constraints and return results."""
+        result = self.solver.solve()
+        if result['status'] == 'sat':
+            print(f"✅ Solution found:")
+            for name, date in result['dates'].items():
+                print(f"  {name} = {date}")
+            if result.get('periods'):
+                for name, period in result['periods'].items():
+                    print(f"  {name} = {period}")
+        else:
+            print("❌ No solution found")
+        return result
+
+    def get_constraints(self) -> List[BoolRef]:
+        """Get all constraints."""
+        return self.constraints
+
+
+def solve_motivating_example(approach: str = "advanced") -> Dict[str, Any]:
+    """Solve the motivating example from the research proposal.
+
+    Constraint: 2023.10.01 <= x and (y + 1_month) < 2024.01.15 and (x + 30_days) = y
+    """
+    print(f"\n=== Motivating Example ({approach.upper()}) ===")
+
+    # Create solver
+    builder = DateSMTBuilder(approach)
+
+    # Add variables
+    x = builder.add_date_var("x")
+    y = builder.add_date_var("y")
+
+    # Add constraints
+    builder.add_constraint(x >= Date(2023, 10, 1), "x >= 2023.10.01")
+
+    # For the period addition, we need to handle it differently based on approach
+    if approach == "advanced":
+        # Advanced approach: use epoch-based conversion
+        from .symbolic_advanced import to_days_since_epoch
+
+        y_plus_month = y + Period(0, 1, 0)
+        builder.add_constraint(
+            y_plus_month.days_var < to_days_since_epoch(Date(2024, 1, 15)),
+            "(y + 1_month) < 2024.01.15",
+        )
+        x_plus_30_days = x + Period(0, 0, 30)
+        builder.add_constraint(
+            x_plus_30_days.days_var == y.days_var, "(x + 30_days) = y"
+        )
+    else:
+        # Baseline approach: use component-based constraints
+        # Implement the SAME constraints using component-based arithmetic
+        y_plus_month = y + Period(0, 1, 0)
+        builder.add_constraint(
+            y_plus_month < Date(2024, 1, 15), "(y + 1_month) < 2024.01.15"
+        )
+        x_plus_30_days = x + Period(0, 0, 30)
+        builder.add_constraint(x_plus_30_days == y, "(x + 30_days) = y")
+
+    # Solve
+    result = builder.solve()
+    return result
+
+
+def solve_constraint_example_1(approach: str = "advanced") -> Dict[str, Any]:
+    """Solve constraint example 1.
+
+    Constraint: x, y ∈ [Date(2023, 1, 1), Date(2024, 1, 1)] ∧ (x + Period(1, 2, 0) > y)
+    """
+    print(f"\n=== Constraint Example 1 ({approach.upper()}) ===")
+
+    builder = DateSMTBuilder(approach)
+
+    # Add variables
+    x = builder.add_date_var("x")
+    y = builder.add_date_var("y")
+
+    # Add range constraints
+    builder.add_constraint(
+        x >= Date(2023, 1, 1), "x range (range: Date(2023, 1, 1) to Date(2024, 1, 1))"
+    )
+    builder.add_constraint(
+        x <= Date(2024, 1, 1), "x range (range: Date(2023, 1, 1) to Date(2024, 1, 1))"
+    )
+    builder.add_constraint(
+        y >= Date(2023, 1, 1), "y range (range: Date(2023, 1, 1) to Date(2024, 1, 1))"
+    )
+    builder.add_constraint(
+        y <= Date(2024, 1, 1), "y range (range: Date(2023, 1, 1) to Date(2024, 1, 1))"
+    )
+
+    # Add period constraint
+    if approach == "advanced":
+        from .symbolic_advanced import to_days_since_epoch
+
+        x_plus_period = x + Period(1, 2, 0)
+        builder.add_constraint(
+            x_plus_period.days_var > y.days_var, "(x + Period(1, 2, 0)) > y"
+        )
+    else:
+        x_plus_period = x + Period(1, 2, 0)
+        builder.add_constraint(x_plus_period > y, "(x + Period(1, 2, 0)) > y")
+
+    # Solve
+    result = builder.solve()
+    return result
+
+
+def solve_constraint_example_2(approach: str = "advanced") -> Dict[str, Any]:
+    """Solve constraint example 2.
+
+    Constraint: x, y ∈ [Date(2020, 1, 1), Date(2025, 1, 1)] ∧ (x + Period(1, 2, 0) > y)
+    """
+    print(f"\n=== Constraint Example 2 ({approach.upper()}) ===")
+
+    builder = DateSMTBuilder(approach)
+
+    # Add variables
+    x = builder.add_date_var("x")
+    y = builder.add_date_var("y")
+
+    # Add range constraints
+    builder.add_constraint(
+        x >= Date(2020, 1, 1), "x range (range: Date(2020, 1, 1) to Date(2025, 1, 1))"
+    )
+    builder.add_constraint(
+        x <= Date(2025, 1, 1), "x range (range: Date(2020, 1, 1) to Date(2025, 1, 1))"
+    )
+    builder.add_constraint(
+        y >= Date(2020, 1, 1), "y range (range: Date(2020, 1, 1) to Date(2025, 1, 1))"
+    )
+    builder.add_constraint(
+        y <= Date(2025, 1, 1), "y range (range: Date(2020, 1, 1) to Date(2025, 1, 1))"
+    )
+
+    # Add period constraint
+    if approach == "advanced":
+        from .symbolic_advanced import to_days_since_epoch
+
+        x_plus_period = x + Period(1, 2, 0)
+        builder.add_constraint(
+            x_plus_period.days_var > y.days_var, "(x + Period(1, 2, 0)) > y"
+        )
+    else:
+        x_plus_period = x + Period(1, 2, 0)
+        builder.add_constraint(x_plus_period > y, "(x + Period(1, 2, 0)) > y")
+
+    # Solve
+    result = builder.solve()
+    return result
+
+
+def run_approach_comparison():
+    """Run comparison between baseline and advanced approaches."""
+    print("\n=== Approach Comparison ===")
+
+    # Test motivating example
+    print("\n=== Motivating Example (ADVANCED) ===")
+    result_advanced = solve_motivating_example("advanced")
+
+    print("\n=== Motivating Example (BASELINE) ===")
+    result_baseline = solve_motivating_example("baseline")
+
+    # Compare results
+    both_sat = result_advanced['status'] == 'sat' and result_baseline['status'] == 'sat'
+    results_match = result_advanced.get('dates') == result_baseline.get('dates')
+
+    print(f"\nBoth satisfiable: {both_sat}")
+    print(f"Results match: {results_match}")
+    print(f"Advanced result: {result_advanced.get('dates', {})}")
+    print(f"Baseline result: {result_baseline.get('dates', {})}")
+
+    return both_sat, results_match
+
+
+def run_constraint_examples():
+    """Run constraint examples for both approaches."""
+    print("\n=== Constraint Examples ===")
+
+    # Example 1
+    print("\n=== Constraint Example 1 (ADVANCED) ===")
+    solve_constraint_example_1("advanced")
+
+    print("\n=== Constraint Example 1 (BASELINE) ===")
+    solve_constraint_example_1("baseline")
+
+    # Example 2
+    print("\n=== Constraint Example 2 (ADVANCED) ===")
+    solve_constraint_example_2("advanced")
+
+    print("\n=== Constraint Example 2 (BASELINE) ===")
+    solve_constraint_example_2("baseline")
+
+
+def run_epoch_conversion_demo():
+    """Run epoch conversion demonstration."""
+    print("\n=== Epoch Conversion Demo ===")
+
+    from .symbolic_advanced import from_days_since_epoch, to_days_since_epoch
+
+    # Test some dates
+    test_dates = [
+        Date(2000, 3, 1),  # Epoch
+        Date(2000, 3, 2),  # Day after epoch
+        Date(2000, 2, 29),  # Day before epoch (leap year)
+        Date(2023, 10, 1),  # Recent date
+        Date(2024, 2, 29),  # Leap year date
+    ]
+
+    print("Testing epoch conversion:")
+    for date in test_dates:
+        days = to_days_since_epoch(date)
+        converted = from_days_since_epoch(days)
+        print(
+            f"  {date} -> {days} days -> {converted} {'✅' if date == converted else '❌'}"
+        )
+
+
+def run_date_range_demo():
+    """Run date range demonstration."""
+    print("\n=== Date Range Demo ===")
+
+    builder = DateSMTBuilder("advanced")
+    x = builder.add_date_var("x")
+
+    # Add constraint: x in 2023
+    builder.add_constraint(
+        x >= Date(2023, 1, 1),
+        "x in 2023 (range: Date(2023, 1, 1) to Date(2023, 12, 31))",
+    )
+    builder.add_constraint(
+        x <= Date(2023, 12, 31),
+        "x in 2023 (range: Date(2023, 1, 1) to Date(2023, 12, 31))",
+    )
+
+    result = builder.solve()
+    print(f"Result: {result}")
+
+
+def run_simple_constraints_demo():
+    """Run simple constraints demonstration."""
+    print("\n=== Simple Constraints Demo ===")
+
+    builder = DateSMTBuilder("advanced")
+    x = builder.add_date_var("x")
+    y = builder.add_date_var("y")
+
+    # Add simple constraints
+    builder.add_constraint(x >= Date(2023, 10, 1), "x >= 2023.10.01")
+    builder.add_constraint(y >= Date(2023, 10, 1), "y >= 2023.10.01")
+
+    result = builder.solve()
+    print(f"Result: {result}")
+
+
+def run_motivating_example_demo():
+    """Run motivating example demonstration."""
+    print("\n=== Motivating Example Demo ===")
+
+    # Test both approaches
+    print("\n=== Motivating Example (ADVANCED) ===")
+    solve_motivating_example("advanced")
+
+    print("\n=== Motivating Example (BASELINE) ===")
+    solve_motivating_example("baseline")
+
+
+def compare_approaches_on_motivating_example():
+    """Compare baseline and advanced approaches on the motivating example."""
+    print("\n=== Approach Comparison ===")
+
+    # Test motivating example
+    print("\n=== Motivating Example (ADVANCED) ===")
+    result_advanced = solve_motivating_example("advanced")
+
+    print("\n=== Motivating Example (BASELINE) ===")
+    result_baseline = solve_motivating_example("baseline")
+
+    # Compare results
+    both_sat = result_advanced['status'] == 'sat' and result_baseline['status'] == 'sat'
+    results_match = result_advanced.get('dates') == result_baseline.get('dates')
+
+    print(f"\nBoth satisfiable: {both_sat}")
+    print(f"Results match: {results_match}")
+    print(f"Advanced result: {result_advanced.get('dates', {})}")
+    print(f"Baseline result: {result_baseline.get('dates', {})}")
+
+    return both_sat, results_match
