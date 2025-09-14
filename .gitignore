@@ -207,3 +207,7 @@ marimo/_lsp/
 __marimo__/
 
 Miniforge3-MacOSX-arm64.sh
+
+tests/
+test_results/
+*.json
