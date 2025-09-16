@@ -209,5 +209,5 @@ __marimo__/
 Miniforge3-MacOSX-arm64.sh
 
 tests/
-test_results/
+test_results*/
 *.json

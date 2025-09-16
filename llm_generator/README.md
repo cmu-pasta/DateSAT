@@ -4,7 +4,7 @@ A robust, coverage-oriented date constraint generation system for DATE-SMT with 
 
 ## What's New
 
-Based on ChatGPT's recommendations, this enhanced version includes:
+This enhanced version includes:
 
 - **Coverage-oriented system prompt** with explicit schema, guardrails, and coverage tags
 - **Robust JSON parsing** with automatic retry/repair for flaky LLM responses

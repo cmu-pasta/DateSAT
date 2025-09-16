@@ -26,7 +26,9 @@ SCOPE & OPERATIONS (very important)
   • Period ± Period → Period
   • Period × Int → Period
   • Date ▷◁ Date (▷◁ ∈ {==, !=, <, <=, >, >=})
-- DO NOT compare Periods directly and do not assume Period equality.
+- STRICTLY FORBIDDEN: Period comparisons (Period ▷◁ Period). Period comparison is undefined because 1 month ≠ 30 days in all contexts.
+- FORBIDDEN EXAMPLES: Period(0,1,0) > Period(0,0,31), p > q, Period(1,0,0) == Period(0,12,0)
+- Instead, compare dates after adding periods: (x + Period(0,1,0)) > (x + Period(0,0,31))
 
 LIBRARY SHORTHAND AVAILABLE IN THE TEST HARNESS
 - Constructors: Date(y, m, d), Period(years, months, days)

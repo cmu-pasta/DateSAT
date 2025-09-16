@@ -51,6 +51,7 @@ def test_constraint_with_approach(constraint_data: dict, approach: str) -> dict:
         "error_message": None,
         "solution": None,
         "prediction_correct": None,
+        "smtlib": None,
     }
 
     try:
@@ -77,6 +78,9 @@ def test_constraint_with_approach(constraint_data: dict, approach: str) -> dict:
         }
 
         exec(constraint_code, exec_globals)
+
+        # Capture SMT-LIB encoding before solving and store it in result
+        result["smtlib"] = builder.to_smt2()
 
         # Solve
         solve_result = builder.solve()
@@ -109,11 +113,33 @@ def test_constraint_with_approach(constraint_data: dict, approach: str) -> dict:
                 f"❌ Prediction incorrect (expected {expected_satisfiable}, got {actual_satisfiable})"
             )
 
+    except TypeError as e:
+        if (
+            "'>' not supported between instances of 'Period' and 'Period'" in str(e)
+            or "'<' not supported between instances of 'Period' and 'Period'" in str(e)
+            or "'>=' not supported between instances of 'Period' and 'Period'" in str(e)
+            or "'<=' not supported between instances of 'Period' and 'Period'" in str(e)
+        ):
+            result["error_message"] = (
+                f"UNSUPPORTED OPERATION: Period comparison is not allowed - {str(e)}"
+            )
+            result["status"] = "unsupported"
+            print(f"🚫 UNSUPPORTED OPERATION: Period comparison detected - {str(e)}")
+        else:
+            result["error_message"] = str(e)
+            print(f"❌ Error: {e}")
     except Exception as e:
         result["error_message"] = str(e)
         print(f"❌ Error: {e}")
 
     return result
+
+
+def _sanitize_filename(name: str) -> str:
+    """Sanitize a string to be safe for filenames."""
+    import re
+
+    return re.sub(r"[^A-Za-z0-9._-]+", "_", name)
 
 
 def test_constraints_file(constraints_file: str, output_dir: str = "test_results"):
@@ -127,6 +153,8 @@ def test_constraints_file(constraints_file: str, output_dir: str = "test_results
 
     # Create output directory
     os.makedirs(output_dir, exist_ok=True)
+    smt_dir = os.path.join(output_dir, "smt2")
+    os.makedirs(smt_dir, exist_ok=True)
 
     # Test with both approaches
     approaches = ["baseline", "advanced"]
@@ -140,6 +168,17 @@ def test_constraints_file(constraints_file: str, output_dir: str = "test_results
         results = []
         for constraint in constraints:
             result = test_constraint_with_approach(constraint, approach)
+            # Save per-constraint SMT-LIB as .smt2 file
+            if result.get("smtlib"):
+                cid = _sanitize_filename(result.get("constraint_id", "unknown"))
+                smt_path = os.path.join(smt_dir, f"{cid}_{approach}.smt2")
+                try:
+                    with open(smt_path, 'w') as f:
+                        f.write(result["smtlib"])
+                    # Attach path for traceability
+                    result["smtlib_file"] = smt_path
+                except Exception as e:
+                    result["smtlib_file_error"] = str(e)
             results.append(result)
 
         all_results[approach] = results
@@ -165,94 +204,6 @@ def test_constraints_file(constraints_file: str, output_dir: str = "test_results
         print(
             f"  Correct predictions: {correct_predictions}/{total} ({correct_predictions/total*100:.1f}%)"
         )
-
-    # Compare approaches
-    print(f"\n{'='*60}")
-    print("APPROACH COMPARISON")
-    print(f"{'='*60}")
-
-    baseline_results = all_results["baseline"]
-    advanced_results = all_results["advanced"]
-
-    status_matches = 0
-    prediction_accuracy_baseline = 0
-    prediction_accuracy_advanced = 0
-
-    for i, (baseline, advanced) in enumerate(zip(baseline_results, advanced_results)):
-        match = baseline["status"] == advanced["status"]
-        if match:
-            status_matches += 1
-
-        if baseline.get("prediction_correct"):
-            prediction_accuracy_baseline += 1
-        if advanced.get("prediction_correct"):
-            prediction_accuracy_advanced += 1
-
-        print(
-            f"{baseline['constraint_id']}: {baseline['status']} vs {advanced['status']} {'✅' if match else '❌'}"
-        )
-
-    print(
-        f"\nStatus matches: {status_matches}/{len(baseline_results)} ({status_matches/len(baseline_results)*100:.1f}%)"
-    )
-    print(
-        f"Prediction accuracy - Baseline: {prediction_accuracy_baseline}/{len(baseline_results)} ({prediction_accuracy_baseline/len(baseline_results)*100:.1f}%)"
-    )
-    print(
-        f"Prediction accuracy - Advanced: {prediction_accuracy_advanced}/{len(advanced_results)} ({prediction_accuracy_advanced/len(advanced_results)*100:.1f}%)"
-    )
-
-    # Coverage analysis
-    print(f"\n{'='*60}")
-    print("COVERAGE ANALYSIS")
-    print(f"{'='*60}")
-
-    all_tags = set()
-    for constraint in constraints:
-        all_tags.update(constraint.get("coverage_tags", []))
-
-    print(f"Coverage tags found: {', '.join(sorted(all_tags))}")
-
-    for tag in sorted(all_tags):
-        tag_constraints = [c for c in constraints if tag in c.get("coverage_tags", [])]
-        print(f"\n{tag}: {len(tag_constraints)} constraints")
-
-        # Show success rate for this tag
-        for approach in approaches:
-            tag_results = [
-                r for r in all_results[approach] if tag in r.get("coverage_tags", [])
-            ]
-            if tag_results:
-                successful = len([r for r in tag_results if r["status"] == "sat"])
-                print(f"  {approach}: {successful}/{len(tag_results)} successful")
-
-    # Save comparison
-    comparison = {
-        "timestamp": datetime.now().isoformat(),
-        "total_constraints": len(constraints),
-        "status_matches": status_matches,
-        "match_rate": status_matches / len(baseline_results),
-        "coverage_tags": list(all_tags),
-        "baseline_summary": {
-            "successful": len([r for r in baseline_results if r["status"] == "sat"]),
-            "avg_time": sum(r["execution_time"] for r in baseline_results)
-            / len(baseline_results),
-            "prediction_accuracy": prediction_accuracy_baseline / len(baseline_results),
-        },
-        "advanced_summary": {
-            "successful": len([r for r in advanced_results if r["status"] == "sat"]),
-            "avg_time": sum(r["execution_time"] for r in advanced_results)
-            / len(advanced_results),
-            "prediction_accuracy": prediction_accuracy_advanced / len(advanced_results),
-        },
-    }
-
-    comparison_file = os.path.join(
-        output_dir, f"comparison_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-    )
-    with open(comparison_file, 'w') as f:
-        json.dump(comparison, f, indent=2)
-    print(f"\nComparison saved to: {comparison_file}")
 
 
 def main():
