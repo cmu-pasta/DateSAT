@@ -266,3 +266,11 @@ class AdvancedDateSolver:
             }
         else:
             return {'status': 'unsat', 'dates': {}, 'periods': {}}
+
+    def to_smt2(self) -> str:
+        """Return the current problem in SMT-LIB v2 format."""
+        return self.solver.to_smt2()
+
+    def get_assertions(self):
+        """Return the list of current Z3 assertions (BoolRef)."""
+        return list(self.solver.assertions())
