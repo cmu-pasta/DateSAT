@@ -46,6 +46,9 @@ class DateSMTBuilder:
         """Add a constraint to the solver."""
         if description:
             print(f"Added constraint: {description}")
+        # Guard against None or non-bool constraints
+        if constraint is None:
+            raise TypeError("Constraint is None. Ensure expressions return a Z3 BoolRef.")
         self.constraints.append(constraint)
         self.solver.add_constraint(constraint)
 

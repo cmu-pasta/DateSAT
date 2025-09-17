@@ -116,7 +116,7 @@ class DateVar:
 
     def to_concrete_date(self, model: ModelRef) -> Date:
         """Convert Z3 model to concrete Date."""
-        days = model[self.days_var].as_long()
+        days = model.evaluate(self.days_var, model_completion=True).as_long()
         return from_days_since_epoch(days)
 
     def __ge__(self, other):
@@ -155,16 +155,35 @@ class DateVar:
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
+    def __ne__(self, other):
+        """Support x != date comparison."""
+        return Not(self.__eq__(other))
+
+    def __gt__(self, other):
+        """Support x > date comparison."""
+        if isinstance(other, Date):
+            return self.days_var > to_days_since_epoch(other)
+        elif isinstance(other, DateVar):
+            return self.days_var > other.days_var
+        else:
+            raise TypeError(f"Cannot compare DateVar with {type(other)}")
+
     def __add__(self, other):
-        """Support date + period addition."""
+        """Support date + period addition.
+
+        Accepts a concrete Period or a PeriodVar (approximate days) and returns a new DateVar.
+        """
         if isinstance(other, Period):
-            # Add the period's approximate days to the days variable
             result_days = self.days_var + to_days_approximate(other)
-            result = DateVar(f"result_{self.name}_{other}")
+            result = DateVar(f"{self.name}_plus_{other.years}y_{other.months}m_{other.days}d")
             result.days_var = result_days
             return result
-        else:
-            raise TypeError(f"Cannot add {type(other)} to DateVar")
+        from .symbolic_advanced import PeriodVar as _PeriodVar  # local import to avoid circular typing
+        if isinstance(other, _PeriodVar):
+            result = DateVar(f"{self.name}_plus_{other.name}")
+            result.days_var = self.days_var + other.days_var
+            return result
+        raise TypeError(f"Cannot add {type(other)} to DateVar")
 
     def __radd__(self, other):
         """Support period + date addition."""
@@ -188,7 +207,7 @@ class PeriodVar:
 
     def to_concrete_period(self, model: ModelRef) -> Period:
         """Convert Z3 model to concrete Period."""
-        days = model[self.days_var].as_long()
+        days = model.evaluate(self.days_var, model_completion=True).as_long()
         # Simple approximation - not accurate for real calendar arithmetic
         years = days // 365
         months = (days % 365) // 30
@@ -198,6 +217,19 @@ class PeriodVar:
     def to_days_approximate(self) -> int:
         """Convert to approximate days for Z3 constraints."""
         return self.days_var
+
+    def __eq__(self, other):
+        """Support equality with concrete Period or another PeriodVar."""
+        if isinstance(other, Period):
+            return self.days_var == to_days_approximate(other)
+        elif isinstance(other, PeriodVar):
+            return self.days_var == other.days_var
+        else:
+            raise TypeError(f"Cannot compare PeriodVar with {type(other)}")
+
+    def __ne__(self, other):
+        """Support inequality with concrete Period or another PeriodVar."""
+        return Not(self.__eq__(other))
 
 
 class AdvancedDateSolver:
@@ -216,9 +248,10 @@ class AdvancedDateSolver:
         self.date_vars[name] = date_var
 
         # Add basic constraints for valid date ranges
-        # March 1, 2000 to March 1, 2100 (approximately 36,525 days)
-        self.solver.add(date_var.days_var >= 0)
-        self.solver.add(date_var.days_var <= 36525)
+        # Roughly map civil years 1900..2100 into day offsets to prevent negative years
+        # Use a wide band to avoid over-constraining while blocking absurd negatives
+        self.solver.add(date_var.days_var >= -36525)  # allow dating back ~100 years before epoch
+        self.solver.add(date_var.days_var <= 36525)   # and ~100 years after
 
         return date_var
 
