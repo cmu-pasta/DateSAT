@@ -72,6 +72,7 @@ def test_constraint_with_approach(constraint_data: dict, approach: str) -> dict:
         exec_globals = {
             'Date': Date,
             'Period': Period,
+            'DateSMTBuilder': DateSMTBuilder,
             'builder': builder,
             'add_constraint': builder.add_constraint,
             **var_objects,

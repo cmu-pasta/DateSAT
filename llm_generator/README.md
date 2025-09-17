@@ -55,21 +55,13 @@ export OPENAI_API_KEY="your-openai-key-here"
 ### 2. Generate Constraints
 
 ```bash
-python llm_generator/llm_client.py --num 8 --output enhanced_constraints.json
+python llm_generator/llm_client.py --num NUMBER --output FILE_NAME.json
 ```
 
 ### 3. Test Constraints
 
 ```bash
-python llm_generator/test_template.py enhanced_constraints.json --output-dir results
-```
-
-### 4. Complete Workflow
-
-```bash
-# Generate and test
-python llm_generator/llm_client.py --num 10 --output constraints.json
-python llm_generator/test_template.py constraints.json --output-dir test_results
+python llm_generator/test_template.py FILE_NAME.json --output-dir results
 ```
 
 ## Enhanced Output
@@ -81,39 +73,8 @@ The test template now provides:
 - **Approach comparison** - Baseline vs advanced with detailed metrics
 - **Comprehensive reporting** - Success rates, timing, and accuracy per tag
 
-## Key Improvements
-
-1. **Robust Generation**: Automatic retry/repair for malformed JSON responses
-2. **Coverage Focus**: Ensures diverse constraint types are generated
-3. **Validation**: Strict schema validation with helpful error messages
-4. **Analysis**: Detailed coverage and accuracy analysis
-5. **Reproducibility**: Deterministic seeding for consistent results
-
-## Example Output
-
-```
-=== Testing constraint_1 (ADVANCED) ===
-Description: Leap year boundary test
-Coverage tags: leap_boundary
-Expected satisfiable: true
-Constraint: builder.add_constraint(x >= Date(2024, 2, 28), 'x >= 2024-02-28')...
-✅ Solution found:
-  x = Date(2024, 2, 28)
-✅ Prediction correct (expected true, got true)
-
-COVERAGE ANALYSIS
-================
-Coverage tags found: chain_add, eom, ineq_window, leap_boundary, month_vs_days, multi_var, year_vs_days
-
-leap_boundary: 2 constraints
-  baseline: 2/2 successful
-  advanced: 2/2 successful
-```
-
 ## Requirements
 
-- OpenAI API key (for real generation)
+- OpenAI/Anthropic API key
 - DATE-SMT library
-- Python packages: `openai`, `json`, `re`, `os`, `time`, `datetime`
-
-This enhanced version provides much more reliable and comprehensive constraint generation, perfect for building a high-quality constraints dataset for DATE-SMT research.
+- Python packages
