@@ -5,6 +5,10 @@ Generates constraints that match the enhanced schema with coverage tags.
 
 import json
 import random
+try:
+    from .id_counter import get_next_id
+except ImportError:
+    from id_counter import get_next_id
 
 
 class MockLLMClient:
@@ -15,7 +19,7 @@ class MockLLMClient:
             {
                 "id": "constraint_{}",
                 "description": "Simple date range constraint",
-                "constraint_code": "builder.add_constraint(x >= Date(2023, 1, 1), 'x >= 2023-01-01')\nbuilder.add_constraint(x <= Date(2023, 12, 31), 'x <= 2023-12-31')",
+                "constraint_code": "x = builder.add_date_var('x')\nbuilder.add_constraint(x >= Date(2023, 1, 1), 'x >= 2023-01-01')\nbuilder.add_constraint(x <= Date(2023, 12, 31), 'x <= 2023-12-31')",
                 "variables": ["x"],
                 "coverage_tags": ["ineq_window"],
                 "expected_satisfiable": True,
@@ -23,7 +27,7 @@ class MockLLMClient:
             {
                 "id": "constraint_{}",
                 "description": "Leap year boundary test",
-                "constraint_code": "builder.add_constraint(x >= Date(2024, 2, 28), 'x >= 2024-02-28')\nbuilder.add_constraint(x <= Date(2024, 3, 1), 'x <= 2024-03-01')",
+                "constraint_code": "x = builder.add_date_var('x')\nbuilder.add_constraint(x >= Date(2024, 2, 28), 'x >= 2024-02-28')\nbuilder.add_constraint(x <= Date(2024, 3, 1), 'x <= 2024-03-01')",
                 "variables": ["x"],
                 "coverage_tags": ["leap_boundary"],
                 "expected_satisfiable": True,
@@ -31,7 +35,7 @@ class MockLLMClient:
             {
                 "id": "constraint_{}",
                 "description": "Month vs days contrast",
-                "constraint_code": "builder.add_constraint(x >= Date(2023, 1, 1), 'x >= 2023-01-01')\nbuilder.add_constraint((x + Period(0, 1, 0)) > (x + Period(0, 0, 31)), 'month > 31 days')",
+                "constraint_code": "x = builder.add_date_var('x')\nbuilder.add_constraint(x >= Date(2023, 1, 1), 'x >= 2023-01-01')\nbuilder.add_constraint((x + Period(0, 1, 0)) > (x + Period(0, 0, 31)), 'month > 31 days')",
                 "variables": ["x"],
                 "coverage_tags": ["month_vs_days"],
                 "expected_satisfiable": False,
@@ -110,9 +114,11 @@ class MockLLMClient:
         random.shuffle(selected_templates)
         selected_templates = selected_templates[:num_constraints]
 
-        for i, template in enumerate(selected_templates):
+        for template in selected_templates:
             constraint = template.copy()
-            constraint["id"] = constraint["id"].format(i + 1)
+            # Remove the old id template and add sequential ID
+            del constraint["id"]
+            constraint["id"] = str(get_next_id())
             constraints.append(constraint)
 
         return constraints

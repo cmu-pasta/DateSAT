@@ -8,6 +8,10 @@ import json
 import os
 import re
 from typing import Any, Dict, List, Optional
+try:
+    from .id_counter import get_next_id
+except ImportError:
+    from id_counter import get_next_id
 
 # Default models for each provider
 DEFAULT_OPENAI_MODEL = "gpt-3.5-turbo"
@@ -67,10 +71,10 @@ STYLE FOR constraint_code
 - No printing; just build constraints. Example skeleton:
 
 builder = DateSMTBuilder()
-x = builder.date_var("x")
-y = builder.date_var("y")
+x = builder.add_date_var("x")
+y = builder.add_date_var("y")
 # ... your constraints ...
-builder.assert_(x + Period(1,2,0) > y)
+builder.add_constraint(x + Period(1,2,0) > y)
 result = builder  # implicit: harness will solve
 
 VALIDATION GUARDRAILS
@@ -125,6 +129,16 @@ def _strip_code_fences(s: str) -> str:
     # Fallback: first fenced block
     m = re.search(r"```(.*?)```", s, flags=re.S)
     return m.group(1).strip() if m else s.strip()
+
+
+def _add_sequential_ids(constraints: List[Dict]) -> List[Dict]:
+    """Add sequential IDs to constraints using global counter."""
+    result = []
+    for constraint in constraints:
+        constraint_with_id = constraint.copy()
+        constraint_with_id["id"] = str(get_next_id())
+        result.append(constraint_with_id)
+    return result
 
 
 def list_saved_constraints(directory: str = ".") -> List[str]:
@@ -246,7 +260,8 @@ class LLMClient:
         """
         user_prompt = (
             f"Produce exactly {num_constraints} constraint objects as a SINGLE JSON array per the schema. "
-            f"Ensure at least 5 distinct coverage_tags are represented across the set and ~70% expected_satisfiable=true."
+            f"Ensure at least 5 distinct coverage_tags are represented across the set and ~70% expected_satisfiable=true. "
+            f"Make each constraint unique and different from the others - avoid similar patterns or duplicate logic."
         )
 
         last_err = None
@@ -257,7 +272,8 @@ class LLMClient:
                 items = json.loads(txt)
                 if not _basic_schema_ok(items):
                     raise ValueError("Output failed basic schema validation.")
-                return items
+                # Post-process to add sequential IDs
+                return _add_sequential_ids(items)
             except Exception as e:
                 last_err = e
 
@@ -269,7 +285,8 @@ class LLMClient:
                     )
                     items = json.loads(candidate)
                     if _basic_schema_ok(items):
-                        return items
+                        # Post-process to add sequential IDs
+                        return _add_sequential_ids(items)
                 except Exception:
                     pass
 
