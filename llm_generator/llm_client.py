@@ -34,12 +34,30 @@ SCOPE & OPERATIONS (very important)
 - FORBIDDEN EXAMPLES: Period(0,1,0) > Period(0,0,31), p > q, Period(1,0,0) == Period(0,12,0)
 - Instead, compare dates after adding periods: (x + Period(0,1,0)) > (x + Period(0,0,31))
 
-LIBRARY SHORTHAND AVAILABLE IN THE TEST HARNESS
+LIBRARY SEMANTICS (AVAILABLE IN THE TEST HARNESS)
 - Constructors: Date(y, m, d), Period(years, months, days)
-- Builder: DateSMTBuilder()
-- Predeclared variables you MAY use directly: x, y, z (dates) and p, q, r (periods)
-  (If you need fresh variables, create them via the builder.)
-- Your "constraint_code" must be self-contained and runnable inside a function body that already imports the library.
+- Builder: DateSMTBuilder(approach?)  # approach will be injected by harness
+- Variables:
+  • You MAY use predeclared names x, y, z (dates) and p, q, r (periods) directly, or create fresh via builder.add_*_var.
+  • Valid ranges: 1900-03-01 <= Date <= 2100-02-28.
+SUPPORTED OPERATIONS (engine-compatible):
+  • Date + Period → Date (concrete Period(...))
+  • Date + PeriodVar → Date (now supported)
+  • Period + Period → Period (use chained concrete Period(...) arithmetic only)
+  • Date ▷◁ Date where ▷◁ ∈ {==, !=, <, <=, >, >=}
+  • DO NOT: compare Period ▷◁ Period (unsupported)
+  • DO NOT: compare Period ▷◁ Period (unsupported)
+  • DO NOT: multiply Period or PeriodVar (currently unsupported)
+- Builder API (always use via a local variable named builder):
+  • builder = DateSMTBuilder("advanced" or "baseline")  # already provided in harness
+  • builder.add_date_var(name: str) -> Date-like symbolic var
+  • builder.add_period_var(name: str) -> Period-like symbolic var (avoid adding to Date)
+  • builder.add_constraint(z3_bool_expr, description: str = "")
+  • result = builder  # end your snippet with this
+- Tips for robust code snippets inside JSON strings:
+  • Prefer single quotes in Python snippets to minimize JSON escaping.
+  • Encode newlines as \n in the JSON string.
+  • Avoid printing or IO; just build constraints.
 
 CONTENT REQUIREMENTS
 - Cover diverse edge cases:
@@ -84,7 +102,10 @@ VALIDATION GUARDRAILS
 
 FINAL INSTRUCTIONS
 - Output MUST be a single JSON array with the exact schema above.
-- No code fences. No prose. No trailing commas. No comments."""
+- No code fences. No prose. No trailing commas. No comments.
+- Inside JSON strings, use ONLY plain ASCII quotes. Prefer single quotes in Python snippets (e.g., add_date_var('x')).
+- Ensure any newlines inside constraint_code are encoded as \n in the JSON string, not raw line breaks.
+- Do not include backticks, markdown, or explanations before/after the JSON."""
 
 
 def _basic_schema_ok(items: Any) -> bool:
@@ -129,6 +150,31 @@ def _strip_code_fences(s: str) -> str:
     # Fallback: first fenced block
     m = re.search(r"```(.*?)```", s, flags=re.S)
     return m.group(1).strip() if m else s.strip()
+
+
+def _normalize_llm_json(s: str) -> str:
+    """Best-effort normalization to improve JSON parse success without altering content semantics.
+
+    - Strip BOM/whitespace
+    - Replace curly/smart quotes with ASCII quotes
+    - Normalize line endings
+    - Ensure backticks are removed
+    """
+    if not isinstance(s, str):
+        return s
+    txt = s.strip().lstrip("\ufeff")
+    # Remove stray backtick fences if any slipped through
+    txt = txt.replace("```", "")
+    # Normalize fancy quotes to plain quotes
+    smart_double = "\u201c\u201d\uFF02"
+    smart_single = "\u2018\u2019\uFF07"
+    for ch in smart_double:
+        txt = txt.replace(ch, '"')
+    for ch in smart_single:
+        txt = txt.replace(ch, "'")
+    # Normalize line endings
+    txt = txt.replace("\r\n", "\n").replace("\r", "\n")
+    return txt
 
 
 def _add_sequential_ids(constraints: List[Dict]) -> List[Dict]:
@@ -252,47 +298,73 @@ class LLMClient:
             return resp.content[0].text
 
     def generate_constraints(
-        self, num_constraints: int = 8, retries: int = 2
+        self, num_constraints: int = 8, retries: int = 2, batch_size: int = 5
     ) -> List[Dict]:
         """
         Generate DATE-SMT constraints with validation + simple auto-repair.
         Produces a mix of SAT/UNSAT across diverse boundary categories.
         """
-        user_prompt = (
-            f"Produce exactly {num_constraints} constraint objects as a SINGLE JSON array per the schema. "
-            f"Ensure at least 5 distinct coverage_tags are represented across the set and ~70% expected_satisfiable=true. "
-            f"Make each constraint unique and different from the others - avoid similar patterns or duplicate logic."
-        )
-
-        last_err = None
-        for attempt in range(retries + 1):
+        def _one_call(n: int) -> List[Dict]:
+            local_last_err = None
+            local_raw = ""
+            local_norm = ""
+            local_prompt = (
+                f"Produce exactly {n} constraint objects as a SINGLE JSON array per the schema. "
+                f"Ensure at least 5 distinct coverage_tags across the overall set; keep descriptions concise. "
+                f"Make each constraint unique and different from the others."
+            )
+            for attempt in range(retries + 1):
+                try:
+                    local_raw = self._ask(SYSTEM_PROMPT, local_prompt)
+                    txt = _strip_code_fences(local_raw)
+                    local_norm = _normalize_llm_json(txt)
+                    items = json.loads(local_norm)
+                    if not _basic_schema_ok(items):
+                        raise ValueError("Output failed basic schema validation.")
+                    return items
+                except Exception as e:
+                    local_last_err = e
+                    try:
+                        candidate = self._extract_json_array(local_raw if 'local_raw' in locals() else "")
+                        candidate = _normalize_llm_json(candidate)
+                        items = json.loads(candidate)
+                        if _basic_schema_ok(items):
+                            return items
+                    except Exception:
+                        pass
+            # Persist last failure context for this call
             try:
-                raw = self._ask(SYSTEM_PROMPT, user_prompt)
-                txt = _strip_code_fences(raw)
-                items = json.loads(txt)
-                if not _basic_schema_ok(items):
-                    raise ValueError("Output failed basic schema validation.")
-                # Post-process to add sequential IDs
+                debug_dir = os.path.join(os.getcwd(), "_debug")
+                os.makedirs(debug_dir, exist_ok=True)
+                with open(os.path.join(debug_dir, "last_raw.txt"), "w") as f:
+                    f.write(local_raw)
+                with open(os.path.join(debug_dir, "last_normalized.txt"), "w") as f:
+                    f.write(local_norm)
+            except Exception:
+                pass
+            raise RuntimeError(f"Batch generation failed after {retries+1} attempts: {local_last_err}")
+
+        if num_constraints <= batch_size:
+            try:
+                items = _one_call(num_constraints)
                 return _add_sequential_ids(items)
             except Exception as e:
-                last_err = e
+                print(f"[generate_constraints] Failed: {e}")
+                return []
 
-                # Minimal repair pass: try to extract the largest JSON array substring.
-                # This helps when the model adds stray prose by mistake.
-                try:
-                    candidate = self._extract_json_array(
-                        raw if 'raw' in locals() else ""
-                    )
-                    items = json.loads(candidate)
-                    if _basic_schema_ok(items):
-                        # Post-process to add sequential IDs
-                        return _add_sequential_ids(items)
-                except Exception:
-                    pass
-
-        # If we reach here, give a helpful failure with the last exception.
-        print(f"[generate_constraints] Failed after {retries+1} attempts: {last_err}")
-        return []
+        # Batched path
+        remaining = num_constraints
+        all_items: List[Dict] = []
+        while remaining > 0:
+            take = min(batch_size, remaining)
+            try:
+                batch_items = _one_call(take)
+                all_items.extend(batch_items)
+                remaining -= take
+            except Exception as e:
+                print(f"[generate_constraints] Batch failed (requested {take}): {e}")
+                return []
+        return _add_sequential_ids(all_items)
 
     @staticmethod
     def _extract_json_array(s: str) -> str:

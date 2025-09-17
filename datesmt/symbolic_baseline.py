@@ -150,9 +150,9 @@ class DateVar:
 
     def to_concrete_date(self, model: ModelRef) -> Date:
         """Convert Z3 model to concrete Date."""
-        year = model[self.year_var].as_long()
-        month = model[self.month_var].as_long()
-        day = model[self.day_var].as_long()
+        year = model.evaluate(self.year_var, model_completion=True).as_long()
+        month = model.evaluate(self.month_var, model_completion=True).as_long()
+        day = model.evaluate(self.day_var, model_completion=True).as_long()
         return Date(year, month, day)
 
     def __ge__(self, other):
@@ -241,6 +241,19 @@ class DateVar:
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
+    def __ne__(self, other):
+        """Support x != date comparison."""
+        return Not(self.__eq__(other))
+
+    def __gt__(self, other):
+        """Support x > date comparison."""
+        if isinstance(other, Date):
+            return Not(self.__le__(other))
+        elif isinstance(other, DateVar):
+            return Not(self.__le__(other))
+        else:
+            raise TypeError(f"Cannot compare DateVar with {type(other)}")
+
     def __add__(self, other):
         """DateVar + Period using component-based arithmetic with proper day validation."""
         if isinstance(other, Period):
@@ -272,8 +285,29 @@ class DateVar:
 
             return result
         elif isinstance(other, PeriodVar):
-            # For symbolic period addition, create a new DateVar
-            result = DateVar(f"{self.name}_plus_period")
+            # Symbolic period addition using component-wise arithmetic with normalization
+            result = DateVar(f"{self.name}_plus_{other.name}")
+
+            # 1) Add years & months, then normalize months
+            y0 = self.year_var + other.years_var
+            m0 = self.month_var + other.months_var
+            y1, m1 = normalize_month_elegant(y0, m0)
+
+            # 2) Clamp base day into valid range
+            maxd = days_in_month(y1, m1)
+            d0 = self.day_var
+            d1 = If(d0 < 1, 1, If(d0 > maxd, maxd, d0))
+
+            # 3) Add days with bounded carry using symbolic days_var
+            y2, m2, d2 = add_days_with_bounded_carry(y1, m1, d1, other.days_var)
+
+            # 4) Ensure final day is valid
+            maxd_final = days_in_month(y2, m2)
+            final_day = If(d2 < 1, 1, If(d2 > maxd_final, maxd_final, d2))
+
+            result.year_var = y2
+            result.month_var = m2
+            result.day_var = final_day
             return result
         else:
             raise TypeError(f"Cannot add {type(other)} to DateVar")
@@ -284,9 +318,9 @@ class DateVar:
 
     def add_valid_date_constraints(self, solver):
         """Add constraints to ensure this DateVar represents a valid date."""
-        # Basic range constraints
-        # solver.add(self.year_var >= 1900)
-        # solver.add(self.year_var <= 2100)
+        # Basic range constraints (enforce valid civil years)
+        solver.add(self.year_var >= 1900)
+        solver.add(self.year_var <= 2100)
         solver.add(self.month_var >= 1)
         solver.add(self.month_var <= 12)
         solver.add(self.day_var >= 1)
@@ -339,10 +373,27 @@ class PeriodVar:
 
     def to_concrete_period(self, model: ModelRef) -> Period:
         """Convert Z3 model to concrete Period."""
-        years = model[self.years_var].as_long()
-        months = model[self.months_var].as_long()
-        days = model[self.days_var].as_long()
+        years = model.evaluate(self.years_var, model_completion=True).as_long()
+        months = model.evaluate(self.months_var, model_completion=True).as_long()
+        days = model.evaluate(self.days_var, model_completion=True).as_long()
         return Period(years, months, days)
+
+    def __eq__(self, other):
+        """Support equality with concrete Period or another PeriodVar."""
+        if isinstance(other, Period):
+            return And(
+                self.years_var == other.years,
+                self.months_var == other.months,
+                self.days_var == other.days,
+            )
+        elif isinstance(other, PeriodVar):
+            return And(
+                self.years_var == other.years_var,
+                self.months_var == other.months_var,
+                self.days_var == other.days_var,
+            )
+        else:
+            raise TypeError(f"Cannot compare PeriodVar with {type(other)}")
 
 
 class DateSolver:
@@ -369,6 +420,14 @@ class DateSolver:
         """Add a symbolic period variable."""
         period_var = PeriodVar(name)
         self.period_vars[name] = period_var
+        # Add conservative bounds to keep arithmetic well-formed
+        # Years within +/- 200, months within +/- 120, days within +/- 400
+        self.solver.add(period_var.years_var >= -200)
+        self.solver.add(period_var.years_var <= 200)
+        self.solver.add(period_var.months_var >= -120)
+        self.solver.add(period_var.months_var <= 120)
+        self.solver.add(period_var.days_var >= -400)
+        self.solver.add(period_var.days_var <= 400)
         return period_var
 
     def add_constraint(self, constraint: BoolRef):
