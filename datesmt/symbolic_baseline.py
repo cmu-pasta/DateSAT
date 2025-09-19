@@ -183,6 +183,7 @@ class DateVar:
                 ),
             )
         else:
+
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
     def __le__(self, other):
@@ -213,6 +214,7 @@ class DateVar:
                 ),
             )
         else:
+
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
     def __lt__(self, other):
@@ -222,6 +224,7 @@ class DateVar:
         elif isinstance(other, DateVar):
             return Not(self.__ge__(other))
         else:
+
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
     def __eq__(self, other):
@@ -239,11 +242,8 @@ class DateVar:
                 self.day_var == other.day_var,
             )
         else:
-            raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
-    def __ne__(self, other):
-        """Support x != date comparison."""
-        return Not(self.__eq__(other))
+            raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
     def __gt__(self, other):
         """Support x > date comparison."""
@@ -252,6 +252,7 @@ class DateVar:
         elif isinstance(other, DateVar):
             return Not(self.__le__(other))
         else:
+
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
     def __add__(self, other):
@@ -310,6 +311,7 @@ class DateVar:
             result.day_var = final_day
             return result
         else:
+
             raise TypeError(f"Cannot add {type(other)} to DateVar")
 
     def __radd__(self, other):
@@ -393,7 +395,12 @@ class PeriodVar:
                 self.days_var == other.days_var,
             )
         else:
+
             raise TypeError(f"Cannot compare PeriodVar with {type(other)}")
+
+    def __ne__(self, other):
+        """Support inequality with concrete Period or another PeriodVar."""
+        return Not(self.__eq__(other))
 
 
 class DateSolver:
@@ -467,6 +474,7 @@ class DateSolver:
                 'periods': self.get_concrete_periods(model),
             }
         else:
+
             return {'status': 'unsat', 'dates': {}, 'periods': {}}
 
     def to_smt2(self) -> str:
