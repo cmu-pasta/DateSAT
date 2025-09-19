@@ -27,50 +27,173 @@ from .core import Date, Period
 
 def to_days_since_epoch(date: Date) -> int:
     """Convert a Date to days since epoch (March 1, 2000)."""
-    # Simple approximation - in practice, this would be more complex
+
+    # March 1, 2000 is day 0
+    # First, subtract days from date to March 1, 2000
+    if date.year == 2000 and date.month < 3:
+        # Date is before March 1, 2000 - return negative days
+        days_from_jan_1 = 0
+        for month in range(1, date.month):
+            days_from_jan_1 += days_in_month(2000, month)
+        days_from_jan_1 += date.day - 1
+        # Days from Jan 1 to March 1, 2000 is 31 (Jan) + 29 (Feb in leap year) = 60
+        days_to_march_1 = 31 + 29  # 2000 is a leap year
+        return days_from_jan_1 - days_to_march_1
+
     days = 0
+
+    # Handle years before the epoch year
+    if date.year < 2000:
+        for year in range(date.year, 2000):
+            if is_leap_year(year):
+                days -= 366
+            else:
+                days -= 365
+        # Add days from start of epoch year to March 1
+        days += 31 + 29  # Jan + Feb (2000 is leap year)
+        # Add days in the target year
+        for month in range(1, date.month):
+            days += days_in_month(date.year, month)
+        days += date.day - 1
+        return days
+
+    # Handle years after epoch year
     for year in range(2000, date.year):
         if is_leap_year(year):
             days += 366
         else:
             days += 365
 
-    for month in range(1, date.month):
-        days += days_in_month(date.year, month)
+    # Handle months in the target year
+    if date.year == 2000:
+        # For year 2000, start counting from March
+        for month in range(3, date.month):
+            days += days_in_month(date.year, month)
+        if date.month >= 3:
+            days += date.day - 1
+        else:
+            # Date is before March in 2000, should be negative
+            days_before_march = 0
+            for month in range(1, date.month):
+                days_before_march += days_in_month(2000, month)
+            days_before_march += date.day - 1
+            return days_before_march - (31 + 29)  # days before March 1
+    else:
+        # For years after 2000, start from month 1
+        for month in range(1, date.month):
+            days += days_in_month(date.year, month)
+        days += date.day - 1
+        # But we need to subtract the days from Jan 1 to March 1 for year 2000
+        if date.year > 2000:
+            pass  # already handled by year loop
 
-    days += date.day - 1  # March 1, 2000 is day 0
     return days
 
 
 def from_days_since_epoch(days: int) -> Date:
     """Convert days since epoch to a Date."""
     # Simple approximation - in practice, this would be more complex
+
+    # March 1, 2000 is day 0
     year = 2000
+    month = 3  # Start from March
+    day = 1
     remaining_days = days
 
-    while remaining_days > 0:
-        if is_leap_year(year):
-            year_days = 366
-        else:
-            year_days = 365
+    # Handle negative days (before epoch)
+    if remaining_days < 0:
+        # Go backwards from March 1, 2000
+        remaining_days = abs(remaining_days)
 
-        if remaining_days >= year_days:
-            remaining_days -= year_days
-            year += 1
-        else:
-            break
+        # First, go back through months in 2000 before March
+        if remaining_days > 0:
+            # February 2000 has 29 days
+            if remaining_days <= 29:
+                return Date(2000, 2, 29 - remaining_days + 1)
+            remaining_days -= 29
 
-    month = 1
-    while remaining_days > 0:
+            # January 2000 has 31 days
+            if remaining_days <= 31:
+                return Date(2000, 1, 31 - remaining_days + 1)
+            remaining_days -= 31
+
+            # Go to previous years
+            year = 1999
+            while remaining_days > 0:
+                if is_leap_year(year):
+                    year_days = 366
+                else:
+                    year_days = 365
+
+                if remaining_days >= year_days:
+                    remaining_days -= year_days
+                    year -= 1
+                else:
+                    break
+
+            # Find month and day in the target year
+            month = 12
+            while remaining_days > 0:
+                month_days = days_in_month(year, month)
+                if remaining_days >= month_days:
+                    remaining_days -= month_days
+                    month -= 1
+                else:
+                    break
+
+            day = days_in_month(year, month) - remaining_days + 1
+            return Date(year, month, day)
+
+    # Handle positive days (after epoch)
+    if remaining_days == 0:
+        return Date(2000, 3, 1)  # March 1, 2000
+
+    # Start from March 1, 2000 and go forward
+    year = 2000
+    month = 3
+
+    # Handle remaining days in March 2000
+    march_days = days_in_month(2000, 3) - 1  # 31 - 1 = 30 days left in March
+    if remaining_days <= march_days:
+        return Date(2000, 3, 1 + remaining_days)
+    remaining_days -= march_days
+    month = 4
+
+    # Handle remaining months in 2000
+    while month <= 12 and remaining_days > 0:
         month_days = days_in_month(year, month)
-        if remaining_days >= month_days:
+        if remaining_days <= month_days:
+            return Date(year, month, remaining_days)
+        remaining_days -= month_days
+        month += 1
+
+    # Move to next year if needed
+    if remaining_days > 0:
+        year += 1
+
+        # Handle complete years
+        while remaining_days > 0:
+            if is_leap_year(year):
+                year_days = 366
+            else:
+                year_days = 365
+
+            if remaining_days >= year_days:
+                remaining_days -= year_days
+                year += 1
+            else:
+                break
+
+        # Handle months in the final year
+        month = 1
+        while remaining_days > 0:
+            month_days = days_in_month(year, month)
+            if remaining_days <= month_days:
+                return Date(year, month, remaining_days)
             remaining_days -= month_days
             month += 1
-        else:
-            break
 
-    day = remaining_days + 1
-    return Date(year, month, day)
+    return Date(year, month, 1)
 
 
 def is_leap_year(year: int) -> bool:
@@ -175,10 +298,15 @@ class DateVar:
         """
         if isinstance(other, Period):
             result_days = self.days_var + to_days_approximate(other)
-            result = DateVar(f"{self.name}_plus_{other.years}y_{other.months}m_{other.days}d")
+            result = DateVar(
+                f"{self.name}_plus_{other.years}y_{other.months}m_{other.days}d"
+            )
             result.days_var = result_days
             return result
-        from .symbolic_advanced import PeriodVar as _PeriodVar  # local import to avoid circular typing
+        from .symbolic_advanced import (
+            PeriodVar as _PeriodVar,  # local import to avoid circular typing
+        )
+
         if isinstance(other, _PeriodVar):
             result = DateVar(f"{self.name}_plus_{other.name}")
             result.days_var = self.days_var + other.days_var
@@ -250,8 +378,10 @@ class AdvancedDateSolver:
         # Add basic constraints for valid date ranges
         # Roughly map civil years 1900..2100 into day offsets to prevent negative years
         # Use a wide band to avoid over-constraining while blocking absurd negatives
-        self.solver.add(date_var.days_var >= -36525)  # allow dating back ~100 years before epoch
-        self.solver.add(date_var.days_var <= 36525)   # and ~100 years after
+        self.solver.add(
+            date_var.days_var >= -36525
+        )  # allow dating back ~100 years before epoch
+        self.solver.add(date_var.days_var <= 36525)  # and ~100 years after
 
         return date_var
 

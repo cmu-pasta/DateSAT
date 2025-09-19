@@ -16,18 +16,33 @@ class Date:
 
     def __init__(self, year: int, month: int, day: int):
         """Initialize a Date with year, month, day components."""
-        self.year = year
-        self.month = month
-        self.day = day
+        self._year = year
+        self._month = month
+        self._day = day
         self._validate()
+
+    @property
+    def year(self):
+        """Get the year component."""
+        return self._year
+
+    @property
+    def month(self):
+        """Get the month component."""
+        return self._month
+
+    @property
+    def day(self):
+        """Get the day component."""
+        return self._day
 
     def _validate(self):
         """Validate that the date components are valid."""
         try:
-            date(self.year, self.month, self.day)
+            date(self._year, self._month, self._day)
         except ValueError as e:
             raise ValueError(
-                f"Invalid date: {self.year}-{self.month:02d}-{self.day:02d}"
+                f"Invalid date: {self._year}-{self._month:02d}-{self._day:02d}"
             ) from e
 
     def __str__(self):
@@ -35,6 +50,10 @@ class Date:
 
     def __repr__(self):
         return self.__str__()
+
+    def __hash__(self):
+        """Return hash value for Date object."""
+        return hash((self.year, self.month, self.day))
 
     def __eq__(self, other):
         """Check if two dates are equal."""
@@ -61,15 +80,34 @@ class Period:
 
     def __init__(self, years: int, months: int, days: int):
         """Initialize a Period with years, months, days components."""
-        self.years = years
-        self.months = months
-        self.days = days
+        self._years = years
+        self._months = months
+        self._days = days
+
+    @property
+    def years(self):
+        """Get the years component."""
+        return self._years
+
+    @property
+    def months(self):
+        """Get the months component."""
+        return self._months
+
+    @property
+    def days(self):
+        """Get the days component."""
+        return self._days
 
     def __str__(self):
         return f"Period({self.years}, {self.months}, {self.days})"
 
     def __repr__(self):
         return self.__str__()
+
+    def __hash__(self):
+        """Return hash value for Period object."""
+        return hash((self.years, self.months, self.days))
 
     def __eq__(self, other):
         """Check if two periods are equal."""

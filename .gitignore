@@ -208,6 +208,5 @@ __marimo__/
 
 Miniforge3-MacOSX-arm64.sh
 
-tests/
 results/
 *.json

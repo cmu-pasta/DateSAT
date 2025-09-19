@@ -8,12 +8,7 @@ expressing and solving date/time constraints using Z3.
 from .core import Date, Period
 from .symbolic_advanced import DateVar as AdvancedDateVar
 from .symbolic_advanced import PeriodVar as AdvancedPeriodVar
-from .symbolic_api import (
-    DateSMTBuilder,
-    solve_constraint_example_1,
-    solve_constraint_example_2,
-    solve_motivating_example,
-)
+from .symbolic_api import DateSMTBuilder
 from .symbolic_baseline import DateVar as BaselineDateVar
 from .symbolic_baseline import PeriodVar as BaselinePeriodVar
 
@@ -26,7 +21,4 @@ __all__ = [
     "AdvancedDateVar",
     "AdvancedPeriodVar",
     "DateSMTBuilder",
-    "solve_motivating_example",
-    "solve_constraint_example_1",
-    "solve_constraint_example_2",
 ]

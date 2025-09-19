@@ -57,28 +57,20 @@ def test_constraint_with_approach(constraint_data: dict, approach: str) -> dict:
     try:
         start_time = time.time()
 
-        # Create solver
-        builder = DateSMTBuilder(approach)
-
-        # Add variables
-        var_objects = {}
-        for var in variables:
-            if var in ['x', 'y', 'z']:
-                var_objects[var] = builder.add_date_var(var)
-            elif var in ['p', 'q', 'r']:
-                var_objects[var] = builder.add_period_var(var)
-
-        # Execute the constraint code
+        # Execute the constraint code (which creates its own builder and variables)
+        # This avoids the duplicate constraint issue
         exec_globals = {
             'Date': Date,
             'Period': Period,
             'DateSMTBuilder': DateSMTBuilder,
-            'builder': builder,
-            'add_constraint': builder.add_constraint,
-            **var_objects,
         }
 
         exec(constraint_code, exec_globals)
+
+        # Get the builder from the executed code
+        builder = exec_globals.get('result') or exec_globals.get('builder')
+        if not builder:
+            raise RuntimeError("Constraint code did not create a builder")
 
         # Capture SMT-LIB encoding before solving and store it in result
         result["smtlib"] = builder.to_smt2()
