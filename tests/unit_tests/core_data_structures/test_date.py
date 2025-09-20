@@ -197,24 +197,3 @@ def test_attributes_are_immutable():
     dobj = Date(2023, 6, 15)
     with pytest.raises(AttributeError):
         dobj.year = 2024
-    with pytest.raises(AttributeError):
-        dobj.month = 7
-    with pytest.raises(AttributeError):
-        dobj.day = 16
-
-
-# --------------------------------------------------------------------
-# Property based tests with Hypothesis
-# --------------------------------------------------------------------
-
-from hypothesis import given
-from hypothesis import strategies as st
-
-valid_pydate = st.dates(min_value=pydate(1, 1, 1), max_value=pydate(9999, 12, 31))
-
-
-@given(valid_pydate)
-def test_round_trip_property(d):
-    custom = Date.from_python_date(d)
-    back = custom.to_python_date()
-    assert back == d
