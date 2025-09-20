@@ -18,7 +18,7 @@ class TestDaysInMonthCalculation:
         regular_months = days_in_month_data['regular_months']
 
         for month, expected_days in regular_months.items():
-            from z3 import Int, Solver, sat
+            from z3 import Int, Solver, sat, unsat
 
             solver = Solver()
             year_var = Int('year')
@@ -38,7 +38,7 @@ class TestDaysInMonthCalculation:
         expected_days = days_in_month_data['february_leap']
 
         for year in leap_years:
-            from z3 import Int, Solver, sat
+            from z3 import Int, Solver, sat, unsat
 
             solver = Solver()
             year_var = Int('year')
@@ -61,7 +61,7 @@ class TestDaysInMonthCalculation:
         expected_days = days_in_month_data['february_non_leap']
 
         for year in non_leap_years:
-            from z3 import Int, Solver, sat
+            from z3 import Int, Solver, sat, unsat
 
             solver = Solver()
             year_var = Int('year')
@@ -83,7 +83,7 @@ class TestDaysInMonthCalculation:
         century_leap_years = [1600, 2000, 2400]
 
         for year in century_leap_years:
-            from z3 import Int, Solver, sat
+            from z3 import Int, Solver, sat, unsat
 
             solver = Solver()
             year_var = Int('year')
@@ -105,7 +105,7 @@ class TestDaysInMonthCalculation:
         century_non_leap_years = [1700, 1800, 1900, 2100, 2200, 2300]
 
         for year in century_non_leap_years:
-            from z3 import Int, Solver, sat
+            from z3 import Int, Solver, sat, unsat
 
             solver = Solver()
             year_var = Int('year')
@@ -141,7 +141,7 @@ class TestDaysInMonthCalculation:
         }
 
         for month, expected_days in month_days.items():
-            from z3 import Int, Solver, sat
+            from z3 import Int, Solver, sat, unsat
 
             solver = Solver()
             year_var = Int('year')
@@ -164,7 +164,7 @@ class TestDaysInMonthCalculation:
         leap_years = [2004, 2008, 2012, 2016, 2020, 2024]
 
         for year in leap_years:
-            from z3 import Int, Solver, sat
+            from z3 import Int, Solver, sat, unsat
 
             solver = Solver()
             year_var = Int('year')
@@ -184,7 +184,7 @@ class TestDaysInMonthCalculation:
         invalid_months = [0, 13, -1, 14]
 
         for month in invalid_months:
-            from z3 import Int, Solver, sat
+            from z3 import Int, Solver, sat, unsat
 
             solver = Solver()
             year_var = Int('year')
@@ -234,7 +234,7 @@ class TestDaysInMonthZ3Expression:
 
     def test_days_in_month_with_concrete_values(self):
         """Test days_in_month with concrete month and year values."""
-        from z3 import Int, Solver, sat
+        from z3 import Int, Solver, sat, unsat
 
         # Test with a known month and year
         solver = Solver()
@@ -252,7 +252,7 @@ class TestDaysInMonthZ3Expression:
 
     def test_days_in_month_february_edge_cases(self):
         """Test February edge cases with concrete values."""
-        from z3 import Int, Solver, sat
+        from z3 import Int, Solver, sat, unsat
 
         # Test February in leap year
         solver = Solver()

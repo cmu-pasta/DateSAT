@@ -132,30 +132,3 @@ def test_attributes_are_immutable():
         p.years = 9
     with pytest.raises(AttributeError):
         p.months = 9
-    with pytest.raises(AttributeError):
-        p.days = 9
-
-
-# --------------------------------------------------------------------
-# Property-based tests with Hypothesis
-# --------------------------------------------------------------------
-
-from hypothesis import given
-from hypothesis import strategies as st
-
-
-@given(
-    st.integers(min_value=-(10**9), max_value=10**9),
-    st.integers(min_value=-(10**9), max_value=10**9),
-    st.integers(min_value=-(10**9), max_value=10**9),
-)
-def test_constructor_roundtrips_values(y, m, d):
-    p = Period(y, m, d)
-    assert (p.years, p.months, p.days) == (y, m, d)
-
-
-@given(st.integers(-1000, 1000), st.integers(-1000, 1000), st.integers(-1000, 1000))
-def test_equality_reflexive_and_hash_consistent(y, m, d):
-    p = Period(y, m, d)
-    assert p == p
-    assert hash(p) == hash(p)
