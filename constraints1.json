@@ -1,0 +1,136 @@
+[
+  {
+    "id": "1758086606-1",
+    "description": "Check if a date is February 29 in a leap year",
+    "constraint_code": "builder = DateSMTBuilder()\nx = builder.add_date_var(\"x\")\nbuilder.add_constraint(x >= Date(2000, 2, 28))\nbuilder.add_constraint(x <= Date(2000, 3, 1))\nbuilder.add_constraint(x != Date(2000, 2, 28))\nbuilder.add_constraint(x != Date(2000, 3, 1))\nresult = builder",
+    "variables": [
+      "x"
+    ],
+    "coverage_tags": [
+      "leap_boundary"
+    ],
+    "expected_satisfiable": true
+  },
+  {
+    "id": "1758086606-2",
+    "description": "Adding 1 month vs adding 30 days can produce different results at month boundaries",
+    "constraint_code": "builder = DateSMTBuilder()\nx = builder.add_date_var(\"x\")\nbuilder.add_constraint(x >= Date(2023, 1, 1))\nbuilder.add_constraint(x <= Date(2023, 1, 31))\nbuilder.add_constraint((x + Period(0, 1, 0)) != (x + Period(0, 0, 30)))\nresult = builder",
+    "variables": [
+      "x"
+    ],
+    "coverage_tags": [
+      "month_vs_days",
+      "eom"
+    ],
+    "expected_satisfiable": true
+  },
+  {
+    "id": "1758086606-3",
+    "description": "Adding 1 year vs 366 days differs when crossing leap year boundaries",
+    "constraint_code": "builder = DateSMTBuilder()\nx = builder.add_date_var(\"x\")\nbuilder.add_constraint(x >= Date(2019, 12, 1))\nbuilder.add_constraint(x <= Date(2020, 2, 29))\nbuilder.add_constraint((x + Period(1, 0, 0)) != (x + Period(0, 0, 366)))\nresult = builder",
+    "variables": [
+      "x"
+    ],
+    "coverage_tags": [
+      "year_vs_days",
+      "leap_boundary"
+    ],
+    "expected_satisfiable": true
+  },
+  {
+    "id": "1758086606-4",
+    "description": "Chain of period additions that requires normalization",
+    "constraint_code": "builder = DateSMTBuilder()\nx = builder.add_date_var(\"x\")\ny = builder.add_date_var(\"y\")\nbuilder.add_constraint(x == Date(2022, 1, 15))\nbuilder.add_constraint(y == x + Period(0, 13, 40))\nbuilder.add_constraint(y != Date(2023, 2, 24))\nresult = builder",
+    "variables": [
+      "x",
+      "y"
+    ],
+    "coverage_tags": [
+      "chain_add"
+    ],
+    "expected_satisfiable": false
+  },
+  {
+    "id": "1758086606-5",
+    "description": "Three dates must be exactly 1 month apart within a specific range",
+    "constraint_code": "builder = DateSMTBuilder()\nx = builder.add_date_var(\"x\")\ny = builder.add_date_var(\"y\")\nz = builder.add_date_var(\"z\")\nbuilder.add_constraint(x >= Date(2022, 1, 1))\nbuilder.add_constraint(z <= Date(2022, 5, 31))\nbuilder.add_constraint(y == x + Period(0, 1, 0))\nbuilder.add_constraint(z == y + Period(0, 1, 0))\nbuilder.add_constraint(z - x == Period(0, 2, 0))\nresult = builder",
+    "variables": [
+      "x",
+      "y",
+      "z"
+    ],
+    "coverage_tags": [
+      "multi_var",
+      "ineq_window"
+    ],
+    "expected_satisfiable": true
+  },
+  {
+    "id": "1758086606-6",
+    "description": "End-of-month rollover from a 31-day month to a 30-day month",
+    "constraint_code": "builder = DateSMTBuilder()\nx = builder.add_date_var(\"x\")\ny = builder.add_date_var(\"y\")\nbuilder.add_constraint(x == Date(2023, 1, 31))\nbuilder.add_constraint(y == x + Period(0, 3, 0))\nbuilder.add_constraint(y == Date(2023, 4, 30))\nresult = builder",
+    "variables": [
+      "x",
+      "y"
+    ],
+    "coverage_tags": [
+      "eom"
+    ],
+    "expected_satisfiable": true
+  },
+  {
+    "id": "1758086606-7",
+    "description": "Tight inequality window that is unsatisfiable",
+    "constraint_code": "builder = DateSMTBuilder()\nx = builder.add_date_var(\"x\")\nbuilder.add_constraint(x > Date(2022, 2, 28))\nbuilder.add_constraint(x < Date(2022, 3, 1))\nresult = builder",
+    "variables": [
+      "x"
+    ],
+    "coverage_tags": [
+      "ineq_window"
+    ],
+    "expected_satisfiable": false
+  },
+  {
+    "id": "1758086606-8",
+    "description": "Complex chain of period arithmetic with multiple variables",
+    "constraint_code": "builder = DateSMTBuilder()\nx = builder.add_date_var(\"x\")\ny = builder.add_date_var(\"y\")\np = builder.add_period_var(\"p\")\nq = builder.add_period_var(\"q\")\nbuilder.add_constraint(x == Date(2020, 1, 1))\nbuilder.add_constraint(p == Period(0, 3, 15))\nbuilder.add_constraint(q == Period(0, 1, 20))\nbuilder.add_constraint(y == x + p + q - Period(0, 0, 5))\nbuilder.add_constraint(y == Date(2020, 5, 30))\nresult = builder",
+    "variables": [
+      "x",
+      "y",
+      "p",
+      "q"
+    ],
+    "coverage_tags": [
+      "chain_add",
+      "multi_var"
+    ],
+    "expected_satisfiable": true
+  },
+  {
+    "id": "1758086606-9",
+    "description": "Date transitions across leap year February boundary",
+    "constraint_code": "builder = DateSMTBuilder()\nx = builder.add_date_var(\"x\")\ny = builder.add_date_var(\"y\")\nbuilder.add_constraint(x == Date(2020, 2, 29))\nbuilder.add_constraint(y == x + Period(1, 0, 0))\nbuilder.add_constraint(y != Date(2021, 2, 28))\nresult = builder",
+    "variables": [
+      "x",
+      "y"
+    ],
+    "coverage_tags": [
+      "leap_boundary",
+      "year_vs_days"
+    ],
+    "expected_satisfiable": false
+  },
+  {
+    "id": "1758086606-10",
+    "description": "Find dates where adding 2 months equals adding 61 days",
+    "constraint_code": "builder = DateSMTBuilder()\nx = builder.add_date_var(\"x\")\nbuilder.add_constraint(x >= Date(2023, 1, 1))\nbuilder.add_constraint(x <= Date(2023, 12, 31))\nbuilder.add_constraint((x + Period(0, 2, 0)) == (x + Period(0, 0, 61)))\nresult = builder",
+    "variables": [
+      "x"
+    ],
+    "coverage_tags": [
+      "month_vs_days",
+      "eom"
+    ],
+    "expected_satisfiable": true
+  }
+]
