@@ -26,7 +26,7 @@ class TestEpochConversionProperties:
         reconstructed = from_days_since_epoch(epoch_days)
         assert reconstructed == custom_date
 
-    @given(st.integers(min_value=-36525, max_value=36525))  # ~100 years around epoch
+    @given(st.integers(min_value=-36525, max_value=36525))  # ~100 years around epoch (March 1, 2000)
     def test_epoch_conversion_inverse_roundtrip(self, days):
         """Converting from epoch and back should preserve the day count."""
         try:
