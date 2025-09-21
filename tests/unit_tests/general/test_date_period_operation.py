@@ -97,6 +97,45 @@ def get_period_arithmetic_test_cases():
         (Date(2021, 1, 30), Period(0, 1, 1),  Date(2021, 3, 1)),   
         (Date(2020, 4, 30), Period(0, 1, 1),  Date(2020, 5, 31)),  
         (Date(2020, 5, 31), Period(0, 1, 1),  Date(2020, 7, 1)), 
+        
+        # Additional edge cases for comprehensive coverage
+        # Year jumps across leap years
+        (Date(2020, 2, 29), Period(1, 0, 0),  Date(2021, 2, 28)),   # Feb 29 + 1 year = Feb 28 (non-leap)
+        (Date(2024, 2, 29), Period(1, 0, 0),  Date(2025, 2, 28)),   # Feb 29 + 1 year = Feb 28 (non-leap)
+        (Date(2020, 2, 29), Period(4, 0, 0),  Date(2024, 2, 29)),   # Feb 29 + 4 years = Feb 29 (leap)
+        (Date(2020, 2, 29), Period(2, 0, 0),  Date(2022, 2, 28)),   # Feb 29 + 2 years = Feb 28 (non-leap)
+        (Date(2020, 2, 29), Period(3, 0, 0),  Date(2023, 2, 28)),   # Feb 29 + 3 years = Feb 28 (non-leap)
+        (Date(2020, 2, 29), Period(5, 0, 0),  Date(2025, 2, 28)),   # Feb 29 + 5 years = Feb 28 (non-leap)
+        (Date(2020, 2, 29), Period(8, 0, 0),  Date(2028, 2, 29)),   # Feb 29 + 8 years = Feb 29 (leap)
+        
+        # Month jumps with varying lengths - comprehensive coverage
+        (Date(2020, 1, 31), Period(0, 1, 0),  Date(2020, 2, 29)),   # Jan 31 + 1 month = Feb 29 (leap)
+        (Date(2021, 1, 31), Period(0, 1, 0),  Date(2021, 2, 28)),   # Jan 31 + 1 month = Feb 28 (non-leap)
+        (Date(2020, 1, 31), Period(0, 2, 0),  Date(2020, 3, 31)),   # Jan 31 + 2 months = Mar 31
+        (Date(2020, 1, 31), Period(0, 3, 0),  Date(2020, 4, 30)),   # Jan 31 + 3 months = Apr 30
+        (Date(2020, 1, 31), Period(0, 12, 0), Date(2021, 1, 31)),   # Jan 31 + 12 months = Jan 31 next year
+        
+        # Four-year cycle math for leap years
+        (Date(2020, 2, 29), Period(1, 0, 0),  Date(2021, 2, 28)),   # +1 year
+        (Date(2020, 2, 29), Period(2, 0, 0),  Date(2022, 2, 28)),   # +2 years
+        (Date(2020, 2, 29), Period(3, 0, 0),  Date(2023, 2, 28)),   # +3 years
+        (Date(2020, 2, 29), Period(4, 0, 0),  Date(2024, 2, 29)),   # +4 years (leap year)
+        (Date(2020, 2, 29), Period(5, 0, 0),  Date(2025, 2, 28)),   # +5 years
+        (Date(2020, 2, 29), Period(8, 0, 0),  Date(2028, 2, 29)),   # +8 years (leap year)
+        
+        # Month lookup path validation - all months with max days
+        (Date(2020, 1, 31), Period(0, 1, 0),  Date(2020, 2, 29)),   # Jan 31 + 1 month = Feb 29
+        (Date(2020, 2, 29), Period(0, 1, 0),  Date(2020, 3, 29)),   # Feb 29 + 1 month = Mar 29
+        (Date(2020, 3, 31), Period(0, 1, 0),  Date(2020, 4, 30)),   # Mar 31 + 1 month = Apr 30
+        (Date(2020, 4, 30), Period(0, 1, 0),  Date(2020, 5, 30)),   # Apr 30 + 1 month = May 30
+        (Date(2020, 5, 31), Period(0, 1, 0),  Date(2020, 6, 30)),   # May 31 + 1 month = Jun 30
+        (Date(2020, 6, 30), Period(0, 1, 0),  Date(2020, 7, 30)),   # Jun 30 + 1 month = Jul 30
+        (Date(2020, 7, 31), Period(0, 1, 0),  Date(2020, 8, 31)),   # Jul 31 + 1 month = Aug 31
+        (Date(2020, 8, 31), Period(0, 1, 0),  Date(2020, 9, 30)),   # Aug 31 + 1 month = Sep 30
+        (Date(2020, 9, 30), Period(0, 1, 0),  Date(2020, 10, 30)),  # Sep 30 + 1 month = Oct 30
+        (Date(2020, 10, 31), Period(0, 1, 0), Date(2020, 11, 30)),  # Oct 31 + 1 month = Nov 30
+        (Date(2020, 11, 30), Period(0, 1, 0), Date(2020, 12, 30)),  # Nov 30 + 1 month = Dec 30
+        (Date(2020, 12, 31), Period(0, 1, 0), Date(2021, 1, 31)),   # Dec 31 + 1 month = Jan 31
     ]
 
 
