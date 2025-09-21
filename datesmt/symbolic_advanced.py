@@ -322,10 +322,11 @@ class AdvancedDateSolver:
         # Add basic constraints for valid date ranges
         # Roughly map civil years 1900..2100 into day offsets to prevent negative years
         # Use a wide band to avoid over-constraining while blocking absurd negatives
+        # Epoch is March 1, 2000, so ~100 years = 36525 days
         self.solver.add(
             date_var.days_var >= -36525
-        )  # allow dating back ~100 years before epoch
-        self.solver.add(date_var.days_var <= 36525)  # and ~100 years after
+        )  # allow dating back ~100 years before epoch (March 1, 2000)
+        self.solver.add(date_var.days_var <= 36525)  # and ~100 years after epoch
 
         return date_var
 
