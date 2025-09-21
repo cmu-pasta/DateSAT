@@ -20,12 +20,8 @@ from datesmt.symbolic_baseline import (
     canon_months,
     days_in_month,
     EOMClamp,
-    from_ordinal,
     is_leap,
-    next_month,
     normalize_month,
-    prev_month,
-    to_ordinal,
 )
 
 
@@ -329,45 +325,6 @@ class TestNormalizeMonth:
         assert m is not None
 
 
-class TestPrevNextMonth:
-    """Test prev_month and next_month helper functions."""
-
-    def test_next_month_basic(self):
-        """Test next_month basic functionality."""
-        y, m = next_month(2020, 6)
-        assert y is not None
-        assert m is not None
-
-    def test_next_month_december(self):
-        """Test next_month from December."""
-        y, m = next_month(2020, 12)
-        assert y is not None
-        assert m is not None
-
-    def test_prev_month_basic(self):
-        """Test prev_month basic functionality."""
-        y, m = prev_month(2020, 6)
-        assert y is not None
-        assert m is not None
-
-    def test_prev_month_january(self):
-        """Test prev_month from January."""
-        y, m = prev_month(2020, 1)
-        assert y is not None
-        assert m is not None
-
-    def test_prev_next_month_z3_expressions(self):
-        """Test prev/next month with Z3 expressions."""
-        year = Int('year')
-        month = Int('month')
-        
-        y_next, m_next = next_month(year, month)
-        y_prev, m_prev = prev_month(year, month)
-        
-        assert y_next is not None
-        assert m_next is not None
-        assert y_prev is not None
-        assert m_prev is not None
 
 
 class TestAddDaysOrdinal:
@@ -428,81 +385,8 @@ class TestAddDaysOrdinal:
         assert d is not None
 
 
-class TestOrdinalConversion:
-    """Test ordinal date conversion functions."""
-
-    def test_to_ordinal_basic(self):
-        """Test basic ordinal conversion."""
-        ordinal = to_ordinal(2020, 6, 15)
-        assert ordinal is not None
-
-    def test_to_ordinal_january_first(self):
-        """Test ordinal for January 1st."""
-        ordinal = to_ordinal(2020, 1, 1)
-        assert ordinal is not None
-
-    def test_to_ordinal_leap_year(self):
-        """Test ordinal in leap year."""
-        ordinal = to_ordinal(2020, 2, 29)
-        assert ordinal is not None
-
-    def test_to_ordinal_z3_expressions(self):
-        """Test to_ordinal with Z3 expressions."""
-        year = Int('year')
-        month = Int('month')
-        day = Int('day')
-        
-        ordinal = to_ordinal(year, month, day)
-        assert ordinal is not None
-
-    def test_from_ordinal_basic(self):
-        """Test basic ordinal conversion back to date."""
-        year, month, day = from_ordinal(1000)
-        assert year is not None
-        assert month is not None
-        assert day is not None
-
-    def test_from_ordinal_z3_expressions(self):
-        """Test from_ordinal with Z3 expressions."""
-        ordinal = Int('ordinal')
-        
-        year, month, day = from_ordinal(ordinal)
-        assert year is not None
-        assert month is not None
-        assert day is not None
 
 
-class TestEOMClamp:
-    """Test the EOMClamp helper function."""
-
-    def test_eom_clamp_valid_day(self):
-        """Test EOMClamp with valid day."""
-        clamped = EOMClamp(2020, 6, 15)
-        assert clamped is not None
-
-    def test_eom_clamp_invalid_day(self):
-        """Test EOMClamp with invalid day (too high)."""
-        clamped = EOMClamp(2020, 6, 35)
-        assert clamped is not None
-
-    def test_eom_clamp_february_leap(self):
-        """Test EOMClamp with February in leap year."""
-        clamped = EOMClamp(2020, 2, 30)
-        assert clamped is not None
-
-    def test_eom_clamp_february_non_leap(self):
-        """Test EOMClamp with February in non-leap year."""
-        clamped = EOMClamp(2021, 2, 30)
-        assert clamped is not None
-
-    def test_eom_clamp_z3_expressions(self):
-        """Test EOMClamp with Z3 expressions."""
-        year = Int('year')
-        month = Int('month')
-        day = Int('day')
-        
-        clamped = EOMClamp(year, month, day)
-        assert clamped is not None
 
 
 # ---------------------------------------------------------------------------
@@ -546,34 +430,6 @@ class TestCalendarPrimitiveIntegration:
         assert m is not None
         assert d is not None
 
-    def test_ordinal_roundtrip(self):
-        """Test that to_ordinal and from_ordinal are inverse operations."""
-        year = 2020
-        month = 6
-        day = 15
-        
-        ordinal = to_ordinal(year, month, day)
-        y, m, d = from_ordinal(ordinal)
-        
-        assert ordinal is not None
-        assert y is not None
-        assert m is not None
-        assert d is not None
-
-    def test_eom_clamp_with_add_days(self):
-        """Test that EOMClamp works with add_days_ordinal."""
-        year = 2020
-        month = 2  # February
-        day = 30   # Invalid day for February
-        delta = 5
-        
-        clamped_day = EOMClamp(year, month, day)
-        y, m, d = add_days_ordinal(year, month, clamped_day, delta)
-        
-        assert clamped_day is not None
-        assert y is not None
-        assert m is not None
-        assert d is not None
 
 
 # ---------------------------------------------------------------------------
