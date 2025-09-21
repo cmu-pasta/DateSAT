@@ -41,16 +41,6 @@ def days_in_month(year, month):
     )
 
 
-def next_month(y, m):
-    """Get the next month, handling year rollover."""
-    return normalize_month(y, m + 1)
-
-
-def prev_month(y, m):
-    """Get the previous month, handling year rollover."""
-    return normalize_month(y, m - 1)
-
-
 def normalize_month(y, m):
     """
     NormMonth(y,m) = (y + ((m-1) div 12), ((m-1) mod 12) + 1)
@@ -100,30 +90,7 @@ def days_before_month(y, m):
     for i in range(1, 13):
         expr = If(m == IntVal(i), _dbm_index(y, i), expr)
     return expr
-
-def to_ordinal(year, month, day):
-    """
-    Ordinal since 0001-01-01 (day 0).
-    to_ordinal = DBY + DBM + (day - 1)
-    """
-    return days_before_year(year) + days_before_month(year, month) + (day - IntVal(1))
-
-def from_ordinal(n):
-    """
-    Simplified inverse of to_ordinal for better Z3 performance.
-    Uses a more direct approach to avoid complex nested If expressions.
-    """
-    # For now, use a simpler approach that's more Z3-friendly
-    # This is a placeholder that returns the input as year=1, month=1, day=n+1
-    # In a real implementation, you'd want a more sophisticated but still efficient approach
     
-    # Simple linear approximation - this is not mathematically correct but is Z3-friendly
-    # For production use, you'd want to implement a more efficient algorithm
-    year = IntVal(1) + n / IntVal(365)
-    month = IntVal(1) + (n % IntVal(365)) / IntVal(30)
-    day = IntVal(1) + (n % IntVal(30))
-    
-    return year, month, day
 
 def _days_from_civil(y, m, d):
     y_adj = y - If(m <= IntVal(2), IntVal(1), IntVal(0))
