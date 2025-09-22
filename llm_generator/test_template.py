@@ -59,10 +59,14 @@ def test_constraint_with_approach(constraint_data: dict, approach: str) -> dict:
 
         # Execute the constraint code (which creates its own builder and variables)
         # This avoids the duplicate constraint issue
+        # Create a DateSMTBuilder factory that injects the approach parameter
+        def create_builder():
+            return DateSMTBuilder(approach=approach)
+        
         exec_globals = {
             'Date': Date,
             'Period': Period,
-            'DateSMTBuilder': DateSMTBuilder,
+            'DateSMTBuilder': create_builder,
         }
 
         exec(constraint_code, exec_globals)
