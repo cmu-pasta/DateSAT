@@ -140,7 +140,7 @@
   {
     "id": "1758090062-11",
     "description": "End of month rollover",
-    "constraint_code": "builder.add_constraint(x >= Date(2023, 1, 31), 'x >= 2023-01-31')\nbuilder.add_constraint((x + Period(0, 1, 0)) <= Date(2023, 3, 1), 'x + 1 month <= 2023-03-01')",
+    "constraint_code": "builder = DateSMTBuilder()\nx = builder.add_date_var(\"x\")\nbuilder.add_constraint(x >= Date(2023, 1, 31), 'x >= 2023-01-31')\nbuilder.add_constraint((x + Period(0, 1, 0)) <= Date(2023, 3, 1), 'x + 1 month <= 2023-03-01')\nresult = builder",
     "variables": [
       "x"
     ],
@@ -152,7 +152,7 @@
   {
     "id": "1758090062-12",
     "description": "Month vs days contrast",
-    "constraint_code": "builder.add_constraint(x >= Date(2023, 1, 1), 'x >= 2023-01-01')\nbuilder.add_constraint((x + Period(0, 1, 0)) > (x + Period(0, 0, 31)), 'month > 31 days')",
+    "constraint_code": "builder = DateSMTBuilder()\nx = builder.add_date_var(\"x\")\nbuilder.add_constraint(x >= Date(2023, 1, 1), 'x >= 2023-01-01')\nbuilder.add_constraint((x + Period(0, 1, 0)) > (x + Period(0, 0, 31)), 'month > 31 days')\nresult = builder",
     "variables": [
       "x"
     ],
@@ -164,7 +164,7 @@
   {
     "id": "1758090062-13",
     "description": "Chain of additions",
-    "constraint_code": "builder.add_constraint(x >= Date(2023, 6, 1), 'x >= 2023-06-01')\nbuilder.add_constraint((x + Period(0, 1, 0) + Period(0, 0, 15)) == y, 'x + 1 month + 15 days = y')\nbuilder.add_constraint(y >= Date(2023, 6, 1), 'y >= 2023-06-01')",
+    "constraint_code": "builder = DateSMTBuilder()\nx = builder.add_date_var(\"x\")\ny = builder.add_date_var(\"y\")\nbuilder.add_constraint(x >= Date(2023, 6, 1), 'x >= 2023-06-01')\nbuilder.add_constraint((x + Period(0, 1, 0) + Period(0, 0, 15)) == y, 'x + 1 month + 15 days = y')\nbuilder.add_constraint(y >= Date(2023, 6, 1), 'y >= 2023-06-01')\nresult = builder",
     "variables": [
       "x",
       "y"
