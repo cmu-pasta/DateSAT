@@ -153,8 +153,8 @@ def test_constraints_file(constraints_file: str, output_dir: str = "test_results
     smt_dir = os.path.join(output_dir, "smt2")
     os.makedirs(smt_dir, exist_ok=True)
 
-    # Test with both approaches
-    approaches = ["baseline", "advanced"]
+    # Test with all three approaches
+    approaches = ["baseline", "advanced", "hybrid"]
     all_results = {}
 
     for approach in approaches:

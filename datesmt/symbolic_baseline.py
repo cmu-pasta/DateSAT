@@ -93,24 +93,39 @@ def days_before_month(y, m):
     
 
 def _days_from_civil(y, m, d):
-    y_adj = y - If(m <= IntVal(2), IntVal(1), IntVal(0))
-    era   = If(y_adj >= IntVal(0), y_adj / IntVal(400), (y_adj - IntVal(399)) / IntVal(400))
-    yoe   = y_adj - era * IntVal(400)
-    mp    = m + If(m > IntVal(2), IntVal(-3), IntVal(9))
-    doy   = (IntVal(153) * mp + IntVal(2)) / IntVal(5) + d - IntVal(1)
-    doe   = yoe * IntVal(365) + yoe / IntVal(4) - yoe / IntVal(100) + doy
-    return era * IntVal(146097) + doe
+    """Convert year/month/day to ordinal days using the efficient algorithm from advanced implementation."""
+    return days_before_year(y) + days_before_month(y, m) + (d - IntVal(1))
 
 def _civil_from_days(z):
-    era = If(z >= IntVal(0), z / IntVal(146097), (z - IntVal(146096)) / IntVal(146097))
-    doe = z - era * IntVal(146097)
-    yoe = (IntVal(400) * doe + IntVal(591)) / IntVal(146097)
-    doy = doe - (IntVal(365) * yoe + yoe / IntVal(4) - yoe / IntVal(100))
-    mp  = (IntVal(5) * doy + IntVal(2)) / IntVal(153)
-    d   = doy - (IntVal(153) * mp + IntVal(2)) / IntVal(5) + IntVal(1)
-    m   = mp + IntVal(3) - If(mp < IntVal(10), IntVal(0), IntVal(12))
-    y   = yoe + era * IntVal(400) + If(m <= IntVal(2), IntVal(1), IntVal(0))
-    return y, m, d
+    """Convert ordinal days to year/month/day using 400/100/4/1 year block decomposition."""
+    # 400/100/4/1 year block decomposition
+    D400, D100, D4, D1 = IntVal(146097), IntVal(36524), IntVal(1461), IntVal(365)
+    q400, r400 = z / D400, z % D400
+
+    q100_raw = r400 / D100
+    q100     = If(q100_raw >= IntVal(4), IntVal(3), q100_raw)    # clamp 0..3
+    r100     = r400 - q100 * D100
+
+    q4, r4   = r100 / D4, r100 % D4
+
+    q1_raw = r4 / D1
+    q1     = If(q1_raw >= IntVal(4), IntVal(3), q1_raw)          # clamp 0..3
+    r1     = r4 - q1 * D1                                        # day-of-year (0..365)
+
+    year = q400 * IntVal(400) + q100 * IntVal(100) + q4 * IntVal(4) + q1 + IntVal(1)
+
+    # month = max i with r1 >= DBM(year, i)
+    dbm = [_dbm_index(year, i) for i in range(1, 13)]
+    month = IntVal(1)
+    for i in range(2, 13):
+        month = If(r1 >= dbm[i-1], IntVal(i), month)
+
+    # day = r1 - DBM(year, month) + 1
+    day_expr = r1 - dbm[0] + IntVal(1)
+    for i in range(2, 13):
+        day_expr = If(r1 >= dbm[i-1], r1 - dbm[i-1] + IntVal(1), day_expr)
+
+    return year, month, day_expr
 
 
 def EOMClamp(year, month, day):

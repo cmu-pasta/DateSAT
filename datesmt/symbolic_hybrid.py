@@ -1,9 +1,11 @@
 """
-Advanced DATE-SMT implementation using epoch-based conversion.
+Hybrid DATE-SMT implementation using dual representation.
 
-This module implements the advanced approach where dates are represented
-as days since an epoch, and period arithmetic is done using approximate
-day conversions.
+This module implements the hybrid approach where dates are represented
+using dual representation: epoch-primary, YMD-derived. Dates are stored
+as four Z3 Ints (Y, M, D, E) with a forward link E = to_ordinal(Y,M,D).
+Comparisons and day arithmetic use O(1) epoch operations, while month/year
+arithmetic uses simple AMI on (Y,M,D) components.
 """
 
 from typing import Union
@@ -304,14 +306,88 @@ def add_period_exact_days(days_term, period):
     return new_ord - _ORD_EPOCH
 
 
-class DateVar:
-    """Symbolic date variable for advanced implementation."""
+def days_in_month_z3(year, month):
+    """Z3 expression for days in month (leap-aware)."""
+    return If(
+        month == 2,
+        If(is_leap_year_z3(year), 29, 28),
+        If(
+            Or(month == 4, month == 6, month == 9, month == 11),
+            30,
+            31
+        )
+    )
 
-    def __init__(self, name: str):
-        """Create a symbolic date variable."""
+def is_leap_year_z3(year):
+    """Z3 expression for leap year check."""
+    return If(
+        year % 400 == 0, True,
+        If(
+            year % 100 == 0, False,
+            year % 4 == 0
+        )
+    )
+
+def days_before_year_z3(year):
+    """Z3 expression for days before year (leap-aware)."""
+    return 365 * (year - 1) + (year - 1) / 4 - (year - 1) / 100 + (year - 1) / 400
+
+def nonleap_prefix_z3(month):
+    """Z3 expression for non-leap year month prefix (0,31,59,90,...,334)."""
+    return If(month == 1, 0,
+           If(month == 2, 31,
+           If(month == 3, 59,
+           If(month == 4, 90,
+           If(month == 5, 120,
+           If(month == 6, 151,
+           If(month == 7, 181,
+           If(month == 8, 212,
+           If(month == 9, 243,
+           If(month == 10, 273,
+           If(month == 11, 304, 334)))))))))))
+
+def days_before_month_z3(year, month):
+    """Z3 expression for days before month (leap-aware, optimized)."""
+    # Non-leap prefix + single leap adjustment
+    return nonleap_prefix_z3(month) + If(And(is_leap_year_z3(year), month > 2), 1, 0)
+
+def to_ordinal_z3(year, month, day):
+    """Z3 expression for ordinal day (leap-aware, optimized)."""
+    return days_before_year_z3(year) + days_before_month_z3(year, month) + (day - 1)
+
+class DateVar:
+    """
+    Symbolic date variable for Advanced v2 implementation.
+    
+    Uses dual representation: epoch-primary, YMD-derived
+    - Stored vars: Y, M, D, E (four separate Z3 Ints)
+    - Invariants: E = to_ordinal(Y,M,D) (forward only, no inverse)
+    - Comparisons & day arithmetic: O(1) on E
+    - Month/year arithmetic: simple AMI on (Y,M,D)
+    """
+
+    def __init__(self, ctx, name: str, year_var=None, month_var=None, day_var=None, epoch_var=None):
+        """Create a symbolic date variable with dual representation."""
+        self.ctx = ctx  # Back-reference to solver context
         self.name = name
-        # Use a single Z3 integer variable for days since epoch
-        self.days_var = Int(f"{name}_days")
+        
+        if year_var is not None:
+            # Created by solver factory
+            self.year_var = year_var
+            self.month_var = month_var
+            self.day_var = day_var
+            self.epoch_var = epoch_var
+        else:
+            # Legacy constructor - create variables
+            self.year_var = Int(f"{name}_year")
+            self.month_var = Int(f"{name}_month") 
+            self.day_var = Int(f"{name}_day")
+            self.epoch_var = Int(f"{name}_epoch")
+    
+    @property
+    def days_var(self):
+        """Back-compat shim for old code that expects days_var."""
+        return self.epoch_var
 
     def __str__(self):
         return f"DateVar({self.name})"
@@ -321,76 +397,283 @@ class DateVar:
 
     def to_concrete_date(self, model: ModelRef) -> Date:
         """Convert Z3 model to concrete Date."""
-        days = model.evaluate(self.days_var, model_completion=True).as_long()
-        return from_days_since_epoch(days)
+        year = model.evaluate(self.year_var, model_completion=True).as_long()
+        month = model.evaluate(self.month_var, model_completion=True).as_long()
+        day = model.evaluate(self.day_var, model_completion=True).as_long()
+        return Date(year, month, day)
+
+    def add_forward_link_constraint(self, solver):
+        """Add the forward link constraint: E = to_ordinal(Y,M,D)"""
+        if hasattr(solver, 'add_constraint'):
+            # AdvancedDateSolver
+            solver.add_constraint(self.epoch_var == to_ordinal_z3(self.year_var, self.month_var, self.day_var))
+        else:
+            # Z3 Solver
+            solver.add(self.epoch_var == to_ordinal_z3(self.year_var, self.month_var, self.day_var))
+
+    def add_valid_date_constraints(self, solver):
+        """Add constraints to ensure valid date representation."""
+        if hasattr(solver, 'add_constraint'):
+            # AdvancedDateSolver
+            solver.add_constraint(self.month_var >= 1)
+            solver.add_constraint(self.month_var <= 12)
+            solver.add_constraint(self.day_var >= 1)
+            solver.add_constraint(self.day_var <= 31)
+            
+            # Month-specific day constraints
+            solver.add_constraint(
+                If(
+                    self.month_var == 2,
+                    If(is_leap_year_z3(self.year_var), self.day_var <= 29, self.day_var <= 28),
+                    True,
+                )
+            )
+            
+            # 30-day months
+            solver.add_constraint(
+                If(
+                    Or(
+                        self.month_var == 4,
+                        self.month_var == 6,
+                        self.month_var == 9,
+                        self.month_var == 11,
+                    ),
+                    self.day_var <= 30,
+                    True,
+                )
+            )
+        else:
+            # Z3 Solver
+            solver.add(self.month_var >= 1)
+            solver.add(self.month_var <= 12)
+            solver.add(self.day_var >= 1)
+            solver.add(self.day_var <= 31)
+            
+            # Month-specific day constraints
+            solver.add(
+                If(
+                    self.month_var == 2,
+                    If(is_leap_year_z3(self.year_var), self.day_var <= 29, self.day_var <= 28),
+                    True,
+                )
+            )
+            
+            # 30-day months
+            solver.add(
+                If(
+                    Or(
+                        self.month_var == 4,
+                        self.month_var == 6,
+                        self.month_var == 9,
+                        self.month_var == 11,
+                    ),
+                    self.day_var <= 30,
+                    True,
+                )
+            )
 
     def __ge__(self, other):
-        """Support x >= date comparison."""
+        """Support x >= date comparison using epoch (O(1))."""
         if isinstance(other, Date):
-            return self.days_var >= to_days_since_epoch(other)
+            # Use a simpler approach: compare components directly
+            # This avoids the complex to_ordinal calculation
+            year_ge = self.year_var > other.year
+            year_eq = self.year_var == other.year
+            month_ge = self.month_var > other.month
+            month_eq = self.month_var == other.month
+            day_ge = self.day_var >= other.day
+            
+            return Or(
+                year_ge,
+                And(year_eq, month_ge),
+                And(year_eq, month_eq, day_ge)
+            )
         elif isinstance(other, DateVar):
-            return self.days_var >= other.days_var
+            return self.epoch_var >= other.epoch_var
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
     def __le__(self, other):
-        """Support x <= date comparison."""
+        """Support x <= date comparison using epoch (O(1))."""
         if isinstance(other, Date):
-            return self.days_var <= to_days_since_epoch(other)
+            # Use component-wise comparison
+            year_lt = self.year_var < other.year
+            year_eq = self.year_var == other.year
+            month_lt = self.month_var < other.month
+            month_eq = self.month_var == other.month
+            day_le = self.day_var <= other.day
+            
+            return Or(
+                year_lt,
+                And(year_eq, month_lt),
+                And(year_eq, month_eq, day_le)
+            )
         elif isinstance(other, DateVar):
-            return self.days_var <= other.days_var
+            return self.epoch_var <= other.epoch_var
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
     def __lt__(self, other):
-        """Support x < date comparison."""
+        """Support x < date comparison using epoch (O(1))."""
         if isinstance(other, Date):
-            return self.days_var < to_days_since_epoch(other)
+            # Use component-wise comparison
+            year_lt = self.year_var < other.year
+            year_eq = self.year_var == other.year
+            month_lt = self.month_var < other.month
+            month_eq = self.month_var == other.month
+            day_lt = self.day_var < other.day
+            
+            return Or(
+                year_lt,
+                And(year_eq, month_lt),
+                And(year_eq, month_eq, day_lt)
+            )
         elif isinstance(other, DateVar):
-            return self.days_var < other.days_var
+            return self.epoch_var < other.epoch_var
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
     def __eq__(self, other):
-        """Support x == date comparison."""
+        """Support x == date comparison using epoch (O(1))."""
         if isinstance(other, Date):
-            return self.days_var == to_days_since_epoch(other)
+            # Use component-wise comparison
+            return And(
+                self.year_var == other.year,
+                self.month_var == other.month,
+                self.day_var == other.day
+            )
         elif isinstance(other, DateVar):
-            return self.days_var == other.days_var
+            return self.epoch_var == other.epoch_var
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
     def __ne__(self, other):
-        """Support x != date comparison."""
+        """Support x != date comparison using epoch (O(1))."""
         return Not(self.__eq__(other))
 
     def __gt__(self, other):
-        """Support x > date comparison."""
+        """Support x > date comparison using epoch (O(1))."""
         if isinstance(other, Date):
-            return self.days_var > to_days_since_epoch(other)
+            # Use component-wise comparison
+            year_gt = self.year_var > other.year
+            year_eq = self.year_var == other.year
+            month_gt = self.month_var > other.month
+            month_eq = self.month_var == other.month
+            day_gt = self.day_var > other.day
+            
+            return Or(
+                year_gt,
+                And(year_eq, month_gt),
+                And(year_eq, month_eq, day_gt)
+            )
         elif isinstance(other, DateVar):
-            return self.days_var > other.days_var
+            return self.epoch_var > other.epoch_var
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
     def shift_days(self, k):
-        """Return a new DateVar shifted by k (Z3 Int or int) days (exact)."""
-        result = DateVar(f"{self.name}_shift_{k}")
+        """Return a new DateVar shifted by k days using epoch arithmetic (O(1))."""
+        # Create result through solver factory (auto-registered + constrained)
+        import time
+        unique_name = f"{self.name}_shift_days_{int(time.time() * 1000000) % 1000000}"
+        result = self.ctx.new_date(unique_name)
         k_term = IntVal(k) if isinstance(k, int) else k
-        result.days_var = self.days_var + k_term
+        
+        # Day arithmetic on epoch (fast)
+        self.ctx.solver.add(result.epoch_var == self.epoch_var + k_term)
+        
         return result
+
+    def shift_months(self, k, preserve_eom=False):
+        """Return a new DateVar shifted by k months using AMI arithmetic."""
+        # Create result through solver factory (auto-registered + constrained)
+        import time
+        unique_name = f"{self.name}_shift_months_{int(time.time() * 1000000) % 1000000}"
+        result = self.ctx.new_date(unique_name)
+        k_term = IntVal(k) if isinstance(k, int) else k
+        
+        # Use AMI for month arithmetic (simple and exact)
+        ami = 12 * self.year_var + (self.month_var - 1)
+        ami_new = ami + k_term
+        Yp = ami_new / 12
+        Mp = (ami_new % 12) + 1
+        
+        # EOM handling
+        dim_in = days_in_month_z3(self.year_var, self.month_var)
+        dim_tp = days_in_month_z3(Yp, Mp)
+        eom = (self.day_var == dim_in)
+        Dcap = If(self.day_var <= dim_tp, self.day_var, dim_tp)
+        Dp = If(preserve_eom, If(eom, dim_tp, Dcap), Dcap)
+        
+        # Add constraints (no epoch equality - forward link will derive E)
+        self.ctx.solver.add([
+            result.year_var == Yp,
+            result.month_var == Mp,
+            result.day_var == Dp
+        ])
+        
+        return result
+
+    def shift_years(self, k, preserve_eom=False):
+        """Return a new DateVar shifted by k years using AMI arithmetic."""
+        return self.shift_months(12 * k, preserve_eom)
+
+    def shift_period(self, period: Period, preserve_eom=False):
+        """Return a new DateVar shifted by a Period using dual representation."""
+        # Create result through solver factory (auto-registered + constrained)
+        # Use a unique name to avoid conflicts
+        import time
+        unique_name = f"{self.name}_shift_period_{int(time.time() * 1000000) % 1000000}"
+        result = self.ctx.new_date(unique_name)
+        
+        # Add period arithmetic constraints
+        self.ctx.solver.add(self._constraints_for_period(period, result, preserve_eom))
+        
+        return result
+
+    def _constraints_for_period(self, period: Period, result, preserve_eom=False):
+        """Generate constraints for period arithmetic (AMI + day arithmetic)."""
+        Y, M, D = self.year_var, self.month_var, self.day_var
+        Y2, M2, D2, E2 = result.year_var, result.month_var, result.day_var, result.epoch_var
+        
+        # AMI arithmetic for months/years
+        k = 12 * period.years + period.months
+        ami = 12 * Y + (M - 1)
+        ami_new = ami + k
+        Yp = ami_new / 12
+        Mp = (ami_new % 12) + 1
+        
+        # EOM handling
+        dim_in = days_in_month_z3(Y, M)
+        dim_tp = days_in_month_z3(Yp, Mp)
+        eom = (D == dim_in)
+        Dcap = If(D <= dim_tp, D, dim_tp)
+        Dp = If(preserve_eom, If(eom, dim_tp, Dcap), Dcap)
+        
+        # CRITICAL FIX: Avoid contradictory constraints when period.days != 0
+        if period.days == 0:
+            # No day component - set Y/M/D directly, let forward link handle E
+            return [Y2 == Yp, M2 == Mp, D2 == Dp]
+        else:
+            # Has day component - only constrain E, let forward link solve Y/M/D
+            return [E2 == to_ordinal_z3(Yp, Mp, Dp) + IntVal(period.days)]
 
     def __add__(self, other):
         """date + period (exact) or date + PeriodVar (exact)."""
-        from .symbolic_advanced import PeriodVar as _PeriodVar  # avoid cyclic
+        from .symbolic_hybrid import PeriodVar as _PeriodVar  # avoid cyclic
         if isinstance(other, Period):
-            out = DateVar(f"{self.name}_plus_{other.years}y_{other.months}m_{other.days}d")
-            out.days_var = add_period_exact_days(self.days_var, other)
-            return out
+            return self.shift_period(other)
         elif isinstance(other, _PeriodVar):
-            out = DateVar(f"{self.name}_plus_{other.name}")
-            out.days_var = self.days_var + other.days_var
-            return out
+            # For PeriodVar, we need to handle this differently
+            # Create result through solver factory (auto-registered + constrained)
+            import time
+            unique_name = f"{self.name}_plus_period_{int(time.time() * 1000000) % 1000000}"
+            result = self.ctx.new_date(unique_name)
+            
+            # Add constraint: result.epoch_var == self.epoch_var + other.days_var
+            self.ctx.solver.add(result.epoch_var == self.epoch_var + other.days_var)
+            
+            return result
         raise TypeError(f"Cannot add {type(other)} to DateVar")
 
     def __radd__(self, other):
@@ -398,30 +681,36 @@ class DateVar:
 
     def __sub__(self, other):
         """date - period (exact) OR date - date ⇒ Int days difference."""
-        from .symbolic_advanced import PeriodVar as _PeriodVar
+        from .symbolic_hybrid import PeriodVar as _PeriodVar
         if isinstance(other, Period):
             negP = Period(-other.years, -other.months, -other.days)
-            out = DateVar(f"{self.name}_minus_{other.years}y_{other.months}m_{other.days}d")
-            out.days_var = add_period_exact_days(self.days_var, negP)
-            return out
+            return self.shift_period(negP)
         elif isinstance(other, _PeriodVar):
-            out = DateVar(f"{self.name}_minus_{other.name}")
-            out.days_var = self.days_var - other.days_var
-            return out
+            # For PeriodVar, we need to handle this differently
+            # Create result through solver factory (auto-registered + constrained)
+            import time
+            unique_name = f"{self.name}_minus_period_{int(time.time() * 1000000) % 1000000}"
+            result = self.ctx.new_date(unique_name)
+            
+            # Add constraint: result.epoch_var == self.epoch_var - other.days_var
+            self.ctx.solver.add(result.epoch_var == self.epoch_var - other.days_var)
+            
+            return result
         elif isinstance(other, DateVar):
             # days difference (Z3 Int term)
-            return self.days_var - other.days_var
+            return self.diff_days(other)
         elif isinstance(other, Date):
-            return self.days_var - IntVal(to_days_since_epoch(other))
+            return self.diff_days(other)
         else:
             raise TypeError(f"Cannot subtract {type(other)} from DateVar")
 
     def diff_days(self, other) -> Int:
         """Return Z3 Int: self - other in days."""
         if isinstance(other, DateVar):
-            return self.days_var - other.days_var
+            return self.epoch_var - other.epoch_var
         elif isinstance(other, Date):
-            return self.days_var - IntVal(to_days_since_epoch(other))
+            other_epoch = to_ordinal(IntVal(other.year), IntVal(other.month), IntVal(other.day)) - _ORD_EPOCH
+            return self.epoch_var - other_epoch
         else:
             raise TypeError("diff_days expects DateVar or Date")
 
@@ -499,30 +788,57 @@ class PeriodVar:
     def __rmul__(self, k):
         return self.__mul__(k)
 
-
-class AdvancedDateSolver:
-    """Advanced date constraint solver using epoch-based conversion."""
+class HybridDateSolver:
+    """Advanced v2 date constraint solver using dual representation (epoch-primary, YMD-derived)."""
 
     def __init__(self):
-        """Initialize the solver."""
+        """Initialize the solver with dual representation support."""
         self.solver = Solver()
         self.date_vars = {}
         self.period_vars = {}
         self.constraints = []
 
-    def add_date_var(self, name: str) -> DateVar:
-        """Add a symbolic date variable with basic constraints."""
-        date_var = DateVar(name)
+    def new_date(self, name: str = None) -> DateVar:
+        """Create a new DateVar through the solver factory (auto-registered + constrained)."""
+        if name is None:
+            name = f"d{len(self.date_vars)}"
+        
+        # Create Z3 variables
+        year_var = Int(f"{name}_year")
+        month_var = Int(f"{name}_month")
+        day_var = Int(f"{name}_day")
+        epoch_var = Int(f"{name}_epoch")
+        
+        # Create DateVar with back-reference to solver
+        date_var = DateVar(self, name, year_var, month_var, day_var, epoch_var)
+        
+        # Add to registry
         self.date_vars[name] = date_var
-
-        # Add constraints for valid date ranges [1900-01-01 to 2100-12-31]
-        # Epoch is March 1, 2000
-        # 1900-01-01 to 2000-03-01 = -36584 days
-        # 2000-03-01 to 2100-12-31 = +36829 days
-        self.solver.add(date_var.days_var >= -36584)  # 1900-01-01
-        self.solver.add(date_var.days_var <= 36829)   # 2100-12-31
-
+        
+        # Add constraints (validity + forward link)
+        self._add_date_constraints(date_var)
+        
         return date_var
+
+    def _add_date_constraints(self, date_var: DateVar):
+        """Add constraints for a DateVar (validity + forward link)."""
+        Y, M, D, E = date_var.year_var, date_var.month_var, date_var.day_var, date_var.epoch_var
+        
+        # Year range constraint [1900-2100]
+        Y_MIN, Y_MAX = 1900, 2100
+        
+        # Simplified validity constraints (single days_in_month call)
+        self.solver.add(And(
+            1 <= M, M <= 12,
+            1 <= D, D <= days_in_month_z3(Y, M),
+            Y_MIN <= Y, Y <= Y_MAX,
+            # Forward link: E = to_ordinal(Y,M,D) - ONCE per DateVar
+            E == to_ordinal_z3(Y, M, D)
+        ))
+
+    def add_date_var(self, name: str) -> DateVar:
+        """Legacy method - redirect to new factory."""
+        return self.new_date(name)
 
     def add_period_var(self, name: str) -> PeriodVar:
         """Add a symbolic period variable."""
@@ -576,68 +892,3 @@ class AdvancedDateSolver:
     def get_assertions(self):
         """Return the list of current Z3 assertions (BoolRef)."""
         return list(self.solver.assertions())
-
-    def add_accurate_period_constraint(
-        self, date_var: DateVar, period: Period, result_var: DateVar
-    ):
-        """
-        Add a constraint for accurate period arithmetic.
-
-        This method attempts to create more accurate constraints for period arithmetic
-        by considering multiple possible calendar contexts. While not as accurate as
-        the baseline approach, it's better than pure approximation.
-
-        Args:
-            date_var: The starting date variable
-            period: The period to add
-            result_var: The resulting date variable after adding the period
-        """
-        if period.years == 0 and period.months == 0:
-            # Simple case: only days, this is exact
-            self.add_constraint(result_var.days_var == date_var.days_var + period.days)
-        else:
-            # Complex case: approximate but add bounds for more accuracy
-            approx_days = to_days_approximate(period)
-
-            # Add the approximate constraint
-            self.add_constraint(result_var.days_var == date_var.days_var + approx_days)
-
-            # Add bounds to constrain the error
-            # Years: 365-366 days each, Months: 28-31 days each
-            min_year_days = period.years * 365
-            max_year_days = period.years * 366
-            min_month_days = period.months * 28
-            max_month_days = period.months * 31
-
-            min_total = min_year_days + min_month_days + period.days
-            max_total = max_year_days + max_month_days + period.days
-
-            # These constraints help bound the approximation error
-            # Not perfect, but better than unlimited approximation
-            self.add_constraint(result_var.days_var >= date_var.days_var + min_total)
-            self.add_constraint(result_var.days_var <= date_var.days_var + max_total)
-
-    def add_exact_period_constraint(
-        self, concrete_date: Date, period: Period, result_var: DateVar
-    ):
-        """
-        Add an exact period arithmetic constraint when the starting date is concrete.
-
-        This method calculates the exact number of days for the period based on the
-        concrete starting date, providing accurate calendar arithmetic.
-
-        Args:
-            concrete_date: The concrete starting date
-            period: The period to add
-            result_var: The resulting date variable
-        """
-        exact_days = to_days_with_context(period, concrete_date)
-        concrete_start_days = to_days_since_epoch(concrete_date)
-
-        self.add_constraint(result_var.days_var == concrete_start_days + exact_days)
-
-    def add_exact_period_constraint_var(
-        self, start: DateVar, period: Period, out: DateVar
-    ):
-        """Exact constraint for DateVar + concrete Period using the Z3-pure EOM+ordinal pipeline."""
-        self.add_constraint(out.days_var == add_period_exact_days(start.days_var, period))

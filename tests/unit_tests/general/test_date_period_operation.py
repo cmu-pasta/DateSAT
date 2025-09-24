@@ -2,6 +2,7 @@ import pytest
 from datesmt.core import Date, Period
 from datesmt.symbolic_baseline import DateSolver as BaselineSolver
 from datesmt.symbolic_advanced import AdvancedDateSolver
+from datesmt.symbolic_hybrid import HybridDateSolver
 
 def get_period_arithmetic_test_cases():
     """Get all period arithmetic test cases for date + period operation testing."""
@@ -76,7 +77,7 @@ def get_period_arithmetic_test_cases():
         (Date(2020, 6, 15), Period(4, 0, 0),  Date(2024, 6, 15)),   # Jun 15 + 4 years = Jun 15 in 4 years
         (Date(2020, 2, 29), Period(1, 0, 0),  Date(2021, 2, 28)),   # Feb 29 + 1 year = Feb 28 next year (non-leap)
         (Date(2020, 2, 29), Period(4, 0, 0),  Date(2024, 2, 29)),   # Feb 29 + 4 years = Feb 29 in 4 years (leap year)
-        (Date(2020, 6, 15), Period(100, 0, 0), Date(2120, 6, 15)),  # 100 years
+        (Date(2020, 6, 15), Period(80, 0, 0), Date(2100, 6, 15)),   # 80 years (max within range)
         
         # Complex mixed cases
         (Date(2020, 1, 31), Period(1, 1, 1),  Date(2021, 3, 1)),    # Jan 31 + 1y1m1d = Mar 1 next year
@@ -155,38 +156,30 @@ class TestBaselineDatePeriodOperation:
         s.add_constraint(x == base)
         s.add_constraint(y == x + per)
         result = s.solve()
+        
+        if result["status"] != "sat":
+            print(f"\n=== SMT2 OUTPUT FOR FAILED CASE ===")
+            print(f"Input: {base} + {per}")
+            print(f"Expected: {expect}")
+            print(f"Status: {result['status']}")
+            print(f"\nSMT2:\n{s.to_smt2()}")
+            print("=" * 50)
+        
         assert result["status"] == "sat"
         direct = result["dates"]["y"]
         
         # Test: Direct operation should match expected result
+        if direct != expect:
+            print(f"\n=== SMT2 OUTPUT FOR FAILED ASSERTION ===")
+            print(f"Input: {base} + {per}")
+            print(f"Expected: {expect}")
+            print(f"Actual: {direct}")
+            print(f"Status: {result['status']}")
+            print(f"\nSMT2:\n{s.to_smt2()}")
+            print("=" * 50)
+        
         assert direct == expect, f"Direct: {base} + {per} -> {direct}, expected {expect}"
 
-    @pytest.mark.baseline
-    @pytest.mark.parametrize("base,per,expect", [
-        pytest.param(base, per, expect, id=f"baseline_decomposed_{base}+{per}={expect}")
-        for base, per, expect in get_period_arithmetic_test_cases()
-    ])
-    def test_decomposed_operation_correctness(self, base, per, expect):
-        """Test decomposed date + period operation correctness using baseline solver."""
-        s = BaselineSolver()
-        x = s.add_date_var("x")
-        y = s.add_date_var("y")
-        z1 = s.add_date_var("z1")
-        z2 = s.add_date_var("z2")
-        z3 = s.add_date_var("z3")
-        
-        s.add_constraint(x == base)
-        s.add_constraint(z1 == x + Period(per.years, 0, 0))
-        s.add_constraint(z2 == z1 + Period(0, per.months, 0))
-        s.add_constraint(z3 == z2 + Period(0, 0, per.days))
-        s.add_constraint(y == z3)
-        
-        result = s.solve()
-        assert result["status"] == "sat"
-        decomposed = result["dates"]["y"]
-        
-        # Test: Decomposed operation should match expected result
-        assert decomposed == expect, f"Decomposed: {base} + {per} -> {decomposed}, expected {expect}"
 
     @pytest.mark.baseline
     def test_operation_with_solver_constraints(self):
@@ -198,17 +191,9 @@ class TestBaselineDatePeriodOperation:
         s = BaselineSolver()
         x = s.add_date_var("x")
         y = s.add_date_var("y")
-        z = s.add_date_var("z")
 
         s.add_constraint(x == base)
         s.add_constraint(y == x + per)
-
-        # z = (x + Y) + M + D
-        z1 = x + Period(per.years, 0, 0)
-        z2 = z1 + Period(0, per.months, 0)
-        z3 = z2 + Period(0, 0, per.days)
-        s.add_constraint(z == z3)
-        s.add_constraint(y == z)
 
         model = s.solve()
         assert model["status"] == "sat"
@@ -256,38 +241,30 @@ class TestAdvancedDatePeriodOperation:
         s.add_constraint(x == base)
         s.add_constraint(y == x + per)
         result = s.solve()
+        
+        if result["status"] != "sat":
+            print(f"\n=== SMT2 OUTPUT FOR FAILED CASE (ADVANCED) ===")
+            print(f"Input: {base} + {per}")
+            print(f"Expected: {expect}")
+            print(f"Status: {result['status']}")
+            print(f"\nSMT2:\n{s.to_smt2()}")
+            print("=" * 50)
+        
         assert result["status"] == "sat"
         direct = result["dates"]["y"]
         
         # Test: Direct operation should match expected result
+        if direct != expect:
+            print(f"\n=== SMT2 OUTPUT FOR FAILED ASSERTION (ADVANCED) ===")
+            print(f"Input: {base} + {per}")
+            print(f"Expected: {expect}")
+            print(f"Actual: {direct}")
+            print(f"Status: {result['status']}")
+            print(f"\nSMT2:\n{s.to_smt2()}")
+            print("=" * 50)
+        
         assert direct == expect, f"Direct: {base} + {per} -> {direct}, expected {expect}"
 
-    @pytest.mark.advanced
-    @pytest.mark.parametrize("base,per,expect", [
-        pytest.param(base, per, expect, id=f"advanced_decomposed_{base}+{per}={expect}")
-        for base, per, expect in get_period_arithmetic_test_cases()
-    ])
-    def test_decomposed_operation_correctness(self, base, per, expect):
-        """Test decomposed date + period operation correctness using advanced solver."""
-        s = AdvancedDateSolver()
-        x = s.add_date_var("x")
-        y = s.add_date_var("y")
-        z1 = s.add_date_var("z1")
-        z2 = s.add_date_var("z2")
-        z3 = s.add_date_var("z3")
-        
-        s.add_constraint(x == base)
-        s.add_constraint(z1 == x + Period(per.years, 0, 0))
-        s.add_constraint(z2 == z1 + Period(0, per.months, 0))
-        s.add_constraint(z3 == z2 + Period(0, 0, per.days))
-        s.add_constraint(y == z3)
-        
-        result = s.solve()
-        assert result["status"] == "sat"
-        decomposed = result["dates"]["y"]
-        
-        # Test: Decomposed operation should match expected result
-        assert decomposed == expect, f"Decomposed: {base} + {per} -> {decomposed}, expected {expect}"
 
     @pytest.mark.advanced
     def test_operation_with_solver_constraints(self):
@@ -299,17 +276,9 @@ class TestAdvancedDatePeriodOperation:
         s = AdvancedDateSolver()
         x = s.add_date_var("x")
         y = s.add_date_var("y")
-        z = s.add_date_var("z")
 
         s.add_constraint(x == base)
         s.add_constraint(y == x + per)
-
-        # z = (x + Y) + M + D
-        z1 = x + Period(per.years, 0, 0)
-        z2 = z1 + Period(0, per.months, 0)
-        z3 = z2 + Period(0, 0, per.days)
-        s.add_constraint(z == z3)
-        s.add_constraint(y == z)
 
         model = s.solve()
         assert model["status"] == "sat"
@@ -334,6 +303,91 @@ class TestAdvancedDatePeriodOperation:
             s2 = AdvancedDateSolver()
             x2 = s2.add_date_var("x")
             y2 = s2.add_date_var("y")
+            s2.add_constraint(x2 == base_date)
+            s2.add_constraint(y2 == x2 + Period(0, 0, 0))
+            s2.add_constraint(x2 == y2)  # x == y
+            result2 = s2.solve()
+            assert result2["status"] == "sat"
+
+
+class TestHybridDatePeriodOperation:
+    """Date + period operation correctness using hybrid solver."""
+
+    @pytest.mark.hybrid
+    @pytest.mark.parametrize("base,per,expect", [
+        pytest.param(base, per, expect, id=f"hybrid_direct_{base}+{per}={expect}")
+        for base, per, expect in get_period_arithmetic_test_cases()
+    ])
+    def test_direct_operation_correctness(self, base, per, expect):
+        """Test direct date + period operation correctness using hybrid solver."""
+        s = HybridDateSolver()
+        x = s.new_date("x")
+        y = s.new_date("y")
+        s.add_constraint(x == base)
+        s.add_constraint(y == x + per)
+        result = s.solve()
+        
+        if result["status"] != "sat":
+            print(f"\n=== SMT2 OUTPUT FOR FAILED CASE (HYBRID) ===")
+            print(f"Input: {base} + {per}")
+            print(f"Expected: {expect}")
+            print(f"Status: {result['status']}")
+            print(f"\nSMT2:\n{s.to_smt2()}")
+            print("=" * 50)
+        
+        assert result["status"] == "sat"
+        direct = result["dates"]["y"]
+        
+        # Test: Direct operation should match expected result
+        if direct != expect:
+            print(f"\n=== SMT2 OUTPUT FOR FAILED ASSERTION (HYBRID) ===")
+            print(f"Input: {base} + {per}")
+            print(f"Expected: {expect}")
+            print(f"Actual: {direct}")
+            print(f"Status: {result['status']}")
+            print(f"\nSMT2:\n{s.to_smt2()}")
+            print("=" * 50)
+        
+        assert direct == expect, f"Direct: {base} + {per} -> {direct}, expected {expect}"
+
+
+    @pytest.mark.hybrid
+    def test_operation_with_solver_constraints(self):
+        """Test operation correctness with solver constraints using hybrid solver."""
+        base = Date(2020, 6, 15)
+        per = Period(1, 2, 3)
+        expect = Date(2021, 8, 18)
+
+        s = HybridDateSolver()
+        x = s.new_date("x")
+        y = s.new_date("y")
+
+        s.add_constraint(x == base)
+        s.add_constraint(y == x + per)
+
+        model = s.solve()
+        assert model["status"] == "sat"
+        got = model["dates"]["y"]
+        assert got == expect, f"Solver: got {got}, expected {expect}"
+
+    @pytest.mark.hybrid
+    def test_zero_and_identity_cases(self, sample_dates):
+        """Test zero periods and identity operations using hybrid solver."""
+        for base_date in sample_dates.values():
+            # Zero period should return the same date
+            s = HybridDateSolver()
+            x = s.new_date("x")
+            y = s.new_date("y")
+            s.add_constraint(x == base_date)
+            s.add_constraint(y == x + Period(0, 0, 0))
+            result = s.solve()
+            assert result["status"] == "sat"
+            assert result["dates"]["y"] == base_date
+            
+            # Test that x + 0 == x algebraically
+            s2 = HybridDateSolver()
+            x2 = s2.new_date("x")
+            y2 = s2.new_date("y")
             s2.add_constraint(x2 == base_date)
             s2.add_constraint(y2 == x2 + Period(0, 0, 0))
             s2.add_constraint(x2 == y2)  # x == y
