@@ -2,6 +2,7 @@ import pytest
 from datesmt.core import Date, Period
 from datesmt.symbolic_baseline import DateSolver as BaselineSolver
 from datesmt.symbolic_advanced import AdvancedDateSolver
+from datesmt.symbolic_hybrid import HybridDateSolver
 
 def get_period_arithmetic_test_cases():
     """Get all period arithmetic test cases for component decomposition testing."""
@@ -76,7 +77,7 @@ def get_period_arithmetic_test_cases():
         (Date(2020, 6, 15), Period(4, 0, 0),  Date(2024, 6, 15)),   # Jun 15 + 4 years = Jun 15 in 4 years
         (Date(2020, 2, 29), Period(1, 0, 0),  Date(2021, 2, 28)),   # Feb 29 + 1 year = Feb 28 next year (non-leap)
         (Date(2020, 2, 29), Period(4, 0, 0),  Date(2024, 2, 29)),   # Feb 29 + 4 years = Feb 29 in 4 years (leap year)
-        (Date(2020, 6, 15), Period(100, 0, 0), Date(2120, 6, 15)),  # 100 years
+        (Date(2020, 6, 15), Period(80, 0, 0), Date(2100, 6, 15)),   # 80 years (max within range)
         
         # Complex mixed cases
         (Date(2020, 1, 31), Period(1, 1, 1),  Date(2021, 3, 1)),    # Jan 31 + 1y1m1d = Mar 1 next year
@@ -117,6 +118,15 @@ class TestBaselineComponentDecomposition:
         s1.add_constraint(x1 == base)
         s1.add_constraint(y1 == x1 + per)
         result1 = s1.solve()
+        
+        if result1["status"] != "sat":
+            print(f"\n=== SMT2 OUTPUT FOR FAILED DIRECT CASE (BASELINE) ===")
+            print(f"Input: {base} + {per}")
+            print(f"Expected: {expect}")
+            print(f"Status: {result1['status']}")
+            print(f"\nSMT2:\n{s1.to_smt2()}")
+            print("=" * 50)
+        
         assert result1["status"] == "sat"
         direct = result1["dates"]["y"]
 
@@ -135,10 +145,29 @@ class TestBaselineComponentDecomposition:
         s2.add_constraint(y2 == z3)
         
         result2 = s2.solve()
+        
+        if result2["status"] != "sat":
+            print(f"\n=== SMT2 OUTPUT FOR FAILED DECOMPOSED CASE (BASELINE) ===")
+            print(f"Input: {base} + {per}")
+            print(f"Expected: {expect}")
+            print(f"Status: {result2['status']}")
+            print(f"\nSMT2:\n{s2.to_smt2()}")
+            print("=" * 50)
+        
         assert result2["status"] == "sat"
         decomposed = result2["dates"]["y"]
 
         # Test: Algebraic equivalence (direct and decomposed should be equal)
+        if direct != decomposed:
+            print(f"\n=== SMT2 OUTPUT FOR DECOMPOSITION MISMATCH (BASELINE) ===")
+            print(f"Input: {base} + {per}")
+            print(f"Expected: {expect}")
+            print(f"Direct: {direct}")
+            print(f"Decomposed: {decomposed}")
+            print(f"\nDirect SMT2:\n{s1.to_smt2()}")
+            print(f"\nDecomposed SMT2:\n{s2.to_smt2()}")
+            print("=" * 50)
+        
         assert direct == decomposed, f"Direct vs decomposed mismatch for {base} + {per}: direct={direct}, decomposed={decomposed}"
 
     @pytest.mark.baseline
@@ -213,6 +242,15 @@ class TestAdvancedComponentDecomposition:
         s1.add_constraint(x1 == base)
         s1.add_constraint(y1 == x1 + per)
         result1 = s1.solve()
+        
+        if result1["status"] != "sat":
+            print(f"\n=== SMT2 OUTPUT FOR FAILED DIRECT CASE (ADVANCED) ===")
+            print(f"Input: {base} + {per}")
+            print(f"Expected: {expect}")
+            print(f"Status: {result1['status']}")
+            print(f"\nSMT2:\n{s1.to_smt2()}")
+            print("=" * 50)
+        
         assert result1["status"] == "sat"
         direct = result1["dates"]["y"]
 
@@ -231,10 +269,29 @@ class TestAdvancedComponentDecomposition:
         s2.add_constraint(y2 == z3)
         
         result2 = s2.solve()
+        
+        if result2["status"] != "sat":
+            print(f"\n=== SMT2 OUTPUT FOR FAILED DECOMPOSED CASE (ADVANCED) ===")
+            print(f"Input: {base} + {per}")
+            print(f"Expected: {expect}")
+            print(f"Status: {result2['status']}")
+            print(f"\nSMT2:\n{s2.to_smt2()}")
+            print("=" * 50)
+        
         assert result2["status"] == "sat"
         decomposed = result2["dates"]["y"]
 
         # Test: Algebraic equivalence (direct and decomposed should be equal)
+        if direct != decomposed:
+            print(f"\n=== SMT2 OUTPUT FOR DECOMPOSITION MISMATCH (ADVANCED) ===")
+            print(f"Input: {base} + {per}")
+            print(f"Expected: {expect}")
+            print(f"Direct: {direct}")
+            print(f"Decomposed: {decomposed}")
+            print(f"\nDirect SMT2:\n{s1.to_smt2()}")
+            print(f"\nDecomposed SMT2:\n{s2.to_smt2()}")
+            print("=" * 50)
+        
         assert direct == decomposed, f"Direct vs decomposed mismatch for {base} + {per}: direct={direct}, decomposed={decomposed}"
 
     @pytest.mark.advanced
@@ -285,6 +342,130 @@ class TestAdvancedComponentDecomposition:
             s2 = AdvancedDateSolver()
             x2 = s2.add_date_var("x")
             y2 = s2.add_date_var("y")
+            s2.add_constraint(x2 == base_date)
+            s2.add_constraint(y2 == x2 + Period(0, 0, 0))
+            s2.add_constraint(x2 == y2)  # x == y
+            result2 = s2.solve()
+            assert result2["status"] == "sat"
+
+
+class TestHybridComponentDecomposition:
+    """Component decomposition of period arithmetic using hybrid solver."""
+
+    @pytest.mark.hybrid
+    @pytest.mark.parametrize("base,per,expect", [
+        pytest.param(base, per, expect, id=f"hybrid_{base}+{per}={expect}")
+        for base, per, expect in get_period_arithmetic_test_cases()
+    ])
+    def test_period_decomposition_equivalence(self, base, per, expect):
+        """Test period decomposition equivalence for all test cases using hybrid solver."""
+        # Test using hybrid solver for direct addition
+        s1 = HybridDateSolver()
+        x1 = s1.new_date("x")
+        y1 = s1.new_date("y")
+        s1.add_constraint(x1 == base)
+        s1.add_constraint(y1 == x1 + per)
+        result1 = s1.solve()
+        
+        if result1["status"] != "sat":
+            print(f"\n=== SMT2 OUTPUT FOR FAILED DIRECT CASE (HYBRID) ===")
+            print(f"Input: {base} + {per}")
+            print(f"Expected: {expect}")
+            print(f"Status: {result1['status']}")
+            print(f"\nSMT2:\n{s1.to_smt2()}")
+            print("=" * 50)
+        
+        assert result1["status"] == "sat"
+        direct = result1["dates"]["y"]
+
+        # Test decomposed addition using hybrid solver (Y→M→D)
+        s2 = HybridDateSolver()
+        x2 = s2.new_date("x")
+        y2 = s2.new_date("y")
+        z1 = s2.new_date("z1")
+        z2 = s2.new_date("z2")
+        z3 = s2.new_date("z3")
+        
+        s2.add_constraint(x2 == base)
+        s2.add_constraint(z1 == x2 + Period(per.years, 0, 0))
+        s2.add_constraint(z2 == z1 + Period(0, per.months, 0))
+        s2.add_constraint(z3 == z2 + Period(0, 0, per.days))
+        s2.add_constraint(y2 == z3)
+        
+        result2 = s2.solve()
+        
+        if result2["status"] != "sat":
+            print(f"\n=== SMT2 OUTPUT FOR FAILED DECOMPOSED CASE (HYBRID) ===")
+            print(f"Input: {base} + {per}")
+            print(f"Expected: {expect}")
+            print(f"Status: {result2['status']}")
+            print(f"\nSMT2:\n{s2.to_smt2()}")
+            print("=" * 50)
+        
+        assert result2["status"] == "sat"
+        decomposed = result2["dates"]["y"]
+
+        # Test: Algebraic equivalence (direct and decomposed should be equal)
+        if direct != decomposed:
+            print(f"\n=== SMT2 OUTPUT FOR DECOMPOSITION MISMATCH (HYBRID) ===")
+            print(f"Input: {base} + {per}")
+            print(f"Expected: {expect}")
+            print(f"Direct: {direct}")
+            print(f"Decomposed: {decomposed}")
+            print(f"\nDirect SMT2:\n{s1.to_smt2()}")
+            print(f"\nDecomposed SMT2:\n{s2.to_smt2()}")
+            print("=" * 50)
+        
+        assert direct == decomposed, f"Direct vs decomposed mismatch for {base} + {per}: direct={direct}, decomposed={decomposed}"
+
+    @pytest.mark.hybrid
+    def test_decomposition_with_solver_constraints(self):
+        """Test decomposition with solver constraints using hybrid solver."""
+        # Pin to a single canonical mixed case (also in EXAMPLES)
+        base  = Date(2020, 6, 15)
+        per   = Period(1, 2, 3)
+        expect = Date(2021, 8, 18)
+
+        s = HybridDateSolver()
+        x = s.new_date("x")
+        y = s.new_date("y")
+        z = s.new_date("z")
+
+        s.add_constraint(x == base)
+        s.add_constraint(y == x + per)
+
+        # z = (x + Y) + M + D
+        z1 = x + Period(per.years, 0, 0)
+        z2 = z1 + Period(0, per.months, 0)
+        z3 = z2 + Period(0, 0, per.days)
+        s.add_constraint(z == z3)
+        s.add_constraint(y == z)
+
+        model = s.solve()
+        assert model["status"] == "sat"
+        # Test that direct and decomposed are equivalent
+        direct_result = model["dates"]["y"]
+        decomposed_result = model["dates"]["z"]
+        assert direct_result == decomposed_result, f"Direct vs decomposed mismatch: direct={direct_result}, decomposed={decomposed_result}"
+
+    @pytest.mark.hybrid
+    def test_zero_and_identity_cases(self, sample_dates):
+        """Test zero periods and identity operations using hybrid solver."""
+        for base_date in sample_dates.values():
+            # Zero period should return the same date
+            s = HybridDateSolver()
+            x = s.new_date("x")
+            y = s.new_date("y")
+            s.add_constraint(x == base_date)
+            s.add_constraint(y == x + Period(0, 0, 0))
+            result = s.solve()
+            assert result["status"] == "sat"
+            assert result["dates"]["y"] == base_date
+            
+            # Test that x + 0 == x algebraically
+            s2 = HybridDateSolver()
+            x2 = s2.new_date("x")
+            y2 = s2.new_date("y")
             s2.add_constraint(x2 == base_date)
             s2.add_constraint(y2 == x2 + Period(0, 0, 0))
             s2.add_constraint(x2 == y2)  # x == y

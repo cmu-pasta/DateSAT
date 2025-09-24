@@ -12,6 +12,7 @@ from z3 import BoolRef
 from .core import Date, Period
 from .symbolic_advanced import AdvancedDateSolver
 from .symbolic_baseline import DateSolver
+from .symbolic_hybrid import HybridDateSolver
 
 
 class DateSMTBuilder:
@@ -21,15 +22,17 @@ class DateSMTBuilder:
         """Initialize the builder with the specified approach.
 
         Args:
-            approach: Either "baseline" or "advanced"
+            approach: Either "baseline", "advanced", or "hybrid"
         """
         self.approach = approach
         if approach == "baseline":
             self.solver = DateSolver()
         elif approach == "advanced":
             self.solver = AdvancedDateSolver()
+        elif approach == "hybrid":
+            self.solver = HybridDateSolver()
         else:
-            raise ValueError(f"Unknown approach: {approach}")
+            raise ValueError(f"Unknown approach: {approach}. Must be 'baseline', 'advanced', or 'hybrid'")
 
         self.constraints = []
         self._print_smt_on_solve = True

@@ -38,6 +38,12 @@ class Date:
 
     def _validate(self):
         """Validate that the date components are valid."""
+        # Check year range constraint
+        if not (1900 <= self._year <= 2100):
+            raise ValueError(
+                f"Year {self._year} is outside allowed range [1900-2100]"
+            )
+        
         try:
             date(self._year, self._month, self._day)
         except ValueError as e:
