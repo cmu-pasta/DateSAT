@@ -65,3 +65,60 @@ python run_tests.py --category all --coverage
 # Run tests in parallel
 python run_tests.py --category all --parallel
 ```
+
+## Java-backed LocalDate ground-truth tests
+
+We use Java's `java.time.LocalDate.plus(Period)` as an external ground truth for date+period semantics.
+
+- Helper program: `tests/unit_tests/general/java/LocalDateGroundTruth.java`
+  - CLI: `java -cp tests/unit_tests/general/java LocalDateGroundTruth <year> <month> <day> <perYears> <perMonths> <perDays>`
+  - Output: `YYYY-MM-DD`
+
+- Test files:
+  - `tests/unit_tests/general/test_date_period_operation_java.py`
+    - Compares Java output to canonical ground truth test cases
+    - Verifies each solver (baseline/advanced/hybrid) matches that ground truth
+  - `tests/unit_tests/general/test_date_period_decomposition_java.py`
+    - Tests decomposed additions in different orders (Y→M→D, M→Y→D, D→M→Y, D→Y→M)
+    - Uses Java results for each decomposed order as ground truth
+    - Verifies each solver matches Java for each order
+
+- Requirements: Java toolchain on PATH
+```bash
+java -version
+javac -version
+# If missing (macOS/Homebrew):
+brew install openjdk
+# Then ensure PATH includes the Java bin directory
+export JAVA_HOME=$(/usr/libexec/java_home)  # or /opt/homebrew/opt/openjdk
+export PATH="$JAVA_HOME/bin:$PATH"
+```
+
+- Running only the Java-backed operation tests:
+```bash
+pytest -q tests/unit_tests/general/test_date_period_operation_java.py
+```
+
+- Running only Java-vs-ground-truth assertions in that file:
+```bash
+pytest -q tests/unit_tests/general/test_date_period_operation_java.py -k java_output_equals_ground_truth
+```
+
+- Selecting solvers via markers (works in both Java-backed test files):
+```bash
+# Baseline only
+pytest -q tests/unit_tests/general/test_date_period_operation_java.py -m baseline
+
+# Advanced only
+pytest -q tests/unit_tests/general/test_date_period_operation_java.py -m advanced
+
+# Hybrid only
+pytest -q tests/unit_tests/general/test_date_period_operation_java.py -m hybrid
+```
+
+- Running the decomposed-order tests:
+```bash
+pytest -q tests/unit_tests/general/test_date_period_decomposition_java.py
+# or select a solver subset
+pytest -q tests/unit_tests/general/test_date_period_decomposition_java.py -m baseline
+```
