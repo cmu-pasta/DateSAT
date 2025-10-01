@@ -61,109 +61,6 @@ def to_days_since_epoch(date_obj: Date) -> int:
     return delta.days
 
 
-def is_leap_year(year: int) -> bool:
-    """Check if a year is a leap year."""
-    return (year % 4 == 0 and year % 100 != 0) or (year % 400 == 0)
-
-
-def days_in_month(year: int, month: int) -> int:
-    """Get the number of days in a month."""
-    if month == 2:
-        return 29 if is_leap_year(year) else 28
-    elif month in [4, 6, 9, 11]:
-        return 30
-    else:
-        return 31
-
-
-def to_days_approximate(period: Period) -> int:
-    """Convert a Period to approximate days for Z3 constraints."""
-    # Simple approximation - not accurate for real calendar arithmetic
-    return period.years * 365 + period.months * 30 + period.days
-
-
-def to_days_with_context(period: Period, reference_date: Date) -> int:
-    """
-    Convert a Period to exact days based on a reference date context.
-
-    This function calculates the actual number of days for a period by:
-    1. Converting the reference date to days since epoch
-    2. Simulating the period addition using proper calendar arithmetic
-    3. Converting the result back to days since epoch
-    4. Returning the difference
-
-    Args:
-        period: The period to convert (years, months, days)
-        reference_date: The starting date to calculate from
-
-    Returns:
-        int: The exact number of days for the period in the given context
-    """
-    # Convert reference date to days since epoch
-    start_days = to_days_since_epoch(reference_date)
-
-    # For simple cases (days only), return directly
-    if period.years == 0 and period.months == 0:
-        return period.days
-
-    # For complex cases, we need to use the from_days_since_epoch approach
-    # but with careful handling of calendar arithmetic
-
-    # Calculate the target date by applying the period
-    target_year = reference_date.year + period.years
-    target_month = reference_date.month + period.months
-    target_day = reference_date.day + period.days
-
-    # Normalize the month and year
-    while target_month > 12:
-        target_year += 1
-        target_month -= 12
-    while target_month < 1:
-        target_year -= 1
-        target_month += 12
-
-    # Handle day overflow/underflow
-    max_day = days_in_month(target_year, target_month)
-    if target_day > max_day:
-        # Day overflow - clamp to end of month
-        target_day = max_day
-    elif target_day < 1:
-        # Day underflow - go to previous month
-        target_month -= 1
-        if target_month < 1:
-            target_year -= 1
-            target_month = 12
-        max_day_prev = days_in_month(target_year, target_month)
-        target_day = max_day_prev + target_day
-
-    # Create the target date and convert to days since epoch
-    try:
-        target_date = Date(target_year, target_month, target_day)
-        end_days = to_days_since_epoch(target_date)
-        return end_days - start_days
-    except ValueError:
-        # Fallback to approximation if date construction fails
-        return to_days_approximate(period)
-
-
-def to_days_smart(period: Period, reference_date: Date = None) -> int:
-    """
-    Convert a Period to days using context-aware calculation when possible.
-
-    Args:
-        period: The period to convert
-        reference_date: Optional reference date for context-aware calculation
-
-    Returns:
-        int: Number of days (exact if reference_date provided, approximate otherwise)
-    """
-    if reference_date is not None:
-        return to_days_with_context(period, reference_date)
-    else:
-        # Fall back to approximation when no context is available
-        return to_days_approximate(period)
-
-
 def to_z3_constraint(date: Date) -> int:
     """Convert a Date to Z3 integer constraint."""
     return to_days_since_epoch(date)
@@ -282,28 +179,33 @@ def eom_clamp(y, m, d):
     return If(d < IntVal(1), IntVal(1), If(d > maxd, maxd, d))
 
 
-def add_period_exact_days(days_term, period):
+def add_days_ordinal(y, m, d, delta_days):
     """
-    Given current 'days since epoch' (Z3 Int) and a concrete Period,
-    return the exact resulting 'days since epoch' (Z3 Int) under EOM policy:
-    1) add (Y,M) with NormMonth
-    2) EOM clamp the day
-    3) add D days in ordinal space
+    Exact ordinal-based addition with 400-year cycle reduction.
+    Mirrors baseline/advanced helper.
     """
+    FOUR_HUNDRED_YEARS = IntVal(146097)
+    d0 = eom_clamp(y, m, d)
+    no_shift = (delta_days == IntVal(0))
+    y_ns, m_ns, d_ns = y, m, d0
+    q = delta_days / FOUR_HUNDRED_YEARS
+    r = delta_days % FOUR_HUNDRED_YEARS
+    y_era = y + q * IntVal(400)
+    z = days_since_epoch_from_ymd(y_era, m, d0)
+    z2 = z + r
+    y2, m2, d2 = ymd_from_days_since_epoch(z2)
+    out_y = If(no_shift, y_ns, y2)
+    out_m = If(no_shift, m_ns, m2)
+    out_d = If(no_shift, d_ns, d2)
+    return out_y, out_m, out_d
+
+def add_period_days(days_term, oy, om, od):
+    """Shared exact addition: days-since-epoch + (oy,om,od) -> days-since-epoch."""
     y, m, d = ymd_from_days_since_epoch(days_term)
-
-    # 1) months/years
-    y2, m2 = normalize_month(y + IntVal(period.years), m + IntVal(period.months))
-
-    # 2) EOM clamp
+    y2, m2 = normalize_month(y + oy, m + om)
     d2 = eom_clamp(y2, m2, d)
-
-    # 3) add D days in ordinal space
-    base_ord = to_ordinal(y2, m2, d2)
-    new_ord  = base_ord + IntVal(period.days)
-
-    # encode back to days since epoch
-    return new_ord - _ORD_EPOCH
+    y3, m3, d3 = add_days_ordinal(y2, m2, d2, od)
+    return days_since_epoch_from_ymd(y3, m3, d3)
 
 
 def days_in_month_z3(year, month):
@@ -688,15 +590,14 @@ class DateVar:
         if isinstance(other, Period):
             return self.shift_period(other)
         elif isinstance(other, _PeriodVar):
-            # For PeriodVar, we need to handle this differently
             # Create result through solver factory (auto-registered + constrained)
             import time
             unique_name = f"{self.name}_plus_period_{int(time.time() * 1000000) % 1000000}"
             result = self.ctx.new_date(unique_name)
-            
-            # Add constraint: result.epoch_var == self.epoch_var + other.days_var
-            self.ctx.solver.add(result.epoch_var == self.epoch_var + other.days_var)
-            
+            # Use component-wise exact helper
+            self.ctx.solver.add(
+                result.epoch_var == add_period_days(self.epoch_var, other.years, other.months, other.days)
+            )
             return result
         raise TypeError(f"Cannot add {type(other)} to DateVar")
 
@@ -710,15 +611,14 @@ class DateVar:
             negP = Period(-other.years, -other.months, -other.days)
             return self.shift_period(negP)
         elif isinstance(other, _PeriodVar):
-            # For PeriodVar, we need to handle this differently
             # Create result through solver factory (auto-registered + constrained)
             import time
             unique_name = f"{self.name}_minus_period_{int(time.time() * 1000000) % 1000000}"
             result = self.ctx.new_date(unique_name)
-            
-            # Add constraint: result.epoch_var == self.epoch_var - other.days_var
-            self.ctx.solver.add(result.epoch_var == self.epoch_var - other.days_var)
-            
+            # Use component-wise exact helper with negation
+            self.ctx.solver.add(
+                result.epoch_var == add_period_days(self.epoch_var, -other.years, -other.months, -other.days)
+            )
             return result
         elif isinstance(other, DateVar):
             # days difference (Z3 Int term)
@@ -740,13 +640,13 @@ class DateVar:
 
 
 class PeriodVar:
-    """Symbolic period variable for advanced implementation."""
+    """Symbolic period variable using separate Y/M/D components (baseline-compatible)."""
 
-    def __init__(self, name: str):
-        """Create a symbolic period variable."""
+    def __init__(self, name: str, years=0, months=0, days=0):
         self.name = name
-        # Use a single Z3 integer variable for approximate days
-        self.days_var = Int(f"{name}_days")
+        self.years = Int(f"{name}_years")
+        self.months = Int(f"{name}_months")
+        self.days = Int(f"{name}_days")
 
     def __str__(self):
         return f"PeriodVar({self.name})"
@@ -755,62 +655,50 @@ class PeriodVar:
         return self.__str__()
 
     def to_concrete_period(self, model: ModelRef) -> Period:
-        """Convert Z3 model to concrete Period."""
-        days = model.evaluate(self.days_var, model_completion=True).as_long()
-        # Simple approximation - not accurate for real calendar arithmetic
-        years = days // 365
-        months = (days % 365) // 30
-        remaining_days = days % 30
-        return Period(years, months, remaining_days)
-
-    def to_days_approximate(self) -> int:
-        """Convert to approximate days for Z3 constraints."""
-        return self.days_var
+        years = model.evaluate(self.years, model_completion=True).as_long()
+        months = model.evaluate(self.months, model_completion=True).as_long()
+        days = model.evaluate(self.days, model_completion=True).as_long()
+        return Period(years, months, days)
 
     def __eq__(self, other):
-        """Support equality with concrete Period or another PeriodVar."""
-        if isinstance(other, Period):
-            return self.days_var == to_days_approximate(other)
-        elif isinstance(other, PeriodVar):
-            return self.days_var == other.days_var
-        else:
-            raise TypeError(f"Cannot compare PeriodVar with {type(other)}")
+        raise TypeError(f"Cannot compare PeriodVar.")
 
     def __ne__(self, other):
-        """Support inequality with concrete Period or another PeriodVar."""
-        return Not(self.__eq__(other))
+        raise TypeError(f"Cannot compare PeriodVar.")
 
     def __add__(self, other):
-        if isinstance(other, PeriodVar):
-            out = PeriodVar(f"{self.name}_plus_{other.name}")
-            out.days_var = self.days_var + other.days_var
-            return out
-        elif isinstance(other, Period):
-            out = PeriodVar(f"{self.name}_plus_{other.years}y_{other.months}m_{other.days}d")
-            out.days_var = self.days_var + IntVal(to_days_approximate(other))  # or leave blocked
-            return out
-        raise TypeError(f"Cannot add {type(other)} to PeriodVar")
+        if isinstance(other, Period) or isinstance(other, PeriodVar):
+            if isinstance(other, Period):
+                result = PeriodVar(f"{self.name}_plus_{other.years}y_{other.months}m_{other.days}d")
+                oy, om, od = IntVal(other.years), IntVal(other.months), IntVal(other.days)
+                result.years = self.years + oy
+                result.months = self.months + om
+                result.days = self.days + od
+            else:
+                result = PeriodVar(f"{self.name}_plus_{other.name}")
+                result.years = self.years + other.years
+                result.months = self.months + other.months
+                result.days = self.days + other.days
+            return result
+        else:
+            raise TypeError(f"Cannot add {type(other)} to PeriodVar")
 
     def __sub__(self, other):
-        if isinstance(other, PeriodVar):
-            out = PeriodVar(f"{self.name}_minus_{other.name}")
-            out.days_var = self.days_var - other.days_var
-            return out
-        elif isinstance(other, Period):
-            out = PeriodVar(f"{self.name}_minus_{other.years}y_{other.months}m_{other.days}d")
-            out.days_var = self.days_var - IntVal(to_days_approximate(other))
-            return out
-        raise TypeError(f"Cannot subtract {type(other)} from PeriodVar")
-
-    def __mul__(self, k):
-        if isinstance(k, int):
-            out = PeriodVar(f"{self.name}_times_{k}")
-            out.days_var = self.days_var * IntVal(k)
-            return out
-        raise TypeError(f"Cannot multiply PeriodVar by {type(k)}")
-
-    def __rmul__(self, k):
-        return self.__mul__(k)
+        if isinstance(other, Period) or isinstance(other, PeriodVar):
+            if isinstance(other, Period):
+                result = PeriodVar(f"{self.name}_minus_{other.years}y_{other.months}m_{other.days}d")
+                oy, om, od = IntVal(other.years), IntVal(other.months), IntVal(other.days)
+                result.years = self.years - oy
+                result.months = self.months - om
+                result.days = self.days - od
+            else:
+                result = PeriodVar(f"{self.name}_minus_{other.name}")
+                result.years = self.years - other.years
+                result.months = self.months - other.months
+                result.days = self.days - other.days
+            return result
+        else:
+            raise TypeError(f"Cannot subtract {type(other)} from PeriodVar")
 
 class HybridDateSolver:
     """Advanced v2 date constraint solver using dual representation (epoch-primary, YMD-derived)."""

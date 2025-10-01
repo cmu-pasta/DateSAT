@@ -6,7 +6,7 @@
 (assert
  (<= x_days 36829))
 (assert
- (> x_days 8034))
+ (not (<= x_days 8034)))
 (assert
- (< x_days 8035))
+ (not (>= x_days 8035)))
 (check-sat)
