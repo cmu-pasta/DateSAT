@@ -475,19 +475,9 @@ class DateVar:
     def __ge__(self, other):
         """Support x >= date comparison using epoch (O(1))."""
         if isinstance(other, Date):
-            # Use a simpler approach: compare components directly
-            # This avoids the complex to_ordinal calculation
-            year_ge = self.year_var > other.year
-            year_eq = self.year_var == other.year
-            month_ge = self.month_var > other.month
-            month_eq = self.month_var == other.month
-            day_ge = self.day_var >= other.day
-            
-            return Or(
-                year_ge,
-                And(year_eq, month_ge),
-                And(year_eq, month_eq, day_ge)
-            )
+            # Convert concrete date to epoch days and compare
+            other_epoch = to_days_since_epoch(other)
+            return self.epoch_var >= other_epoch
         elif isinstance(other, DateVar):
             return self.epoch_var >= other.epoch_var
         else:
@@ -496,18 +486,9 @@ class DateVar:
     def __le__(self, other):
         """Support x <= date comparison using epoch (O(1))."""
         if isinstance(other, Date):
-            # Use component-wise comparison
-            year_lt = self.year_var < other.year
-            year_eq = self.year_var == other.year
-            month_lt = self.month_var < other.month
-            month_eq = self.month_var == other.month
-            day_le = self.day_var <= other.day
-            
-            return Or(
-                year_lt,
-                And(year_eq, month_lt),
-                And(year_eq, month_eq, day_le)
-            )
+            # Convert concrete date to epoch days and compare
+            other_epoch = to_days_since_epoch(other)
+            return self.epoch_var <= other_epoch
         elif isinstance(other, DateVar):
             return self.epoch_var <= other.epoch_var
         else:
@@ -516,18 +497,9 @@ class DateVar:
     def __lt__(self, other):
         """Support x < date comparison using epoch (O(1))."""
         if isinstance(other, Date):
-            # Use component-wise comparison
-            year_lt = self.year_var < other.year
-            year_eq = self.year_var == other.year
-            month_lt = self.month_var < other.month
-            month_eq = self.month_var == other.month
-            day_lt = self.day_var < other.day
-            
-            return Or(
-                year_lt,
-                And(year_eq, month_lt),
-                And(year_eq, month_eq, day_lt)
-            )
+            # Convert concrete date to epoch days and compare
+            other_epoch = to_days_since_epoch(other)
+            return self.epoch_var < other_epoch
         elif isinstance(other, DateVar):
             return self.epoch_var < other.epoch_var
         else:
@@ -536,12 +508,9 @@ class DateVar:
     def __eq__(self, other):
         """Support x == date comparison using epoch (O(1))."""
         if isinstance(other, Date):
-            # Use component-wise comparison
-            return And(
-                self.year_var == other.year,
-                self.month_var == other.month,
-                self.day_var == other.day
-            )
+            # Convert concrete date to epoch days and compare
+            other_epoch = to_days_since_epoch(other)
+            return self.epoch_var == other_epoch
         elif isinstance(other, DateVar):
             return self.epoch_var == other.epoch_var
         else:
@@ -554,18 +523,9 @@ class DateVar:
     def __gt__(self, other):
         """Support x > date comparison using epoch (O(1))."""
         if isinstance(other, Date):
-            # Use component-wise comparison
-            year_gt = self.year_var > other.year
-            year_eq = self.year_var == other.year
-            month_gt = self.month_var > other.month
-            month_eq = self.month_var == other.month
-            day_gt = self.day_var > other.day
-            
-            return Or(
-                year_gt,
-                And(year_eq, month_gt),
-                And(year_eq, month_eq, day_gt)
-            )
+            # Convert concrete date to epoch days and compare
+            other_epoch = to_days_since_epoch(other)
+            return self.epoch_var > other_epoch
         elif isinstance(other, DateVar):
             return self.epoch_var > other.epoch_var
         else:
@@ -832,8 +792,8 @@ class HybridDateSolver:
             1 <= M, M <= 12,
             1 <= D, D <= days_in_month_z3(Y, M),
             Y_MIN <= Y, Y <= Y_MAX,
-            # Forward link: E = to_ordinal(Y,M,D) - ONCE per DateVar
-            E == to_ordinal_z3(Y, M, D)
+            # Forward link: E = days_since_epoch_from_ymd(Y,M,D) - ONCE per DateVar
+            E == days_since_epoch_from_ymd(Y, M, D)
         ))
 
     def add_date_var(self, name: str) -> DateVar:
