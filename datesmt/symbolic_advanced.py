@@ -280,6 +280,41 @@ def eom_clamp(y, m, d):
     return If(d < IntVal(1), IntVal(1), If(d > maxd, maxd, d))
 
 
+FOUR_HUNDRED_YEARS = IntVal(146097)  # 400*365 + 97 leap days
+
+def add_days_ordinal(y, m, d, delta_days):
+    """
+    Exact ordinal-based addition with 400-year cycle reduction.
+    Steps:
+      - EOM clamp input day (baseline 'round down' policy).
+      - If delta_days == 0 → return (y,m,d).
+      - Split delta_days into q*146097 + r. Add 400*q years first (no month change),
+        then add the small remainder r via ordinal transform.
+    """
+    d0 = eom_clamp(y, m, d)
+
+    # Fast path: no day shift → avoid any ordinal math.
+    no_shift = (delta_days == IntVal(0))
+    y_ns, m_ns, d_ns = y, m, d0
+
+    # Reduce by 400-year eras to keep terms small
+    q = delta_days / FOUR_HUNDRED_YEARS
+    r = delta_days % FOUR_HUNDRED_YEARS
+
+    # Shift whole eras in the year; month/day unchanged for this step
+    y_era = y + q * IntVal(400)
+
+    # Now add the small remainder r via ordinal conversion
+    z   = days_since_epoch_from_ymd(y_era, m, d0)
+    z2  = z + r
+    y2, m2, d2 = ymd_from_days_since_epoch(z2)
+
+    # If delta_days == 0, return (y,m,d0); else the computed (y2,m2,d2)
+    out_y = If(no_shift, y_ns, y2)
+    out_m = If(no_shift, m_ns, m2)
+    out_d = If(no_shift, d_ns, d2)
+    return out_y, out_m, out_d
+
 def add_period_exact_days(days_term, period):
     """
     Given current 'days since epoch' (Z3 Int) and a concrete Period,
@@ -503,12 +538,18 @@ class PeriodVar:
 class AdvancedDateSolver:
     """Advanced date constraint solver using epoch-based conversion."""
 
-    def __init__(self):
-        """Initialize the solver."""
+    def __init__(self, timeout_ms=60000):
+        """Initialize the solver with timeout.
+        
+        Args:
+            timeout_ms: Timeout in milliseconds (default: 60 seconds)
+        """
         self.solver = Solver()
+        self.solver.set("timeout", timeout_ms)
         self.date_vars = {}
         self.period_vars = {}
         self.constraints = []
+        self.timeout_ms = timeout_ms
 
     def add_date_var(self, name: str) -> DateVar:
         """Add a symbolic date variable with basic constraints."""

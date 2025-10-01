@@ -357,37 +357,90 @@ def to_ordinal_z3(year, month, day):
 
 class DateVar:
     """
-    Symbolic date variable for Advanced v2 implementation.
+    Symbolic date variable with lazy dual representation.
     
-    Uses dual representation: epoch-primary, YMD-derived
-    - Stored vars: Y, M, D, E (four separate Z3 Ints)
-    - Invariants: E = to_ordinal(Y,M,D) (forward only, no inverse)
-    - Comparisons & day arithmetic: O(1) on E
-    - Month/year arithmetic: simple AMI on (Y,M,D)
+    Uses lazy dual representation: epoch-primary, YMD-derived
+    - Primary: epoch_var (always present, used for comparisons and day arithmetic)
+    - Secondary: year_var, month_var, day_var (created only when needed)
+    - Forward link: Only added when both representations are used
+    - Comparisons & day arithmetic: O(1) on epoch_var
+    - Month/year arithmetic: Uses YMD vars when available, otherwise creates them
     """
 
     def __init__(self, ctx, name: str, year_var=None, month_var=None, day_var=None, epoch_var=None):
-        """Create a symbolic date variable with dual representation."""
+        """Create a symbolic date variable with lazy dual representation."""
         self.ctx = ctx  # Back-reference to solver context
         self.name = name
+        self._forward_link_added = False
         
         if year_var is not None:
-            # Created by solver factory
+            # Created by solver factory with all variables
             self.year_var = year_var
             self.month_var = month_var
             self.day_var = day_var
             self.epoch_var = epoch_var
+            self._ymd_vars_exist = True
         else:
-            # Legacy constructor - create variables
-            self.year_var = Int(f"{name}_year")
-            self.month_var = Int(f"{name}_month") 
-            self.day_var = Int(f"{name}_day")
+            # Legacy constructor - create only epoch variable initially
             self.epoch_var = Int(f"{name}_epoch")
+            self._ymd_vars_exist = False
+            self._year_var = None
+            self._month_var = None
+            self._day_var = None
     
     @property
     def days_var(self):
         """Back-compat shim for old code that expects days_var."""
         return self.epoch_var
+    
+    @property
+    def year_var(self):
+        """Get year variable, creating YMD vars if needed."""
+        if not self._ymd_vars_exist:
+            self._ensure_ymd_vars()
+        return self._year_var
+    
+    @property
+    def month_var(self):
+        """Get month variable, creating YMD vars if needed."""
+        if not self._ymd_vars_exist:
+            self._ensure_ymd_vars()
+        return self._month_var
+    
+    @property
+    def day_var(self):
+        """Get day variable, creating YMD vars if needed."""
+        if not self._ymd_vars_exist:
+            self._ensure_ymd_vars()
+        return self._day_var
+    
+    def _ensure_ymd_vars(self):
+        """Create YMD variables and add forward link constraint if not already done."""
+        if self._ymd_vars_exist:
+            return
+            
+        # Create YMD variables
+        self._year_var = Int(f"{self.name}_year")
+        self._month_var = Int(f"{self.name}_month")
+        self._day_var = Int(f"{self.name}_day")
+        self._ymd_vars_exist = True
+        
+        # Add calendar validity constraints
+        self.ctx._add_date_constraints(self)
+        
+        # Add forward link constraint
+        self._add_forward_link_constraint()
+    
+    def _add_forward_link_constraint(self):
+        """Add the forward link constraint: epoch_var = days_since_epoch_from_ymd(year_var, month_var, day_var)"""
+        if self._forward_link_added:
+            return
+            
+        # Add the forward link constraint
+        self.ctx.solver.add(
+            self.epoch_var == days_since_epoch_from_ymd(self._year_var, self._month_var, self._day_var)
+        )
+        self._forward_link_added = True
 
     def __str__(self):
         return f"DateVar({self.name})"
@@ -397,10 +450,16 @@ class DateVar:
 
     def to_concrete_date(self, model: ModelRef) -> Date:
         """Convert Z3 model to concrete Date."""
-        year = model.evaluate(self.year_var, model_completion=True).as_long()
-        month = model.evaluate(self.month_var, model_completion=True).as_long()
-        day = model.evaluate(self.day_var, model_completion=True).as_long()
-        return Date(year, month, day)
+        if self._ymd_vars_exist:
+            # Use YMD variables if they exist
+            year = model.evaluate(self._year_var, model_completion=True).as_long()
+            month = model.evaluate(self._month_var, model_completion=True).as_long()
+            day = model.evaluate(self._day_var, model_completion=True).as_long()
+            return Date(year, month, day)
+        else:
+            # Use epoch variable and convert to Date
+            epoch_days = model.evaluate(self.epoch_var, model_completion=True).as_long()
+            return from_days_since_epoch(epoch_days)
 
     def add_forward_link_constraint(self, solver):
         """Add the forward link constraint: E = to_ordinal(Y,M,D)"""
@@ -610,13 +669,18 @@ class DateVar:
         Dcap = If(D <= dim_tp, D, dim_tp)
         Dp = If(preserve_eom, If(eom, dim_tp, Dcap), Dcap)
         
-        # CRITICAL FIX: Avoid contradictory constraints when period.days != 0
-        if period.days == 0:
-            # No day component - set Y/M/D directly, let forward link handle E
+        # CRITICAL FIX: Use epoch for days-only, YMD for months/years
+        if period.years == 0 and period.months == 0:
+            # Days only - use epoch arithmetic (perfect for day operations)
+            return [E2 == self.epoch_var + IntVal(period.days)]
+        elif period.days == 0:
+            # Months/years only - use YMD arithmetic (perfect for calendar operations)
             return [Y2 == Yp, M2 == Mp, D2 == Dp]
         else:
-            # Has day component - only constrain E, let forward link solve Y/M/D
-            return [E2 == to_ordinal_z3(Yp, Mp, Dp) + IntVal(period.days)]
+            # Mixed: months/years + days - use YMD for calendar part, then add days
+            from .symbolic_baseline import add_days_ordinal
+            Y2_result, M2_result, D2_result = add_days_ordinal(Yp, Mp, Dp, period.days)
+            return [Y2 == Y2_result, M2 == M2_result, D2 == D2_result]
 
     def __add__(self, other):
         """date + period (exact) or date + PeriodVar (exact)."""
@@ -751,49 +815,61 @@ class PeriodVar:
 class HybridDateSolver:
     """Advanced v2 date constraint solver using dual representation (epoch-primary, YMD-derived)."""
 
-    def __init__(self):
-        """Initialize the solver with dual representation support."""
+    def __init__(self, timeout_ms=60000):
+        """Initialize the solver with dual representation support and timeout.
+        
+        Args:
+            timeout_ms: Timeout in milliseconds (default: 60 seconds)
+        """
         self.solver = Solver()
+        self.solver.set("timeout", timeout_ms)
         self.date_vars = {}
         self.period_vars = {}
         self.constraints = []
+        self.timeout_ms = timeout_ms
 
     def new_date(self, name: str = None) -> DateVar:
         """Create a new DateVar through the solver factory (auto-registered + constrained)."""
         if name is None:
             name = f"d{len(self.date_vars)}"
         
-        # Create Z3 variables
-        year_var = Int(f"{name}_year")
-        month_var = Int(f"{name}_month")
-        day_var = Int(f"{name}_day")
-        epoch_var = Int(f"{name}_epoch")
-        
-        # Create DateVar with back-reference to solver
-        date_var = DateVar(self, name, year_var, month_var, day_var, epoch_var)
+        # Create DateVar with lazy dual representation
+        date_var = DateVar(self, name)
         
         # Add to registry
         self.date_vars[name] = date_var
         
-        # Add constraints (validity + forward link)
-        self._add_date_constraints(date_var)
+        # Add only basic epoch constraints initially
+        self._add_basic_epoch_constraints(date_var)
         
         return date_var
 
+    def _add_basic_epoch_constraints(self, date_var: DateVar):
+        """Add basic epoch constraints for a DateVar (like advanced approach)."""
+        E = date_var.epoch_var
+        
+        # Add constraints for valid date ranges [1900-01-01 to 2100-12-31]
+        # Epoch is March 1, 2000
+        # 1900-01-01 to 2000-03-01 = -36584 days
+        # 2000-03-01 to 2100-12-31 = +36829 days
+        self.solver.add(E >= -36584)  # 1900-01-01
+        self.solver.add(E <= 36829)   # 2100-12-31
+
     def _add_date_constraints(self, date_var: DateVar):
-        """Add constraints for a DateVar (validity + forward link)."""
-        Y, M, D, E = date_var.year_var, date_var.month_var, date_var.day_var, date_var.epoch_var
+        """Add full constraints for a DateVar when YMD representation is needed."""
+        if not date_var._ymd_vars_exist:
+            return
+            
+        Y, M, D, E = date_var._year_var, date_var._month_var, date_var._day_var, date_var.epoch_var
         
         # Year range constraint [1900-2100]
         Y_MIN, Y_MAX = 1900, 2100
         
-        # Simplified validity constraints (single days_in_month call)
+        # Add calendar validity constraints
         self.solver.add(And(
             1 <= M, M <= 12,
             1 <= D, D <= days_in_month_z3(Y, M),
-            Y_MIN <= Y, Y <= Y_MAX,
-            # Forward link: E = days_since_epoch_from_ymd(Y,M,D) - ONCE per DateVar
-            E == days_since_epoch_from_ymd(Y, M, D)
+            Y_MIN <= Y, Y <= Y_MAX
         ))
 
     def add_date_var(self, name: str) -> DateVar:
