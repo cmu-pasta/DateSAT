@@ -22,7 +22,7 @@ except ImportError:
     from datesmt.symbolic_api import DateSMTBuilder
 
 
-def test_constraint_with_approach(constraint_data: dict, approach: str) -> dict:
+def test_constraint_with_approach(constraint_data: dict, approach: str, timeout_ms: int = 60000) -> dict:
     """Test a single constraint with a specific approach."""
 
     constraint_id = constraint_data["id"]
@@ -59,9 +59,9 @@ def test_constraint_with_approach(constraint_data: dict, approach: str) -> dict:
 
         # Execute the constraint code (which creates its own builder and variables)
         # This avoids the duplicate constraint issue
-        # Create a DateSMTBuilder factory that injects the approach parameter
+        # Create a DateSMTBuilder factory that injects the approach parameter and timeout
         def create_builder():
-            return DateSMTBuilder(approach=approach)
+            return DateSMTBuilder(approach=approach, timeout_ms=timeout_ms)
         
         exec_globals = {
             'Date': Date,
@@ -139,7 +139,7 @@ def _sanitize_filename(name: str) -> str:
     return re.sub(r"[^A-Za-z0-9._-]+", "_", name)
 
 
-def test_constraints_file(constraints_file: str, output_dir: str = "test_results"):
+def test_constraints_file(constraints_file: str, output_dir: str = "test_results", timeout_ms: int = 60000):
     """Test all constraints in a file with both approaches."""
 
     # Load constraints
@@ -164,7 +164,7 @@ def test_constraints_file(constraints_file: str, output_dir: str = "test_results
 
         results = []
         for constraint in constraints:
-            result = test_constraint_with_approach(constraint, approach)
+            result = test_constraint_with_approach(constraint, approach, timeout_ms)
             # Save per-constraint SMT-LIB as .smt2 file
             if result.get("smtlib"):
                 cid = _sanitize_filename(result.get("constraint_id", "unknown"))
@@ -216,6 +216,9 @@ def main():
     parser.add_argument(
         "--output-dir", default="test_results", help="Output directory for results"
     )
+    parser.add_argument(
+        "--timeout", type=int, default=60000, help="Timeout in milliseconds (default: 60000 = 60 seconds)"
+    )
 
     args = parser.parse_args()
 
@@ -223,7 +226,7 @@ def main():
         print(f"Error: Constraints file {args.constraints_file} not found")
         return
 
-    test_constraints_file(args.constraints_file, args.output_dir)
+    test_constraints_file(args.constraints_file, args.output_dir, args.timeout)
 
 
 if __name__ == "__main__":

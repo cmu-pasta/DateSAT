@@ -18,24 +18,26 @@ from .symbolic_hybrid import HybridDateSolver
 class DateSMTBuilder:
     """Unified API for DATE-SMT constraint solving."""
 
-    def __init__(self, approach: str = "advanced"):
-        """Initialize the builder with the specified approach.
+    def __init__(self, approach: str = "advanced", timeout_ms: int = 60000):
+        """Initialize the builder with the specified approach and timeout.
 
         Args:
             approach: Either "baseline", "advanced", or "hybrid"
+            timeout_ms: Timeout in milliseconds (default: 60 seconds)
         """
         self.approach = approach
         if approach == "baseline":
-            self.solver = DateSolver()
+            self.solver = DateSolver(timeout_ms=timeout_ms)
         elif approach == "advanced":
-            self.solver = AdvancedDateSolver()
+            self.solver = AdvancedDateSolver(timeout_ms=timeout_ms)
         elif approach == "hybrid":
-            self.solver = HybridDateSolver()
+            self.solver = HybridDateSolver(timeout_ms=timeout_ms)
         else:
             raise ValueError(f"Unknown approach: {approach}. Must be 'baseline', 'advanced', or 'hybrid'")
 
         self.constraints = []
         self._print_smt_on_solve = True
+        self.timeout_ms = timeout_ms
 
     def add_date_var(self, name: str):
         """Add a symbolic date variable."""
