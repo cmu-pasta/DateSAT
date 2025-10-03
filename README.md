@@ -1,6 +1,6 @@
 # DATE-SMT
 
-[![CI](https://github.com/angelc2/Date-SMT/actions/workflows/coverage.yml/badge.svg)](https://github.com/angelc2/Date-SMT/actions/workflows/coverage.yml) [![Coverage Site](https://img.shields.io/badge/coverage-site-blue)](https://angelc2.github.io/Date-SMT/)
+[![CI](https://github.com/angelc2/Date-SMT/actions/workflows/ci.yml/badge.svg)](https://github.com/angelc2/Date-SMT/actions/workflows/coverage.yml) [![Coverage Site](https://img.shields.io/badge/coverage-site-blue)](https://angelc2.github.io/Date-SMT/)
 
 A Python library for symbolic analysis of date-based computations using Z3.
 

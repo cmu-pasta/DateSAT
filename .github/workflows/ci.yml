@@ -1,4 +1,4 @@
-name: coverage
+name: CI
 
 on:
   push:
@@ -32,6 +32,13 @@ jobs:
             export COVERAGE_SITE_DIR=docs
           fi
           python tests/build_coverage_site.py
+          # Ensure docs directory exists for Pages and disable Jekyll processing
+          if [ -d docs ]; then
+            touch docs/.nojekyll
+            if [ ! -f docs/index.html ]; then
+              echo "<!doctype html><meta charset=\"utf-8\"><title>DATE-SMT Coverage</title><p>No coverage index generated. Check CI logs." > docs/index.html
+            fi
+          fi
 
       - name: Commit and push docs (only on dev push)
         if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
