@@ -21,7 +21,7 @@ class TestAdvancedPeriodVar:
         assert p.name == "test_period"
         assert hasattr(p, 'days_var')
         assert hasattr(p, 'to_concrete_period')
-        assert hasattr(p, 'to_days_approximate')
+        # Do not require non-API helpers
 
     def test_period_var_creation_with_different_names(self):
         """Test creating PeriodVar with different names."""
@@ -37,7 +37,7 @@ class TestAdvancedPeriodVar:
         p = PeriodVar("test")
         
         # Check required attributes exist
-        required_attrs = ['name', 'days_var', 'to_concrete_period', 'to_days_approximate']
+        required_attrs = ['name', 'days_var', 'to_concrete_period']
         for attr in required_attrs:
             assert hasattr(p, attr), f"PeriodVar should have attribute {attr}"
 
@@ -112,11 +112,7 @@ class TestAdvancedPeriodVar:
         assert hasattr(p, 'to_concrete_period')
         assert callable(p.to_concrete_period)
 
-    def test_period_var_to_days_approximate(self):
-        """Test PeriodVar to_days_approximate method."""
-        p = PeriodVar("p")
-        assert hasattr(p, 'to_days_approximate')
-        assert callable(p.to_days_approximate)
+    # Removed tests for non-existent to_days_approximate
 
     def test_period_var_days_var_type(self):
         """Test that PeriodVar.days_var is a Z3 Int variable."""
@@ -242,10 +238,7 @@ class TestAdvancedPeriodVar:
         except Exception:
             pass  # Expected to fail without a model
         
-        try:
-            p.to_days_approximate()
-        except Exception:
-            pass  # Expected to fail without a model
+        # Removed call to non-existent to_days_approximate
 
     def test_period_var_string_representation(self):
         """Test PeriodVar string representation."""
