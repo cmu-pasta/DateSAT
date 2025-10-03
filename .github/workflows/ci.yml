@@ -8,10 +8,12 @@ on:
   pull_request:
 
 jobs:
-  tests-and-coverage:
+  unit-tests:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
+    outputs:
+      site-dir: ${{ steps.set-output.outputs.site_dir }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -26,33 +28,48 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements/dev.txt
 
-      - name: Build coverage site (PR uses documentation/coverage; push writes docs/)
+      - name: Build coverage site (unit tests only)
         run: |
-          if [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref }}" = "refs/heads/dev" ]; then
-            export COVERAGE_SITE_DIR=docs
-          fi
           python tests/build_coverage_site.py
-          # Ensure docs directory exists for Pages and disable Jekyll processing
-          if [ -d docs ]; then
-            touch docs/.nojekyll
-            if [ ! -f docs/index.html ]; then
-              echo "<!doctype html><meta charset=\"utf-8\"><title>DATE-SMT Coverage</title><p>No coverage index generated. Check CI logs." > docs/index.html
-            fi
+
+      - name: Upload coverage site artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-site
+          path: documentation/coverage
+          if-no-files-found: error
+
+      - name: Set site_dir output
+        id: set-output
+        run: echo "site_dir=documentation/coverage" >> $GITHUB_OUTPUT
+
+  deploy-pages:
+    runs-on: ubuntu-latest
+    needs: unit-tests
+    if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download coverage site artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-site
+          path: docs
+
+      - name: Prepare docs folder for Pages
+        run: |
+          touch docs/.nojekyll
+          if [ ! -f docs/index.html ]; then
+            echo "<!doctype html><meta charset=\"utf-8\"><title>DATE-SMT Coverage</title><p>No coverage index generated. Check CI logs." > docs/index.html
           fi
 
-      - name: Commit and push docs (only on dev push)
-        if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
+      - name: Commit and push docs
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@users.noreply.github.com"
           git add docs
           git commit -m "Update coverage site [skip ci]" || echo "No changes"
           git push origin dev
-
-      - name: Upload coverage site artifact (PR)
-        if: github.event_name != 'push'
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-site
-          path: documentation/coverage
-          if-no-files-found: error
