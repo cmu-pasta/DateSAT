@@ -21,9 +21,9 @@ from datesmt.core import Date
     [
         (2023, 6, 15),
         (2024, 2, 29),  # leap
-        (2000, 2, 29),  # century leap
-        (1, 1, 1),
-        (9999, 12, 31),
+        (2000, 2, 29),  # century leap (within supported range)
+        (1900, 1, 1),   # min supported boundary
+        (2100, 12, 31), # max supported boundary
     ],
 )
 def test_constructor_valid(y, m, d):
@@ -49,8 +49,10 @@ def test_constructor_valid_from_fixture(sample_dates):
         (2023, 0, 1),  # month 0
         (2023, 1, 0),  # day 0
         (2023, 1, 32),  # day > 31
-        (-1, 1, 1),  # negative year (if disallowed)
+        (-1, 1, 1),  # negative year (disallowed)
         (10000, 1, 1),  # beyond 9999
+        (1, 1, 1),  # below supported range
+        (9999, 12, 31),  # above supported range
     ],
 )
 def test_constructor_invalid_raises_value_error(y, m, d):
@@ -301,11 +303,13 @@ def test_february_29_validation():
 
 def test_century_leap_year_validation():
     """Test century leap year validation (400-year rule)."""
-    # Century years divisible by 400 (leap)
-    century_leap_years = [1600, 2000, 2400]
-    for year in century_leap_years:
-        date_leap = Date(year, 2, 29)
-        assert date_leap.day == 29
+    # Century years divisible by 400 (leap) — only test within supported range
+    # 2000 is within [1900, 2100]; 1600 and 2400 are out of range and should error
+    date_leap = Date(2000, 2, 29)
+    assert date_leap.day == 29
+    for year in [1600, 2400]:
+        with pytest.raises(ValueError):
+            Date(year, 2, 29)
     
     # Century years not divisible by 400 (not leap)
     century_non_leap_years = [1700, 1800, 1900, 2100, 2200, 2300]
