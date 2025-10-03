@@ -13,6 +13,7 @@ DOCS_DIR = SITE_DIR if SITE_DIR.is_absolute() else REPO_ROOT / SITE_DIR
 HTML_DIR = DOCS_DIR / "coverage_html"
 XML_PATH = DOCS_DIR / "coverage.xml"
 INDEX_HTML = DOCS_DIR / "index.html"
+BADGE_SVG = DOCS_DIR / "badge.svg"
 
 
 def run_tests_with_coverage() -> None:
@@ -198,6 +199,68 @@ def build_index_html(totals, rows) -> None:
     print(f"Wrote {INDEX_HTML}")
 
 
+def build_badge_svg(totals) -> None:
+    """
+    Create a simple Shields-style SVG badge summarizing total line coverage.
+    The badge is written to BADGE_SVG and published with the site.
+    """
+    line_rate = totals.get("line_rate") or 0.0
+    pct_int = int(round(line_rate * 100))
+    value_text = f"{pct_int}%"
+
+    # Pick a color similar to Shields.io thresholds
+    if pct_int >= 90:
+        color = "#4c1"  # brightgreen
+    elif pct_int >= 80:
+        color = "#97CA00"  # green
+    elif pct_int >= 70:
+        color = "#a4a61d"  # yellowgreen-ish
+    elif pct_int >= 60:
+        color = "#dfb317"  # yellow
+    elif pct_int >= 50:
+        color = "#fe7d37"  # orange
+    else:
+        color = "#e05d44"  # red
+
+    label_text = "coverage"
+
+    # Approximate text widths: ~7px per character + padding
+    def approx_width(text: str) -> int:
+        return 10 + 7 * len(text)
+
+    label_width = max(50, approx_width(label_text))
+    value_width = max(34, approx_width(value_text))
+    total_width = label_width + value_width
+
+    # Text centers for each section
+    label_center = label_width / 2
+    value_center = label_width + (value_width / 2)
+
+    svg = f"""
+<svg xmlns="http://www.w3.org/2000/svg" width="{total_width}" height="20" role="img" aria-label="{label_text}: {value_text}">
+  <linearGradient id="s" x2="0" y2="100%">
+    <stop offset="0" stop-color="#bbb" stop-opacity=".1"/>
+    <stop offset="1" stop-opacity=".1"/>
+  </linearGradient>
+  <mask id="m"><rect width="{total_width}" height="20" rx="3" fill="#fff"/></mask>
+  <g mask="url(#m)">
+    <rect width="{label_width}" height="20" fill="#555"/>
+    <rect x="{label_width}" width="{value_width}" height="20" fill="{color}"/>
+    <rect width="{total_width}" height="20" fill="url(#s)"/>
+  </g>
+  <g fill="#fff" text-anchor="middle" font-family="DejaVu Sans,Verdana,Geneva,sans-serif" font-size="11">
+    <text x="{label_center}" y="15" fill="#010101" fill-opacity=".3">{label_text}</text>
+    <text x="{label_center}" y="14">{label_text}</text>
+    <text x="{value_center}" y="15" fill="#010101" fill-opacity=".3">{value_text}</text>
+    <text x="{value_center}" y="14">{value_text}</text>
+  </g>
+</svg>
+""".strip()
+
+    BADGE_SVG.write_text(svg, encoding="utf-8")
+    print(f"Wrote {BADGE_SVG}")
+
+
 def main() -> int:
     run_tests_with_coverage()
     try:
@@ -206,6 +269,7 @@ def main() -> int:
         print(str(exc))
         return 1
     build_index_html(totals, rows)
+    build_badge_svg(totals)
     return 0
 
 
