@@ -17,7 +17,6 @@ from z3 import Int, Solver, Not, sat, unsat
 
 from datesmt.symbolic_baseline import (
     add_days_ordinal,
-    canon_months,
     days_in_month,
     EOMClamp,
     is_leap,
@@ -244,57 +243,6 @@ class TestDaysInMonth:
 # Helper Function Tests
 # ---------------------------------------------------------------------------
 
-class TestCanonMonths:
-    """Test the canon_months helper function."""
-
-    def test_canon_months_basic(self):
-        """Test basic canonicalization of months."""
-        years, months = canon_months(1, 15)
-        assert years is not None
-        assert months is not None
-
-    def test_canon_months_zero_months(self):
-        """Test canonicalization with zero months."""
-        years, months = canon_months(3, 0)
-        assert years is not None
-        assert months is not None
-
-    def test_canon_months_negative_months(self):
-        """Test canonicalization with negative months."""
-        years, months = canon_months(2, -5)
-        assert years is not None
-        assert months is not None
-
-    def test_canon_months_large_months(self):
-        """Test canonicalization with large month values."""
-        years, months = canon_months(0, 25)
-        assert years is not None
-        assert months is not None
-
-    def test_canon_months_exact_multiple(self):
-        """Test canonicalization with exact multiples of 12."""
-        years, months = canon_months(1, 24)
-        assert years is not None
-        assert months is not None
-
-    def test_canon_months_z3_expressions(self):
-        """Test canonicalization with Z3 expressions."""
-        y = Int('y')
-        m = Int('m')
-        canon_y, canon_m = canon_months(y, m)
-        assert canon_y is not None
-        assert canon_m is not None
-
-        # Test with concrete solver to verify correctness
-        solver = Solver()
-        solver.add(y == 1)
-        solver.add(m == 15)
-        solver.add(canon_y == 2)
-        solver.add(canon_m == 3)
-        result = solver.check()
-        assert result == sat
-
-
 class TestNormalizeMonth:
     """Test the normalize_month helper function."""
 
@@ -395,16 +343,6 @@ class TestAddDaysOrdinal:
 
 class TestCalendarPrimitiveIntegration:
     """Test integration between calendar primitive functions."""
-
-    def test_canon_months_with_normalize_month(self):
-        """Test that canon_months works with normalize_month."""
-        y1, m1 = normalize_month(2020, 15)
-        y2, m2 = canon_months(0, 15)
-        
-        assert y1 is not None
-        assert m1 is not None
-        assert y2 is not None
-        assert m2 is not None
 
     def test_days_in_month_with_is_leap(self):
         """Test that days_in_month works with is_leap."""

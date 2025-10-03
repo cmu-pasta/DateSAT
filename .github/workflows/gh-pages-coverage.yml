@@ -2,37 +2,44 @@ name: deploy-coverage-to-pages
 
 on:
   push:
-    branches:
-      - '**'
+    branches: [ dev ]
+    paths-ignore:
+      - 'docs/**'
+      - 'documentation/coverage/**'
   workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  build-and-publish:
+  build-and-commit:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: dev
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements/dev.txt
-      - name: Build coverage site
+
+      - name: Build coverage site into docs/
+        env:
+          COVERAGE_SITE_DIR: docs
         run: |
           python tests/build_coverage_site.py
-      - name: Stage site under branch subpath
+
+      - name: Commit and push docs/
         run: |
-          mkdir -p public/${{ github.ref_name }}
-          cp -r documentation/coverage/* public/${{ github.ref_name }}/
-      - name: Publish to gh-pages
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./public
-          keep_files: true
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add docs
+          git commit -m "Update coverage site [skip ci]" || echo "No changes"
+          git push origin dev

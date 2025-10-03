@@ -7,7 +7,9 @@ from datetime import datetime
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-DOCS_DIR = REPO_ROOT / "documentation" / "coverage"
+# Allow overriding site output directory via env for GitHub Pages on dev
+SITE_DIR = Path(os.environ.get("COVERAGE_SITE_DIR", REPO_ROOT / "documentation" / "coverage"))
+DOCS_DIR = SITE_DIR if SITE_DIR.is_absolute() else REPO_ROOT / SITE_DIR
 HTML_DIR = DOCS_DIR / "coverage_html"
 XML_PATH = DOCS_DIR / "coverage.xml"
 INDEX_HTML = DOCS_DIR / "index.html"
