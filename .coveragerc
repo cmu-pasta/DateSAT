@@ -1,0 +1,20 @@
+[run]
+branch = True
+source =
+    datesmt
+
+[report]
+show_missing = True
+skip_covered = False
+precision = 1
+fail_under = 0
+exclude_lines =
+    pragma: no cover
+
+[html]
+directory = documentation/coverage/coverage_html
+title = DATE-SMT Coverage Report
+
+[paths]
+source =
+    datesmt

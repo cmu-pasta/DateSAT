@@ -109,3 +109,24 @@ def edge_case_dates():
         Date(2023, 2, 28),  # Feb 28 (non-leap)
         Date(2024, 2, 29),  # Feb 29 (leap)
     ]
+
+
+# Autouse session fixture to import all modules under `datesmt` so coverage includes files
+import importlib
+import pkgutil
+
+
+@pytest.fixture(autouse=True, scope="session")
+def _import_all_datesmt_modules():
+    try:
+        pkg = importlib.import_module("datesmt")
+        if hasattr(pkg, "__path__"):
+            for _, name, _ in pkgutil.walk_packages(pkg.__path__, prefix="datesmt."):
+                try:
+                    importlib.import_module(name)
+                except Exception:
+                    # Ignore optional or platform-specific modules that may fail to import
+                    pass
+    except Exception:
+        # If the root package itself fails to import, let tests proceed; failures will surface elsewhere
+        pass
