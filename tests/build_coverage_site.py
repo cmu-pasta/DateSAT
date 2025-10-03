@@ -24,6 +24,8 @@ def run_tests_with_coverage() -> None:
         "-m",
         "pytest",
         "-q",
+        "-n",
+        os.environ.get("PYTEST_WORKERS", "auto"),
         "--maxfail=1",
         "--disable-warnings",
         "--color=yes",
