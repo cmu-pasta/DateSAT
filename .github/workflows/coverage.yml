@@ -2,8 +2,7 @@ name: coverage
 
 on:
   push:
-    branches:
-      - '**'
+    branches: [ dev ]
   pull_request:
 
 jobs:

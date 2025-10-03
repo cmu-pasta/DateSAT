@@ -2,9 +2,9 @@
 
 [![coverage](https://github.com/angelc2/Date-SMT/actions/workflows/coverage.yml/badge.svg)](https://github.com/angelc2/Date-SMT/actions/workflows/coverage.yml)
 
-Coverage site (main): https://angelc2.github.io/Date-SMT/main/
+Coverage site (dev): https://angelc2.github.io/Date-SMT/
 
-Per-branch coverage: https://angelc2.github.io/Date-SMT/<branch>/  (e.g., https://angelc2.github.io/Date-SMT/dev/)
+Per-branch publishing is disabled; the site is built from the `dev` branch into `docs/` and published by GitHub Pages.
 
 A Python library for symbolic analysis of date-based computations using Z3.
 
@@ -42,7 +42,7 @@ export PYTHONPATH=$PYTHONPATH:$(pwd)
 
 ## CI/CD and Coverage
 
-- **CI/CD**: Continuous Integration runs tests and coverage on each push/PR via GitHub Actions. Continuous Delivery publishes the HTML coverage site using GitHub Pages.
+- **CI/CD**: On each push to `dev`, CI builds the coverage site and commits it to `docs/`, which GitHub Pages serves.
 - **Coverage measurement**: We collect branch and line coverage for the `datesmt` package using `coverage.py` via `pytest-cov`.
 
 ### Run tests and build the coverage site locally
@@ -50,13 +50,16 @@ export PYTHONPATH=$PYTHONPATH:$(pwd)
 ```bash
 # from repo root
 python tests/build_coverage_site.py
-# output will be under documentation/coverage
-open documentation/coverage/index.html  # macOS
+# output will be under documentation/coverage by default
+# to match Pages layout locally, write directly into docs/
+COVERAGE_SITE_DIR=docs python tests/build_coverage_site.py
+open docs/index.html  # macOS
 ```
 
-The coverage site includes a top-level summary and a detailed HTML report (`documentation/coverage/coverage_html/index.html`).
+The coverage site includes a top-level summary and a detailed HTML report (`coverage_html/index.html`).
 
-### Ensure CI runs and Pages deploy on push
+### Configure GitHub Pages (one-time)
 
-- Commit the `.github/workflows/coverage.yml` and `.github/workflows/gh-pages-coverage.yml` files.
-- GitHub Pages is automatically published per-branch under `/[branch]/` on pushes.
+- Repo → Settings → Pages
+- Source: Deploy from a branch
+- Branch: dev, Folder: /docs
