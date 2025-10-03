@@ -27,43 +27,43 @@ End-to-end tests using real-world constraint datasets:
 ```bash
 pytest tests/
 # or
-python run_tests.py --category all
+python tests/run_tests.py --category all
 ```
 
 ### Run by Test Type
 ```bash
 # Unit tests only
-python run_tests.py --category unit
+python tests/run_tests.py --category unit
 
 # Property-based tests only
-python run_tests.py --category property
+python tests/run_tests.py --category property
 
 # Integration tests only
-python run_tests.py --category integration
+python tests/run_tests.py --category integration
 ```
 
 ### Run by Functional Category
 ```bash
 # Core data structures only
-python run_tests.py --category core
+python tests/run_tests.py --category core
 
 # Date validation only
-python run_tests.py --category validation
+python tests/run_tests.py --category validation
 
 # Algorithm-specific tests only
-python run_tests.py --category algorithm
+python tests/run_tests.py --category algorithm
 ```
 
 ### Advanced Options
 ```bash
 # Run with verbose output
-python run_tests.py --category all --verbose
+python tests/run_tests.py --category all --verbose
 
 # Run with coverage reporting
-python run_tests.py --category all --coverage
+python tests/run_tests.py --category all --coverage
 
 # Run tests in parallel
-python run_tests.py --category all --parallel
+python tests/run_tests.py --category all --parallel
 ```
 
 ## Java-backed LocalDate ground-truth tests

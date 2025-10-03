@@ -79,8 +79,7 @@ Each element must be an object:
   "description": "brief human explanation",
   "constraint_code": "Python code string to build/assert the constraint(s)",
   "variables": ["list", "of", "used", "names"],
-  "coverage_tags": ["leap_boundary","eom","year_vs_days","month_vs_days","chain_add","ineq_window","multi_var"],
-  "expected_satisfiable": true | false
+  "coverage_tags": ["leap_boundary","eom","year_vs_days","month_vs_days","chain_add","ineq_window","multi_var"]
 }
 
 STYLE FOR constraint_code
