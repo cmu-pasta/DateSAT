@@ -1,0 +1,35 @@
+name: coverage
+
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+
+jobs:
+  tests-and-coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements/dev.txt
+      
+      - name: Build coverage site
+        run: |
+          python tests/build_coverage_site.py
+
+      - name: Upload coverage site artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-site
+          path: documentation/coverage
+          if-no-files-found: error

@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from llm_generator.test_template import test_constraints_file as run_constraint_tests
+from tests.integration_tests.test_template import test_constraints_file as run_constraint_tests
 
 
 class TestConstraintDatasets:
