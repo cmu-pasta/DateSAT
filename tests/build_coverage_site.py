@@ -31,6 +31,7 @@ def run_tests_with_coverage() -> None:
         "--cov-branch",
         f"--cov-report=xml:{XML_PATH}",
         f"--cov-report=html:{HTML_DIR}",
+        "tests/unit_tests",
     ]
     print("Running:", " ".join(cmd))
     result = subprocess.run(cmd, cwd=REPO_ROOT)
