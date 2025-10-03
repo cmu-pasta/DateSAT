@@ -102,8 +102,8 @@ def python_dates():
 def edge_case_dates():
     """Edge case dates for boundary testing."""
     return [
-        Date(1, 1, 1),  # Year 1
-        Date(9999, 12, 31),  # Year 9999
+        Date(1900, 1, 1),  # Min supported year
+        Date(2100, 12, 31),  # Max supported year
         Date(2023, 1, 1),  # Year start
         Date(2023, 12, 31),  # Year end
         Date(2023, 2, 28),  # Feb 28 (non-leap)

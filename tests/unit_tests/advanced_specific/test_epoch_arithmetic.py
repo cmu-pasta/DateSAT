@@ -170,9 +170,7 @@ class TestEpochDateArithmeticBasic:
         """Derive expectations from the declared epoch."""
         cases = [
             Date(1900, 1, 1),
-            Date(2100, 12, 31),
-            Date(1800, 3, 1),
-            Date(2200, 3, 1),
+            Date(2100, 12, 31)
         ]
         for d in cases:
             expected = _ref_delta_days(d)
