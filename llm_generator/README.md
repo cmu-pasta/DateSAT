@@ -23,8 +23,7 @@ Generated constraints now include:
   "description": "Leap year boundary test",
   "constraint_code": "builder.add_constraint(x >= Date(2024, 2, 28), 'x >= 2024-02-28')\nbuilder.add_constraint(x <= Date(2024, 3, 1), 'x <= 2024-03-01')",
   "variables": ["x"],
-  "coverage_tags": ["leap_boundary"],
-  "expected_satisfiable": true
+  "coverage_tags": ["leap_boundary"]
 }
 ```
 
@@ -55,26 +54,5 @@ export OPENAI_API_KEY="your-openai-key-here"
 ### 2. Generate Constraints
 
 ```bash
-python llm_generator/llm_client.py --num NUMBER --output FILE_NAME.json
+python llm_generator/llm_client.py --num NUMBER --output tests/integration_tests/data/FILE_NAME.json
 ```
-
-### 3. Test Constraints
-
-```bash
-python llm_generator/test_template.py FILE_NAME.json --output-dir results
-```
-
-## Enhanced Output
-
-The test template now provides:
-
-- **Prediction accuracy** - How often the LLM correctly predicted SAT/UNSAT
-- **Coverage analysis** - Breakdown by coverage tags
-- **Approach comparison** - Baseline vs advanced with detailed metrics
-- **Comprehensive reporting** - Success rates, timing, and accuracy per tag
-
-## Requirements
-
-- OpenAI/Anthropic API key
-- DATE-SMT library
-- Python packages

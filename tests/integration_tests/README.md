@@ -24,7 +24,7 @@ pytest tests/integration_tests/test_constraint_datasets.py::TestConstraintDatase
 ### Run directly via the runner (bypass pytest)
 You can also execute a dataset directly using the runner used by the tests:
 ```bash
-python llm_generator/test_template.py tests/integration_tests/data/constraints1.json --output-dir results
+python tests/test_template.py tests/integration_tests/data/constraints1.json --output-dir results
 ```
 This writes a `results_*.json` report under the specified `--output-dir`.
 
@@ -32,7 +32,7 @@ This writes a `results_*.json` report under the specified `--output-dir`.
 1. Drop your JSON file into `tests/integration_tests/data/` (e.g., `constraints_myset.json`).
 2. To run it quickly without modifying tests:
    ```bash
-   python llm_generator/test_template.py tests/integration_tests/data/constraints_myset.json --output-dir results_myset
+   python tests/test_template.py tests/integration_tests/data/constraints_myset.json --output-dir results_myset
    ```
 3. To include it in the pytest suite, add a new test similar to the existing ones in `test_constraint_datasets.py`.
 

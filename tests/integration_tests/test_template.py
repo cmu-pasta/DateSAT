@@ -10,7 +10,7 @@ import time
 from datetime import datetime
 
 # Add datesmt to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'datesmt'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'datesmt'))
 
 try:
     from datesmt.core import Date, Period

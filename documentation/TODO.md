@@ -20,4 +20,4 @@ Integration test
 [] Implement check integration test results (declare the solved result as Date and assert that operation is satisfiable)
 
 General
-[] Organize repo (Angel)
+[X] Organize repo (Angel)
