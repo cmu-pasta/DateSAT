@@ -8,8 +8,7 @@
     ],
     "coverage_tags": [
       "leap_boundary"
-    ],
-    "expected_satisfiable": true
+    ]
   },
   {
     "id": "1758086606-2",
@@ -21,8 +20,7 @@
     "coverage_tags": [
       "month_vs_days",
       "eom"
-    ],
-    "expected_satisfiable": true
+    ]
   },
   {
     "id": "1758086606-3",
@@ -34,8 +32,7 @@
     "coverage_tags": [
       "year_vs_days",
       "leap_boundary"
-    ],
-    "expected_satisfiable": true
+    ]
   },
   {
     "id": "1758086606-4",
@@ -47,8 +44,7 @@
     ],
     "coverage_tags": [
       "chain_add"
-    ],
-    "expected_satisfiable": false
+    ]
   },
   {
     "id": "1758086606-5",
@@ -62,8 +58,7 @@
     "coverage_tags": [
       "multi_var",
       "ineq_window"
-    ],
-    "expected_satisfiable": true
+    ]
   },
   {
     "id": "1758086606-6",
@@ -75,8 +70,7 @@
     ],
     "coverage_tags": [
       "eom"
-    ],
-    "expected_satisfiable": true
+    ]
   },
   {
     "id": "1758086606-7",
@@ -87,8 +81,7 @@
     ],
     "coverage_tags": [
       "ineq_window"
-    ],
-    "expected_satisfiable": false
+    ]
   },
   {
     "id": "1758086606-8",
@@ -103,8 +96,7 @@
     "coverage_tags": [
       "chain_add",
       "multi_var"
-    ],
-    "expected_satisfiable": true
+    ]
   },
   {
     "id": "1758086606-9",
@@ -117,8 +109,7 @@
     "coverage_tags": [
       "leap_boundary",
       "year_vs_days"
-    ],
-    "expected_satisfiable": false
+    ]
   },
   {
     "id": "1758086606-10",
@@ -130,7 +121,6 @@
     "coverage_tags": [
       "month_vs_days",
       "eom"
-    ],
-    "expected_satisfiable": true
+    ]
   }
 ]

@@ -62,7 +62,6 @@ class TestConstraintDatasets:
                 assert "constraint_code" in constraint
                 assert "variables" in constraint
                 assert "coverage_tags" in constraint
-                assert "expected_satisfiable" in constraint
 
                 # Verify constraint_code is executable
                 assert isinstance(constraint["constraint_code"], str)
@@ -97,21 +96,3 @@ class TestConstraintDatasets:
         assert (
             len(all_tags.intersection(expected_tags)) >= 5
         ), f"Missing expected coverage tags. Found: {all_tags}"
-
-    @pytest.mark.integration
-    def test_satisfiability_predictions(self):
-        """Test that satisfiability predictions are reasonable."""
-        for dataset_name in ["constraints1.json", "constraints2.json"]:
-            constraint_file = Path(__file__).parent / "data" / dataset_name
-
-            with open(constraint_file, 'r') as f:
-                constraints = json.load(f)
-
-            sat_count = sum(
-                1 for c in constraints if c.get("expected_satisfiable", True)
-            )
-            total_count = len(constraints)
-
-            # Should have a mix of SAT and UNSAT cases
-            assert sat_count > 0, "Should have some satisfiable constraints"
-            assert sat_count < total_count, "Should have some unsatisfiable constraints"

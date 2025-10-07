@@ -1,6 +1,6 @@
 # DATE-SMT
 
-[![CI](https://github.com/cmu-pasta/Date-SMT/actions/workflows/ci.yml/badge.svg) (https://github.com/cmu-pasta/Date-SMТ/actions/workflows/ci.yml) [![Coverage](https://cmu-pasta.github.io/Date-SMT/badge.svg)] (https://pastalab.org/Date-SMT/)
+[![CI Badge](https://github.com/cmu-pasta/Date-SMT/actions/workflows/ci.yml/badge.svg)] (https://github.com/cmu-pasta/Date-SMТ/actions/workflows/ci.yml) [![Coverage Badge](https://cmu-pasta.github.io/Date-SMT/badge.svg)] (https://pastalab.org/Date-SMT/)
 
 A Python library for symbolic analysis of date-based computations using Z3.
 
