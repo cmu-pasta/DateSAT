@@ -145,34 +145,26 @@ FOUR_HUNDRED_YEARS = IntVal(146097)  # 400*365 + 97 leap days
 
 def add_days_ordinal(y, m, d, delta_days):
     """
-    Exact ordinal-based addition with 400-year cycle reduction.
+    Exact ordinal-based addition via a single ordinal add.
     Steps:
+      - EOM clamp input day (baseline 'round down' policy).
       - If delta_days == 0 → return (y,m,d).
-      - Split delta_days into q*146097 + r. Add 400*q years first (no month change),
-        then add the small remainder r via ordinal transform.
+      - Add delta_days in days-since-epoch space and decode.
     """
-    # d0 = EOMClamp(y, m, d)
+
+    d0 = EOMClamp(y, m, d)
 
     # Fast path: no day shift → avoid any ordinal math.
-    no_shift = delta_days == IntVal(0)
-    y_ns, m_ns, d_ns = y, m, d
+    no_shift = (delta_days == IntVal(0))
 
-    # Reduce by 400-year eras to keep terms small
-    q = delta_days / FOUR_HUNDRED_YEARS
-    r = delta_days % FOUR_HUNDRED_YEARS
-
-    # Shift whole eras in the year; month/day unchanged for this step
-    y_era = y + q * IntVal(400)
-
-    # Now add the small remainder r via ordinal conversion
-    z = days_since_epoch_from_ymd(y_era, m, d)
-    z2 = z + r
-    y2, m2, d2 = ymd_from_days_since_epoch(z2)
+    # Single-step ordinal addition
+    z = days_since_epoch_from_ymd(y, m, d0)
+    y2, m2, d2 = ymd_from_days_since_epoch(z + delta_days)
 
     # If delta_days == 0, return (y,m,d0); else the computed (y2,m2,d2)
-    out_y = If(no_shift, y_ns, y2)
-    out_m = If(no_shift, m_ns, m2)
-    out_d = If(no_shift, d_ns, d2)
+    out_y = If(no_shift, y, y2)
+    out_m = If(no_shift, m, m2)
+    out_d = If(no_shift, d0, d2)
     return out_y, out_m, out_d
 
 
