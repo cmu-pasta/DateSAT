@@ -8,8 +8,7 @@
     ],
     "coverage_tags": [
       "leap_boundary"
-    ],
-    "expected_satisfiable": true
+    ]
   },
   {
     "id": "1758090062-2",
@@ -22,8 +21,7 @@
     "coverage_tags": [
       "month_vs_days",
       "eom"
-    ],
-    "expected_satisfiable": true
+    ]
   },
   {
     "id": "1758090062-3",
@@ -35,8 +33,7 @@
     "coverage_tags": [
       "year_vs_days",
       "ineq_window"
-    ],
-    "expected_satisfiable": true
+    ]
   },
   {
     "id": "1758090062-4",
@@ -50,8 +47,7 @@
     "coverage_tags": [
       "chain_add",
       "multi_var"
-    ],
-    "expected_satisfiable": true
+    ]
   },
   {
     "id": "1758090062-5",
@@ -64,8 +60,7 @@
     "coverage_tags": [
       "ineq_window",
       "multi_var"
-    ],
-    "expected_satisfiable": false
+    ]
   },
   {
     "id": "1758090062-6",
@@ -76,8 +71,7 @@
     ],
     "coverage_tags": [
       "leap_boundary"
-    ],
-    "expected_satisfiable": true
+    ]
   },
   {
     "id": "1758090062-7",
@@ -92,8 +86,7 @@
       "month_vs_days",
       "eom",
       "multi_var"
-    ],
-    "expected_satisfiable": true
+    ]
   },
   {
     "id": "1758090062-8",
@@ -106,8 +99,7 @@
     "coverage_tags": [
       "year_vs_days",
       "leap_boundary"
-    ],
-    "expected_satisfiable": true
+    ]
   },
   {
     "id": "1758090062-9",
@@ -121,8 +113,7 @@
     "coverage_tags": [
       "chain_add",
       "multi_var"
-    ],
-    "expected_satisfiable": false
+    ]
   },
   {
     "id": "1758090062-10",
@@ -134,8 +125,7 @@
     "coverage_tags": [
       "ineq_window",
       "eom"
-    ],
-    "expected_satisfiable": false
+    ]
   },
   {
     "id": "1758090062-11",
@@ -146,8 +136,7 @@
     ],
     "coverage_tags": [
       "eom"
-    ],
-    "expected_satisfiable": true
+    ]
   },
   {
     "id": "1758090062-12",
@@ -158,8 +147,7 @@
     ],
     "coverage_tags": [
       "month_vs_days"
-    ],
-    "expected_satisfiable": false
+    ]
   },
   {
     "id": "1758090062-13",
@@ -172,7 +160,6 @@
     "coverage_tags": [
       "chain_add",
       "multi_var"
-    ],
-    "expected_satisfiable": true
+    ]
   }
 ]

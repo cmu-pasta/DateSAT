@@ -30,12 +30,10 @@ def test_constraint_with_approach(constraint_data: dict, approach: str, timeout_
     description = constraint_data.get("description", "")
     variables = constraint_data.get("variables", [])
     coverage_tags = constraint_data.get("coverage_tags", [])
-    expected_satisfiable = constraint_data.get("expected_satisfiable", True)
 
     print(f"\n=== Testing {constraint_id} ({approach.upper()}) ===")
     print(f"Description: {description}")
     print(f"Coverage tags: {', '.join(coverage_tags)}")
-    print(f"Expected satisfiable: {expected_satisfiable}")
     print(f"Constraint: {constraint_code}")
 
     result = {
@@ -44,13 +42,11 @@ def test_constraint_with_approach(constraint_data: dict, approach: str, timeout_
         "constraint_code": constraint_code,
         "variables": variables,
         "coverage_tags": coverage_tags,
-        "expected_satisfiable": expected_satisfiable,
         "approach": approach,
         "status": "error",
         "execution_time": 0,
         "error_message": None,
         "solution": None,
-        "prediction_correct": None,
         "smtlib": None,
     }
 
@@ -89,26 +85,12 @@ def test_constraint_with_approach(constraint_data: dict, approach: str, timeout_
         if solve_result.get("periods"):
             result["solution"].update(solve_result["periods"])
 
-        # Check if prediction was correct
-        actual_satisfiable = solve_result["status"] == "sat"
-        result["prediction_correct"] = actual_satisfiable == expected_satisfiable
-
         if solve_result["status"] == "sat":
             print(f"✅ Solution found:")
             for name, date in result["solution"].items():
                 print(f"  {name} = {date}")
         else:
             print(f"❌ No solution found")
-
-        # Show prediction accuracy
-        if result["prediction_correct"]:
-            print(
-                f"✅ Prediction correct (expected {expected_satisfiable}, got {actual_satisfiable})"
-            )
-        else:
-            print(
-                f"❌ Prediction incorrect (expected {expected_satisfiable}, got {actual_satisfiable})"
-            )
 
     except TypeError as e:
         if (
@@ -191,16 +173,10 @@ def test_constraints_file(constraints_file: str, output_dir: str = "test_results
         successful = len([r for r in results if r["status"] == "sat"])
         total = len(results)
         avg_time = sum(r["execution_time"] for r in results) / total if total > 0 else 0
-        correct_predictions = len(
-            [r for r in results if r.get("prediction_correct", False)]
-        )
 
         print(f"\nSummary for {approach}:")
         print(f"  Successful: {successful}/{total} ({successful/total*100:.1f}%)")
         print(f"  Avg time: {avg_time:.4f}s")
-        print(
-            f"  Correct predictions: {correct_predictions}/{total} ({correct_predictions/total*100:.1f}%)"
-        )
 
 
 def main():

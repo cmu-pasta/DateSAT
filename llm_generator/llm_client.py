@@ -115,8 +115,7 @@ def _basic_schema_ok(items: Any) -> bool:
         "description",
         "constraint_code",
         "variables",
-        "coverage_tags",
-        "expected_satisfiable",
+        "coverage_tags"
     }
     for it in items:
         if not isinstance(it, dict):
@@ -132,8 +131,6 @@ def _basic_schema_ok(items: Any) -> bool:
         if not isinstance(it["variables"], list):
             return False
         if not isinstance(it["coverage_tags"], list):
-            return False
-        if not isinstance(it["expected_satisfiable"], bool):
             return False
     return True
 

@@ -4,8 +4,9 @@ DateSMT
 [] Alpha/beta approach (Angel)
 
 Unit test
-[] Add unit test coverage (Angel)
-[] Clean up core_data_structures, advanced_specific, baseline_specific (Angel)
+[X] Add unit test coverage (Angel)
+[X] Clean up core_data_structures, advanced_specific, baseline_specific (Angel)
+[] Write up tests for all datesmt code
 [] Replace java with python?
 
 Property test
@@ -15,8 +16,8 @@ LLM test generation
 [] Make llm_generator better in generating integration tests that cover more cases
 
 Integration test
-[] Remove prediction_correct that was based on LLM predicted output
-[] Remove expected_satisfiable that was generated from LLM
+[X] Remove prediction_correct that was based on LLM predicted output (Angel)
+[X] Remove expected_satisfiable that was generated from LLM (Angel)
 [] Implement check integration test results (declare the solved result as Date and assert that operation is satisfiable)
 
 General
