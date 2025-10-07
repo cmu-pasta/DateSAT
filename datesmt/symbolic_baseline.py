@@ -129,7 +129,8 @@ def days_since_epoch_from_ymd(y, m, d):
 # -------------------------------
 # Epoch binding: 2000-03-01
 # -------------------------------
-_ORD_EPOCH = to_ordinal(IntVal(2000), IntVal(3), IntVal(1))  # a ground Z3 term
+# _ORD_EPOCH = to_ordinal(IntVal(2000), IntVal(3), IntVal(1))  # original ground Z3 term
+_ORD_EPOCH = IntVal(730179)  # precomputed ordinal of 2000-03-01 (0001-01-01 = 0)
 
 
 def EOMClamp(year, month, day):
@@ -155,7 +156,7 @@ def add_days_ordinal(y, m, d, delta_days):
     d0 = EOMClamp(y, m, d)
 
     # Fast path: no day shift → avoid any ordinal math.
-    no_shift = (delta_days == IntVal(0))
+    no_shift = delta_days == IntVal(0)
 
     # Single-step ordinal addition
     z = days_since_epoch_from_ymd(y, m, d0)
