@@ -9,20 +9,26 @@ import sys
 import time
 from datetime import datetime
 
-# Add datesmt to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'datesmt'))
+# Ensure repository root is on sys.path so `import datesmt` works
+REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+if REPO_ROOT not in sys.path:
+    sys.path.insert(0, REPO_ROOT)
 
 try:
     from datesmt.core import Date, Period
     from datesmt.symbolic_api import DateSMTBuilder
 except ImportError:
-    # Fallback for when running from different directory
-    sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+    # Fallback: attempt to re-add repo root (in case environment modified sys.path)
+    REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+    if REPO_ROOT not in sys.path:
+        sys.path.insert(0, REPO_ROOT)
     from datesmt.core import Date, Period
     from datesmt.symbolic_api import DateSMTBuilder
 
 
-def test_constraint_with_approach(constraint_data: dict, approach: str, timeout_ms: int = 60000) -> dict:
+def test_constraint_with_approach(
+    constraint_data: dict, approach: str, timeout_ms: int = 60000
+) -> dict:
     """Test a single constraint with a specific approach."""
 
     constraint_id = constraint_data["id"]
@@ -58,7 +64,7 @@ def test_constraint_with_approach(constraint_data: dict, approach: str, timeout_
         # Create a DateSMTBuilder factory that injects the approach parameter and timeout
         def create_builder():
             return DateSMTBuilder(approach=approach, timeout_ms=timeout_ms)
-        
+
         exec_globals = {
             'Date': Date,
             'Period': Period,
@@ -121,7 +127,9 @@ def _sanitize_filename(name: str) -> str:
     return re.sub(r"[^A-Za-z0-9._-]+", "_", name)
 
 
-def test_constraints_file(constraints_file: str, output_dir: str = "test_results", timeout_ms: int = 60000):
+def test_constraints_file(
+    constraints_file: str, output_dir: str = "test_results", timeout_ms: int = 60000
+):
     """Test all constraints in a file with both approaches."""
 
     # Load constraints
@@ -193,7 +201,10 @@ def main():
         "--output-dir", default="test_results", help="Output directory for results"
     )
     parser.add_argument(
-        "--timeout", type=int, default=60000, help="Timeout in milliseconds (default: 60000 = 60 seconds)"
+        "--timeout",
+        type=int,
+        default=60000,
+        help="Timeout in milliseconds (default: 60000 = 60 seconds)",
     )
 
     args = parser.parse_args()

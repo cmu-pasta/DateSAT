@@ -24,7 +24,7 @@ pytest tests/integration_tests/test_constraint_datasets.py::TestConstraintDatase
 ### Run directly via the runner (bypass pytest)
 You can also execute a dataset directly using the runner used by the tests:
 ```bash
-python tests/test_template.py tests/integration_tests/data/constraints1.json --output-dir results
+python tests/integration_tests/test_template.py tests/integration_tests/data/constraints1.json --output-dir results/constraint1
 ```
 This writes a `results_*.json` report under the specified `--output-dir`.
 
