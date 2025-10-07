@@ -13,6 +13,7 @@ epoch unless needed. Period addition matches advanced semantics but avoids
 encoding back to epoch when not necessary.
 """
 
+from datetime import date, timedelta
 from typing import Union
 
 from z3 import (
@@ -31,10 +32,8 @@ from z3 import (
 )
 
 from .core import Date, Period
-
-from datetime import date, timedelta
-
 from .symbolic_advanced import PeriodVar as _PeriodVar
+
 
 def from_days_since_epoch(days: int) -> Date:
     """Convert days since epoch to a Date using a more robust approach."""
@@ -65,6 +64,7 @@ def to_days_since_epoch(date_obj: Date) -> int:
 # Z3-pure calendar helpers
 # -------------------------------
 
+
 def is_leap_year(y):
     """Z3-pure leap year check."""
     return Or(And(y % 4 == 0, y % 100 != 0), y % 400 == 0)
@@ -82,22 +82,22 @@ def days_in_month(y, m):
 def normalize_month(y, m):
     """Z3-pure month normalization (1..12)."""
     t = m - IntVal(1)
-    q = t / IntVal(12)          # Z3 integer division
-    r = t % IntVal(12)          # Z3 modulo
+    q = t / IntVal(12)  # Z3 integer division
+    r = t % IntVal(12)  # Z3 modulo
     return y + q, r + IntVal(1)
 
 
 # -------------------------------
 # Ordinal (0001-01-01 is day 0)
 # -------------------------------
-_NONLEAP_PREFIX = [0,31,59,90,120,151,181,212,243,273,304,334]
-_LEAP_PREFIX    = [0,31,60,91,121,152,182,213,244,274,305,335]
+_NONLEAP_PREFIX = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334]
+_LEAP_PREFIX = [0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335]
 
 
 def _dbm_index(y, idx):
     """Helper for days before month calculation."""
-    non = IntVal(_NONLEAP_PREFIX[idx-1])
-    lep = IntVal(_LEAP_PREFIX[idx-1])
+    non = IntVal(_NONLEAP_PREFIX[idx - 1])
+    lep = IntVal(_LEAP_PREFIX[idx - 1])
     return If(is_leap_year(y), lep, non)
 
 
@@ -127,14 +127,14 @@ def from_ordinal(n):
     q400, r400 = n / D400, n % D400
 
     q100_raw = r400 / D100
-    q100     = If(q100_raw >= IntVal(4), IntVal(3), q100_raw)    # clamp 0..3
-    r100     = r400 - q100 * D100
+    q100 = If(q100_raw >= IntVal(4), IntVal(3), q100_raw)  # clamp 0..3
+    r100 = r400 - q100 * D100
 
-    q4, r4   = r100 / D4, r100 % D4
+    q4, r4 = r100 / D4, r100 % D4
 
     q1_raw = r4 / D1
-    q1     = If(q1_raw >= IntVal(4), IntVal(3), q1_raw)          # clamp 0..3
-    r1     = r4 - q1 * D1                                        # day-of-year (0..365)
+    q1 = If(q1_raw >= IntVal(4), IntVal(3), q1_raw)  # clamp 0..3
+    r1 = r4 - q1 * D1  # day-of-year (0..365)
 
     year = q400 * IntVal(400) + q100 * IntVal(100) + q4 * IntVal(4) + q1 + IntVal(1)
 
@@ -142,12 +142,12 @@ def from_ordinal(n):
     dbm = [_dbm_index(year, i) for i in range(1, 13)]
     month = IntVal(1)
     for i in range(2, 13):
-        month = If(r1 >= dbm[i-1], IntVal(i), month)
+        month = If(r1 >= dbm[i - 1], IntVal(i), month)
 
     # day = r1 - DBM(year, month) + 1
     day_expr = r1 - dbm[0] + IntVal(1)
     for i in range(2, 13):
-        day_expr = If(r1 >= dbm[i-1], r1 - dbm[i-1] + IntVal(1), day_expr)
+        day_expr = If(r1 >= dbm[i - 1], r1 - dbm[i - 1] + IntVal(1), day_expr)
 
     return year, month, day_expr
 
@@ -174,7 +174,9 @@ def EOMClamp(y, m, d):
     maxd = days_in_month(y, m)
     return If(d < IntVal(1), IntVal(1), If(d > maxd, maxd, d))
 
+
 FOUR_HUNDRED_YEARS = IntVal(146097)  # 400*365 + 97 leap days
+
 
 def add_days_ordinal(y, m, d, delta_days):
     """
@@ -188,7 +190,7 @@ def add_days_ordinal(y, m, d, delta_days):
     d0 = EOMClamp(y, m, d)
 
     # Fast path: no day shift → avoid any ordinal math.
-    no_shift = (delta_days == IntVal(0))
+    no_shift = delta_days == IntVal(0)
 
     # Single-step ordinal addition
     z = days_since_epoch_from_ymd(y, m, d0)
@@ -261,7 +263,8 @@ class DateVar:
         if self._forward_link_added:
             return
         self.ctx.solver.add(
-            self.epoch_var == days_since_epoch_from_ymd(self._year_var, self._month_var, self._day_var)
+            self.epoch_var
+            == days_since_epoch_from_ymd(self._year_var, self._month_var, self._day_var)
         )
         self._forward_link_added = True
 
@@ -360,6 +363,7 @@ class DateVar:
 
     def __sub__(self, other):
         from .symbolic_advanced import PeriodVar as _PeriodVar  # type: ignore
+
         if isinstance(other, Period):
             neg = Period(-other.years, -other.months, -other.days)
             return self.__add__(neg)
@@ -425,8 +429,14 @@ class PeriodVar:
     def __add__(self, other):
         if isinstance(other, Period) or isinstance(other, PeriodVar):
             if isinstance(other, Period):
-                result = PeriodVar(f"{self.name}_plus_{other.years}y_{other.months}m_{other.days}d")
-                oy, om, od = IntVal(other.years), IntVal(other.months), IntVal(other.days)
+                result = PeriodVar(
+                    f"{self.name}_plus_{other.years}y_{other.months}m_{other.days}d"
+                )
+                oy, om, od = (
+                    IntVal(other.years),
+                    IntVal(other.months),
+                    IntVal(other.days),
+                )
                 result.years = self.years + oy
                 result.months = self.months + om
                 result.days = self.days + od
@@ -442,8 +452,14 @@ class PeriodVar:
     def __sub__(self, other):
         if isinstance(other, Period) or isinstance(other, PeriodVar):
             if isinstance(other, Period):
-                result = PeriodVar(f"{self.name}_minus_{other.years}y_{other.months}m_{other.days}d")
-                oy, om, od = IntVal(other.years), IntVal(other.months), IntVal(other.days)
+                result = PeriodVar(
+                    f"{self.name}_minus_{other.years}y_{other.months}m_{other.days}d"
+                )
+                oy, om, od = (
+                    IntVal(other.years),
+                    IntVal(other.months),
+                    IntVal(other.days),
+                )
                 result.years = self.years - oy
                 result.months = self.months - om
                 result.days = self.days - od
@@ -471,6 +487,12 @@ class HybridDateSolver:
     def new_date(self, name: str = None) -> DateVar:
         if name is None:
             name = f"d{len(self.date_vars)}"
+        # Ensure uniqueness to avoid collisions when creating multiple temporaries
+        base_name = name
+        suffix = 0
+        while name in self.date_vars:
+            suffix += 1
+            name = f"{base_name}_{suffix}"
         dv = DateVar(self, name)
         self.date_vars[name] = dv
         # Basic epoch range constraints [1900-01-01 .. 2100-12-31]
@@ -488,11 +510,16 @@ class HybridDateSolver:
         Y, M, D = dv._year_var, dv._month_var, dv._day_var
         # Year bounds consistent with epoch bounds
         Y_MIN, Y_MAX = 1900, 2100
-        self.solver.add(And(
-            Y >= Y_MIN, Y <= Y_MAX,
-            M >= 1, M <= 12,
-            D >= 1, D <= days_in_month(Y, M)
-        ))
+        self.solver.add(
+            And(
+                Y >= Y_MIN,
+                Y <= Y_MAX,
+                M >= 1,
+                M <= 12,
+                D >= 1,
+                D <= days_in_month(Y, M),
+            )
+        )
 
     def add_period_var(self, name: str) -> PeriodVar:
         pv = PeriodVar(name)
@@ -510,10 +537,15 @@ class HybridDateSolver:
         return self.solver.model()
 
     def get_concrete_dates(self, model: ModelRef) -> dict:
-        return {name: var.to_concrete_date(model) for name, var in self.date_vars.items()}
+        return {
+            name: var.to_concrete_date(model) for name, var in self.date_vars.items()
+        }
 
     def get_concrete_periods(self, model: ModelRef) -> dict:
-        return {name: var.to_concrete_period(model) for name, var in self.period_vars.items()}
+        return {
+            name: var.to_concrete_period(model)
+            for name, var in self.period_vars.items()
+        }
 
     def solve(self) -> Union[bool, dict]:
         res = self.check()
