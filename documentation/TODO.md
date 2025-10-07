@@ -1,6 +1,6 @@
 DateSMT
-[] Review and clean up code (Angel)
-[] Figure out the hybrid approach (Angel)
+[X] Review and clean up code (Angel)
+[X] Figure out the hybrid approach (Angel)
 [] Alpha/beta approach (Angel)
 
 Unit test
