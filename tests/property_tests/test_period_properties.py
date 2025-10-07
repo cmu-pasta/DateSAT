@@ -80,7 +80,7 @@ class TestPeriodProperties:
             assert p1 == p3
 
     @given(st.integers(-1000, 1000), st.integers(-1000, 1000), st.integers(-1000, 1000))
-    def test_string_representation_roundtrip(self, y, m, d):
+    def test_string_representation_conversion(self, y, m, d):
         """String representation should be consistent."""
         p = Period(y, m, d)
         # The string representation should contain the values

@@ -19,7 +19,7 @@ class TestEpochConversionProperties:
     """Property-based tests for epoch conversion functions."""
 
     @given(st.dates(min_value=pydate(1900, 1, 1), max_value=pydate(2100, 12, 31)))
-    def test_epoch_conversion_roundtrip(self, d):
+    def test_epoch_conversion(self, d):
         """Converting to epoch and back should preserve the date."""
         custom_date = Date.from_python_date(d)
         epoch_days = to_days_since_epoch(custom_date)
@@ -27,15 +27,11 @@ class TestEpochConversionProperties:
         assert reconstructed == custom_date
 
     @given(st.integers(min_value=-36525, max_value=36525))  # ~100 years around epoch (March 1, 2000)
-    def test_epoch_conversion_inverse_roundtrip(self, days):
+    def test_epoch_conversion_inverse(self, days):
         """Converting from epoch and back should preserve the day count."""
-        try:
-            date_obj = from_days_since_epoch(days)
-            reconstructed_days = to_days_since_epoch(date_obj)
-            assert reconstructed_days == days
-        except (ValueError, OverflowError):
-            # Some extreme values might cause issues, which is expected
-            pass
+        date_obj = from_days_since_epoch(days)
+        reconstructed_days = to_days_since_epoch(date_obj)
+        assert reconstructed_days == days
 
     @given(st.dates(min_value=pydate(1900, 1, 1), max_value=pydate(2100, 12, 31)))
     def test_epoch_conversion_monotonic(self, d):
@@ -44,14 +40,10 @@ class TestEpochConversionProperties:
         epoch_days = to_days_since_epoch(custom_date)
 
         # Add one day and check it has higher epoch value
-        try:
-            next_day = custom_date.to_python_date() + pydate.resolution
-            next_custom = Date.from_python_date(next_day)
-            next_epoch = to_days_since_epoch(next_custom)
-            assert next_epoch > epoch_days
-        except (ValueError, OverflowError):
-            # Edge cases might cause issues
-            pass
+        next_day = custom_date.to_python_date() + pydate.resolution
+        next_custom = Date.from_python_date(next_day)
+        next_epoch = to_days_since_epoch(next_custom)
+        assert next_epoch > epoch_days
 
     @given(st.dates(min_value=pydate(2000, 1, 1), max_value=pydate(2000, 12, 31)))
     def test_epoch_year_2000_properties(self, d):

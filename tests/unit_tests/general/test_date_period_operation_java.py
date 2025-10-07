@@ -1,8 +1,5 @@
-import shutil
-import subprocess
-from pathlib import Path
-
 import pytest
+from dateutil.relativedelta import relativedelta
 
 from datesmt.core import Date, Period
 from datesmt.symbolic_advanced import AdvancedDateSolver
@@ -432,92 +429,27 @@ def get_period_arithmetic_test_cases():
     ]
 
 
-JAVA_DIR = Path(__file__).resolve().parent / "java"
-JAVA_SRC = JAVA_DIR / "LocalDateGroundTruth.java"
-JAVA_CLASS = JAVA_DIR / "LocalDateGroundTruth.class"
-
-
-def ensure_java_available_and_compiled():
-    """Ensure 'javac' and 'java' exist and compile the helper if needed.
-
-    Skips tests if Java is not available.
-    """
-    if shutil.which("javac") is None or shutil.which("java") is None:
-        pytest.skip(
-            "Java toolchain (javac/java) not available on PATH; skipping Java ground truth checks"
-        )
-
-    if not JAVA_SRC.exists():
-        pytest.skip(
-            f"Java source not found at {JAVA_SRC}; skipping Java ground truth checks"
-        )
-
-    # Compile if class missing or older than source
-    needs_compile = (not JAVA_CLASS.exists()) or (
-        JAVA_CLASS.stat().st_mtime < JAVA_SRC.stat().st_mtime
-    )
-    if needs_compile:
-        JAVA_DIR.mkdir(parents=True, exist_ok=True)
-        try:
-            subprocess.run(
-                ["javac", "LocalDateGroundTruth.java"],
-                cwd=str(JAVA_DIR),
-                check=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-            )
-        except subprocess.CalledProcessError as e:
-            pytest.skip(f"Failed to compile Java ground truth helper: {e.stderr}")
-
-
-def java_localdate_plus(base: Date, per: Period) -> Date:
-    """Call the Java LocalDateGroundTruth helper to compute base.plus(period)."""
-    ensure_java_available_and_compiled()
-
-    try:
-        proc = subprocess.run(
-            [
-                "java",
-                "-cp",
-                str(JAVA_DIR),
-                "LocalDateGroundTruth",
-                str(base.year),
-                str(base.month),
-                str(base.day),
-                str(per.years),
-                str(per.months),
-                str(per.days),
-            ],
-            check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-        )
-    except subprocess.CalledProcessError as e:
-        pytest.skip(f"Java helper execution failed: {e.stderr}")
-
-    out = proc.stdout.strip()
-    try:
-        y_str, m_str, d_str = out.split("-")
-        return Date(int(y_str), int(m_str), int(d_str))
-    except Exception as e:
-        pytest.skip(f"Unexpected Java output: '{out}' ({e})")
+def python_date_plus(base: Date, per: Period) -> Date:
+    """Compute base + period using Python's datetime + relativedelta."""
+    py_base = base.to_python_date()
+    py_res = py_base + relativedelta(years=per.years, months=per.months, days=per.days)
+    # Constrain to supported domain if needed; tests stay within range
+    return Date.from_python_date(py_res)
 
 
 @pytest.mark.parametrize(
     "base,per,expect",
     [
-        pytest.param(base, per, expect, id=f"java_truth_{base}+{per}={expect}")
+        pytest.param(base, per, expect, id=f"py_truth_{base}+{per}={expect}")
         for base, per, expect in get_period_arithmetic_test_cases()
     ],
 )
-def test_java_output_equals_ground_truth(base: Date, per: Period, expect: Date):
-    """Assert Java LocalDate.plus output equals the expected canonical ground truth."""
-    java_got = java_localdate_plus(base, per)
+def test_python_output_equals_ground_truth(base: Date, per: Period, expect: Date):
+    """Assert Python date + relativedelta equals the expected canonical ground truth."""
+    py_got = python_date_plus(base, per)
     assert (
-        java_got == expect
-    ), f"Java LocalDate.plus: {base} + {per} -> {java_got}, expected {expect}"
+        py_got == expect
+    ), f"Python date+relativedelta: {base} + {per} -> {py_got}, expected {expect}"
 
 
 @pytest.mark.parametrize(

@@ -1,9 +1,7 @@
-import shutil
-import subprocess
 from itertools import permutations
-from pathlib import Path
 
 import pytest
+from dateutil.relativedelta import relativedelta
 
 from datesmt.core import Date, Period
 from datesmt.symbolic_advanced import AdvancedDateSolver
@@ -135,99 +133,17 @@ def get_period_arithmetic_test_cases():
     ]
 
 
-JAVA_DIR = Path(__file__).resolve().parent / "java"
-JAVA_SRC = JAVA_DIR / "LocalDateGroundTruth.java"
-JAVA_CLASS = JAVA_DIR / "LocalDateGroundTruth.class"
+def python_date_plus(base: Date, per: Period) -> Date:
+    py_base = base.to_python_date()
+    py_res = py_base + relativedelta(years=per.years, months=per.months, days=per.days)
+    return Date.from_python_date(py_res)
 
 
-def ensure_java_available_and_compiled():
-    if shutil.which("javac") is None or shutil.which("java") is None:
-        pytest.skip(
-            "Java toolchain (javac/java) not available; skipping Java ground truth checks"
-        )
-
-    if not JAVA_SRC.exists():
-        pytest.skip(
-            f"Java source not found at {JAVA_SRC}; skipping Java ground truth checks"
-        )
-
-    needs_compile = (not JAVA_CLASS.exists()) or (
-        JAVA_CLASS.stat().st_mtime < JAVA_SRC.stat().st_mtime
-    )
-    if needs_compile:
-        JAVA_DIR.mkdir(parents=True, exist_ok=True)
-        try:
-            subprocess.run(
-                ["javac", "LocalDateGroundTruth.java"],
-                cwd=str(JAVA_DIR),
-                check=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-            )
-        except subprocess.CalledProcessError as e:
-            pytest.skip(f"Failed to compile Java ground truth helper: {e.stderr}")
-
-
-# Simple cache to avoid recomputing Java results across tests
-_JAVA_DECOMP_CACHE = {}
-
-
-def _cache_key(base: Date, per: Period, label: str):
-    return (base.year, base.month, base.day, per.years, per.months, per.days, label)
-
-
-def java_localdate_plus(base: Date, per: Period) -> Date:
-    ensure_java_available_and_compiled()
-    try:
-        proc = subprocess.run(
-            [
-                "java",
-                "-cp",
-                str(JAVA_DIR),
-                "LocalDateGroundTruth",
-                str(base.year),
-                str(base.month),
-                str(base.day),
-                str(per.years),
-                str(per.months),
-                str(per.days),
-            ],
-            check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-        )
-    except subprocess.CalledProcessError as e:
-        pytest.skip(f"Java helper execution failed: {e.stderr}")
-
-    out = proc.stdout.strip()
-    try:
-        y_str, m_str, d_str = out.split("-")
-        return Date(int(y_str), int(m_str), int(d_str))
-    except Exception as e:
-        pytest.skip(f"Unexpected Java output: '{out}' ({e})")
-
-
-def java_localdate_plus_sequence(base: Date, seq: list[Period], label: str) -> Date:
-    """Apply a sequence of periods via Java, returning the final LocalDate (with cache)."""
-    key = _cache_key(
-        base,
-        Period(
-            sum(p.years for p in seq),
-            sum(p.months for p in seq),
-            sum(p.days for p in seq),
-        ),
-        label,
-    )
-    if key in _JAVA_DECOMP_CACHE:
-        return _JAVA_DECOMP_CACHE[key]
-
+def python_date_plus_sequence(base: Date, seq: list[Period], label: str) -> Date:
+    """Apply a sequence of periods via Python datetime + relativedelta."""
     cur = base
     for p in seq:
-        cur = java_localdate_plus(cur, p)
-
-    _JAVA_DECOMP_CACHE[key] = cur
+        cur = python_date_plus(cur, p)
     return cur
 
 
@@ -262,13 +178,13 @@ def all_decomposed_cases():
 @pytest.mark.parametrize(
     "base,per,label,seq",
     [
-        pytest.param(base, per, label, seq, id=f"java_ref_{base}+{per}_{label}")
+        pytest.param(base, per, label, seq, id=f"py_ref_{base}+{per}_{label}")
         for base, per, label, seq in all_decomposed_cases()
     ],
 )
-def test_java_decomposed_orders(base: Date, per: Period, label: str, seq: list[Period]):
-    """Ensure Java results are well-defined for each decomposed order (sanity)."""
-    got = java_localdate_plus_sequence(base, seq, label)
+def test_python_decomposed_orders(base: Date, per: Period, label: str, seq: list[Period]):
+    """Ensure Python results are well-defined for each decomposed order (sanity)."""
+    got = python_date_plus_sequence(base, seq, label)
     assert isinstance(got, Date)
 
 
@@ -283,7 +199,7 @@ def test_java_decomposed_orders(base: Date, per: Period, label: str, seq: list[P
 def test_baseline_matches_java_decomposed(
     base: Date, per: Period, label: str, seq: list[Period]
 ):
-    expect = java_localdate_plus_sequence(base, seq, label)
+    expect = python_date_plus_sequence(base, seq, label)
 
     s = BaselineSolver()
     x = s.add_date_var("x")
@@ -317,7 +233,7 @@ def test_baseline_matches_java_decomposed(
 def test_advanced_matches_java_decomposed(
     base: Date, per: Period, label: str, seq: list[Period]
 ):
-    expect = java_localdate_plus_sequence(base, seq, label)
+    expect = python_date_plus_sequence(base, seq, label)
 
     s = AdvancedDateSolver()
     x = s.add_date_var("x")
@@ -351,7 +267,7 @@ def test_advanced_matches_java_decomposed(
 def test_hybrid_matches_java_decomposed(
     base: Date, per: Period, label: str, seq: list[Period]
 ):
-    expect = java_localdate_plus_sequence(base, seq, label)
+    expect = python_date_plus_sequence(base, seq, label)
 
     s = HybridDateSolver()
     x = s.new_date("x")
