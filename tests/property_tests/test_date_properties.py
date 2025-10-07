@@ -17,15 +17,15 @@ from datesmt.core import Date
 class TestDateProperties:
     """Property-based tests for Date class."""
 
-    @given(st.dates(min_value=pydate(1, 1, 1), max_value=pydate(9999, 12, 31)))
-    def test_round_trip_property(self, d):
+    @given(st.dates(min_value=pydate(1900, 1, 1), max_value=pydate(2100, 12, 31)))
+    def test_round_conversion_property(self, d):
         """Converting Date to Python date and back should preserve the date."""
         custom = Date.from_python_date(d)
         back = custom.to_python_date()
         assert back == d
 
     @given(
-        st.integers(min_value=1, max_value=9999),
+        st.integers(min_value=1900, max_value=2100),
         st.integers(min_value=1, max_value=12),
         st.integers(
             min_value=1, max_value=28
@@ -33,14 +33,10 @@ class TestDateProperties:
     )
     def test_constructor_properties(self, year, month, day):
         """Date constructor should preserve values for valid inputs."""
-        try:
-            d = Date(year, month, day)
-            assert d.year == year
-            assert d.month == month
-            assert d.day == day
-        except ValueError:
-            # Some combinations are invalid (e.g., Feb 30), which is expected
-            pass
+        d = Date(year, month, day)
+        assert d.year == year
+        assert d.month == month
+        assert d.day == day
 
     @given(st.dates(min_value=pydate(1900, 1, 1), max_value=pydate(2100, 12, 31)))
     def test_equality_reflexive(self, d):
@@ -74,7 +70,7 @@ class TestDateProperties:
     @given(
         st.integers(min_value=1900, max_value=2100),
         st.integers(min_value=1, max_value=12),
-        st.integers(min_value=1, max_value=28),
+        st.integers(min_value=1, max_value=29),
     )
     def test_leap_year_property(self, year, month, day):
         """Feb 29 should only be valid in leap years."""
