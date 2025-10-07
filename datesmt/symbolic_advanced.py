@@ -54,7 +54,7 @@ def to_days_since_epoch(date_obj: Date) -> int:
 
 
 # -------------------------------
-# Z3-pure calendar helpers (exact)
+# Z3-pure calendar helpers
 # -------------------------------
 
 def is_leap_year(y):
@@ -168,15 +168,10 @@ def EOMClamp(y, m, d):
 
 FOUR_HUNDRED_YEARS = IntVal(146097)  # 400*365 + 97 leap days
 
+
+# Original implementation with 400-year cycle reduction (commented out):
+'''
 def add_days_ordinal(y, m, d, delta_days):
-    """
-    Exact ordinal-based addition with 400-year cycle reduction.
-    Steps:
-      - EOM clamp input day (baseline 'round down' policy).
-      - If delta_days == 0 → return (y,m,d).
-      - Split delta_days into q*146097 + r. Add 400*q years first (no month change),
-        then add the small remainder r via ordinal transform.
-    """
     d0 = EOMClamp(y, m, d)
 
     # Fast path: no day shift → avoid any ordinal math.
@@ -200,7 +195,31 @@ def add_days_ordinal(y, m, d, delta_days):
     out_m = If(no_shift, m_ns, m2)
     out_d = If(no_shift, d_ns, d2)
     return out_y, out_m, out_d
+'''
 
+def add_days_ordinal(y, m, d, delta_days):
+    """
+    Exact ordinal-based addition via a single ordinal add.
+    Steps:
+      - EOM clamp input day (baseline 'round down' policy).
+      - If delta_days == 0 → return (y,m,d).
+      - Add delta_days in days-since-epoch space and decode.
+    """
+
+    d0 = EOMClamp(y, m, d)
+
+    # Fast path: no day shift → avoid any ordinal math.
+    no_shift = (delta_days == IntVal(0))
+
+    # Single-step ordinal addition
+    z = days_since_epoch_from_ymd(y, m, d0)
+    y2, m2, d2 = ymd_from_days_since_epoch(z + delta_days)
+
+    # If delta_days == 0, return (y,m,d0); else the computed (y2,m2,d2)
+    out_y = If(no_shift, y, y2)
+    out_m = If(no_shift, m, m2)
+    out_d = If(no_shift, d0, d2)
+    return out_y, out_m, out_d
 
 class DateVar:
     """Symbolic date variable for advanced implementation."""
