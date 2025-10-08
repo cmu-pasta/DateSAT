@@ -23,15 +23,15 @@ The baseline implementation used complex ordinal arithmetic functions (`_days_fr
 
 These expressions were **thousands of characters long** and caused the SMT solver to return `unsat` due to complexity, even for mathematically valid cases.
 
-### Why Advanced Implementation Worked
+### Why Epoch_days Implementation Worked
 
-The advanced implementation used a **different ordinal arithmetic algorithm** that generated much simpler Z3 expressions while maintaining the same mathematical correctness.
+The epoch_days implementation used a **different ordinal arithmetic algorithm** that generated much simpler Z3 expressions while maintaining the same mathematical correctness.
 
 ## The Solution
 
 ### Algorithm Replacement
 
-Replaced the complex ordinal arithmetic functions in `symbolic_baseline.py` with the efficient algorithm from `symbolic_advanced.py`:
+Replaced the complex ordinal arithmetic functions in `symbolic_baseline.py` with the efficient algorithm from `symbolic_epoch_days.py`:
 
 #### Old Algorithm (Complex)
 ```python
@@ -87,7 +87,7 @@ def _civil_from_days(z):
 Instead of trying to solve the entire problem at once, it breaks it down into manageable chunks:
 
 - **400-year blocks**: Handle large time spans efficiently
-- **100-year blocks**: Handle century-level precision  
+- **100-year blocks**: Handle century-level precision
 - **4-year blocks**: Handle leap year cycles
 - **1-year blocks**: Handle individual years
 
@@ -98,7 +98,7 @@ Each step generates **much simpler** Z3 expressions:
 # Old: Complex nested expressions
 (400* (If(0 <= 2020 - If(3 <= 2, 1, 0), (2020 - If(3 <= 2, 1, 0))/400, ...)* 146097 + ...)
 
-# New: Simple hierarchical expressions  
+# New: Simple hierarchical expressions
 q400 = z / 146097
 r400 = z % 146097
 q100 = If(r400 / 36524 >= 4, 3, r400 / 36524)
@@ -141,7 +141,7 @@ SMT solvers have practical limits on expression complexity. Even mathematically 
 - **Theoretical Correctness** vs **Practical Usability**
 
 ### 4. The Fix Preserves Semantics
-The baseline implementation now uses the same efficient algorithm as the advanced implementation, ensuring:
+The baseline implementation now uses the same efficient algorithm as the epoch_days implementation, ensuring:
 - **Identical mathematical results**
 - **Same year/month/day arithmetic**
 - **Same EOM (End-of-Month) policy**

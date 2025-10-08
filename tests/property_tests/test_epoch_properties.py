@@ -12,7 +12,7 @@ from hypothesis import given
 from hypothesis import strategies as st
 
 from datesmt.core import Date
-from datesmt.symbolic_advanced import from_days_since_epoch, to_days_since_epoch
+from datesmt.symbolic_epoch_days import from_days_since_epoch, to_days_since_epoch
 
 
 class TestEpochConversionProperties:
@@ -26,7 +26,9 @@ class TestEpochConversionProperties:
         reconstructed = from_days_since_epoch(epoch_days)
         assert reconstructed == custom_date
 
-    @given(st.integers(min_value=-36525, max_value=36525))  # ~100 years around epoch (March 1, 2000)
+    @given(
+        st.integers(min_value=-36525, max_value=36525)
+    )  # ~100 years around epoch (March 1, 2000)
     def test_epoch_conversion_inverse(self, days):
         """Converting from epoch and back should preserve the day count."""
         date_obj = from_days_since_epoch(days)

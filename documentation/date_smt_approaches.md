@@ -22,7 +22,7 @@ This document summarizes the four different approaches implemented and proposed 
 ```python
 # Date representation
 self.year_var = Int(f"{name}_year")
-self.month_var = Int(f"{name}_month") 
+self.month_var = Int(f"{name}_month")
 self.day_var = Int(f"{name}_day")
 
 # Period arithmetic: NormMonth → EOM clamp → ordinal day add
@@ -49,7 +49,7 @@ y2, m2, d2 = add_days_ordinal(y1, m1, d1, period.days)
 
 ---
 
-## Approach 2: Symbolic Advanced (`symbolic_advanced.py`)
+## Approach 2: Symbolic Epoch_days (`symbolic_epoch_days.py`)
 
 **Design Philosophy**: Epoch-based storage with conversion-based exact arithmetic
 
@@ -212,7 +212,7 @@ def add_months_epoch(E, k):
 | Approach | Storage | Period Arithmetic | Accuracy | Performance | Complexity | Memory |
 |----------|---------|-------------------|----------|-------------|------------|---------|
 | **Baseline** | YMD components | Direct YMD | Exact | Slower | High | 3 vars/date |
-| **Advanced** | Epoch days | Epoch→YMD→Epoch | Exact | Fast | Medium | 1 var/date |
+| **Epoch_days** | Epoch days | Epoch→YMD→Epoch | Exact | Fast | Medium | 1 var/date |
 | **Hybrid** | Dual (YMD + Epoch) | Mixed (AMI + Epoch) | Exact | Fast | High | 4 vars/date |
 | **Epoch-Only** | Epoch days | Pure epoch | Exact | Slow | High | 1 var/date |
 
@@ -224,7 +224,7 @@ def add_months_epoch(E, k):
 - Maintains exact calendar arithmetic
 - Recommended for production systems
 
-### For Simple Cases: **Advanced Approach**
+### For Simple Cases: **Epoch_days Approach**
 - When storage efficiency is critical
 - Applications with many date comparisons
 - Good performance with exact arithmetic

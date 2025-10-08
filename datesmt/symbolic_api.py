@@ -1,7 +1,7 @@
 """
 Unified API for DATE-SMT constraint solving.
 
-This module provides a unified interface for both baseline and advanced
+This module provides a unified interface for both baseline and epoch_days
 approaches to DATE-SMT constraint solving.
 """
 
@@ -10,28 +10,28 @@ from typing import Any, Dict, List, Union
 from z3 import BoolRef
 
 from .core import Date, Period
-from .symbolic_advanced import AdvancedDateSolver
-from .symbolic_baseline import DateSolver
-from .symbolic_hybrid import HybridDateSolver
 from .symbolic_ab import AbDateSolver
 from .symbolic_ab_new import AbNewDateSolver
+from .symbolic_baseline import DateSolver
+from .symbolic_epoch_days import EpochDaysSolver
+from .symbolic_hybrid import HybridDateSolver
 
 
 class DateSMTBuilder:
     """Unified API for DATE-SMT constraint solving."""
 
-    def __init__(self, approach: str = "advanced", timeout_ms: int = 60000):
+    def __init__(self, approach: str = "epoch_days", timeout_ms: int = 60000):
         """Initialize the builder with the specified approach and timeout.
 
         Args:
-            approach: Either "baseline", "advanced", or "hybrid"
+            approach: Either "baseline", "epoch_days", or "hybrid"
             timeout_ms: Timeout in milliseconds (default: 60 seconds)
         """
         self.approach = approach
         if approach == "baseline":
             self.solver = DateSolver(timeout_ms=timeout_ms)
-        elif approach == "advanced":
-            self.solver = AdvancedDateSolver(timeout_ms=timeout_ms)
+        elif approach == "epoch_days":
+            self.solver = EpochDaysSolver(timeout_ms=timeout_ms)
         elif approach == "hybrid":
             self.solver = HybridDateSolver(timeout_ms=timeout_ms)
         elif approach == "ab":
@@ -40,7 +40,7 @@ class DateSMTBuilder:
             self.solver = AbNewDateSolver(timeout_ms=timeout_ms)
         else:
             raise ValueError(
-                f"Unknown approach: {approach}. Must be 'baseline', 'advanced', 'hybrid', 'ab', or 'ab_new'"
+                f"Unknown approach: {approach}. Must be 'baseline', 'epoch_days', 'hybrid', 'ab', or 'ab_new'"
             )
 
         self.constraints = []
@@ -61,7 +61,9 @@ class DateSMTBuilder:
             print(f"Added constraint: {description}")
         # Guard against None or non-bool constraints
         if constraint is None:
-            raise TypeError("Constraint is None. Ensure expressions return a Z3 BoolRef.")
+            raise TypeError(
+                "Constraint is None. Ensure expressions return a Z3 BoolRef."
+            )
         self.constraints.append(constraint)
         self.solver.add_constraint(constraint)
 

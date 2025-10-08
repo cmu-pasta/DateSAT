@@ -14,7 +14,7 @@
       "error": 3,
       "timeout": 0
     },
-    "advanced": {
+    "epoch_days": {
       "correct": 10,
       "wrong": 0,
       "error": 3,
@@ -40,7 +40,7 @@
       "approach_statuses": {
         "ab": "sat",
         "ab_new": "sat",
-        "advanced": "sat",
+        "epoch_days": "sat",
         "baseline": "sat",
         "hybrid": "sat"
       },
@@ -59,7 +59,7 @@
             "x": "Date(2020, 2, 29)"
           }
         },
-        "advanced": {
+        "epoch_days": {
           "valid": true,
           "message": "model satisfies assertions",
           "solution": {
@@ -86,7 +86,7 @@
       "verdicts_by_approach": {
         "ab": "correct",
         "ab_new": "correct",
-        "advanced": "correct",
+        "epoch_days": "correct",
         "baseline": "correct",
         "hybrid": "correct"
       },
@@ -99,7 +99,7 @@
       "approach_statuses": {
         "ab": "unsat",
         "ab_new": "unsat",
-        "advanced": "unsat",
+        "epoch_days": "unsat",
         "baseline": "unsat",
         "hybrid": "unsat"
       },
@@ -108,7 +108,7 @@
       "verdicts_by_approach": {
         "ab": "correct",
         "ab_new": "correct",
-        "advanced": "correct",
+        "epoch_days": "correct",
         "baseline": "correct",
         "hybrid": "correct"
       },
@@ -121,7 +121,7 @@
       "approach_statuses": {
         "ab": "sat",
         "ab_new": "sat",
-        "advanced": "sat",
+        "epoch_days": "sat",
         "baseline": "sat",
         "hybrid": "sat"
       },
@@ -140,7 +140,7 @@
             "x": "Date(2023, 1, 31)"
           }
         },
-        "advanced": {
+        "epoch_days": {
           "valid": true,
           "message": "model satisfies assertions",
           "solution": {
@@ -167,7 +167,7 @@
       "verdicts_by_approach": {
         "ab": "correct",
         "ab_new": "correct",
-        "advanced": "correct",
+        "epoch_days": "correct",
         "baseline": "correct",
         "hybrid": "correct"
       },
@@ -180,7 +180,7 @@
       "approach_statuses": {
         "ab": "unsat",
         "ab_new": "unsat",
-        "advanced": "unsat",
+        "epoch_days": "unsat",
         "baseline": "timeout",
         "hybrid": "unsat"
       },
@@ -189,7 +189,7 @@
       "verdicts_by_approach": {
         "ab": "correct",
         "ab_new": "correct",
-        "advanced": "correct",
+        "epoch_days": "correct",
         "baseline": "timeout",
         "hybrid": "correct"
       },
@@ -202,7 +202,7 @@
       "approach_statuses": {
         "ab": "sat",
         "ab_new": "sat",
-        "advanced": "sat",
+        "epoch_days": "sat",
         "baseline": "error",
         "hybrid": "sat"
       },
@@ -223,7 +223,7 @@
             "y": "Date(2096, 3, 15)"
           }
         },
-        "advanced": {
+        "epoch_days": {
           "valid": true,
           "message": "model satisfies assertions",
           "solution": {
@@ -246,7 +246,7 @@
       "verdicts_by_approach": {
         "ab": "correct",
         "ab_new": "correct",
-        "advanced": "correct",
+        "epoch_days": "correct",
         "baseline": "error",
         "hybrid": "correct"
       },
@@ -259,7 +259,7 @@
       "approach_statuses": {
         "ab": "sat",
         "ab_new": "sat",
-        "advanced": "sat",
+        "epoch_days": "sat",
         "baseline": "sat",
         "hybrid": "sat"
       },
@@ -280,7 +280,7 @@
             "y": "Date(2019, 1, 31)"
           }
         },
-        "advanced": {
+        "epoch_days": {
           "valid": true,
           "message": "model satisfies assertions",
           "solution": {
@@ -311,7 +311,7 @@
       "verdicts_by_approach": {
         "ab": "correct",
         "ab_new": "correct",
-        "advanced": "correct",
+        "epoch_days": "correct",
         "baseline": "correct",
         "hybrid": "correct"
       },
@@ -324,7 +324,7 @@
       "approach_statuses": {
         "ab": "sat",
         "ab_new": "sat",
-        "advanced": "sat",
+        "epoch_days": "sat",
         "baseline": "sat",
         "hybrid": "sat"
       },
@@ -343,7 +343,7 @@
             "x": "Date(2020, 1, 1)"
           }
         },
-        "advanced": {
+        "epoch_days": {
           "valid": true,
           "message": "model satisfies assertions",
           "solution": {
@@ -371,7 +371,7 @@
       "verdicts_by_approach": {
         "ab": "correct",
         "ab_new": "correct",
-        "advanced": "correct",
+        "epoch_days": "correct",
         "baseline": "correct",
         "hybrid": "correct"
       },
@@ -384,7 +384,7 @@
       "approach_statuses": {
         "ab": "error",
         "ab_new": "error",
-        "advanced": "error",
+        "epoch_days": "error",
         "baseline": "error",
         "hybrid": "error"
       },
@@ -393,7 +393,7 @@
       "verdicts_by_approach": {
         "ab": "error",
         "ab_new": "error",
-        "advanced": "error",
+        "epoch_days": "error",
         "baseline": "error",
         "hybrid": "error"
       },
@@ -406,7 +406,7 @@
       "approach_statuses": {
         "ab": "error",
         "ab_new": "error",
-        "advanced": "error",
+        "epoch_days": "error",
         "baseline": "error",
         "hybrid": "error"
       },
@@ -415,7 +415,7 @@
       "verdicts_by_approach": {
         "ab": "error",
         "ab_new": "error",
-        "advanced": "error",
+        "epoch_days": "error",
         "baseline": "error",
         "hybrid": "error"
       },
@@ -428,7 +428,7 @@
       "approach_statuses": {
         "ab": "sat",
         "ab_new": "sat",
-        "advanced": "sat",
+        "epoch_days": "sat",
         "baseline": "sat",
         "hybrid": "sat"
       },
@@ -447,7 +447,7 @@
             "x": "Date(2020, 2, 29)"
           }
         },
-        "advanced": {
+        "epoch_days": {
           "valid": true,
           "message": "model satisfies assertions",
           "solution": {
@@ -474,7 +474,7 @@
       "verdicts_by_approach": {
         "ab": "correct",
         "ab_new": "correct",
-        "advanced": "correct",
+        "epoch_days": "correct",
         "baseline": "correct",
         "hybrid": "correct"
       },
@@ -487,7 +487,7 @@
       "approach_statuses": {
         "ab": "sat",
         "ab_new": "sat",
-        "advanced": "sat",
+        "epoch_days": "sat",
         "baseline": "sat",
         "hybrid": "sat"
       },
@@ -510,7 +510,7 @@
             "z": "Date(2023, 3, 2)"
           }
         },
-        "advanced": {
+        "epoch_days": {
           "valid": true,
           "message": "model satisfies assertions",
           "solution": {
@@ -544,7 +544,7 @@
       "verdicts_by_approach": {
         "ab": "correct",
         "ab_new": "correct",
-        "advanced": "correct",
+        "epoch_days": "correct",
         "baseline": "correct",
         "hybrid": "correct"
       },
@@ -557,7 +557,7 @@
       "approach_statuses": {
         "ab": "sat",
         "ab_new": "sat",
-        "advanced": "sat",
+        "epoch_days": "sat",
         "baseline": "sat",
         "hybrid": "sat"
       },
@@ -578,7 +578,7 @@
             "y": "Date(2021, 1, 30)"
           }
         },
-        "advanced": {
+        "epoch_days": {
           "valid": true,
           "message": "model satisfies assertions",
           "solution": {
@@ -609,7 +609,7 @@
       "verdicts_by_approach": {
         "ab": "correct",
         "ab_new": "correct",
-        "advanced": "correct",
+        "epoch_days": "correct",
         "baseline": "correct",
         "hybrid": "correct"
       },
@@ -622,7 +622,7 @@
       "approach_statuses": {
         "ab": "error",
         "ab_new": "error",
-        "advanced": "error",
+        "epoch_days": "error",
         "baseline": "error",
         "hybrid": "error"
       },
@@ -631,7 +631,7 @@
       "verdicts_by_approach": {
         "ab": "error",
         "ab_new": "error",
-        "advanced": "error",
+        "epoch_days": "error",
         "baseline": "error",
         "hybrid": "error"
       },
@@ -652,7 +652,7 @@
             "lines": 93
           },
           {
-            "approach": "advanced",
+            "approach": "epoch_days",
             "lines": 129
           },
           {
@@ -674,7 +674,7 @@
             "execution_time": 0.011605978012084961
           },
           {
-            "approach": "advanced",
+            "approach": "epoch_days",
             "execution_time": 0.015755891799926758
           },
           {
@@ -700,7 +700,7 @@
             "lines": 183
           },
           {
-            "approach": "advanced",
+            "approach": "epoch_days",
             "lines": 255
           },
           {
@@ -722,7 +722,7 @@
             "execution_time": 0.01946401596069336
           },
           {
-            "approach": "advanced",
+            "approach": "epoch_days",
             "execution_time": 0.030778169631958008
           },
           {
@@ -740,7 +740,7 @@
       "1758090062-3": {
         "lines_by_approach": [
           {
-            "approach": "advanced",
+            "approach": "epoch_days",
             "lines": 132
           },
           {
@@ -778,7 +778,7 @@
             "execution_time": 1.1396751403808594
           },
           {
-            "approach": "advanced",
+            "approach": "epoch_days",
             "execution_time": 1.569915771484375
           }
         ],
@@ -796,7 +796,7 @@
             "lines": 0
           },
           {
-            "approach": "advanced",
+            "approach": "epoch_days",
             "lines": 0
           },
           {
@@ -818,7 +818,7 @@
             "execution_time": 0.0
           },
           {
-            "approach": "advanced",
+            "approach": "epoch_days",
             "execution_time": 0.0
           },
           {
@@ -844,7 +844,7 @@
             "lines": 0
           },
           {
-            "approach": "advanced",
+            "approach": "epoch_days",
             "lines": 0
           },
           {
@@ -866,7 +866,7 @@
             "execution_time": 0.0
           },
           {
-            "approach": "advanced",
+            "approach": "epoch_days",
             "execution_time": 0.0
           },
           {
@@ -884,7 +884,7 @@
       "1758090062-6": {
         "lines_by_approach": [
           {
-            "approach": "advanced",
+            "approach": "epoch_days",
             "lines": 14
           },
           {
@@ -906,7 +906,7 @@
         ],
         "time_by_approach": [
           {
-            "approach": "advanced",
+            "approach": "epoch_days",
             "execution_time": 0.0011792182922363281
           },
           {
@@ -932,7 +932,7 @@
       "1758090062-7": {
         "lines_by_approach": [
           {
-            "approach": "advanced",
+            "approach": "epoch_days",
             "lines": 143
           },
           {
@@ -954,7 +954,7 @@
         ],
         "time_by_approach": [
           {
-            "approach": "advanced",
+            "approach": "epoch_days",
             "execution_time": 0.016041040420532227
           },
           {
@@ -980,7 +980,7 @@
       "1758090062-8": {
         "lines_by_approach": [
           {
-            "approach": "advanced",
+            "approach": "epoch_days",
             "lines": 138
           },
           {
@@ -1014,7 +1014,7 @@
             "execution_time": 0.867293119430542
           },
           {
-            "approach": "advanced",
+            "approach": "epoch_days",
             "execution_time": 0.9739940166473389
           },
           {
@@ -1036,7 +1036,7 @@
             "lines": 0
           },
           {
-            "approach": "advanced",
+            "approach": "epoch_days",
             "lines": 0
           },
           {
@@ -1058,7 +1058,7 @@
             "execution_time": 0.0
           },
           {
-            "approach": "advanced",
+            "approach": "epoch_days",
             "execution_time": 0.0
           },
           {
@@ -1076,7 +1076,7 @@
       "1758090062-10": {
         "lines_by_approach": [
           {
-            "approach": "advanced",
+            "approach": "epoch_days",
             "lines": 12
           },
           {
@@ -1102,7 +1102,7 @@
             "execution_time": 0.0013511180877685547
           },
           {
-            "approach": "advanced",
+            "approach": "epoch_days",
             "execution_time": 0.0014090538024902344
           },
           {
@@ -1132,7 +1132,7 @@
             "lines": 93
           },
           {
-            "approach": "advanced",
+            "approach": "epoch_days",
             "lines": 129
           },
           {
@@ -1154,7 +1154,7 @@
             "execution_time": 0.01104283332824707
           },
           {
-            "approach": "advanced",
+            "approach": "epoch_days",
             "execution_time": 0.15197086334228516
           },
           {
@@ -1172,7 +1172,7 @@
       "1758090062-12": {
         "lines_by_approach": [
           {
-            "approach": "advanced",
+            "approach": "epoch_days",
             "lines": 130
           },
           {
@@ -1198,7 +1198,7 @@
             "execution_time": 1.3008301258087158
           },
           {
-            "approach": "advanced",
+            "approach": "epoch_days",
             "execution_time": 1.4606940746307373
           },
           {
@@ -1220,7 +1220,7 @@
       "1758090062-13": {
         "lines_by_approach": [
           {
-            "approach": "advanced",
+            "approach": "epoch_days",
             "lines": 137
           },
           {
@@ -1246,7 +1246,7 @@
             "execution_time": 0.0
           },
           {
-            "approach": "advanced",
+            "approach": "epoch_days",
             "execution_time": 0.3369147777557373
           },
           {
@@ -1277,7 +1277,7 @@
         "average_time": 4.125395353023823,
         "count": 13
       },
-      "advanced": {
+      "epoch_days": {
         "average_lines": 93.76923076923077,
         "average_time": 0.3506656059852013,
         "count": 13
@@ -1296,7 +1296,7 @@
     "per_approach_sorted": {
       "avg_lines_sorted": [
         {
-          "approach": "advanced",
+          "approach": "epoch_days",
           "average_lines": 93.76923076923077
         },
         {
@@ -1322,7 +1322,7 @@
           "average_time": 0.2539184276874249
         },
         {
-          "approach": "advanced",
+          "approach": "epoch_days",
           "average_time": 0.3506656059852013
         },
         {

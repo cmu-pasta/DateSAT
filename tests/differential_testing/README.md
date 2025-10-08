@@ -1,6 +1,6 @@
 # Differential Testing
 
-This folder contains comprehensive differential tests that compare the baseline and advanced implementations to ensure they produce identical results.
+This folder contains comprehensive differential tests that compare the baseline and epoch_days implementations to ensure they produce identical results.
 
 ## Test File
 

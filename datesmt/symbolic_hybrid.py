@@ -9,7 +9,7 @@ using dual representation: epoch-primary, YMD-derived. Each date has:
 
 Comparisons and day arithmetic use O(1) epoch operations; month/year
 arithmetic uses simple AMI on (Y,M,D) components without re-encoding to
-epoch unless needed. Period addition matches advanced semantics but avoids
+epoch unless needed. Period addition matches epoch_days semantics but avoids
 encoding back to epoch when not necessary.
 """
 
@@ -327,7 +327,7 @@ class DateVar:
         return Not(self.__eq__(other))
 
     def __add__(self, other):
-        """Hybrid date + Period: mirror advanced semantics, but avoid epoch encode unless days-only.
+        """Hybrid date + Period: mirror epoch_days semantics, but avoid epoch encode unless days-only.
 
         - days-only: epoch add (O(1))
         - months/years (and mixed): decode epoch→YMD, normalize months, clamp, add days via ordinal,

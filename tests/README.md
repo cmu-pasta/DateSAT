@@ -8,7 +8,7 @@ This directory contains comprehensive tests for the DATE-SMT library, organized 
 Traditional unit tests that test individual functions and methods with specific inputs:
 - core_data_structures/ - Tests for Date and Period classes
 - date_validation/ - Tests for leap year and days-in-month validation
-- algorithm_specific/ - Tests for baseline vs advanced algorithm implementations
+- algorithm_specific/ - Tests for baseline vs epoch_days algorithm implementations
 
 ### Property-Based Tests (tests/property_tests/)
 Tests that verify mathematical properties and invariants using generated test data with Hypothesis:
@@ -54,7 +54,7 @@ python tests/run_tests.py --category validation
 python tests/run_tests.py --category algorithm
 ```
 
-### Advanced Options
+### Epoch_days Options
 ```bash
 # Run with verbose output
 python tests/run_tests.py --category all --verbose
@@ -77,7 +77,7 @@ We use Java's `java.time.LocalDate.plus(Period)` as an external ground truth for
 - Test files:
   - `tests/unit_tests/general/test_date_period_operation_java.py`
     - Compares Java output to canonical ground truth test cases
-    - Verifies each solver (baseline/advanced/hybrid) matches that ground truth
+    - Verifies each solver (baseline/epoch_days/hybrid) matches that ground truth
   - `tests/unit_tests/general/test_date_period_decomposition_java.py`
     - Tests decomposed additions in different orders (Y→M→D, M→Y→D, D→M→Y, D→Y→M)
     - Uses Java results for each decomposed order as ground truth
@@ -109,8 +109,8 @@ pytest -q tests/unit_tests/general/test_date_period_operation_java.py -k java_ou
 # Baseline only
 pytest -q tests/unit_tests/general/test_date_period_operation_java.py -m baseline
 
-# Advanced only
-pytest -q tests/unit_tests/general/test_date_period_operation_java.py -m advanced
+# Epoch_days only
+pytest -q tests/unit_tests/general/test_date_period_operation_java.py -m epoch_days
 
 # Hybrid only
 pytest -q tests/unit_tests/general/test_date_period_operation_java.py -m hybrid

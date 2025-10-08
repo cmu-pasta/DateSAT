@@ -1,7 +1,7 @@
 """
-Advanced DATE-SMT implementation using epoch-based conversion.
+Epoch_days DATE-SMT implementation using epoch-based conversion.
 
-This module implements the advanced approach where dates are represented
+This module implements the epoch_days approach where dates are represented
 as days since an epoch, and period arithmetic is done using approximate
 day conversions.
 """
@@ -226,7 +226,7 @@ def add_days_ordinal(y, m, d, delta_days):
 
 
 class DateVar:
-    """Symbolic date variable for advanced implementation."""
+    """Symbolic date variable for epoch_days implementation."""
 
     def __init__(self, name: str):
         """Create a symbolic date variable."""
@@ -429,8 +429,8 @@ class PeriodVar:
             raise TypeError(f"Cannot subtract {type(other)} from PeriodVar")
 
 
-class AdvancedDateSolver:
-    """Advanced date constraint solver using epoch-based conversion."""
+class EpochDaysSolver:
+    """Epoch_days date constraint solver using epoch-based conversion."""
 
     def __init__(self, timeout_ms=60000):
         """Initialize the solver with timeout.
