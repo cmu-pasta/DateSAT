@@ -1,5 +1,5 @@
 """
-Alpha-beta DATE-SMT using a 4-year (48-month) table with century corrections.
+Alpha-beta-table DATE-SMT using a 4-year (48-month) table with century corrections.
 
 Representation:
 - alpha (months_var): months since epoch month 2000-03 (March 2000 = 0)
@@ -390,7 +390,7 @@ class PeriodVar:
             raise TypeError(f"Cannot subtract {type(other)} from PeriodVar")
 
 
-class AbNewDateSolver:
+class AlphaBetaTableSolver:
     def __init__(self, timeout_ms=60000):
         self.solver = Solver()
         self.solver.set("timeout", timeout_ms)

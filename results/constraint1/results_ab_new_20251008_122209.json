@@ -9,7 +9,7 @@
     "coverage_tags": [
       "leap_boundary"
     ],
-    "approach": "ab_new",
+    "approach": "alpha_beta_table",
     "status": "sat",
     "execution_time": 0.01192021369934082,
     "error_message": null,
@@ -30,7 +30,7 @@
       "month_vs_days",
       "eom"
     ],
-    "approach": "ab_new",
+    "approach": "alpha_beta_table",
     "status": "sat",
     "execution_time": 0.6168038845062256,
     "error_message": null,
@@ -51,7 +51,7 @@
       "year_vs_days",
       "leap_boundary"
     ],
-    "approach": "ab_new",
+    "approach": "alpha_beta_table",
     "status": "sat",
     "execution_time": 1.5487401485443115,
     "error_message": null,
@@ -72,7 +72,7 @@
     "coverage_tags": [
       "chain_add"
     ],
-    "approach": "ab_new",
+    "approach": "alpha_beta_table",
     "status": "sat",
     "execution_time": 0.017313718795776367,
     "error_message": null,
@@ -96,10 +96,10 @@
       "multi_var",
       "ineq_window"
     ],
-    "approach": "ab_new",
+    "approach": "alpha_beta_table",
     "status": "error",
     "execution_time": 0,
-    "error_message": "Cannot subtract <class 'datesmt.symbolic_ab_new.DateVar'> from DateVar",
+    "error_message": "Cannot subtract <class 'datesmt.symbolic_alpha_beta_table.DateVar'> from DateVar",
     "solution": null,
     "smtlib": null
   },
@@ -114,7 +114,7 @@
     "coverage_tags": [
       "eom"
     ],
-    "approach": "ab_new",
+    "approach": "alpha_beta_table",
     "status": "sat",
     "execution_time": 0.017332792282104492,
     "error_message": null,
@@ -135,7 +135,7 @@
     "coverage_tags": [
       "ineq_window"
     ],
-    "approach": "ab_new",
+    "approach": "alpha_beta_table",
     "status": "unsat",
     "execution_time": 0.001577138900756836,
     "error_message": null,
@@ -157,7 +157,7 @@
       "chain_add",
       "multi_var"
     ],
-    "approach": "ab_new",
+    "approach": "alpha_beta_table",
     "status": "error",
     "execution_time": 0,
     "error_message": "Cannot compare PeriodVar.",
@@ -176,7 +176,7 @@
       "leap_boundary",
       "year_vs_days"
     ],
-    "approach": "ab_new",
+    "approach": "alpha_beta_table",
     "status": "unsat",
     "execution_time": 0.017829179763793945,
     "error_message": null,
@@ -195,7 +195,7 @@
       "month_vs_days",
       "eom"
     ],
-    "approach": "ab_new",
+    "approach": "alpha_beta_table",
     "status": "sat",
     "execution_time": 0.2874758243560791,
     "error_message": null,

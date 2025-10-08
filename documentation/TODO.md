@@ -3,7 +3,7 @@ DateSMT
 [X] Figure out the hybrid approach (Angel)
 [X] Alpha/beta approach (Angel)
 [ ] Rename all approaches
-[ ] Clean up symbolic_ab_new
+[ ] Clean up symbolic_alpha_beta_table
 [ ] Check if we can specify temp var (var that we don't need result for)
 [ ] Think about hybrid method: do we need lazy approach?
 [ ] Update constraints to (1900,3,1) to (2100,2,28)

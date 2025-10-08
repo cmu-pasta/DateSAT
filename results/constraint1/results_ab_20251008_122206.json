@@ -9,7 +9,7 @@
     "coverage_tags": [
       "leap_boundary"
     ],
-    "approach": "ab",
+    "approach": "alpha_beta",
     "status": "sat",
     "execution_time": 0.0026061534881591797,
     "error_message": null,
@@ -30,7 +30,7 @@
       "month_vs_days",
       "eom"
     ],
-    "approach": "ab",
+    "approach": "alpha_beta",
     "status": "sat",
     "execution_time": 0.9073419570922852,
     "error_message": null,
@@ -51,7 +51,7 @@
       "year_vs_days",
       "leap_boundary"
     ],
-    "approach": "ab",
+    "approach": "alpha_beta",
     "status": "sat",
     "execution_time": 0.44661498069763184,
     "error_message": null,
@@ -72,7 +72,7 @@
     "coverage_tags": [
       "chain_add"
     ],
-    "approach": "ab",
+    "approach": "alpha_beta",
     "status": "sat",
     "execution_time": 0.010679006576538086,
     "error_message": null,
@@ -96,10 +96,10 @@
       "multi_var",
       "ineq_window"
     ],
-    "approach": "ab",
+    "approach": "alpha_beta",
     "status": "error",
     "execution_time": 0,
-    "error_message": "Cannot subtract <class 'datesmt.symbolic_ab.DateVar'> from DateVar",
+    "error_message": "Cannot subtract <class 'datesmt.symbolic_alpha_beta.DateVar'> from DateVar",
     "solution": null,
     "smtlib": null
   },
@@ -114,7 +114,7 @@
     "coverage_tags": [
       "eom"
     ],
-    "approach": "ab",
+    "approach": "alpha_beta",
     "status": "sat",
     "execution_time": 0.010208845138549805,
     "error_message": null,
@@ -135,7 +135,7 @@
     "coverage_tags": [
       "ineq_window"
     ],
-    "approach": "ab",
+    "approach": "alpha_beta",
     "status": "unsat",
     "execution_time": 0.0027420520782470703,
     "error_message": null,
@@ -157,7 +157,7 @@
       "chain_add",
       "multi_var"
     ],
-    "approach": "ab",
+    "approach": "alpha_beta",
     "status": "error",
     "execution_time": 0,
     "error_message": "Cannot compare PeriodVar.",
@@ -176,7 +176,7 @@
       "leap_boundary",
       "year_vs_days"
     ],
-    "approach": "ab",
+    "approach": "alpha_beta",
     "status": "unsat",
     "execution_time": 0.010029077529907227,
     "error_message": null,
@@ -195,7 +195,7 @@
       "month_vs_days",
       "eom"
     ],
-    "approach": "ab",
+    "approach": "alpha_beta",
     "status": "sat",
     "execution_time": 1.5757172107696533,
     "error_message": null,

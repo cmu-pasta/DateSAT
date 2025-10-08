@@ -166,8 +166,8 @@ def test_constraints_file(
     smt_dir = os.path.join(output_dir, "smt2")
     os.makedirs(smt_dir, exist_ok=True)
 
-    # Test with all approaches including 'ab' and 'ab_new'
-    approaches = ["baseline", "epoch_days", "hybrid", "ab", "ab_new"]
+    # Test with all approaches including 'alpha_beta' and 'alpha_beta_table'
+    approaches = ["baseline", "epoch_days", "hybrid", "alpha_beta", "alpha_beta_table"]
     all_results = {}
 
     for approach in approaches:
