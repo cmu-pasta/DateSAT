@@ -12,8 +12,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    outputs:
-      site-dir: ${{ steps.set-output.outputs.site_dir }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -30,18 +28,17 @@ jobs:
 
       - name: Build coverage site (unit tests only)
         run: |
-          python tests/build_coverage_site.py
+          rm -rf public
+          mkdir -p public
+          COVERAGE_SITE_DIR=$(pwd)/public python tests/build_coverage_site.py
 
       - name: Upload coverage site artifact
         uses: actions/upload-artifact@v4
         with:
           name: coverage-site
-          path: documentation/coverage
+          path: public
           if-no-files-found: error
 
-      - name: Set site_dir output
-        id: set-output
-        run: echo "site_dir=documentation/coverage" >> $GITHUB_OUTPUT
 
   deploy-pages:
     runs-on: ubuntu-latest
@@ -71,3 +68,4 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./public
           publish_branch: gh-pages
+          force_orphan: true
