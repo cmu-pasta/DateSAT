@@ -171,20 +171,19 @@ def days_since_epoch_from_ymd(y, m, d):
 # -------------------------------
 _EPOCH_YEAR = IntVal(2000)
 _EPOCH_MONTH = IntVal(3)
-_TWELVE = IntVal(12)
-_EPOCH_LINEAR = _EPOCH_YEAR * _TWELVE + _EPOCH_MONTH  # 12*2000 + 3
+_EPOCH_LINEAR = _EPOCH_YEAR * 12 + _EPOCH_MONTH  # 12*2000 + 3
 
 
 def months_since_epoch_from_ym(y, m):
     """Z3-pure: compute months-since-epoch (alpha) from year/month."""
-    return (y * _TWELVE + m) - _EPOCH_LINEAR
+    return (y * 12 + m) - _EPOCH_LINEAR
 
 
 def ym_from_months_since_epoch(alpha):
     """Z3-pure inverse: decode (year, month) from alpha months-since-epoch."""
     k = alpha + _EPOCH_LINEAR
-    y = (k - IntVal(1)) / _TWELVE
-    m = k - y * _TWELVE
+    y = (k - IntVal(1)) / 12
+    m = k - y * 12
     return y, m
 
 
@@ -196,36 +195,6 @@ def EOMClamp(y, m, d):
 
 
 FOUR_HUNDRED_YEARS = IntVal(146097)  # 400*365 + 97 leap days
-
-
-# Original implementation with 400-year cycle reduction (commented out):
-'''
-def add_days_ordinal(y, m, d, delta_days):
-    d0 = EOMClamp(y, m, d)
-
-    # Fast path: no day shift → avoid any ordinal math.
-    no_shift = (delta_days == IntVal(0))
-    y_ns, m_ns, d_ns = y, m, d0
-
-    # Reduce by 400-year eras to keep terms small
-    q = delta_days / FOUR_HUNDRED_YEARS
-    r = delta_days % FOUR_HUNDRED_YEARS
-
-    # Shift whole eras in the year; month/day unchanged for this step
-    y_era = y + q * IntVal(400)
-
-    # Now add the small remainder r via ordinal conversion
-    z   = days_since_epoch_from_ymd(y_era, m, d0)
-    z2  = z + r
-    y2, m2, d2 = ymd_from_days_since_epoch(z2)
-
-    # If delta_days == 0, return (y,m,d0); else the computed (y2,m2,d2)
-    out_y = If(no_shift, y_ns, y2)
-    out_m = If(no_shift, m_ns, m2)
-    out_d = If(no_shift, d_ns, d2)
-    return out_y, out_m, out_d
-'''
-
 
 def add_days_ordinal(y, m, d, delta_days):
     """
@@ -372,7 +341,7 @@ class DateVar:
             else:
                 # Symbolic period
                 result = DateVar(f"{self.name}_plus_{other.name}")
-                months_delta = other.years * _TWELVE + other.months
+                months_delta = other.years * 12 + other.months
                 days_delta = other.days
 
             # Decode current (y,m,d) from (alpha,beta)
