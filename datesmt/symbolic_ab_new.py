@@ -29,7 +29,6 @@ from z3 import (
 
 from .core import Date, Period
 
-
 EPOCH_YEAR = 2000
 EPOCH_MONTH = 3
 E_LINEAR = IntVal(EPOCH_YEAR * 12 + EPOCH_MONTH)
@@ -195,12 +194,11 @@ class DateVar:
         return Not(self.__eq__(other))
 
     def __add__(self, other):
-        from .symbolic_advanced import PeriodVar as _PeriodVar  # type: ignore
-        if not (isinstance(other, Period) or isinstance(other, (PeriodVar, _PeriodVar))):
+        if not (isinstance(other, Period) or isinstance(other, PeriodVar)):
             raise TypeError(f"Cannot add {type(other)} to DateVar")
 
         result = DateVar(f"{self.name}_plus")
-
+    
         if isinstance(other, Period):
             months_delta = IntVal(other.years * 12 + other.months)
             days_delta = IntVal(other.days)
@@ -258,11 +256,10 @@ class DateVar:
             raise TypeError(f"Cannot add {type(other)} to DateVar")
 
     def __sub__(self, other):
-        from .symbolic_advanced import PeriodVar as _PeriodVar  # type: ignore
         if isinstance(other, Period):
             neg = Period(-other.years, -other.months, -other.days)
             return self.__add__(neg)
-        elif isinstance(other, (PeriodVar, _PeriodVar)):
+        elif isinstance(other, PeriodVar):
             neg = PeriodVar(f"neg_{getattr(other, 'name', 'p')}")
             neg.years = -other.years
             neg.months = -other.months
@@ -297,6 +294,8 @@ class DateVar:
 
 
 class PeriodVar:
+    """Symbolic period variable using separate Y/M/D components (baseline-compatible)."""
+
     def __init__(self, name: str, years=0, months=0, days=0):
         self.name = name
         self.years = Int(f"{name}_years")
@@ -314,6 +313,58 @@ class PeriodVar:
         months = model.evaluate(self.months, model_completion=True).as_long()
         days = model.evaluate(self.days, model_completion=True).as_long()
         return Period(years, months, days)
+
+    def __eq__(self, other):
+        raise TypeError(f"Cannot compare PeriodVar.")
+
+    def __ne__(self, other):
+        raise TypeError(f"Cannot compare PeriodVar.")
+
+    def __add__(self, other):
+        if isinstance(other, Period) or isinstance(other, PeriodVar):
+            if isinstance(other, Period):
+                result = PeriodVar(
+                    f"{self.name}_plus_{other.years}y_{other.months}m_{other.days}d"
+                )
+                oy, om, od = (
+                    IntVal(other.years),
+                    IntVal(other.months),
+                    IntVal(other.days),
+                )
+                result.years = self.years + oy
+                result.months = self.months + om
+                result.days = self.days + od
+            else:
+                result = PeriodVar(f"{self.name}_plus_{other.name}")
+                result.years = self.years + other.years
+                result.months = self.months + other.months
+                result.days = self.days + other.days
+            return result
+        else:
+            raise TypeError(f"Cannot add {type(other)} to PeriodVar")
+
+    def __sub__(self, other):
+        if isinstance(other, Period) or isinstance(other, PeriodVar):
+            if isinstance(other, Period):
+                result = PeriodVar(
+                    f"{self.name}_minus_{other.years}y_{other.months}m_{other.days}d"
+                )
+                oy, om, od = (
+                    IntVal(other.years),
+                    IntVal(other.months),
+                    IntVal(other.days),
+                )
+                result.years = self.years - oy
+                result.months = self.months - om
+                result.days = self.days - od
+            else:
+                result = PeriodVar(f"{self.name}_minus_{other.name}")
+                result.years = self.years - other.years
+                result.months = self.months - other.months
+                result.days = self.days - other.days
+            return result
+        else:
+            raise TypeError(f"Cannot subtract {type(other)} from PeriodVar")
 
 
 class AbNewDateSolver:

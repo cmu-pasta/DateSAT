@@ -26,7 +26,32 @@ You can also execute a dataset directly using the runner used by the tests:
 ```bash
 python tests/integration_tests/test_template.py tests/integration_tests/data/constraints1.json --output-dir results/constraint1
 ```
-This writes a `results_*.json` report under the specified `--output-dir`.
+This writes `results_*.json` reports under the specified `--output-dir`.
+
+### Validate and summarize results with check_results.py
+After you have a folder of `results_*.json` files, you can validate SAT solutions,
+check UNSAT consensus, and save SMT2 encodings used for validation:
+
+```bash
+python tests/integration_tests/check_results.py results/constraint1
+```
+
+What it does:
+- Reads all `results_*.json` in the target directory
+- Rebuilds each constraint (using saved `constraint_code` if needed)
+- Validates SAT solutions by binding concrete values and re-checking
+- Dumps SMT-LIB files under `results/constraint1/smt2_assertion/` for traceability
+- Writes a consolidated `checked_summary.json` back into the same directory
+
+Output schema highlights (`checked_summary.json`):
+- `counts_by_approach`: per-method tallies of `{correct, wrong, error}`
+- `by_constraint[i].verdicts_by_approach`: per-method verdicts only (no aggregate verdict)
+- `by_constraint[i].unsat_consensus`: `true` if all methods reported `unsat`
+
+Optional args:
+```bash
+python tests/integration_tests/check_results.py <results_dir> --output <path/to/checked_summary.json>
+```
 
 ### Add a new dataset
 1. Drop your JSON file into `tests/integration_tests/data/` (e.g., `constraints_myset.json`).
