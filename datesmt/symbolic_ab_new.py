@@ -24,9 +24,10 @@ from z3 import (
     Not,
     Or,
     Select,
-    Store,
     Solver,
+    Store,
     sat,
+    unsat,
 )
 
 from .core import Date, Period
@@ -127,7 +128,9 @@ def _override_dim_for_century_feb(abs_month, dim):
 
 
 def _eom_clamp(dim, beta):
-    return If(beta < IntVal(0), IntVal(0), If(beta > dim - IntVal(1), dim - IntVal(1), beta))
+    return If(
+        beta < IntVal(0), IntVal(0), If(beta > dim - IntVal(1), dim - IntVal(1), beta)
+    )
 
 
 class DateVar:
@@ -164,7 +167,9 @@ class DateVar:
     def __ge__(self, other):
         """Support x >= date comparison."""
         if isinstance(other, Date):
-            alpha_o = _months_since_epoch_from_ym(IntVal(other.year), IntVal(other.month))
+            alpha_o = _months_since_epoch_from_ym(
+                IntVal(other.year), IntVal(other.month)
+            )
             beta_o = IntVal(other.day - 1)
             return Or(
                 self.months_var > alpha_o,
@@ -173,7 +178,9 @@ class DateVar:
         elif isinstance(other, DateVar):
             return Or(
                 self.months_var > other.months_var,
-                And(self.months_var == other.months_var, self.beta_var >= other.beta_var),
+                And(
+                    self.months_var == other.months_var, self.beta_var >= other.beta_var
+                ),
             )
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
@@ -181,7 +188,9 @@ class DateVar:
     def __le__(self, other):
         """Support x <= date comparison."""
         if isinstance(other, Date):
-            alpha_o = _months_since_epoch_from_ym(IntVal(other.year), IntVal(other.month))
+            alpha_o = _months_since_epoch_from_ym(
+                IntVal(other.year), IntVal(other.month)
+            )
             beta_o = IntVal(other.day - 1)
             return Or(
                 self.months_var < alpha_o,
@@ -190,7 +199,9 @@ class DateVar:
         elif isinstance(other, DateVar):
             return Or(
                 self.months_var < other.months_var,
-                And(self.months_var == other.months_var, self.beta_var <= other.beta_var),
+                And(
+                    self.months_var == other.months_var, self.beta_var <= other.beta_var
+                ),
             )
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
@@ -212,11 +223,15 @@ class DateVar:
     def __eq__(self, other):
         """Support x == date comparison."""
         if isinstance(other, Date):
-            alpha_o = _months_since_epoch_from_ym(IntVal(other.year), IntVal(other.month))
+            alpha_o = _months_since_epoch_from_ym(
+                IntVal(other.year), IntVal(other.month)
+            )
             beta_o = IntVal(other.day - 1)
             return And(self.months_var == alpha_o, self.beta_var == beta_o)
         elif isinstance(other, DateVar):
-            return And(self.months_var == other.months_var, self.beta_var == other.beta_var)
+            return And(
+                self.months_var == other.months_var, self.beta_var == other.beta_var
+            )
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
@@ -229,7 +244,7 @@ class DateVar:
             raise TypeError(f"Cannot add {type(other)} to DateVar")
 
         result = DateVar(f"{self.name}_plus")
-    
+
         if isinstance(other, Period):
             months_delta = IntVal(other.years * 12 + other.months)
             days_delta = IntVal(other.days)
@@ -392,8 +407,12 @@ class AbNewDateSolver:
         # Alpha bounds: months since 2000-03
         # 1900-01 => (1900-2000)*12 + (1-3) = -1202
         # 2100-12 => (2100-2000)*12 + (12-3) = 1209
-        self.solver.add(date_var.months_var >= IntVal((1900 - EPOCH_YEAR) * 12 + (1 - EPOCH_MONTH)))
-        self.solver.add(date_var.months_var <= IntVal((2100 - EPOCH_YEAR) * 12 + (12 - EPOCH_MONTH)))
+        self.solver.add(
+            date_var.months_var >= IntVal((1900 - EPOCH_YEAR) * 12 + (1 - EPOCH_MONTH))
+        )
+        self.solver.add(
+            date_var.months_var <= IntVal((2100 - EPOCH_YEAR) * 12 + (12 - EPOCH_MONTH))
+        )
 
         # Beta bounds: 0 <= beta < DIM (with century Feb override)
         idx = _mod48(date_var.months_var)
