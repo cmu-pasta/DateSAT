@@ -358,15 +358,6 @@ class DateVar:
         else:
             raise TypeError(f"Cannot subtract {type(other)} from DateVar")
 
-    def diff_days(self, other) -> Int:
-        """Return Z3 Int: self - other in days."""
-        if isinstance(other, DateVar):
-            return self.days_var - other.days_var
-        elif isinstance(other, Date):
-            return self.days_var - IntVal(to_days_since_epoch(other))
-        else:
-            raise TypeError("diff_days expects DateVar or Date")
-
 
 class PeriodVar:
     """Symbolic period variable using separate Y/M/D components (baseline-compatible)."""

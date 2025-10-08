@@ -13,6 +13,7 @@ from .core import Date, Period
 from .symbolic_advanced import AdvancedDateSolver
 from .symbolic_baseline import DateSolver
 from .symbolic_hybrid import HybridDateSolver
+from .symbolic_ab import AbDateSolver
 
 
 class DateSMTBuilder:
@@ -32,8 +33,12 @@ class DateSMTBuilder:
             self.solver = AdvancedDateSolver(timeout_ms=timeout_ms)
         elif approach == "hybrid":
             self.solver = HybridDateSolver(timeout_ms=timeout_ms)
+        elif approach == "ab":
+            self.solver = AbDateSolver(timeout_ms=timeout_ms)
         else:
-            raise ValueError(f"Unknown approach: {approach}. Must be 'baseline', 'advanced', or 'hybrid'")
+            raise ValueError(
+                f"Unknown approach: {approach}. Must be 'baseline', 'advanced', 'hybrid', or 'ab'"
+            )
 
         self.constraints = []
         self._print_smt_on_solve = True

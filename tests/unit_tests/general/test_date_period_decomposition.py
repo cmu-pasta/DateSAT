@@ -7,6 +7,7 @@ from datesmt.core import Date, Period
 from datesmt.symbolic_advanced import AdvancedDateSolver
 from datesmt.symbolic_baseline import DateSolver as BaselineSolver
 from datesmt.symbolic_hybrid import HybridDateSolver
+from datesmt.symbolic_ab import AbDateSolver
 
 # Local copy of canonical test cases (migrated from test_date_period_operation.py)
 
@@ -288,3 +289,37 @@ def test_hybrid_matches_java_decomposed(
     assert (
         got == expect
     ), f"Hybrid order {label}: {base} + {per} -> {got}, expected {expect}"
+
+
+@pytest.mark.parametrize(
+    "base,per,label,seq",
+    [
+        pytest.param(base, per, label, seq, id=f"ab_{base}+{per}_{label}")
+        for base, per, label, seq in all_decomposed_cases()
+    ],
+)
+@pytest.mark.ab
+def test_ab_matches_java_decomposed(
+    base: Date, per: Period, label: str, seq: list[Period]
+):
+    expect = python_date_plus_sequence(base, seq, label)
+
+    s = AbDateSolver()
+    x = s.add_date_var("x")
+    s.add_constraint(x == base)
+
+    current = x
+    for i, p in enumerate(seq):
+        t = s.add_date_var(f"t{i}")
+        s.add_constraint(t == current + p)
+        current = t
+
+    y = s.add_date_var("y")
+    s.add_constraint(y == current)
+
+    model = s.solve()
+    assert model["status"] == "sat"
+    got = model["dates"]["y"]
+    assert (
+        got == expect
+    ), f"AB order {label}: {base} + {per} -> {got}, expected {expect}"
