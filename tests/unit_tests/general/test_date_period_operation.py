@@ -6,6 +6,7 @@ from datesmt.symbolic_advanced import AdvancedDateSolver
 from datesmt.symbolic_baseline import DateSolver as BaselineSolver
 from datesmt.symbolic_hybrid import HybridDateSolver
 from datesmt.symbolic_ab import AbDateSolver
+from datesmt.symbolic_ab_new import AbNewDateSolver
 
 # Reuse canonical test cases locally (migrated from test_date_period_operation.py)
 
@@ -26,6 +27,13 @@ def get_period_arithmetic_test_cases():
         (Date(2020, 1, 31), Period(0, 1, 0), Date(2020, 2, 29)),  # test with leap year
         (Date(2020, 4, 30), Period(0, 1, 0), Date(2020, 5, 30)),
         (Date(2020, 12, 31), Period(0, 1, 0), Date(2021, 1, 31)),
+        # Century non-leap year boundaries (1900, 2100)
+        (Date(1900, 1, 31), Period(0, 1, 0), Date(1900, 2, 28)),
+        (Date(1900, 2, 28), Period(0, 0, 1), Date(1900, 3, 1)),
+        (Date(1900, 3, 1), Period(0, 0, -1), Date(1900, 2, 28)),
+        (Date(2100, 1, 31), Period(0, 1, 0), Date(2100, 2, 28)),
+        (Date(2100, 2, 28), Period(0, 0, 1), Date(2100, 3, 1)),
+        (Date(2100, 3, 1), Period(0, 0, -1), Date(2100, 2, 28)),
         # Days-only & simple edges
         (Date(2020, 6, 15), Period(0, 0, 5), Date(2020, 6, 20)),
         (Date(2020, 12, 31), Period(0, 0, 1), Date(2021, 1, 1)),
@@ -531,3 +539,25 @@ def test_ab_equals_ground_truth(base: Date, per: Period, expect: Date):
     assert ra["status"] == "sat"
     got_a = ra["dates"]["y"]
     assert got_a == expect, f"AB: {base} + {per} -> {got_a}, expected {expect}"
+
+
+@pytest.mark.parametrize(
+    "base,per,expect",
+    [
+        pytest.param(base, per, expect, id=f"solvers_truth_{base}+{per}={expect}")
+        for base, per, expect in get_period_arithmetic_test_cases()
+    ],
+)
+@pytest.mark.ab_new
+def test_ab_new_equals_ground_truth(base: Date, per: Period, expect: Date):
+    sa = AbNewDateSolver()
+    xa = sa.add_date_var("x")
+    ya = sa.add_date_var("y")
+    sa.add_constraint(xa == base)
+    sa.add_constraint(ya == xa + per)
+    ra = sa.solve()
+    assert ra["status"] == "sat"
+    got_a = ra["dates"]["y"]
+    assert got_a == expect, f"AB_NEW: {base} + {per} -> {got_a}, expected {expect}"
+
+
