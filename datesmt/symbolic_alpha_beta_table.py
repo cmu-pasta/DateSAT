@@ -405,13 +405,13 @@ class AlphaBetaTableSolver:
         self.date_vars[name] = date_var
 
         # Alpha bounds: months since 2000-03
-        # 1900-01 => (1900-2000)*12 + (1-3) = -1202
-        # 2100-12 => (2100-2000)*12 + (12-3) = 1209
+        # 1900-03 => (1900-2000)*12 + (3-3)
+        # 2100-02 => (2100-2000)*12 + (2-3)
         self.solver.add(
-            date_var.months_var >= IntVal((1900 - EPOCH_YEAR) * 12 + (1 - EPOCH_MONTH))
+            date_var.months_var >= IntVal((1900 - EPOCH_YEAR) * 12 + (3 - EPOCH_MONTH))
         )
         self.solver.add(
-            date_var.months_var <= IntVal((2100 - EPOCH_YEAR) * 12 + (12 - EPOCH_MONTH))
+            date_var.months_var <= IntVal((2100 - EPOCH_YEAR) * 12 + (2 - EPOCH_MONTH))
         )
 
         # Beta bounds: 0 <= beta < DIM (with century Feb override)

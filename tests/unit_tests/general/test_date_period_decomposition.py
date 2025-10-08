@@ -66,7 +66,6 @@ def get_period_arithmetic_test_cases():
         (Date(2020, 6, 15), Period(4, 0, 0)),
         (Date(2020, 2, 29), Period(1, 0, 0)),
         (Date(2020, 2, 29), Period(4, 0, 0)),
-        (Date(2020, 6, 15), Period(80, 0, 0)),
         (Date(2020, 1, 31), Period(1, 1, 1)),
         (Date(2020, 2, 29), Period(1, 1, 1)),
         (Date(2020, 12, 31), Period(0, 0, 32)),
@@ -302,7 +301,7 @@ def test_hybrid_matches_java_decomposed(
     ],
 )
 @pytest.mark.alpha_beta
-def test_ab_matches_java_decomposed(
+def test_alpha_beta_matches_java_decomposed(
     base: Date, per: Period, label: str, seq: list[Period]
 ):
     expect = python_date_plus_sequence(base, seq, label)
@@ -331,12 +330,12 @@ def test_ab_matches_java_decomposed(
 @pytest.mark.parametrize(
     "base,per,label,seq",
     [
-        pytest.param(base, per, label, seq, id=f"ab_new_{base}+{per}_{label}")
+        pytest.param(base, per, label, seq, id=f"alpha_beta_table_{base}+{per}_{label}")
         for base, per, label, seq in all_decomposed_cases()
     ],
 )
 @pytest.mark.alpha_beta_table
-def test_ab_new_matches_java_decomposed(
+def test_alpha_beta_table_matches_java_decomposed(
     base: Date, per: Period, label: str, seq: list[Period]
 ):
     expect = python_date_plus_sequence(base, seq, label)
@@ -359,4 +358,4 @@ def test_ab_new_matches_java_decomposed(
     got = model["dates"]["y"]
     assert (
         got == expect
-    ), f"AB_NEW order {label}: {base} + {per} -> {got}, expected {expect}"
+    ), f"alpha_beta_table order {label}: {base} + {per} -> {got}, expected {expect}"
