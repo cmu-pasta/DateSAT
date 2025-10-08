@@ -10,8 +10,8 @@ from typing import Any, Dict, List, Union
 from z3 import BoolRef
 
 from .core import Date, Period
-from .symbolic_ab import AbDateSolver
-from .symbolic_ab_new import AbNewDateSolver
+from .symbolic_alpha_beta import AlphaBetaSolver
+from .symbolic_alpha_beta_table import AlphaBetaTableSolver
 from .symbolic_baseline import DateSolver
 from .symbolic_epoch_days import EpochDaysSolver
 from .symbolic_hybrid import HybridDateSolver
@@ -34,13 +34,13 @@ class DateSMTBuilder:
             self.solver = EpochDaysSolver(timeout_ms=timeout_ms)
         elif approach == "hybrid":
             self.solver = HybridDateSolver(timeout_ms=timeout_ms)
-        elif approach == "ab":
-            self.solver = AbDateSolver(timeout_ms=timeout_ms)
-        elif approach == "ab_new":
-            self.solver = AbNewDateSolver(timeout_ms=timeout_ms)
+        elif approach == "alpha_beta":
+            self.solver = AlphaBetaSolver(timeout_ms=timeout_ms)
+        elif approach == "alpha_beta_table":
+            self.solver = AlphaBetaTableSolver(timeout_ms=timeout_ms)
         else:
             raise ValueError(
-                f"Unknown approach: {approach}. Must be 'baseline', 'epoch_days', 'hybrid', 'ab', or 'ab_new'"
+                f"Unknown approach: {approach}. Must be 'baseline', 'epoch_days', 'hybrid', 'alpha_beta', or 'alpha_beta_table'"
             )
 
         self.constraints = []

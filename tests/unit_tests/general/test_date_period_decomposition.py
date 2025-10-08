@@ -4,8 +4,8 @@ import pytest
 from dateutil.relativedelta import relativedelta
 
 from datesmt.core import Date, Period
-from datesmt.symbolic_ab import AbDateSolver
-from datesmt.symbolic_ab_new import AbNewDateSolver
+from datesmt.symbolic_alpha_beta import AlphaBetaSolver
+from datesmt.symbolic_alpha_beta_table import AlphaBetaTableSolver
 from datesmt.symbolic_baseline import DateSolver as BaselineSolver
 from datesmt.symbolic_epoch_days import EpochDaysSolver
 from datesmt.symbolic_hybrid import HybridDateSolver
@@ -301,13 +301,13 @@ def test_hybrid_matches_java_decomposed(
         for base, per, label, seq in all_decomposed_cases()
     ],
 )
-@pytest.mark.ab
+@pytest.mark.alpha_beta
 def test_ab_matches_java_decomposed(
     base: Date, per: Period, label: str, seq: list[Period]
 ):
     expect = python_date_plus_sequence(base, seq, label)
 
-    s = AbDateSolver()
+    s = AlphaBetaSolver()
     x = s.add_date_var("x")
     s.add_constraint(x == base)
 
@@ -325,7 +325,7 @@ def test_ab_matches_java_decomposed(
     got = model["dates"]["y"]
     assert (
         got == expect
-    ), f"AB order {label}: {base} + {per} -> {got}, expected {expect}"
+    ), f"Alpha_beta order {label}: {base} + {per} -> {got}, expected {expect}"
 
 
 @pytest.mark.parametrize(
@@ -335,13 +335,13 @@ def test_ab_matches_java_decomposed(
         for base, per, label, seq in all_decomposed_cases()
     ],
 )
-@pytest.mark.ab_new
+@pytest.mark.alpha_beta_table
 def test_ab_new_matches_java_decomposed(
     base: Date, per: Period, label: str, seq: list[Period]
 ):
     expect = python_date_plus_sequence(base, seq, label)
 
-    s = AbNewDateSolver()
+    s = AlphaBetaTableSolver()
     x = s.add_date_var("x")
     s.add_constraint(x == base)
 

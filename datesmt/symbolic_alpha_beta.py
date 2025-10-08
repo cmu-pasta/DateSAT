@@ -24,7 +24,6 @@ from z3 import (
 
 from .core import Date, Period
 
-
 # -------------------------------
 # Z3-pure calendar helpers
 # -------------------------------
@@ -163,6 +162,7 @@ def EOMClamp(y, m, d):
 
 FOUR_HUNDRED_YEARS = IntVal(146097)  # 400*365 + 97 leap days
 
+
 def add_days_ordinal(y, m, d, delta_days):
     """
     Exact ordinal-based addition via a single ordinal add.
@@ -223,7 +223,9 @@ class DateVar:
     def __ge__(self, other):
         """Support x >= date comparison."""
         if isinstance(other, Date):
-            alpha_o = months_since_epoch_from_ym(IntVal(other.year), IntVal(other.month))
+            alpha_o = months_since_epoch_from_ym(
+                IntVal(other.year), IntVal(other.month)
+            )
             beta_o = IntVal(other.day - 1)
             return Or(
                 self.months_var > alpha_o,
@@ -232,7 +234,9 @@ class DateVar:
         elif isinstance(other, DateVar):
             return Or(
                 self.months_var > other.months_var,
-                And(self.months_var == other.months_var, self.beta_var >= other.beta_var),
+                And(
+                    self.months_var == other.months_var, self.beta_var >= other.beta_var
+                ),
             )
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
@@ -240,7 +244,9 @@ class DateVar:
     def __le__(self, other):
         """Support x <= date comparison."""
         if isinstance(other, Date):
-            alpha_o = months_since_epoch_from_ym(IntVal(other.year), IntVal(other.month))
+            alpha_o = months_since_epoch_from_ym(
+                IntVal(other.year), IntVal(other.month)
+            )
             beta_o = IntVal(other.day - 1)
             return Or(
                 self.months_var < alpha_o,
@@ -249,7 +255,9 @@ class DateVar:
         elif isinstance(other, DateVar):
             return Or(
                 self.months_var < other.months_var,
-                And(self.months_var == other.months_var, self.beta_var <= other.beta_var),
+                And(
+                    self.months_var == other.months_var, self.beta_var <= other.beta_var
+                ),
             )
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
@@ -271,11 +279,15 @@ class DateVar:
     def __eq__(self, other):
         """Support x == date comparison."""
         if isinstance(other, Date):
-            alpha_o = months_since_epoch_from_ym(IntVal(other.year), IntVal(other.month))
+            alpha_o = months_since_epoch_from_ym(
+                IntVal(other.year), IntVal(other.month)
+            )
             beta_o = IntVal(other.day - 1)
             return And(self.months_var == alpha_o, self.beta_var == beta_o)
         elif isinstance(other, DateVar):
-            return And(self.months_var == other.months_var, self.beta_var == other.beta_var)
+            return And(
+                self.months_var == other.months_var, self.beta_var == other.beta_var
+            )
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
@@ -419,7 +431,7 @@ class PeriodVar:
             raise TypeError(f"Cannot subtract {type(other)} from PeriodVar")
 
 
-class AbDateSolver:
+class AlphaBetaSolver:
     """Alpha-beta date constraint solver using epoch-based conversion."""
 
     def __init__(self, timeout_ms=60000):
@@ -443,8 +455,12 @@ class AbDateSolver:
         # Alpha bounds: months since 2000-03
         # 1900-01 => (1900-2000)*12 + (1-3) = -1202
         # 2100-12 => (2100-2000)*12 + (12-3) = 1209
-        self.solver.add(date_var.months_var >= IntVal((1900 - EPOCH_YEAR) * 12 + (1 - EPOCH_MONTH)))
-        self.solver.add(date_var.months_var <= IntVal((2100 - EPOCH_YEAR) * 12 + (12 - EPOCH_MONTH)))
+        self.solver.add(
+            date_var.months_var >= IntVal((1900 - EPOCH_YEAR) * 12 + (1 - EPOCH_MONTH))
+        )
+        self.solver.add(
+            date_var.months_var <= IntVal((2100 - EPOCH_YEAR) * 12 + (12 - EPOCH_MONTH))
+        )
 
         # Beta bounds depend on month length: 0 <= beta < days_in_month(y,m)
         y, m = ym_from_months_since_epoch(date_var.months_var)

@@ -2,8 +2,8 @@ import pytest
 from dateutil.relativedelta import relativedelta
 
 from datesmt.core import Date, Period
-from datesmt.symbolic_ab import AbDateSolver
-from datesmt.symbolic_ab_new import AbNewDateSolver
+from datesmt.symbolic_alpha_beta import AlphaBetaSolver
+from datesmt.symbolic_alpha_beta_table import AlphaBetaTableSolver
 from datesmt.symbolic_baseline import DateSolver as BaselineSolver
 from datesmt.symbolic_epoch_days import EpochDaysSolver
 from datesmt.symbolic_hybrid import HybridDateSolver
@@ -528,9 +528,9 @@ def test_hybrid_equals_ground_truth(base: Date, per: Period, expect: Date):
         for base, per, expect in get_period_arithmetic_test_cases()
     ],
 )
-@pytest.mark.ab
+@pytest.mark.alpha_beta
 def test_ab_equals_ground_truth(base: Date, per: Period, expect: Date):
-    sa = AbDateSolver()
+    sa = AlphaBetaSolver()
     xa = sa.add_date_var("x")
     ya = sa.add_date_var("y")
     sa.add_constraint(xa == base)
@@ -538,7 +538,7 @@ def test_ab_equals_ground_truth(base: Date, per: Period, expect: Date):
     ra = sa.solve()
     assert ra["status"] == "sat"
     got_a = ra["dates"]["y"]
-    assert got_a == expect, f"AB: {base} + {per} -> {got_a}, expected {expect}"
+    assert got_a == expect, f"Alpha_beta: {base} + {per} -> {got_a}, expected {expect}"
 
 
 @pytest.mark.parametrize(
@@ -548,9 +548,9 @@ def test_ab_equals_ground_truth(base: Date, per: Period, expect: Date):
         for base, per, expect in get_period_arithmetic_test_cases()
     ],
 )
-@pytest.mark.ab_new
+@pytest.mark.alpha_beta_table
 def test_ab_new_equals_ground_truth(base: Date, per: Period, expect: Date):
-    sa = AbNewDateSolver()
+    sa = AlphaBetaTableSolver()
     xa = sa.add_date_var("x")
     ya = sa.add_date_var("y")
     sa.add_constraint(xa == base)

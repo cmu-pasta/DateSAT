@@ -9,7 +9,7 @@
     "coverage_tags": [
       "leap_boundary"
     ],
-    "approach": "ab",
+    "approach": "alpha_beta",
     "status": "sat",
     "execution_time": 0.009521007537841797,
     "error_message": null,
@@ -31,7 +31,7 @@
       "month_vs_days",
       "eom"
     ],
-    "approach": "ab",
+    "approach": "alpha_beta",
     "status": "sat",
     "execution_time": 0.018162965774536133,
     "error_message": null,
@@ -53,7 +53,7 @@
       "year_vs_days",
       "ineq_window"
     ],
-    "approach": "ab",
+    "approach": "alpha_beta",
     "status": "sat",
     "execution_time": 0.4573349952697754,
     "error_message": null,
@@ -76,7 +76,7 @@
       "chain_add",
       "multi_var"
     ],
-    "approach": "ab",
+    "approach": "alpha_beta",
     "status": "error",
     "execution_time": 0,
     "error_message": "Cannot compare PeriodVar.",
@@ -95,10 +95,10 @@
       "ineq_window",
       "multi_var"
     ],
-    "approach": "ab",
+    "approach": "alpha_beta",
     "status": "error",
     "execution_time": 0,
-    "error_message": "Cannot subtract <class 'datesmt.symbolic_ab.DateVar'> from DateVar",
+    "error_message": "Cannot subtract <class 'datesmt.symbolic_alpha_beta.DateVar'> from DateVar",
     "solution": null,
     "smtlib": null
   },
@@ -112,7 +112,7 @@
     "coverage_tags": [
       "leap_boundary"
     ],
-    "approach": "ab",
+    "approach": "alpha_beta",
     "status": "sat",
     "execution_time": 0.4086031913757324,
     "error_message": null,
@@ -136,7 +136,7 @@
       "eom",
       "multi_var"
     ],
-    "approach": "ab",
+    "approach": "alpha_beta",
     "status": "sat",
     "execution_time": 0.01818108558654785,
     "error_message": null,
@@ -160,7 +160,7 @@
       "year_vs_days",
       "leap_boundary"
     ],
-    "approach": "ab",
+    "approach": "alpha_beta",
     "status": "sat",
     "execution_time": 0.867293119430542,
     "error_message": null,
@@ -184,7 +184,7 @@
       "chain_add",
       "multi_var"
     ],
-    "approach": "ab",
+    "approach": "alpha_beta",
     "status": "error",
     "execution_time": 0,
     "error_message": "Cannot compare PeriodVar.",
@@ -202,7 +202,7 @@
       "ineq_window",
       "eom"
     ],
-    "approach": "ab",
+    "approach": "alpha_beta",
     "status": "unsat",
     "execution_time": 0.0024940967559814453,
     "error_message": null,
@@ -220,7 +220,7 @@
     "coverage_tags": [
       "eom"
     ],
-    "approach": "ab",
+    "approach": "alpha_beta",
     "status": "sat",
     "execution_time": 0.01104283332824707,
     "error_message": null,
@@ -240,7 +240,7 @@
     "coverage_tags": [
       "month_vs_days"
     ],
-    "approach": "ab",
+    "approach": "alpha_beta",
     "status": "unsat",
     "execution_time": 6.560471773147583,
     "error_message": null,
@@ -260,7 +260,7 @@
       "chain_add",
       "multi_var"
     ],
-    "approach": "ab",
+    "approach": "alpha_beta",
     "status": "sat",
     "execution_time": 1.6151940822601318,
     "error_message": null,
