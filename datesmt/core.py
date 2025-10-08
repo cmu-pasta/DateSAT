@@ -2,7 +2,7 @@
 Core Date and Period classes for DATE-SMT.
 
 These classes represent the basic data structures used by both baseline
-and advanced approaches. The difference between approaches is in how
+and epoch_days approaches. The difference between approaches is in how
 these are converted to Z3 constraints, not in the data representation.
 """
 
@@ -40,10 +40,8 @@ class Date:
         """Validate that the date components are valid."""
         # Check year range constraint
         if not (1900 <= self._year <= 2100):
-            raise ValueError(
-                f"Year {self._year} is outside allowed range [1900-2100]"
-            )
-        
+            raise ValueError(f"Year {self._year} is outside allowed range [1900-2100]")
+
         try:
             date(self._year, self._month, self._day)
         except ValueError as e:

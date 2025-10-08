@@ -1,5 +1,5 @@
 """
-Unit tests for epoch date arithmetic in datesmt.symbolic_advanced.
+Unit tests for epoch date arithmetic in datesmt.symbolic_epoch_days.
 
 Tests cover the to_days_since_epoch and from_days_since_epoch functions
 with March 1, 2000 as the epoch date.
@@ -7,11 +7,12 @@ with March 1, 2000 as the epoch date.
 Reference checks use Python's datetime for independence from production code.
 """
 
-import pytest
 from datetime import date, timedelta
 
+import pytest
+
 from datesmt.core import Date
-from datesmt.symbolic_advanced import from_days_since_epoch, to_days_since_epoch
+from datesmt.symbolic_epoch_days import from_days_since_epoch, to_days_since_epoch
 
 EPOCH = Date(2000, 3, 1)
 EPOCH_DT = date(2000, 3, 1)
@@ -35,6 +36,7 @@ def _ref_add_days(start: Date, delta: int) -> Date:
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
+
 
 class TestEpochDateArithmeticBasic:
     """Targeted example-driven tests for epoch conversion."""
@@ -151,7 +153,7 @@ class TestEpochDateArithmeticBasic:
             Date(1999, 12, 31),
             Date(2000, 1, 1),
             Date(2000, 2, 29),  # Leap year
-            Date(2000, 3, 1),   # Epoch
+            Date(2000, 3, 1),  # Epoch
             Date(2000, 3, 2),
             Date(2000, 12, 31),
             Date(2001, 1, 1),
@@ -168,14 +170,13 @@ class TestEpochDateArithmeticBasic:
 
     def test_large_year_differences_against_reference(self):
         """Derive expectations from the declared epoch."""
-        cases = [
-            Date(1900, 1, 1),
-            Date(2100, 12, 31)
-        ]
+        cases = [Date(1900, 1, 1), Date(2100, 12, 31)]
         for d in cases:
             expected = _ref_delta_days(d)
             got = to_days_since_epoch(d)
-            assert got == expected, f"Large-span mismatch: {d} expected {expected}, got {got}"
+            assert (
+                got == expected
+            ), f"Large-span mismatch: {d} expected {expected}, got {got}"
 
     def test_local_monotonicity(self):
         """+/- 1 day around anchors should map to immediate neighbors."""
@@ -205,7 +206,7 @@ class TestEpochDateArithmeticBasic:
             Date(1999, 12, 31),
             Date(2000, 1, 1),
             Date(2000, 2, 29),  # Leap day
-            Date(2000, 3, 1),   # Epoch
+            Date(2000, 3, 1),  # Epoch
             Date(2000, 12, 31),
             Date(2001, 1, 1),
             Date(2001, 2, 28),

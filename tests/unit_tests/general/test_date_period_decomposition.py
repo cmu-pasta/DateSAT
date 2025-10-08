@@ -4,11 +4,11 @@ import pytest
 from dateutil.relativedelta import relativedelta
 
 from datesmt.core import Date, Period
-from datesmt.symbolic_advanced import AdvancedDateSolver
-from datesmt.symbolic_baseline import DateSolver as BaselineSolver
-from datesmt.symbolic_hybrid import HybridDateSolver
 from datesmt.symbolic_ab import AbDateSolver
 from datesmt.symbolic_ab_new import AbNewDateSolver
+from datesmt.symbolic_baseline import DateSolver as BaselineSolver
+from datesmt.symbolic_epoch_days import EpochDaysSolver
+from datesmt.symbolic_hybrid import HybridDateSolver
 
 # Local copy of canonical test cases (migrated from test_date_period_operation.py)
 
@@ -184,7 +184,9 @@ def all_decomposed_cases():
         for base, per, label, seq in all_decomposed_cases()
     ],
 )
-def test_python_decomposed_orders(base: Date, per: Period, label: str, seq: list[Period]):
+def test_python_decomposed_orders(
+    base: Date, per: Period, label: str, seq: list[Period]
+):
     """Ensure Python results are well-defined for each decomposed order (sanity)."""
     got = python_date_plus_sequence(base, seq, label)
     assert isinstance(got, Date)
@@ -227,17 +229,17 @@ def test_baseline_matches_java_decomposed(
 @pytest.mark.parametrize(
     "base,per,label,seq",
     [
-        pytest.param(base, per, label, seq, id=f"advanced_{base}+{per}_{label}")
+        pytest.param(base, per, label, seq, id=f"epoch_days_{base}+{per}_{label}")
         for base, per, label, seq in all_decomposed_cases()
     ],
 )
-@pytest.mark.advanced
-def test_advanced_matches_java_decomposed(
+@pytest.mark.epoch_days
+def test_epoch_days_matches_java_decomposed(
     base: Date, per: Period, label: str, seq: list[Period]
 ):
     expect = python_date_plus_sequence(base, seq, label)
 
-    s = AdvancedDateSolver()
+    s = EpochDaysSolver()
     x = s.add_date_var("x")
     s.add_constraint(x == base)
 
@@ -255,7 +257,7 @@ def test_advanced_matches_java_decomposed(
     got = model["dates"]["y"]
     assert (
         got == expect
-    ), f"Advanced order {label}: {base} + {per} -> {got}, expected {expect}"
+    ), f"Epoch_days order {label}: {base} + {per} -> {got}, expected {expect}"
 
 
 @pytest.mark.parametrize(
@@ -358,5 +360,3 @@ def test_ab_new_matches_java_decomposed(
     assert (
         got == expect
     ), f"AB_NEW order {label}: {base} + {per} -> {got}, expected {expect}"
-
-

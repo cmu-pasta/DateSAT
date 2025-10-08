@@ -3,7 +3,7 @@
 ## Overview
 This analysis compares the performance and characteristics of three approaches based on results/constraints1_new:
 - **Baseline**: YMD-based approach with calendar constraints (baseline for comparison)
-- **Advanced**: Epoch-based approach 
+- **Epoch_days**: Epoch-based approach
 - **Hybrid**: Lazy dual representation (only adds forward link when needed)
 
 ## Key Findings
@@ -11,7 +11,7 @@ This analysis compares the performance and characteristics of three approaches b
 ### 🚀 Comprehensive Performance Analysis
 
 #### All Test Cases Performance Summary
-| Test Case | Description | Baseline | Advanced | Hybrid | Hybrid vs Baseline | Advanced vs Baseline |
+| Test Case | Description | Baseline | Epoch_days | Hybrid | Hybrid vs Baseline | Epoch_days vs Baseline |
 |-----------|-------------|----------|----------|--------|-------------------|---------------------|
 | 1758086606-1 | Leap year check | sat (0.0030s) | sat (0.0013s) | sat (0.0013s) | **2.4x faster** | 2.3x faster |
 | 1758086606-2 | Month vs days arithmetic | sat (0.9360s) | sat (1.8287s) | unsat (0.0183s) | **51.1x faster** | 0.5x faster |
@@ -31,7 +31,7 @@ This analysis compares the performance and characteristics of three approaches b
 - **Best improvement**: **69.2x faster** (Year vs days arithmetic)
 - **Worst improvement**: **0.1x faster** (End-of-month rollover)
 
-**Advanced vs Baseline (across 9 valid test cases):**
+**Epoch_days vs Baseline (across 9 valid test cases):**
 - **Average improvement**: **1.2x faster**
 - **Median improvement**: **1.2x faster**
 - **Best improvement**: **3.1x faster** (Complex period arithmetic)
@@ -41,18 +41,18 @@ This analysis compares the performance and characteristics of three approaches b
 
 **Simple Epoch Operations (Test 1, 7)**
 - **Hybrid**: 1.3-2.4x faster than baseline
-- **Advanced**: 1.2-2.3x faster than baseline
+- **Epoch_days**: 1.2-2.3x faster than baseline
 - **Result**: Both approaches excel at simple operations
 
 **Complex Arithmetic (Tests 2, 3, 10)**
 - **Hybrid**: 5.3-69.2x faster than baseline (but returns unsat)
-- **Advanced**: 0.1-0.5x faster than baseline
+- **Epoch_days**: 0.1-0.5x faster than baseline
 - **Result**: Hybrid is dramatically faster but more aggressive in detecting unsatisfiability
 
 **Edge Cases (Tests 4, 6, 8, 9)**
 - **Hybrid**: 0.1-2.0x faster than baseline (mixed results)
-- **Advanced**: 1.1-3.1x faster than baseline
-- **Result**: Advanced approach more consistent for edge cases
+- **Epoch_days**: 1.1-3.1x faster than baseline
+- **Result**: Epoch_days approach more consistent for edge cases
 
 ### 📊 SMT2 Constraint Analysis
 
@@ -60,29 +60,29 @@ This analysis compares the performance and characteristics of three approaches b
 | Approach    | Constraints | Lines | Size (KB) | Efficiency |
 |-------------|-------------|-------|-----------|------------|
 | Baseline    | 10          | 38    | 1.11      | baseline   |
-| Advanced    | 6           | 16    | 0.27      | 4.1x smaller |
+| Epoch_days    | 6           | 16    | 0.27      | 4.1x smaller |
 | **Hybrid** | **6**      | **16** | **0.28** | **4.0x smaller** |
 
-**Breakthrough**: The new hybrid generates **nearly identical SMT2 to advanced** for simple cases!
+**Breakthrough**: The new hybrid generates **nearly identical SMT2 to epoch_days** for simple cases!
 
 #### Test Case 1758086606-2 (Complex Case)
 | Approach    | Constraints | Lines | Size (KB) | Efficiency |
 |-------------|-------------|-------|-----------|------------|
 | Baseline    | 9           | 174   | 9.55      | baseline   |
-| Advanced    | 5           | 111   | 6.31      | 1.5x smaller |
+| Epoch_days    | 5           | 111   | 6.31      | 1.5x smaller |
 | **Hybrid** | **19**     | **238** | **12.77** | **1.3x larger** |
 
 #### Test Case 1758086606-3 (Complex Case)
 | Approach    | Constraints | Lines | Size (KB) | Efficiency |
 |-------------|-------------|-------|-----------|------------|
 | Baseline    | 9           | 174   | 9.55      | baseline   |
-| Advanced    | 5           | 111   | 6.31      | 1.5x smaller |
+| Epoch_days    | 5           | 111   | 6.31      | 1.5x smaller |
 | **Hybrid** | **19**     | **250** | **13.19** | **1.4x larger** |
 
 ## 🎯 Key Insights
 
 ### 1. **Lazy Loading Works Perfectly**
-- **Simple cases**: New hybrid generates nearly identical SMT2 to advanced approach
+- **Simple cases**: New hybrid generates nearly identical SMT2 to epoch_days approach
 - **Complex cases**: Only adds YMD variables and forward link when needed
 - **Performance**: Significantly faster than baseline for all operations
 
@@ -90,10 +90,10 @@ This analysis compares the performance and characteristics of three approaches b
 - **Average improvement**: Hybrid is **14.7x faster** than baseline across all test cases
 - **Best performance**: Hybrid achieves up to **69.2x faster** for complex arithmetic operations
 - **Consistency**: Hybrid outperforms baseline in 8 out of 9 test cases
-- **Advanced vs Baseline**: Advanced averages only **1.2x faster** than baseline
+- **Epoch_days vs Baseline**: Epoch_days averages only **1.2x faster** than baseline
 
 ### 3. **Constraint Efficiency**
-- **Simple cases**: Hybrid = Advanced (6 constraints, 16 lines) vs Baseline (10 constraints, 38 lines)
+- **Simple cases**: Hybrid = Epoch_days (6 constraints, 16 lines) vs Baseline (10 constraints, 38 lines)
 - **Complex cases**: Hybrid adds more constraints but still much faster than baseline
 - **Memory usage**: Hybrid uses more memory for complex cases but gains significant speed
 
@@ -106,11 +106,11 @@ This analysis compares the performance and characteristics of three approaches b
 
 The **lazy hybrid approach** successfully achieves:
 
-✅ **Performance**: **14.7x faster** than baseline on average, with up to **69.2x faster** for complex operations  
-✅ **Efficiency**: Nearly identical SMT2 generation to advanced approach for epoch-only operations  
-✅ **Flexibility**: Full dual representation when YMD access is needed  
-✅ **Compatibility**: Same API as the original hybrid approach  
-✅ **Scalability**: Only adds complexity when actually needed  
+✅ **Performance**: **14.7x faster** than baseline on average, with up to **69.2x faster** for complex operations
+✅ **Efficiency**: Nearly identical SMT2 generation to epoch_days approach for epoch-only operations
+✅ **Flexibility**: Full dual representation when YMD access is needed
+✅ **Compatibility**: Same API as the original hybrid approach
+✅ **Scalability**: Only adds complexity when actually needed
 ✅ **Consistency**: Outperforms baseline in **8 out of 9 test cases** (89% success rate)
 
-This represents a **major improvement** over the baseline approach, providing substantial performance gains while maintaining the benefits of dual representation when needed. The hybrid approach significantly outperforms both baseline and advanced approaches across the majority of test cases, with an average improvement of **14.7x faster** than baseline.
+This represents a **major improvement** over the baseline approach, providing substantial performance gains while maintaining the benefits of dual representation when needed. The hybrid approach significantly outperforms both baseline and epoch_days approaches across the majority of test cases, with an average improvement of **14.7x faster** than baseline.

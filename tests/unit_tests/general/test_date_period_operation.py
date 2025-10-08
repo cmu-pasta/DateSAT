@@ -2,11 +2,11 @@ import pytest
 from dateutil.relativedelta import relativedelta
 
 from datesmt.core import Date, Period
-from datesmt.symbolic_advanced import AdvancedDateSolver
-from datesmt.symbolic_baseline import DateSolver as BaselineSolver
-from datesmt.symbolic_hybrid import HybridDateSolver
 from datesmt.symbolic_ab import AbDateSolver
 from datesmt.symbolic_ab_new import AbNewDateSolver
+from datesmt.symbolic_baseline import DateSolver as BaselineSolver
+from datesmt.symbolic_epoch_days import EpochDaysSolver
+from datesmt.symbolic_hybrid import HybridDateSolver
 
 # Reuse canonical test cases locally (migrated from test_date_period_operation.py)
 
@@ -488,9 +488,9 @@ def test_baseline_equals_ground_truth(base: Date, per: Period, expect: Date):
         for base, per, expect in get_period_arithmetic_test_cases()
     ],
 )
-@pytest.mark.advanced
-def test_advanced_equals_ground_truth(base: Date, per: Period, expect: Date):
-    sa = AdvancedDateSolver()
+@pytest.mark.epoch_days
+def test_epoch_days_equals_ground_truth(base: Date, per: Period, expect: Date):
+    sa = EpochDaysSolver()
     xa = sa.add_date_var("x")
     ya = sa.add_date_var("y")
     sa.add_constraint(xa == base)
@@ -498,7 +498,7 @@ def test_advanced_equals_ground_truth(base: Date, per: Period, expect: Date):
     ra = sa.solve()
     assert ra["status"] == "sat"
     got_a = ra["dates"]["y"]
-    assert got_a == expect, f"Advanced: {base} + {per} -> {got_a}, expected {expect}"
+    assert got_a == expect, f"Epoch_days: {base} + {per} -> {got_a}, expected {expect}"
 
 
 @pytest.mark.parametrize(
@@ -559,5 +559,3 @@ def test_ab_new_equals_ground_truth(base: Date, per: Period, expect: Date):
     assert ra["status"] == "sat"
     got_a = ra["dates"]["y"]
     assert got_a == expect, f"AB_NEW: {base} + {per} -> {got_a}, expected {expect}"
-
-

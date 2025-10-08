@@ -8,6 +8,7 @@ import json
 import os
 import re
 from typing import Any, Dict, List, Optional
+
 try:
     from .id_counter import get_next_id
 except ImportError:
@@ -49,7 +50,7 @@ SUPPORTED OPERATIONS (engine-compatible):
   • DO NOT: compare Period ▷◁ Period (unsupported)
   • DO NOT: multiply Period or PeriodVar (currently unsupported)
 - Builder API (always use via a local variable named builder):
-  • builder = DateSMTBuilder("advanced" or "baseline")  # already provided in harness
+  • builder = DateSMTBuilder("epoch_days" or "baseline")  # already provided in harness
   • builder.add_date_var(name: str) -> Date-like symbolic var
   • builder.add_period_var(name: str) -> Period-like symbolic var (avoid adding to Date)
   • builder.add_constraint(z3_bool_expr, description: str = "")
@@ -115,7 +116,7 @@ def _basic_schema_ok(items: Any) -> bool:
         "description",
         "constraint_code",
         "variables",
-        "coverage_tags"
+        "coverage_tags",
     }
     for it in items:
         if not isinstance(it, dict):
@@ -300,6 +301,7 @@ class LLMClient:
         Generate DATE-SMT constraints with validation + simple auto-repair.
         Produces a mix of SAT/UNSAT across diverse boundary categories.
         """
+
         def _one_call(n: int) -> List[Dict]:
             local_last_err = None
             local_raw = ""
@@ -321,7 +323,9 @@ class LLMClient:
                 except Exception as e:
                     local_last_err = e
                     try:
-                        candidate = self._extract_json_array(local_raw if 'local_raw' in locals() else "")
+                        candidate = self._extract_json_array(
+                            local_raw if 'local_raw' in locals() else ""
+                        )
                         candidate = _normalize_llm_json(candidate)
                         items = json.loads(candidate)
                         if _basic_schema_ok(items):
@@ -338,7 +342,9 @@ class LLMClient:
                     f.write(local_norm)
             except Exception:
                 pass
-            raise RuntimeError(f"Batch generation failed after {retries+1} attempts: {local_last_err}")
+            raise RuntimeError(
+                f"Batch generation failed after {retries+1} attempts: {local_last_err}"
+            )
 
         if num_constraints <= batch_size:
             try:

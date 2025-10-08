@@ -1,5 +1,5 @@
 """
-Enhanced template file to test generated constraints with both baseline and advanced approaches.
+Enhanced template file to test generated constraints with both baseline and epoch_days approaches.
 Now supports the enhanced schema with coverage tags and expected satisfiability.
 """
 
@@ -98,7 +98,11 @@ def test_constraint_with_approach(
                 solver_wrapper = getattr(builder, "solver", None)
                 z3_solver = getattr(solver_wrapper, "solver", None)
                 if z3_solver is not None:
-                    reason = str(getattr(z3_solver, "reason_unknown", lambda: "")()).strip().lower()
+                    reason = (
+                        str(getattr(z3_solver, "reason_unknown", lambda: "")())
+                        .strip()
+                        .lower()
+                    )
                     if reason == "timeout" or "timeout" in reason:
                         result["status"] = "timeout"
                         # Preserve the reason for diagnostics
@@ -163,7 +167,7 @@ def test_constraints_file(
     os.makedirs(smt_dir, exist_ok=True)
 
     # Test with all approaches including 'ab' and 'ab_new'
-    approaches = ["baseline", "advanced", "hybrid", "ab", "ab_new"]
+    approaches = ["baseline", "epoch_days", "hybrid", "ab", "ab_new"]
     all_results = {}
 
     for approach in approaches:

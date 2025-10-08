@@ -7,7 +7,7 @@ A Python library for symbolic analysis of date-based computations using Z3.
 
 ## Overview
 
-DATE-SMT provides both baseline and advanced implementations for expressing and solving date/time constraints using Z3. It converts DATE-SMT expressions into Z3 integer-only constraints for efficient symbolic analysis.
+DATE-SMT provides both baseline and epoch_days implementations for expressing and solving date/time constraints using Z3. It converts DATE-SMT expressions into Z3 integer-only constraints for efficient symbolic analysis.
 
 ## Installation
 

@@ -2,6 +2,7 @@ DateSMT
 [X] Review and clean up code (Angel)
 [X] Figure out the hybrid approach (Angel)
 [X] Alpha/beta approach (Angel)
+[ ] Rename all approaches
 [ ] Clean up symbolic_ab_new
 [ ] Check if we can specify temp var (var that we don't need result for)
 [ ] Think about hybrid method: do we need lazy approach?
@@ -9,7 +10,7 @@ DateSMT
 
 Unit test
 [X] Add unit test coverage (Angel)
-[X] Clean up core_data_structures, advanced_specific, baseline_specific (Angel)
+[X] Clean up core_data_structures, epoch_days_specific, baseline_specific (Angel)
 [X] Replace java with python? (Angel)
 [ ] Write up unit tests for all datesmt code
 
