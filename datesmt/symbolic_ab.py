@@ -25,7 +25,6 @@ from z3 import (
 
 from .core import Date, Period
 
-from .symbolic_advanced import PeriodVar as _PeriodVar
 
 def from_days_since_epoch(days: int) -> Date:
     """Convert days since epoch to a Date using a more robust approach."""
@@ -330,7 +329,7 @@ class DateVar:
             then add days in ordinal space and re-sync alpha/beta.
         """
 
-        if isinstance(other, Period) or isinstance(other, (PeriodVar, _PeriodVar)):
+        if isinstance(other, Period) or isinstance(other, PeriodVar):
             if isinstance(other, Period):
                 # Constant period
                 result = DateVar(
@@ -372,7 +371,7 @@ class DateVar:
 
     def __sub__(self, other):
         """DateVar - Period implemented as DateVar + (-Period). Date difference returns Int."""
-        if isinstance(other, Period) or isinstance(other, (PeriodVar, _PeriodVar)):
+        if isinstance(other, Period) or isinstance(other, PeriodVar):
             if isinstance(other, Period):
                 neg = Period(-other.years, -other.months, -other.days)
             else:

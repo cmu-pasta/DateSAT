@@ -1,7 +1,7 @@
 DateSMT
 [X] Review and clean up code (Angel)
 [X] Figure out the hybrid approach (Angel)
-[] Alpha/beta approach (Angel)
+[X] Alpha/beta approach (Angel)
 
 Unit test
 [X] Add unit test coverage (Angel)
@@ -15,7 +15,7 @@ Property test
 Integration test
 [X] Remove prediction_correct that was based on LLM predicted output (Angel)
 [X] Remove expected_satisfiable that was generated from LLM (Angel)
-[] Implement check integration test results (declare the solved result as Date and assert that operation is satisfiable)
+[X] Implement check integration test results (declare the solved result as Date and assert that operation is satisfiable)
 
 LLM test generation
 [] Make llm_generator better in generating integration tests that cover more cases
