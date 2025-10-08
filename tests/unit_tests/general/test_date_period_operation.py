@@ -5,6 +5,7 @@ from datesmt.core import Date, Period
 from datesmt.symbolic_advanced import AdvancedDateSolver
 from datesmt.symbolic_baseline import DateSolver as BaselineSolver
 from datesmt.symbolic_hybrid import HybridDateSolver
+from datesmt.symbolic_ab import AbDateSolver
 
 # Reuse canonical test cases locally (migrated from test_date_period_operation.py)
 
@@ -510,3 +511,23 @@ def test_hybrid_equals_ground_truth(base: Date, per: Period, expect: Date):
     assert rh["status"] == "sat"
     got_h = rh["dates"]["y"]
     assert got_h == expect, f"Hybrid: {base} + {per} -> {got_h}, expected {expect}"
+
+
+@pytest.mark.parametrize(
+    "base,per,expect",
+    [
+        pytest.param(base, per, expect, id=f"solvers_truth_{base}+{per}={expect}")
+        for base, per, expect in get_period_arithmetic_test_cases()
+    ],
+)
+@pytest.mark.ab
+def test_ab_equals_ground_truth(base: Date, per: Period, expect: Date):
+    sa = AbDateSolver()
+    xa = sa.add_date_var("x")
+    ya = sa.add_date_var("y")
+    sa.add_constraint(xa == base)
+    sa.add_constraint(ya == xa + per)
+    ra = sa.solve()
+    assert ra["status"] == "sat"
+    got_a = ra["dates"]["y"]
+    assert got_a == expect, f"AB: {base} + {per} -> {got_a}, expected {expect}"
