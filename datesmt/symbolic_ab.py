@@ -5,7 +5,6 @@ This module implements the alpha-beta approach where dates are represented
 as (months, days) since an epoch.
 """
 
-from datetime import date, timedelta
 from typing import Union
 
 from z3 import (
@@ -26,31 +25,6 @@ from z3 import (
 from .core import Date, Period
 
 
-def from_days_since_epoch(days: int) -> Date:
-    """Convert days since epoch to a Date using a more robust approach."""
-    # March 1, 2000 is day 0
-    # Convert our epoch to Python date
-    epoch_python = date(2000, 3, 1)
-
-    # Add the days
-    result_python = epoch_python + timedelta(days=days)
-
-    # Convert back to our Date class
-    return Date(result_python.year, result_python.month, result_python.day)
-
-
-def to_days_since_epoch(date_obj: Date) -> int:
-    """Convert a Date to days since epoch (March 1, 2000) using a more robust approach."""
-    # March 1, 2000 is day 0
-    # Convert to Python dates
-    epoch_python = date(2000, 3, 1)
-    target_python = date(date_obj.year, date_obj.month, date_obj.day)
-
-    # Calculate the difference
-    delta = target_python - epoch_python
-    return delta.days
-
-
 # -------------------------------
 # Z3-pure calendar helpers
 # -------------------------------
@@ -68,14 +42,6 @@ def days_in_month(y, m):
         If(is_leap_year(y), IntVal(29), IntVal(28)),
         If(Or(m == 4, m == 6, m == 9, m == 11), IntVal(30), IntVal(31)),
     )
-
-
-def normalize_month(y, m):
-    """Z3-pure month normalization (1..12)."""
-    t = m - IntVal(1)
-    q = t / IntVal(12)  # Z3 integer division
-    r = t % IntVal(12)  # Z3 modulo
-    return y + q, r + IntVal(1)
 
 
 # -------------------------------
@@ -168,9 +134,11 @@ def days_since_epoch_from_ymd(y, m, d):
 #   y = (k - 1) / 12
 #   m = k - 12*y
 # -------------------------------
-_EPOCH_YEAR = IntVal(2000)
-_EPOCH_MONTH = IntVal(3)
-_EPOCH_LINEAR = _EPOCH_YEAR * 12 + _EPOCH_MONTH  # 12*2000 + 3
+# Python int epoch constants (for arithmetic outside Z3)
+EPOCH_YEAR = 2000
+EPOCH_MONTH = 3
+# Z3 epoch constants
+_EPOCH_LINEAR = EPOCH_YEAR * 12 + EPOCH_MONTH  # 12*2000 + 3
 
 
 def months_since_epoch_from_ym(y, m):
@@ -252,12 +220,6 @@ class DateVar:
         day = beta_val + 1
         return Date(year, month, day)
 
-    def _days_since_epoch_term(self):
-        """Z3 Int term for absolute days since 2000-03-01 derived from (alpha,beta)."""
-        y, m = ym_from_months_since_epoch(self.months_var)
-        d = self.beta_var + IntVal(1)
-        return days_since_epoch_from_ymd(y, m, d)
-
     def __ge__(self, other):
         """Support x >= date comparison."""
         if isinstance(other, Date):
@@ -328,7 +290,6 @@ class DateVar:
           - Otherwise add months to alpha, clamp EOM using current day,
             then add days in ordinal space and re-sync alpha/beta.
         """
-
         if isinstance(other, Period) or isinstance(other, PeriodVar):
             if isinstance(other, Period):
                 # Constant period
@@ -482,8 +443,8 @@ class AbDateSolver:
         # Alpha bounds: months since 2000-03
         # 1900-01 => (1900-2000)*12 + (1-3) = -1202
         # 2100-12 => (2100-2000)*12 + (12-3) = 1209
-        self.solver.add(date_var.months_var >= -1202)
-        self.solver.add(date_var.months_var <= 1209)
+        self.solver.add(date_var.months_var >= IntVal((1900 - EPOCH_YEAR) * 12 + (1 - EPOCH_MONTH)))
+        self.solver.add(date_var.months_var <= IntVal((2100 - EPOCH_YEAR) * 12 + (12 - EPOCH_MONTH)))
 
         # Beta bounds depend on month length: 0 <= beta < days_in_month(y,m)
         y, m = ym_from_months_since_epoch(date_var.months_var)

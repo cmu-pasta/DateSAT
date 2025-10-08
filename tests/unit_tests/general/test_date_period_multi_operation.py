@@ -33,10 +33,10 @@ def test_stepwise_two_months_from_jan_30_non_leap():
 
     # Hybrid (default period addition semantics)
     sh = HybridDateSolver()
-    x = sh.new_date("x"); sh.add_constraint(x == base)
-    t1 = sh.new_date("t1"); sh.add_constraint(t1 == x + p1)
-    t2 = sh.new_date("t2"); sh.add_constraint(t2 == t1 + p1)
-    y = sh.new_date("y"); sh.add_constraint(y == t2)
+    x = sh.add_date_var("x"); sh.add_constraint(x == base)
+    t1 = sh.add_date_var("t1"); sh.add_constraint(t1 == x + p1)
+    t2 = sh.add_date_var("t2"); sh.add_constraint(t2 == t1 + p1)
+    y = sh.add_date_var("y"); sh.add_constraint(y == t2)
     resh = sh.solve(); assert resh["status"] == "sat"
     assert resh["dates"]["y"] == Date(2023, 3, 28)
 

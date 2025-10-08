@@ -294,9 +294,7 @@ class DateVar:
         """DateVar + Period/PeriodVar following baseline semantics.
         Steps: normalize Y/M, EOM clamp, then add D days in ordinal space.
         """
-        from .symbolic_advanced import PeriodVar as _PeriodVar  # avoid cyclic
-
-        if isinstance(other, Period) or isinstance(other, _PeriodVar):
+        if isinstance(other, Period) or isinstance(other, PeriodVar):
             if isinstance(other, Period):
                 result = DateVar(
                     f"{self.name}_plus_{other.years}y_{other.months}m_{other.days}d"
@@ -344,9 +342,7 @@ class DateVar:
 
     def __sub__(self, other):
         """DateVar - Period implemented as DateVar + (-Period). Date difference returns Int."""
-        from .symbolic_advanced import PeriodVar as _PeriodVar
-
-        if isinstance(other, Period) or isinstance(other, _PeriodVar):
+        if isinstance(other, Period) or isinstance(other, PeriodVar):
             if isinstance(other, Period):
                 neg = Period(-other.years, -other.months, -other.days)
             else:

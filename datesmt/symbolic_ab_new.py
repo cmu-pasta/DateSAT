@@ -9,6 +9,8 @@ We avoid full ordinal decode by using a 48-month DIM/DBM table, plus
 step-function corrections for the non-leap centuries (1900-02, 2100-02).
 """
 
+from typing import Union
+
 from z3 import (
     And,
     BoolRef,
@@ -29,8 +31,10 @@ from z3 import (
 
 from .core import Date, Period
 
+# Epoch constants as Python ints for table construction and concrete decoding
 EPOCH_YEAR = 2000
 EPOCH_MONTH = 3
+# Linearized epoch month as a Z3 Int numeral
 E_LINEAR = IntVal(EPOCH_YEAR * 12 + EPOCH_MONTH)
 
 FOUR_YEAR_MONTHS = 48
@@ -127,9 +131,18 @@ def _eom_clamp(dim, beta):
 
 
 class DateVar:
+    """Symbolic date variable using alpha-beta representation.
+
+    alpha (months_var): months since epoch month 2000-03 (March 2000 = 0)
+    beta  (beta_var):   extra days within that month (0-based), so DOM = 1+beta
+    """
+
     def __init__(self, name: str):
+        """Create a symbolic date variable."""
         self.name = name
+        # Alpha: Z3 integer variable for months since epoch-month
         self.months_var = Int(f"{name}_months")
+        # Beta: Z3 integer variable for extra days (0-based) within month
         self.beta_var = Int(f"{name}_beta")
 
     def __str__(self):
@@ -139,6 +152,7 @@ class DateVar:
         return self.__str__()
 
     def to_concrete_date(self, model: ModelRef) -> Date:
+        """Convert Z3 model to concrete Date using (alpha, beta)."""
         alpha_val = model.evaluate(self.months_var, model_completion=True).as_long()
         beta_val = model.evaluate(self.beta_var, model_completion=True).as_long()
         k = alpha_val + (EPOCH_YEAR * 12 + EPOCH_MONTH)
@@ -147,40 +161,56 @@ class DateVar:
         day = beta_val + 1
         return Date(year, month, day)
 
-    # Lexicographic comparisons on (alpha, beta)
     def __ge__(self, other):
+        """Support x >= date comparison."""
         if isinstance(other, Date):
             alpha_o = _months_since_epoch_from_ym(IntVal(other.year), IntVal(other.month))
             beta_o = IntVal(other.day - 1)
-            return Or(self.months_var > alpha_o, And(self.months_var == alpha_o, self.beta_var >= beta_o))
+            return Or(
+                self.months_var > alpha_o,
+                And(self.months_var == alpha_o, self.beta_var >= beta_o),
+            )
         elif isinstance(other, DateVar):
-            return Or(self.months_var > other.months_var, And(self.months_var == other.months_var, self.beta_var >= other.beta_var))
+            return Or(
+                self.months_var > other.months_var,
+                And(self.months_var == other.months_var, self.beta_var >= other.beta_var),
+            )
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
     def __le__(self, other):
+        """Support x <= date comparison."""
         if isinstance(other, Date):
             alpha_o = _months_since_epoch_from_ym(IntVal(other.year), IntVal(other.month))
             beta_o = IntVal(other.day - 1)
-            return Or(self.months_var < alpha_o, And(self.months_var == alpha_o, self.beta_var <= beta_o))
+            return Or(
+                self.months_var < alpha_o,
+                And(self.months_var == alpha_o, self.beta_var <= beta_o),
+            )
         elif isinstance(other, DateVar):
-            return Or(self.months_var < other.months_var, And(self.months_var == other.months_var, self.beta_var <= other.beta_var))
+            return Or(
+                self.months_var < other.months_var,
+                And(self.months_var == other.months_var, self.beta_var <= other.beta_var),
+            )
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
     def __lt__(self, other):
+        """Support x < date comparison."""
         if isinstance(other, Date) or isinstance(other, DateVar):
             return Not(self.__ge__(other))
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
     def __gt__(self, other):
+        """Support x > date comparison."""
         if isinstance(other, Date) or isinstance(other, DateVar):
             return Not(self.__le__(other))
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
     def __eq__(self, other):
+        """Support x == date comparison."""
         if isinstance(other, Date):
             alpha_o = _months_since_epoch_from_ym(IntVal(other.year), IntVal(other.month))
             beta_o = IntVal(other.day - 1)
@@ -191,6 +221,7 @@ class DateVar:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
     def __ne__(self, other):
+        """Support x != date comparison."""
         return Not(self.__eq__(other))
 
     def __add__(self, other):
@@ -256,41 +287,18 @@ class DateVar:
             raise TypeError(f"Cannot add {type(other)} to DateVar")
 
     def __sub__(self, other):
-        if isinstance(other, Period):
-            neg = Period(-other.years, -other.months, -other.days)
-            return self.__add__(neg)
-        elif isinstance(other, PeriodVar):
-            neg = PeriodVar(f"neg_{getattr(other, 'name', 'p')}")
-            neg.years = -other.years
-            neg.months = -other.months
-            neg.days = -other.days
+        """DateVar - Period implemented as DateVar + (-Period). Date difference returns Int."""
+        if isinstance(other, Period) or isinstance(other, PeriodVar):
+            if isinstance(other, Period):
+                neg = Period(-other.years, -other.months, -other.days)
+            else:
+                neg = PeriodVar(f"neg_{other.name}")
+                neg.years = -other.years
+                neg.months = -other.months
+                neg.days = -other.days
             return self.__add__(neg)
         else:
             raise TypeError(f"Cannot subtract {type(other)} from DateVar")
-
-    def diff_days(self, other) -> Int:
-        # Compute days since epoch using 48-month base + correction
-        idx = _mod48(self.months_var)
-        q = (self.months_var - idx) / IntVal(FOUR_YEAR_MONTHS)
-        absm = _alpha_to_abs_month(self.months_var)
-        days_self = q * IntVal(FOUR_YEAR_DAYS) + Select(DBM48_ARR, idx) + _century_correction(absm) + self.beta_var
-
-        if isinstance(other, DateVar):
-            idx_o = _mod48(other.months_var)
-            q_o = (other.months_var - idx_o) / IntVal(FOUR_YEAR_MONTHS)
-            absm_o = _alpha_to_abs_month(other.months_var)
-            days_o = q_o * IntVal(FOUR_YEAR_DAYS) + Select(DBM48_ARR, idx_o) + _century_correction(absm_o) + other.beta_var
-            return days_self - days_o
-        elif isinstance(other, Date):
-            alpha_o = (IntVal(other.year) * IntVal(12) + IntVal(other.month)) - E_LINEAR
-            idx_o = _mod48(alpha_o)
-            q_o = (alpha_o - idx_o) / IntVal(FOUR_YEAR_MONTHS)
-            absm_o = _alpha_to_abs_month(alpha_o)
-            beta_o = IntVal(other.day - 1)
-            days_o = q_o * IntVal(FOUR_YEAR_DAYS) + Select(DBM48_ARR, idx_o) + _century_correction(absm_o) + beta_o
-            return days_self - days_o
-        else:
-            raise TypeError("diff_days expects DateVar or Date")
 
 
 class PeriodVar:
@@ -377,56 +385,72 @@ class AbNewDateSolver:
         self.timeout_ms = timeout_ms
 
     def add_date_var(self, name: str) -> DateVar:
-        dv = DateVar(name)
-        self.date_vars[name] = dv
-        # Bounds [1900-01 .. 2100-12]
-        self.solver.add(dv.months_var >= IntVal((1900 - EPOCH_YEAR) * 12 + (1 - EPOCH_MONTH)))
-        self.solver.add(dv.months_var <= IntVal((2100 - EPOCH_YEAR) * 12 + (12 - EPOCH_MONTH)))
+        """Add a symbolic date variable with basic constraints."""
+        date_var = DateVar(name)
+        self.date_vars[name] = date_var
+
+        # Alpha bounds: months since 2000-03
+        # 1900-01 => (1900-2000)*12 + (1-3) = -1202
+        # 2100-12 => (2100-2000)*12 + (12-3) = 1209
+        self.solver.add(date_var.months_var >= IntVal((1900 - EPOCH_YEAR) * 12 + (1 - EPOCH_MONTH)))
+        self.solver.add(date_var.months_var <= IntVal((2100 - EPOCH_YEAR) * 12 + (12 - EPOCH_MONTH)))
 
         # Beta bounds: 0 <= beta < DIM (with century Feb override)
-        idx = _mod48(dv.months_var)
-        absm = _alpha_to_abs_month(dv.months_var)
+        idx = _mod48(date_var.months_var)
+        absm = _alpha_to_abs_month(date_var.months_var)
         dim = _override_dim_for_century_feb(absm, Select(DIM48_ARR, idx))
-        self.solver.add(And(dv.beta_var >= IntVal(0), dv.beta_var < dim))
-        return dv
+        self.solver.add(And(date_var.beta_var >= IntVal(0), date_var.beta_var < dim))
+        return date_var
 
     def add_period_var(self, name: str) -> PeriodVar:
-        pv = PeriodVar(name)
-        self.period_vars[name] = pv
-        return pv
+        """Add a symbolic period variable."""
+        period_var = PeriodVar(name)
+        self.period_vars[name] = period_var
+        return period_var
 
     def add_constraint(self, constraint: BoolRef):
+        """Add a constraint to the solver."""
         self.constraints.append(constraint)
         self.solver.add(constraint)
 
     def check(self) -> CheckSatResult:
+        """Check if constraints are satisfiable."""
         return self.solver.check()
 
     def model(self) -> ModelRef:
+        """Get the model if satisfiable."""
         return self.solver.model()
 
     def get_concrete_dates(self, model: ModelRef) -> dict:
-        return {name: var.to_concrete_date(model) for name, var in self.date_vars.items()}
+        """Get concrete dates from the model."""
+        return {
+            name: var.to_concrete_date(model) for name, var in self.date_vars.items()
+        }
 
     def get_concrete_periods(self, model: ModelRef) -> dict:
-        return {name: var.to_concrete_period(model) for name, var in self.period_vars.items()}
+        """Get concrete periods from the model."""
+        return {
+            name: var.to_concrete_period(model)
+            for name, var in self.period_vars.items()
+        }
 
-    def solve(self):
-        res = self.check()
-        if res == sat:
-            m = self.model()
+    def solve(self) -> Union[bool, dict]:
+        """Solve the constraints."""
+        result = self.check()
+        if result == sat:
+            model = self.model()
             return {
                 'status': 'sat',
-                'dates': self.get_concrete_dates(m),
-                'periods': self.get_concrete_periods(m),
+                'dates': self.get_concrete_dates(model),
+                'periods': self.get_concrete_periods(model),
             }
         else:
             return {'status': 'unsat', 'dates': {}, 'periods': {}}
 
     def to_smt2(self) -> str:
+        """Return the current problem in SMT-LIB v2 format."""
         return self.solver.to_smt2()
 
     def get_assertions(self):
+        """Return the list of current Z3 assertions (BoolRef)."""
         return list(self.solver.assertions())
-
-
