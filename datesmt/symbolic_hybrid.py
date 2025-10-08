@@ -492,9 +492,10 @@ class HybridDateSolver:
             name = f"{base_name}_{suffix}"
         dv = DateVar(self, name)
         self.date_vars[name] = dv
-        # Basic epoch range constraints [1900-01-01 .. 2100-12-31]
-        self.solver.add(dv.epoch_var >= -36584)
-        self.solver.add(dv.epoch_var <= 36829)
+
+        # Basic epoch range constraints [1900-03-01 .. 2100-02-28]
+        self.solver.add(dv.epoch_var >= -36525)
+        self.solver.add(dv.epoch_var <= 36523)
         return dv
 
     def _add_date_constraints(self, dv: DateVar):

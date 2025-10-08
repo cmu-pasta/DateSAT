@@ -450,12 +450,12 @@ class EpochDaysSolver:
         date_var = DateVar(name)
         self.date_vars[name] = date_var
 
-        # Add constraints for valid date ranges [1900-01-01 to 2100-12-31]
+        # Add constraints for valid date ranges [1900-03-01 to 2100-02-28]
         # Epoch is March 1, 2000
-        # 1900-01-01 to 2000-03-01 = -36584 days
-        # 2000-03-01 to 2100-12-31 = +36829 days
-        self.solver.add(date_var.days_var >= -36584)  # 1900-01-01
-        self.solver.add(date_var.days_var <= 36829)  # 2100-12-31
+        # 1900-03-01 to 2000-03-01
+        # 2000-03-01 to 2100-02-28
+        self.solver.add(date_var.days_var >= -36525)  # 1900-03-01
+        self.solver.add(date_var.days_var <= 36523)  # 2100-02-28
 
         return date_var
 

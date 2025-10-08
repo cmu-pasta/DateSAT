@@ -319,42 +319,6 @@ class DateVar:
         else:
             raise TypeError(f"Cannot subtract {type(other)} from DateVar")
 
-    def add_valid_date_constraints(self, solver, min_year=None, max_year=None):
-        """Add constraints to ensure this DateVar represents a valid date."""
-        # Basic range constraints
-        if min_year is not None:
-            solver.add(self.year >= min_year)
-        if max_year is not None:
-            solver.add(self.year <= max_year)
-        solver.add(self.month >= 1)
-        solver.add(self.month <= 12)
-        solver.add(self.day >= 1)
-        solver.add(self.day <= 31)
-        # Month-specific day constraints using EOMClamp logic
-        # February
-        solver.add(
-            If(
-                self.month == 2,
-                If(is_leap(self.year), self.day <= 29, self.day <= 28),
-                True,
-            )
-        )
-        # 30-day months (April, June, September, November)
-        solver.add(
-            If(
-                Or(
-                    self.month == 4,
-                    self.month == 6,
-                    self.month == 9,
-                    self.month == 11,
-                ),
-                self.day <= 30,
-                True,
-            )
-        )
-        # 31-day months (January, March, May, July, August, October, December)
-        # No additional constraint needed as day <= 31 already covers this
-
 
 class PeriodVar:
     """Symbolic period variable for baseline implementation."""
@@ -462,8 +426,37 @@ class DateSolver:
         date_var = DateVar(name)
         self.date_vars[name] = date_var
 
-        # Add comprehensive date validation constraints with configurable year bounds
-        date_var.add_valid_date_constraints(self.solver, self.min_year, self.max_year)
+        # Add comprehensive date validation constraints
+        # Valid range is 1900-03-01 to 2100-02-28
+        self.solver.add(
+            Or(
+                # 1900-03-01 to 1900-12-31
+                And(
+                    date_var.year == 1900,
+                    date_var.month >= 3,
+                    date_var.month <= 12,
+                    date_var.day >= 1,
+                    date_var.day <= days_in_month(date_var.year, date_var.month),
+                ),
+                # 1901-01-01 to 2099-12-31
+                And(
+                    date_var.year >= 1901,
+                    date_var.year <= 2099,
+                    date_var.month >= 1,
+                    date_var.month <= 12,
+                    date_var.day >= 1,
+                    date_var.day <= days_in_month(date_var.year, date_var.month),
+                ),
+                # 2100-01-01 to 2100-02-28
+                And(
+                    date_var.year == 2100,
+                    date_var.month >= 1,
+                    date_var.month <= 2,
+                    date_var.day >= 1,
+                    date_var.day <= days_in_month(date_var.year, date_var.month),
+                ),
+            )
+        )
 
         return date_var
 
