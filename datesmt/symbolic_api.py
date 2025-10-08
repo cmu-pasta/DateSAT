@@ -14,6 +14,7 @@ from .symbolic_advanced import AdvancedDateSolver
 from .symbolic_baseline import DateSolver
 from .symbolic_hybrid import HybridDateSolver
 from .symbolic_ab import AbDateSolver
+from .symbolic_ab_new import AbNewDateSolver
 
 
 class DateSMTBuilder:
@@ -35,9 +36,11 @@ class DateSMTBuilder:
             self.solver = HybridDateSolver(timeout_ms=timeout_ms)
         elif approach == "ab":
             self.solver = AbDateSolver(timeout_ms=timeout_ms)
+        elif approach == "ab_new":
+            self.solver = AbNewDateSolver(timeout_ms=timeout_ms)
         else:
             raise ValueError(
-                f"Unknown approach: {approach}. Must be 'baseline', 'advanced', 'hybrid', or 'ab'"
+                f"Unknown approach: {approach}. Must be 'baseline', 'advanced', 'hybrid', 'ab', or 'ab_new'"
             )
 
         self.constraints = []
