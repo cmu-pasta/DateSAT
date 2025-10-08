@@ -1,0 +1,1135 @@
+{
+  "results_dir": "/Users/angelc2/Documents/GitHub/Date-SMT/results/constraint1",
+  "constraints_checked": 10,
+  "counts_by_approach": {
+    "ab": {
+      "correct": 8,
+      "wrong": 0,
+      "error": 2,
+      "timeout": 0
+    },
+    "ab_new": {
+      "correct": 8,
+      "wrong": 0,
+      "error": 2,
+      "timeout": 0
+    },
+    "advanced": {
+      "correct": 8,
+      "wrong": 0,
+      "error": 2,
+      "timeout": 0
+    },
+    "baseline": {
+      "correct": 8,
+      "wrong": 0,
+      "error": 2,
+      "timeout": 0
+    },
+    "hybrid": {
+      "correct": 8,
+      "wrong": 0,
+      "error": 2,
+      "timeout": 0
+    }
+  },
+  "by_constraint": [
+    {
+      "constraint_id": "1758086606-1",
+      "description": "Check if a date is February 29 in a leap year",
+      "approach_statuses": {
+        "ab": "sat",
+        "ab_new": "sat",
+        "advanced": "sat",
+        "baseline": "sat",
+        "hybrid": "sat"
+      },
+      "sat_validation": {
+        "ab": {
+          "valid": true,
+          "message": "model satisfies assertions",
+          "solution": {
+            "x": "Date(2000, 2, 29)"
+          }
+        },
+        "ab_new": {
+          "valid": true,
+          "message": "model satisfies assertions",
+          "solution": {
+            "x": "Date(2000, 2, 29)"
+          }
+        },
+        "advanced": {
+          "valid": true,
+          "message": "model satisfies assertions",
+          "solution": {
+            "x": "Date(2000, 2, 29)"
+          }
+        },
+        "baseline": {
+          "valid": true,
+          "message": "model satisfies assertions",
+          "solution": {
+            "x": "Date(2000, 2, 29)"
+          }
+        },
+        "hybrid": {
+          "valid": true,
+          "message": "model satisfies assertions",
+          "solution": {
+            "x": "Date(2000, 2, 29)"
+          }
+        }
+      },
+      "unsat_consensus": false,
+      "verdicts_by_approach": {
+        "ab": "correct",
+        "ab_new": "correct",
+        "advanced": "correct",
+        "baseline": "correct",
+        "hybrid": "correct"
+      },
+      "wrong_approaches": [],
+      "might_correct_approaches": []
+    },
+    {
+      "constraint_id": "1758086606-10",
+      "description": "Find dates where adding 2 months equals adding 61 days",
+      "approach_statuses": {
+        "ab": "sat",
+        "ab_new": "sat",
+        "advanced": "sat",
+        "baseline": "sat",
+        "hybrid": "sat"
+      },
+      "sat_validation": {
+        "ab": {
+          "valid": true,
+          "message": "model satisfies assertions",
+          "solution": {
+            "x": "Date(2023, 12, 30)"
+          }
+        },
+        "ab_new": {
+          "valid": true,
+          "message": "model satisfies assertions",
+          "solution": {
+            "x": "Date(2023, 12, 30)"
+          }
+        },
+        "advanced": {
+          "valid": true,
+          "message": "model satisfies assertions",
+          "solution": {
+            "x": "Date(2023, 12, 30)"
+          }
+        },
+        "baseline": {
+          "valid": true,
+          "message": "model satisfies assertions",
+          "solution": {
+            "x": "Date(2023, 11, 30)"
+          }
+        },
+        "hybrid": {
+          "valid": true,
+          "message": "model satisfies assertions",
+          "solution": {
+            "x": "Date(2023, 12, 30)",
+            "x_plus": "Date(2024, 2, 29)",
+            "x_plus_1": "Date(2024, 2, 29)"
+          }
+        }
+      },
+      "unsat_consensus": false,
+      "verdicts_by_approach": {
+        "ab": "correct",
+        "ab_new": "correct",
+        "advanced": "correct",
+        "baseline": "correct",
+        "hybrid": "correct"
+      },
+      "wrong_approaches": [],
+      "might_correct_approaches": []
+    },
+    {
+      "constraint_id": "1758086606-2",
+      "description": "Adding 1 month vs adding 30 days can produce different results at month boundaries",
+      "approach_statuses": {
+        "ab": "sat",
+        "ab_new": "sat",
+        "advanced": "sat",
+        "baseline": "sat",
+        "hybrid": "sat"
+      },
+      "sat_validation": {
+        "ab": {
+          "valid": true,
+          "message": "model satisfies assertions",
+          "solution": {
+            "x": "Date(2023, 1, 30)"
+          }
+        },
+        "ab_new": {
+          "valid": true,
+          "message": "model satisfies assertions",
+          "solution": {
+            "x": "Date(2023, 1, 30)"
+          }
+        },
+        "advanced": {
+          "valid": true,
+          "message": "model satisfies assertions",
+          "solution": {
+            "x": "Date(2023, 1, 28)"
+          }
+        },
+        "baseline": {
+          "valid": true,
+          "message": "model satisfies assertions",
+          "solution": {
+            "x": "Date(2023, 1, 31)"
+          }
+        },
+        "hybrid": {
+          "valid": true,
+          "message": "model satisfies assertions",
+          "solution": {
+            "x": "Date(2023, 1, 1)",
+            "x_plus": "Date(2023, 2, 1)",
+            "x_plus_1": "Date(2023, 1, 31)"
+          }
+        }
+      },
+      "unsat_consensus": false,
+      "verdicts_by_approach": {
+        "ab": "correct",
+        "ab_new": "correct",
+        "advanced": "correct",
+        "baseline": "correct",
+        "hybrid": "correct"
+      },
+      "wrong_approaches": [],
+      "might_correct_approaches": []
+    },
+    {
+      "constraint_id": "1758086606-3",
+      "description": "Adding 1 year vs 366 days differs when crossing leap year boundaries",
+      "approach_statuses": {
+        "ab": "sat",
+        "ab_new": "sat",
+        "advanced": "sat",
+        "baseline": "sat",
+        "hybrid": "sat"
+      },
+      "sat_validation": {
+        "ab": {
+          "valid": true,
+          "message": "model satisfies assertions",
+          "solution": {
+            "x": "Date(2020, 2, 29)"
+          }
+        },
+        "ab_new": {
+          "valid": true,
+          "message": "model satisfies assertions",
+          "solution": {
+            "x": "Date(2020, 2, 29)"
+          }
+        },
+        "advanced": {
+          "valid": true,
+          "message": "model satisfies assertions",
+          "solution": {
+            "x": "Date(2020, 2, 29)"
+          }
+        },
+        "baseline": {
+          "valid": true,
+          "message": "model satisfies assertions",
+          "solution": {
+            "x": "Date(2020, 2, 29)"
+          }
+        },
+        "hybrid": {
+          "valid": true,
+          "message": "model satisfies assertions",
+          "solution": {
+            "x": "Date(2020, 2, 29)",
+            "x_plus": "Date(2021, 2, 28)",
+            "x_plus_1": "Date(2021, 3, 1)"
+          }
+        }
+      },
+      "unsat_consensus": false,
+      "verdicts_by_approach": {
+        "ab": "correct",
+        "ab_new": "correct",
+        "advanced": "correct",
+        "baseline": "correct",
+        "hybrid": "correct"
+      },
+      "wrong_approaches": [],
+      "might_correct_approaches": []
+    },
+    {
+      "constraint_id": "1758086606-4",
+      "description": "Chain of period additions that requires normalization",
+      "approach_statuses": {
+        "ab": "sat",
+        "ab_new": "sat",
+        "advanced": "sat",
+        "baseline": "sat",
+        "hybrid": "sat"
+      },
+      "sat_validation": {
+        "ab": {
+          "valid": true,
+          "message": "model satisfies assertions",
+          "solution": {
+            "x": "Date(2022, 1, 15)",
+            "y": "Date(2023, 3, 27)"
+          }
+        },
+        "ab_new": {
+          "valid": true,
+          "message": "model satisfies assertions",
+          "solution": {
+            "x": "Date(2022, 1, 15)",
+            "y": "Date(2023, 3, 27)"
+          }
+        },
+        "advanced": {
+          "valid": true,
+          "message": "model satisfies assertions",
+          "solution": {
+            "x": "Date(2022, 1, 15)",
+            "y": "Date(2023, 3, 27)"
+          }
+        },
+        "baseline": {
+          "valid": true,
+          "message": "model satisfies assertions",
+          "solution": {
+            "x": "Date(2022, 1, 15)",
+            "y": "Date(2023, 3, 27)"
+          }
+        },
+        "hybrid": {
+          "valid": true,
+          "message": "model satisfies assertions",
+          "solution": {
+            "x": "Date(2022, 1, 15)",
+            "y": "Date(2023, 3, 27)",
+            "x_plus": "Date(2023, 3, 27)"
+          }
+        }
+      },
+      "unsat_consensus": false,
+      "verdicts_by_approach": {
+        "ab": "correct",
+        "ab_new": "correct",
+        "advanced": "correct",
+        "baseline": "correct",
+        "hybrid": "correct"
+      },
+      "wrong_approaches": [],
+      "might_correct_approaches": []
+    },
+    {
+      "constraint_id": "1758086606-5",
+      "description": "Three dates must be exactly 1 month apart within a specific range",
+      "approach_statuses": {
+        "ab": "error",
+        "ab_new": "error",
+        "advanced": "error",
+        "baseline": "error",
+        "hybrid": "error"
+      },
+      "sat_validation": {},
+      "unsat_consensus": false,
+      "verdicts_by_approach": {
+        "ab": "error",
+        "ab_new": "error",
+        "advanced": "error",
+        "baseline": "error",
+        "hybrid": "error"
+      },
+      "wrong_approaches": [],
+      "might_correct_approaches": []
+    },
+    {
+      "constraint_id": "1758086606-6",
+      "description": "End-of-month rollover from a 31-day month to a 30-day month",
+      "approach_statuses": {
+        "ab": "sat",
+        "ab_new": "sat",
+        "advanced": "sat",
+        "baseline": "sat",
+        "hybrid": "sat"
+      },
+      "sat_validation": {
+        "ab": {
+          "valid": true,
+          "message": "model satisfies assertions",
+          "solution": {
+            "x": "Date(2023, 1, 31)",
+            "y": "Date(2023, 4, 30)"
+          }
+        },
+        "ab_new": {
+          "valid": true,
+          "message": "model satisfies assertions",
+          "solution": {
+            "x": "Date(2023, 1, 31)",
+            "y": "Date(2023, 4, 30)"
+          }
+        },
+        "advanced": {
+          "valid": true,
+          "message": "model satisfies assertions",
+          "solution": {
+            "x": "Date(2023, 1, 31)",
+            "y": "Date(2023, 4, 30)"
+          }
+        },
+        "baseline": {
+          "valid": true,
+          "message": "model satisfies assertions",
+          "solution": {
+            "x": "Date(2023, 1, 31)",
+            "y": "Date(2023, 4, 30)"
+          }
+        },
+        "hybrid": {
+          "valid": true,
+          "message": "model satisfies assertions",
+          "solution": {
+            "x": "Date(2023, 1, 31)",
+            "y": "Date(2023, 4, 30)",
+            "x_plus": "Date(2023, 4, 30)"
+          }
+        }
+      },
+      "unsat_consensus": false,
+      "verdicts_by_approach": {
+        "ab": "correct",
+        "ab_new": "correct",
+        "advanced": "correct",
+        "baseline": "correct",
+        "hybrid": "correct"
+      },
+      "wrong_approaches": [],
+      "might_correct_approaches": []
+    },
+    {
+      "constraint_id": "1758086606-7",
+      "description": "Tight inequality window that is unsatisfiable",
+      "approach_statuses": {
+        "ab": "unsat",
+        "ab_new": "unsat",
+        "advanced": "unsat",
+        "baseline": "unsat",
+        "hybrid": "unsat"
+      },
+      "sat_validation": {},
+      "unsat_consensus": true,
+      "verdicts_by_approach": {
+        "ab": "correct",
+        "ab_new": "correct",
+        "advanced": "correct",
+        "baseline": "correct",
+        "hybrid": "correct"
+      },
+      "wrong_approaches": [],
+      "might_correct_approaches": []
+    },
+    {
+      "constraint_id": "1758086606-8",
+      "description": "Complex chain of period arithmetic with multiple variables",
+      "approach_statuses": {
+        "ab": "error",
+        "ab_new": "error",
+        "advanced": "error",
+        "baseline": "error",
+        "hybrid": "error"
+      },
+      "sat_validation": {},
+      "unsat_consensus": false,
+      "verdicts_by_approach": {
+        "ab": "error",
+        "ab_new": "error",
+        "advanced": "error",
+        "baseline": "error",
+        "hybrid": "error"
+      },
+      "wrong_approaches": [],
+      "might_correct_approaches": []
+    },
+    {
+      "constraint_id": "1758086606-9",
+      "description": "Date transitions across leap year February boundary",
+      "approach_statuses": {
+        "ab": "unsat",
+        "ab_new": "unsat",
+        "advanced": "unsat",
+        "baseline": "unsat",
+        "hybrid": "unsat"
+      },
+      "sat_validation": {},
+      "unsat_consensus": true,
+      "verdicts_by_approach": {
+        "ab": "correct",
+        "ab_new": "correct",
+        "advanced": "correct",
+        "baseline": "correct",
+        "hybrid": "correct"
+      },
+      "wrong_approaches": [],
+      "might_correct_approaches": []
+    }
+  ],
+  "metrics": {
+    "per_constraint": {
+      "1758086606-1": {
+        "lines_by_approach": [
+          {
+            "approach": "advanced",
+            "lines": 16
+          },
+          {
+            "approach": "hybrid",
+            "lines": 16
+          },
+          {
+            "approach": "ab",
+            "lines": 34
+          },
+          {
+            "approach": "baseline",
+            "lines": 38
+          },
+          {
+            "approach": "ab_new",
+            "lines": 78
+          }
+        ],
+        "time_by_approach": [
+          {
+            "approach": "hybrid",
+            "execution_time": 0.0013129711151123047
+          },
+          {
+            "approach": "ab",
+            "execution_time": 0.0026061534881591797
+          },
+          {
+            "approach": "advanced",
+            "execution_time": 0.0036318302154541016
+          },
+          {
+            "approach": "ab_new",
+            "execution_time": 0.01192021369934082
+          },
+          {
+            "approach": "baseline",
+            "execution_time": 0.024661779403686523
+          }
+        ],
+        "avg_lines": 36.4,
+        "avg_time": 0.008826589584350586
+      },
+      "1758086606-2": {
+        "lines_by_approach": [
+          {
+            "approach": "advanced",
+            "lines": 132
+          },
+          {
+            "approach": "ab",
+            "lines": 152
+          },
+          {
+            "approach": "baseline",
+            "lines": 158
+          },
+          {
+            "approach": "hybrid",
+            "lines": 341
+          },
+          {
+            "approach": "ab_new",
+            "lines": 356
+          }
+        ],
+        "time_by_approach": [
+          {
+            "approach": "hybrid",
+            "execution_time": 0.18731307983398438
+          },
+          {
+            "approach": "ab_new",
+            "execution_time": 0.6168038845062256
+          },
+          {
+            "approach": "ab",
+            "execution_time": 0.9073419570922852
+          },
+          {
+            "approach": "advanced",
+            "execution_time": 1.1025261878967285
+          },
+          {
+            "approach": "baseline",
+            "execution_time": 1.2851719856262207
+          }
+        ],
+        "avg_lines": 227.8,
+        "avg_time": 0.8198314189910889
+      },
+      "1758086606-3": {
+        "lines_by_approach": [
+          {
+            "approach": "advanced",
+            "lines": 132
+          },
+          {
+            "approach": "ab",
+            "lines": 150
+          },
+          {
+            "approach": "baseline",
+            "lines": 158
+          },
+          {
+            "approach": "ab_new",
+            "lines": 353
+          },
+          {
+            "approach": "hybrid",
+            "lines": 355
+          }
+        ],
+        "time_by_approach": [
+          {
+            "approach": "ab",
+            "execution_time": 0.44661498069763184
+          },
+          {
+            "approach": "baseline",
+            "execution_time": 0.9983129501342773
+          },
+          {
+            "approach": "ab_new",
+            "execution_time": 1.5487401485443115
+          },
+          {
+            "approach": "advanced",
+            "execution_time": 2.6513309478759766
+          },
+          {
+            "approach": "hybrid",
+            "execution_time": 4.480284929275513
+          }
+        ],
+        "avg_lines": 229.6,
+        "avg_time": 2.025056791305542
+      },
+      "1758086606-4": {
+        "lines_by_approach": [
+          {
+            "approach": "ab",
+            "lines": 102
+          },
+          {
+            "approach": "baseline",
+            "lines": 118
+          },
+          {
+            "approach": "advanced",
+            "lines": 137
+          },
+          {
+            "approach": "ab_new",
+            "lines": 278
+          },
+          {
+            "approach": "hybrid",
+            "lines": 357
+          }
+        ],
+        "time_by_approach": [
+          {
+            "approach": "baseline",
+            "execution_time": 0.01029515266418457
+          },
+          {
+            "approach": "ab",
+            "execution_time": 0.010679006576538086
+          },
+          {
+            "approach": "advanced",
+            "execution_time": 0.01631307601928711
+          },
+          {
+            "approach": "hybrid",
+            "execution_time": 0.017274856567382812
+          },
+          {
+            "approach": "ab_new",
+            "execution_time": 0.017313718795776367
+          }
+        ],
+        "avg_lines": 198.4,
+        "avg_time": 0.01437516212463379
+      },
+      "1758086606-5": {
+        "lines_by_approach": [
+          {
+            "approach": "ab",
+            "lines": 0
+          },
+          {
+            "approach": "ab_new",
+            "lines": 0
+          },
+          {
+            "approach": "advanced",
+            "lines": 0
+          },
+          {
+            "approach": "baseline",
+            "lines": 0
+          },
+          {
+            "approach": "hybrid",
+            "lines": 0
+          }
+        ],
+        "time_by_approach": [
+          {
+            "approach": "ab",
+            "execution_time": 0.0
+          },
+          {
+            "approach": "ab_new",
+            "execution_time": 0.0
+          },
+          {
+            "approach": "advanced",
+            "execution_time": 0.0
+          },
+          {
+            "approach": "baseline",
+            "execution_time": 0.0
+          },
+          {
+            "approach": "hybrid",
+            "execution_time": 0.0
+          }
+        ],
+        "avg_lines": 0.0,
+        "avg_time": 0.0
+      },
+      "1758086606-6": {
+        "lines_by_approach": [
+          {
+            "approach": "ab",
+            "lines": 100
+          },
+          {
+            "approach": "baseline",
+            "lines": 122
+          },
+          {
+            "approach": "advanced",
+            "lines": 136
+          },
+          {
+            "approach": "ab_new",
+            "lines": 277
+          },
+          {
+            "approach": "hybrid",
+            "lines": 345
+          }
+        ],
+        "time_by_approach": [
+          {
+            "approach": "baseline",
+            "execution_time": 0.009955883026123047
+          },
+          {
+            "approach": "ab",
+            "execution_time": 0.010208845138549805
+          },
+          {
+            "approach": "advanced",
+            "execution_time": 0.01628899574279785
+          },
+          {
+            "approach": "hybrid",
+            "execution_time": 0.017045021057128906
+          },
+          {
+            "approach": "ab_new",
+            "execution_time": 0.017332792282104492
+          }
+        ],
+        "avg_lines": 196.0,
+        "avg_time": 0.014166307449340821
+      },
+      "1758086606-7": {
+        "lines_by_approach": [
+          {
+            "approach": "advanced",
+            "lines": 12
+          },
+          {
+            "approach": "hybrid",
+            "lines": 12
+          },
+          {
+            "approach": "ab",
+            "lines": 24
+          },
+          {
+            "approach": "baseline",
+            "lines": 34
+          },
+          {
+            "approach": "ab_new",
+            "lines": 70
+          }
+        ],
+        "time_by_approach": [
+          {
+            "approach": "hybrid",
+            "execution_time": 0.0013110637664794922
+          },
+          {
+            "approach": "ab_new",
+            "execution_time": 0.001577138900756836
+          },
+          {
+            "approach": "baseline",
+            "execution_time": 0.0026581287384033203
+          },
+          {
+            "approach": "ab",
+            "execution_time": 0.0027420520782470703
+          },
+          {
+            "approach": "advanced",
+            "execution_time": 0.0030798912048339844
+          }
+        ],
+        "avg_lines": 30.4,
+        "avg_time": 0.0022736549377441405
+      },
+      "1758086606-8": {
+        "lines_by_approach": [
+          {
+            "approach": "ab",
+            "lines": 0
+          },
+          {
+            "approach": "ab_new",
+            "lines": 0
+          },
+          {
+            "approach": "advanced",
+            "lines": 0
+          },
+          {
+            "approach": "baseline",
+            "lines": 0
+          },
+          {
+            "approach": "hybrid",
+            "lines": 0
+          }
+        ],
+        "time_by_approach": [
+          {
+            "approach": "ab",
+            "execution_time": 0.0
+          },
+          {
+            "approach": "ab_new",
+            "execution_time": 0.0
+          },
+          {
+            "approach": "advanced",
+            "execution_time": 0.0
+          },
+          {
+            "approach": "baseline",
+            "execution_time": 0.0
+          },
+          {
+            "approach": "hybrid",
+            "execution_time": 0.0
+          }
+        ],
+        "avg_lines": 0.0,
+        "avg_time": 0.0
+      },
+      "1758086606-9": {
+        "lines_by_approach": [
+          {
+            "approach": "ab",
+            "lines": 101
+          },
+          {
+            "approach": "baseline",
+            "lines": 118
+          },
+          {
+            "approach": "advanced",
+            "lines": 136
+          },
+          {
+            "approach": "ab_new",
+            "lines": 278
+          },
+          {
+            "approach": "hybrid",
+            "lines": 342
+          }
+        ],
+        "time_by_approach": [
+          {
+            "approach": "baseline",
+            "execution_time": 0.009672880172729492
+          },
+          {
+            "approach": "ab",
+            "execution_time": 0.010029077529907227
+          },
+          {
+            "approach": "advanced",
+            "execution_time": 0.01614999771118164
+          },
+          {
+            "approach": "hybrid",
+            "execution_time": 0.016909122467041016
+          },
+          {
+            "approach": "ab_new",
+            "execution_time": 0.017829179763793945
+          }
+        ],
+        "avg_lines": 195.0,
+        "avg_time": 0.014118051528930664
+      },
+      "1758086606-10": {
+        "lines_by_approach": [
+          {
+            "approach": "advanced",
+            "lines": 131
+          },
+          {
+            "approach": "ab",
+            "lines": 149
+          },
+          {
+            "approach": "baseline",
+            "lines": 157
+          },
+          {
+            "approach": "hybrid",
+            "lines": 347
+          },
+          {
+            "approach": "ab_new",
+            "lines": 353
+          }
+        ],
+        "time_by_approach": [
+          {
+            "approach": "ab_new",
+            "execution_time": 0.2874758243560791
+          },
+          {
+            "approach": "baseline",
+            "execution_time": 0.36025309562683105
+          },
+          {
+            "approach": "hybrid",
+            "execution_time": 0.6506290435791016
+          },
+          {
+            "approach": "advanced",
+            "execution_time": 0.8902788162231445
+          },
+          {
+            "approach": "ab",
+            "execution_time": 1.5757172107696533
+          }
+        ],
+        "avg_lines": 227.4,
+        "avg_time": 0.7528707981109619
+      }
+    },
+    "per_approach_averages": {
+      "ab": {
+        "average_lines": 81.2,
+        "average_time": 0.2965939283370972,
+        "count": 10
+      },
+      "ab_new": {
+        "average_lines": 204.3,
+        "average_time": 0.25189929008483886,
+        "count": 10
+      },
+      "advanced": {
+        "average_lines": 83.2,
+        "average_time": 0.46995997428894043,
+        "count": 10
+      },
+      "baseline": {
+        "average_lines": 90.3,
+        "average_time": 0.2700981855392456,
+        "count": 10
+      },
+      "hybrid": {
+        "average_lines": 211.5,
+        "average_time": 0.5372080087661744,
+        "count": 10
+      }
+    },
+    "per_approach_sorted": {
+      "avg_lines_sorted": [
+        {
+          "approach": "ab",
+          "average_lines": 81.2
+        },
+        {
+          "approach": "advanced",
+          "average_lines": 83.2
+        },
+        {
+          "approach": "baseline",
+          "average_lines": 90.3
+        },
+        {
+          "approach": "ab_new",
+          "average_lines": 204.3
+        },
+        {
+          "approach": "hybrid",
+          "average_lines": 211.5
+        }
+      ],
+      "avg_time_sorted": [
+        {
+          "approach": "ab_new",
+          "average_time": 0.25189929008483886
+        },
+        {
+          "approach": "baseline",
+          "average_time": 0.2700981855392456
+        },
+        {
+          "approach": "ab",
+          "average_time": 0.2965939283370972
+        },
+        {
+          "approach": "advanced",
+          "average_time": 0.46995997428894043
+        },
+        {
+          "approach": "hybrid",
+          "average_time": 0.5372080087661744
+        }
+      ]
+    },
+    "constraints_sorted_by_avg": {
+      "avg_lines_sorted": [
+        {
+          "constraint_id": "1758086606-5",
+          "avg_lines": 0.0
+        },
+        {
+          "constraint_id": "1758086606-8",
+          "avg_lines": 0.0
+        },
+        {
+          "constraint_id": "1758086606-7",
+          "avg_lines": 30.4
+        },
+        {
+          "constraint_id": "1758086606-1",
+          "avg_lines": 36.4
+        },
+        {
+          "constraint_id": "1758086606-9",
+          "avg_lines": 195.0
+        },
+        {
+          "constraint_id": "1758086606-6",
+          "avg_lines": 196.0
+        },
+        {
+          "constraint_id": "1758086606-4",
+          "avg_lines": 198.4
+        },
+        {
+          "constraint_id": "1758086606-10",
+          "avg_lines": 227.4
+        },
+        {
+          "constraint_id": "1758086606-2",
+          "avg_lines": 227.8
+        },
+        {
+          "constraint_id": "1758086606-3",
+          "avg_lines": 229.6
+        }
+      ],
+      "avg_time_sorted": [
+        {
+          "constraint_id": "1758086606-5",
+          "avg_time": 0.0
+        },
+        {
+          "constraint_id": "1758086606-8",
+          "avg_time": 0.0
+        },
+        {
+          "constraint_id": "1758086606-7",
+          "avg_time": 0.0022736549377441405
+        },
+        {
+          "constraint_id": "1758086606-1",
+          "avg_time": 0.008826589584350586
+        },
+        {
+          "constraint_id": "1758086606-9",
+          "avg_time": 0.014118051528930664
+        },
+        {
+          "constraint_id": "1758086606-6",
+          "avg_time": 0.014166307449340821
+        },
+        {
+          "constraint_id": "1758086606-4",
+          "avg_time": 0.01437516212463379
+        },
+        {
+          "constraint_id": "1758086606-10",
+          "avg_time": 0.7528707981109619
+        },
+        {
+          "constraint_id": "1758086606-2",
+          "avg_time": 0.8198314189910889
+        },
+        {
+          "constraint_id": "1758086606-3",
+          "avg_time": 2.025056791305542
+        }
+      ]
+    }
+  }
+}
