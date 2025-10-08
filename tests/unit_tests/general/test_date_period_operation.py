@@ -511,8 +511,8 @@ def test_advanced_equals_ground_truth(base: Date, per: Period, expect: Date):
 @pytest.mark.hybrid
 def test_hybrid_equals_ground_truth(base: Date, per: Period, expect: Date):
     sh = HybridDateSolver()
-    xh = sh.new_date("x")
-    yh = sh.new_date("y")
+    xh = sh.add_date_var("x")
+    yh = sh.add_date_var("y")
     sh.add_constraint(xh == base)
     sh.add_constraint(yh == xh + per)
     rh = sh.solve()

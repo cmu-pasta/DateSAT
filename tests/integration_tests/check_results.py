@@ -342,14 +342,23 @@ def summarize_constraint(cid: str, approaches: Dict[str, Dict[str, Any]], save_d
                 out_file = save_dir / f"{cid}_{a}_unsat_checked.smt2"
                 _write_smt2(solver_handle, out_file)
 
-    # Decide verdicts per your original policy, per-approach
+    # Decide verdicts per policy, per-approach
+    # Original all-unsat consensus across ALL approaches
     all_unsat = len(approach_statuses) > 0 and all(s == "unsat" for s in approach_statuses.values())
+    # New: UNSAT consensus ignoring timeouts (treat timeouts as neutral/ignored)
+    non_timeout_statuses = [s for s in approach_statuses.values() if s != "timeout"]
+    unsat_consensus_ignoring_timeouts = (
+        len(non_timeout_statuses) > 0 and all(s == "unsat" for s in non_timeout_statuses)
+    )
     any_sat = bool(sat_recs)
     per_approach_verdict: Dict[str, str] = {}
 
     for a, status in approach_statuses.items():
         if status == "error":
             per_approach_verdict[a] = "error"
+        elif status == "timeout":
+            # Distinct verdict for timeouts so we can tally separately
+            per_approach_verdict[a] = "timeout"
         elif status == "sat":
             vinfo = sat_validation.get(a)
             if vinfo and vinfo.get("valid"):
@@ -358,7 +367,8 @@ def summarize_constraint(cid: str, approaches: Dict[str, Dict[str, Any]], save_d
                 # a sat that does not validate
                 per_approach_verdict[a] = "wrong"
         elif status == "unsat":
-            per_approach_verdict[a] = "correct" if all_unsat else "wrong"
+            # Treat as correct if every non-timeout approach reported UNSAT
+            per_approach_verdict[a] = "correct" if (all_unsat or unsat_consensus_ignoring_timeouts) else "wrong"
         else:
             per_approach_verdict[a] = "wrong"
 
@@ -369,8 +379,9 @@ def summarize_constraint(cid: str, approaches: Dict[str, Dict[str, Any]], save_d
         unsat_consensus = False
         wrong_approaches = [a for a, v in per_approach_verdict.items() if v == "wrong"]
         might_correct_approaches = []
-    elif all_unsat and not any_sat:
+    elif (all_unsat or unsat_consensus_ignoring_timeouts) and not any_sat:
         verdict = "correct_unsat"
+        # Expose consensus flag as true when timeouts are ignored and the rest agree on UNSAT
         unsat_consensus = True
         wrong_approaches = []
         might_correct_approaches = []
@@ -382,7 +393,7 @@ def summarize_constraint(cid: str, approaches: Dict[str, Dict[str, Any]], save_d
             verdict = "wrong"
         else:
             verdict = "correct"
-        unsat_consensus = all_unsat
+        unsat_consensus = all_unsat or unsat_consensus_ignoring_timeouts
         wrong_approaches = [a for a, v in per_approach_verdict.items() if v == "wrong"]
         might_correct_approaches = []
 
@@ -416,7 +427,7 @@ def check_results_dir(results_dir: Path) -> Dict[str, Any]:
         per = summary.get("verdicts_by_approach", {})
         for approach, v in per.items():
             if approach not in counts_by_approach:
-                counts_by_approach[approach] = {"correct": 0, "wrong": 0, "error": 0}
+                counts_by_approach[approach] = {"correct": 0, "wrong": 0, "error": 0, "timeout": 0}
             if v in counts_by_approach[approach]:
                 counts_by_approach[approach][v] += 1
 

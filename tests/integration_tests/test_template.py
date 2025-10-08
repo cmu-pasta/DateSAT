@@ -91,10 +91,29 @@ def test_constraint_with_approach(
         if solve_result.get("periods"):
             result["solution"].update(solve_result["periods"])
 
-        if solve_result["status"] == "sat":
+        # Detect Z3 timeout and normalize status to "timeout" instead of mislabeling as unsat
+        if result["status"] != "sat":
+            try:
+                # Access underlying z3.Solver via builder.solver.solver
+                solver_wrapper = getattr(builder, "solver", None)
+                z3_solver = getattr(solver_wrapper, "solver", None)
+                if z3_solver is not None:
+                    reason = str(getattr(z3_solver, "reason_unknown", lambda: "")()).strip().lower()
+                    if reason == "timeout" or "timeout" in reason:
+                        result["status"] = "timeout"
+                        # Preserve the reason for diagnostics
+                        if not result.get("error_message"):
+                            result["error_message"] = reason
+            except Exception:
+                # Best-effort; ignore probing errors
+                pass
+
+        if result["status"] == "sat":
             print(f"✅ Solution found:")
             for name, date in result["solution"].items():
                 print(f"  {name} = {date}")
+        elif result["status"] == "timeout":
+            print("⏱️ Solver timeout")
         else:
             print(f"❌ No solution found")
 

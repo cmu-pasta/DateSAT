@@ -272,16 +272,16 @@ def test_hybrid_matches_java_decomposed(
     expect = python_date_plus_sequence(base, seq, label)
 
     s = HybridDateSolver()
-    x = s.new_date("x")
+    x = s.add_date_var("x")
     s.add_constraint(x == base)
 
     current = x
     for i, p in enumerate(seq):
-        t = s.new_date(f"t{i}")
+        t = s.add_date_var(f"t{i}")
         s.add_constraint(t == current + p)
         current = t
 
-    y = s.new_date("y")
+    y = s.add_date_var("y")
     s.add_constraint(y == current)
 
     model = s.solve()
