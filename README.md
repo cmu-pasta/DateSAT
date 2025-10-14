@@ -1,7 +1,7 @@
 # DATE-SMT
 
 [![CI Badge](https://github.com/cmu-pasta/Date-SMT/actions/workflows/ci.yml/badge.svg)](https://github.com/cmu-pasta/Date-SMT/actions/workflows/ci.yml)
-[![Coverage Badge](https://pastalab.org/Date-SMT/badge.svg)](https://pastalab.org/Date-SMT/)
+[![Coverage Badge](https://pastalab.org/Date-SMT/badge.svg)](https://pastalab.org/Date-SMT/coverage_html/index.html)
 
 A Python library for symbolic analysis of date-based computations using Z3.
 
@@ -53,7 +53,7 @@ COVERAGE_SITE_DIR=docs python tests/build_coverage_site.py
 open docs/index.html  # macOS
 ```
 
-The coverage site includes a top-level summary and a detailed HTML report (`coverage_html/index.html`).
+The coverage site redirects the root to the detailed HTML report (`coverage_html/index.html`).
 
 ### Configure GitHub Pages (one-time)
 
