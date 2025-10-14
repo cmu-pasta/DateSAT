@@ -38,16 +38,32 @@ class Date:
 
     def _validate(self):
         """Validate that the date components are valid."""
-        # Check year range constraint
-        if not (1900 <= self._year <= 2100):
-            raise ValueError(f"Year {self._year} is outside allowed range [1900-2100]")
+        # Validate input format first: all components must be integers (bools are not allowed)
+        components = (self._year, self._month, self._day)
+        if not all(isinstance(v, int) and not isinstance(v, bool) for v in components):
+            raise ValueError(
+                "Invalid date format: year, month, and day must be integers"
+            )
 
+        # First, validate calendar correctness. If components are invalid
+        # (e.g., month out of [1..12], day out of range, unsupported year),
+        # raise an Invalid date error regardless of range.
         try:
             date(self._year, self._month, self._day)
         except ValueError as e:
             raise ValueError(
                 f"Invalid date: {self._year}-{self._month:02d}-{self._day:02d}"
             ) from e
+
+        # Next, enforce inclusive allowed window [1900-03-01 .. 2100-02-28]
+        min_allowed = (1900, 3, 1)
+        max_allowed = (2100, 2, 28)
+        current = (self._year, self._month, self._day)
+
+        if current < min_allowed or current > max_allowed:
+            raise ValueError(
+                f"Date outside allowed range: {self._year}-{self._month:02d}-{self._day:02d} (allowed [1900-03-01..2100-02-28])"
+            )
 
     def __str__(self):
         return f"Date({self.year}, {self.month}, {self.day})"
@@ -84,6 +100,13 @@ class Period:
 
     def __init__(self, years: int, months: int, days: int):
         """Initialize a Period with years, months, days components."""
+        # Validate input format: exactly three integer components (reject bools)
+        components = (years, months, days)
+        if not all(isinstance(v, int) and not isinstance(v, bool) for v in components):
+            raise ValueError(
+                "Invalid Period format: years, months, and days must be integers"
+            )
+
         self._years = years
         self._months = months
         self._days = days

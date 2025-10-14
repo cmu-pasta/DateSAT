@@ -140,7 +140,7 @@ EPOCH_MONTH = 3
 _EPOCH_LINEAR = EPOCH_YEAR * 12 + EPOCH_MONTH  # 12*2000 + 3
 
 
-def months_since_epoch_from_ym(y, m):
+def _months_since_epoch_from_ym(y, m):
     """Z3-pure: compute months-since-epoch (alpha) from year/month."""
     return (y * 12 + m) - _EPOCH_LINEAR
 
@@ -213,8 +213,7 @@ class DateVar:
         """Convert Z3 model to concrete Date using (alpha, beta)."""
         alpha_val = model.evaluate(self.months_var, model_completion=True).as_long()
         beta_val = model.evaluate(self.beta_var, model_completion=True).as_long()
-        # Decode year/month from alpha
-        k = alpha_val + (2000 * 12 + 3)
+        k = alpha_val + (EPOCH_YEAR * 12 + EPOCH_MONTH)
         year = (k - 1) // 12
         month = k - year * 12
         day = beta_val + 1
@@ -223,7 +222,7 @@ class DateVar:
     def __ge__(self, other):
         """Support x >= date comparison."""
         if isinstance(other, Date):
-            alpha_o = months_since_epoch_from_ym(
+            alpha_o = _months_since_epoch_from_ym(
                 IntVal(other.year), IntVal(other.month)
             )
             beta_o = IntVal(other.day - 1)
@@ -244,7 +243,7 @@ class DateVar:
     def __le__(self, other):
         """Support x <= date comparison."""
         if isinstance(other, Date):
-            alpha_o = months_since_epoch_from_ym(
+            alpha_o = _months_since_epoch_from_ym(
                 IntVal(other.year), IntVal(other.month)
             )
             beta_o = IntVal(other.day - 1)
@@ -279,7 +278,7 @@ class DateVar:
     def __eq__(self, other):
         """Support x == date comparison."""
         if isinstance(other, Date):
-            alpha_o = months_since_epoch_from_ym(
+            alpha_o = _months_since_epoch_from_ym(
                 IntVal(other.year), IntVal(other.month)
             )
             beta_o = IntVal(other.day - 1)
@@ -330,7 +329,7 @@ class DateVar:
             # Step 3: add D days in ordinal space and resync alpha/beta
             y2, m2, d2 = add_days_ordinal(y1, m1, d1, days_delta)
 
-            result.months_var = months_since_epoch_from_ym(y2, m2)
+            result.months_var = _months_since_epoch_from_ym(y2, m2)
             result.beta_var = d2 - IntVal(1)
             return result
         else:
@@ -456,7 +455,7 @@ class AlphaBetaSolver:
         # 1900-03 => (1900-2000)*12 + (3-3)
         # 2100-02 => (2100-2000)*12 + (2-3)
         self.solver.add(
-            date_var.months_var >= IntVal((1900 - EPOCH_YEAR) * 12 + (2 - EPOCH_MONTH))
+            date_var.months_var >= IntVal((1900 - EPOCH_YEAR) * 12 + (3 - EPOCH_MONTH))
         )
         self.solver.add(
             date_var.months_var <= IntVal((2100 - EPOCH_YEAR) * 12 + (2 - EPOCH_MONTH))

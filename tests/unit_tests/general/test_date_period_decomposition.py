@@ -191,6 +191,20 @@ def test_python_decomposed_orders(
     assert isinstance(got, Date)
 
 
+def _solve_decomposed_with_solver(solver_cls, base: Date, seq: list[Period]):
+    s = solver_cls()
+    x = s.add_date_var("x")
+    s.add_constraint(x == base)
+    cur = x
+    for i, p in enumerate(seq):
+        t = s.add_date_var(f"t{i}")
+        s.add_constraint(t == cur + p)
+        cur = t
+    y = s.add_date_var("y")
+    s.add_constraint(y == cur)
+    return s.solve()
+
+
 @pytest.mark.parametrize(
     "base,per,label,seq",
     [
@@ -203,21 +217,7 @@ def test_baseline_matches_java_decomposed(
     base: Date, per: Period, label: str, seq: list[Period]
 ):
     expect = python_date_plus_sequence(base, seq, label)
-
-    s = BaselineSolver()
-    x = s.add_date_var("x")
-    s.add_constraint(x == base)
-
-    current = x
-    for i, p in enumerate(seq):
-        t = s.add_date_var(f"t{i}")
-        s.add_constraint(t == current + p)
-        current = t
-
-    y = s.add_date_var("y")
-    s.add_constraint(y == current)
-
-    model = s.solve()
+    model = _solve_decomposed_with_solver(BaselineSolver, base, seq)
     assert model["status"] == "sat"
     got = model["dates"]["y"]
     assert (
@@ -237,21 +237,7 @@ def test_epoch_days_matches_java_decomposed(
     base: Date, per: Period, label: str, seq: list[Period]
 ):
     expect = python_date_plus_sequence(base, seq, label)
-
-    s = EpochDaysSolver()
-    x = s.add_date_var("x")
-    s.add_constraint(x == base)
-
-    current = x
-    for i, p in enumerate(seq):
-        t = s.add_date_var(f"t{i}")
-        s.add_constraint(t == current + p)
-        current = t
-
-    y = s.add_date_var("y")
-    s.add_constraint(y == current)
-
-    model = s.solve()
+    model = _solve_decomposed_with_solver(EpochDaysSolver, base, seq)
     assert model["status"] == "sat"
     got = model["dates"]["y"]
     assert (
@@ -271,21 +257,7 @@ def test_hybrid_matches_java_decomposed(
     base: Date, per: Period, label: str, seq: list[Period]
 ):
     expect = python_date_plus_sequence(base, seq, label)
-
-    s = HybridDateSolver()
-    x = s.add_date_var("x")
-    s.add_constraint(x == base)
-
-    current = x
-    for i, p in enumerate(seq):
-        t = s.add_date_var(f"t{i}")
-        s.add_constraint(t == current + p)
-        current = t
-
-    y = s.add_date_var("y")
-    s.add_constraint(y == current)
-
-    model = s.solve()
+    model = _solve_decomposed_with_solver(HybridDateSolver, base, seq)
     assert model["status"] == "sat"
     got = model["dates"]["y"]
     assert (
@@ -305,21 +277,7 @@ def test_alpha_beta_matches_java_decomposed(
     base: Date, per: Period, label: str, seq: list[Period]
 ):
     expect = python_date_plus_sequence(base, seq, label)
-
-    s = AlphaBetaSolver()
-    x = s.add_date_var("x")
-    s.add_constraint(x == base)
-
-    current = x
-    for i, p in enumerate(seq):
-        t = s.add_date_var(f"t{i}")
-        s.add_constraint(t == current + p)
-        current = t
-
-    y = s.add_date_var("y")
-    s.add_constraint(y == current)
-
-    model = s.solve()
+    model = _solve_decomposed_with_solver(AlphaBetaSolver, base, seq)
     assert model["status"] == "sat"
     got = model["dates"]["y"]
     assert (
@@ -339,21 +297,7 @@ def test_alpha_beta_table_matches_java_decomposed(
     base: Date, per: Period, label: str, seq: list[Period]
 ):
     expect = python_date_plus_sequence(base, seq, label)
-
-    s = AlphaBetaTableSolver()
-    x = s.add_date_var("x")
-    s.add_constraint(x == base)
-
-    current = x
-    for i, p in enumerate(seq):
-        t = s.add_date_var(f"t{i}")
-        s.add_constraint(t == current + p)
-        current = t
-
-    y = s.add_date_var("y")
-    s.add_constraint(y == current)
-
-    model = s.solve()
+    model = _solve_decomposed_with_solver(AlphaBetaTableSolver, base, seq)
     assert model["status"] == "sat"
     got = model["dates"]["y"]
     assert (

@@ -3,9 +3,9 @@ DateSMT
 [X] Figure out the hybrid approach (Angel)
 [X] Alpha/beta approach (Angel)
 [X] Rename all approaches
-[X] Update constraints to (1900,3,1) to (2100,2,28)
-[ ] Library behavior when an input is an invalid day?
-[ ] Clean up symbolic_alpha_beta_table
+[X] Update constraints to (1900,3,1) to (2100,2,28) - inclusive
+[X] Library behavior when an input is an invalid day/out of range?
+[X] Clean up symbolic_alpha_beta_table
 [ ] Check if we can specify temp var (var that we don't need result for)
 [ ] Think about hybrid method: do we need lazy approach?
 
@@ -13,7 +13,7 @@ Unit test
 [X] Add unit test coverage (Angel)
 [X] Clean up core_data_structures, epoch_days_specific, baseline_specific (Angel)
 [X] Replace java with python? (Angel)
-[ ] Update date constraints test
+[X] Update date constraints test
 [ ] Write up unit tests for all datesmt code
 
 Property test
@@ -36,5 +36,7 @@ Debugging
 
 General
 [X] Organize repo (Angel)
+[ ] Clean up existing code
+[ ] Make helper functions' names begin with _
 [ ] Clean up existing doc
 [ ] Add documentation for each method
