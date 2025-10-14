@@ -12,8 +12,8 @@ SITE_DIR = Path(
     os.environ.get("COVERAGE_SITE_DIR", REPO_ROOT / "documentation" / "coverage")
 )
 DOCS_DIR = SITE_DIR if SITE_DIR.is_absolute() else REPO_ROOT / SITE_DIR
-# Write coverage HTML directly to the site root so index.html is the detailed report
-HTML_DIR = DOCS_DIR
+# Keep the detailed coverage report under a subdirectory for organization
+HTML_DIR = DOCS_DIR / "coverage_html"
 XML_PATH = DOCS_DIR / "coverage.xml"
 INDEX_HTML = DOCS_DIR / "index.html"
 BADGE_SVG = DOCS_DIR / "badge.svg"
