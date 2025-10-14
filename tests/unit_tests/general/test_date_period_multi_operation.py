@@ -46,6 +46,36 @@ def _solve_with_solver(solver_cls, base: Date, seq: list[Period]):
     return s.solve()
 
 
+def _solve_with_solver_radd(solver_cls, base: Date, seq: list[Period]):
+    s = solver_cls()
+    x = s.add_date_var("x")
+    s.add_constraint(x == base)
+    cur = x
+    for i, p in enumerate(seq):
+        t = s.add_date_var(f"t{i}")
+        s.add_constraint(t == p + cur)
+        cur = t
+    y = s.add_date_var("y")
+    s.add_constraint(y == cur)
+    return s.solve()
+
+
+def _solve_with_solver_sub(solver_cls, base: Date, seq: list[Period]):
+    # Implement each step via subtraction of the negated period
+    s = solver_cls()
+    x = s.add_date_var("x")
+    s.add_constraint(x == base)
+    cur = x
+    for i, p in enumerate(seq):
+        t = s.add_date_var(f"t{i}")
+        neg = Period(-p.years, -p.months, -p.days)
+        s.add_constraint(t == cur - neg)
+        cur = t
+    y = s.add_date_var("y")
+    s.add_constraint(y == cur)
+    return s.solve()
+
+
 MULTI_OP_CASES = [
     # Mixed month/day steps around month-ends
     (Date(2023, 1, 30), [Period(0, 1, 0), Period(0, 1, 0)]),  # -> 2023-03-28
@@ -107,4 +137,110 @@ def test_stepwise_multi_op_alpha_beta_table_matches_python(
     expected = _apply_sequence_python(base, seq)
     res = _solve_with_solver(AlphaBetaTableSolver, base, seq)
     assert res["status"] == "sat"
+    assert res["dates"]["y"] == expected
+
+
+# radd sequence: Period + Date at each step
+@pytest.mark.parametrize("base,seq", MULTI_OP_CASES)
+@pytest.mark.baseline
+def test_stepwise_multi_op_radd_baseline_matches_python(base: Date, seq: list[Period]):
+    expected = _apply_sequence_python(base, seq)
+    res = _solve_with_solver_radd(BaselineSolver, base, seq)
+    assert res["status"] == "sat"
+    assert res["dates"]["y"] == expected
+
+
+@pytest.mark.parametrize("base,seq", MULTI_OP_CASES)
+@pytest.mark.epoch_days
+def test_stepwise_multi_op_radd_epoch_days_matches_python(
+    base: Date, seq: list[Period]
+):
+    expected = _apply_sequence_python(base, seq)
+    res = _solve_with_solver_radd(EpochDaysSolver, base, seq)
+    assert res["status"] == "sat"
+    assert res["dates"]["y"] == expected
+
+
+@pytest.mark.parametrize("base,seq", MULTI_OP_CASES)
+@pytest.mark.hybrid
+def test_stepwise_multi_op_radd_hybrid_matches_python(base: Date, seq: list[Period]):
+    expected = _apply_sequence_python(base, seq)
+    res = _solve_with_solver_radd(HybridDateSolver, base, seq)
+    assert res["status"] == "sat"
+    assert res["dates"]["y"] == expected
+
+
+@pytest.mark.parametrize("base,seq", MULTI_OP_CASES)
+@pytest.mark.alpha_beta
+def test_stepwise_multi_op_radd_alpha_beta_matches_python(
+    base: Date, seq: list[Period]
+):
+    expected = _apply_sequence_python(base, seq)
+    res = _solve_with_solver_radd(AlphaBetaSolver, base, seq)
+    assert res["status"] == "sat"
+    assert res["dates"]["y"] == expected
+
+
+@pytest.mark.parametrize("base,seq", MULTI_OP_CASES)
+@pytest.mark.alpha_beta_table
+def test_stepwise_multi_op_radd_alpha_beta_table_matches_python(
+    base: Date, seq: list[Period]
+):
+    expected = _apply_sequence_python(base, seq)
+    res = _solve_with_solver_radd(AlphaBetaTableSolver, base, seq)
+    assert res["status"] == "sat"
+    assert res["dates"]["y"] == expected
+
+
+# sub sequence: implement each addition via subtracting the negated period.
+# If any intermediate step would go out of domain, the solver should report UNSAT.
+@pytest.mark.parametrize("base,seq", MULTI_OP_CASES)
+@pytest.mark.baseline
+def test_stepwise_multi_op_sub_baseline_matches_python(base: Date, seq: list[Period]):
+    res = _solve_with_solver_sub(BaselineSolver, base, seq)
+    if res["status"] == "unsat":
+        return
+    expected = _apply_sequence_python(base, seq)
+    assert res["dates"]["y"] == expected
+
+
+@pytest.mark.parametrize("base,seq", MULTI_OP_CASES)
+@pytest.mark.epoch_days
+def test_stepwise_multi_op_sub_epoch_days_matches_python(base: Date, seq: list[Period]):
+    res = _solve_with_solver_sub(EpochDaysSolver, base, seq)
+    if res["status"] == "unsat":
+        return
+    expected = _apply_sequence_python(base, seq)
+    assert res["dates"]["y"] == expected
+
+
+@pytest.mark.parametrize("base,seq", MULTI_OP_CASES)
+@pytest.mark.hybrid
+def test_stepwise_multi_op_sub_hybrid_matches_python(base: Date, seq: list[Period]):
+    res = _solve_with_solver_sub(HybridDateSolver, base, seq)
+    if res["status"] == "unsat":
+        return
+    expected = _apply_sequence_python(base, seq)
+    assert res["dates"]["y"] == expected
+
+
+@pytest.mark.parametrize("base,seq", MULTI_OP_CASES)
+@pytest.mark.alpha_beta
+def test_stepwise_multi_op_sub_alpha_beta_matches_python(base: Date, seq: list[Period]):
+    res = _solve_with_solver_sub(AlphaBetaSolver, base, seq)
+    if res["status"] == "unsat":
+        return
+    expected = _apply_sequence_python(base, seq)
+    assert res["dates"]["y"] == expected
+
+
+@pytest.mark.parametrize("base,seq", MULTI_OP_CASES)
+@pytest.mark.alpha_beta_table
+def test_stepwise_multi_op_sub_alpha_beta_table_matches_python(
+    base: Date, seq: list[Period]
+):
+    res = _solve_with_solver_sub(AlphaBetaTableSolver, base, seq)
+    if res["status"] == "unsat":
+        return
+    expected = _apply_sequence_python(base, seq)
     assert res["dates"]["y"] == expected
