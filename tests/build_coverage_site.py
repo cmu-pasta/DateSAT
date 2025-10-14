@@ -171,13 +171,49 @@ def fmt_pct(x: float) -> str:
     return f"{x*100:.0f}%" if x is not None else "-"
 
 
+def build_index_html(totals, rows) -> None:
+    # Serve an embedded view of the detailed report without redirecting.
+    html = []
+    html.append("<!doctype html>")
+    html.append("<html lang='en'>")
+    html.append("<head>")
+    html.append("<meta charset='utf-8'>")
+    html.append("<meta name='viewport' content='width=device-width, initial-scale=1'>")
+    html.append("<title>DATE-SMT Coverage</title>")
+    html.append(
+        "<style>html,body{height:100%;margin:0}body{font-family:Arial,Helvetica,sans-serif}#wrap{height:100%;display:flex;flex-direction:column}header{padding:8px 12px;border-bottom:1px solid #eee;background:#fafafa}header a{color:#0366d6;text-decoration:none}main{flex:1}iframe{border:0;width:100%;height:100%}</style>"
+    )
+    html.append("</head>")
+    html.append("<body>")
+    html.append("<div id='wrap'>")
+    html.append(
+        "<header><strong>DATE-SMT Coverage</strong> — <a href='coverage_html/index.html'>open full page</a></header>"
+    )
+    html.append(
+        "<main><iframe src='coverage_html/index.html' title='Coverage Report'></iframe></main>"
+    )
+    html.append("</div>")
+    html.append("</body>")
+    html.append("</html>")
+
+    INDEX_HTML.write_text("\n".join(html), encoding="utf-8")
+    print(f"Wrote {INDEX_HTML}")
+
+
 def _extract_percent_from_html(html_index: Path):
     """
-    Parse the numeric percent from coverage.py's HTML index header to ensure
-    the badge matches the displayed value exactly. Returns an int percent or None.
+    Parse the numeric percent from coverage.py's HTML index header so the badge
+    matches the displayed value exactly. Returns an int percent or None.
     """
+    # Wait briefly for file to appear in case filesystem lags
+    import time
+
+    for _ in range(10):
+        if html_index.exists():
+            break
+        time.sleep(0.2)
     try:
-        text = (html_index).read_text(encoding="utf-8", errors="ignore")
+        text = html_index.read_text(encoding="utf-8", errors="ignore")
     except Exception:
         return None
     import re
@@ -197,7 +233,7 @@ def build_badge_svg(totals) -> None:
     Create a simple Shields-style SVG badge summarizing total statement coverage.
     The badge is written to BADGE_SVG and published with the site.
     """
-    # Try to read the exact percent shown by the HTML report header first.
+    # Prefer the exact headline value from the HTML report header.
     pct_from_html = _extract_percent_from_html(HTML_DIR / "index.html")
     if pct_from_html is not None:
         pct_int = pct_from_html
@@ -267,6 +303,7 @@ def main() -> int:
     except FileNotFoundError as exc:
         print(str(exc))
         return 1
+    build_index_html(totals, rows)
     build_badge_svg(totals)
     return 0
 
