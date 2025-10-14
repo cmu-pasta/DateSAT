@@ -14,51 +14,16 @@ from datesmt.core import Period
 # --------------------------------------------------------------------
 
 
-@pytest.mark.parametrize(
-    "y,m,d",
-    [
-        (0, 0, 0),
-        (1, 2, 3),
-        (-1, -2, -3),
-        (1, -2, 3),  # mixed signs
-        (100, 50, 365),  # large-ish
-    ],
-)
-def test_constructor_assigns_fields(y, m, d):
+def test_constructor_assigns_fields(sample_period_tuple):
+    y, m, d = sample_period_tuple
     p = Period(y, m, d)
     assert (p.years, p.months, p.days) == (y, m, d)
 
 
-def test_constructor_from_fixture(sample_periods):
+def test_constructor_from_fixture(sample_period_obj):
     # Bulk sanity across curated examples
-    for name, p in sample_periods.items():
-        assert isinstance(p, Period), f"fixture {name} must be Period"
-
-
-@pytest.mark.parametrize(
-    "y,m,d",
-    [
-        (5, 0, 0),
-        (0, 6, 0),
-        (0, 0, 30),
-    ],
-)
-def test_constructor_zero_components(y, m, d):
-    p = Period(y, m, d)
-    assert (p.years, p.months, p.days) == (y, m, d)
-
-
-# If Period accepts any integers (no validation/normalization), keep this test.
-@pytest.mark.parametrize(
-    "y,m,d",
-    [
-        (999_999, 999_999, 999_999),
-        (-999_999, -999_999, -999_999),
-    ],
-)
-def test_constructor_accepts_any_ints(y, m, d):
-    p = Period(y, m, d)
-    assert (p.years, p.months, p.days) == (y, m, d)
+    p = sample_period_obj
+    assert isinstance(p, Period)
 
 
 # --------------------------------------------------------------------
@@ -87,13 +52,13 @@ def test_equality(a, b, expected_equal):
 
 
 @pytest.mark.parametrize("other", ["1y2m3d", 1, None, (1, 2, 3), [1, 2, 3]])
-def test_not_equal_to_non_period(other):
-    assert Period(1, 2, 3) != other
+def test_not_equal_to_non_period(sample_period_obj, other):
+    assert sample_period_obj != other
 
 
-def test_not_equal_to_date_object(sample_dates):
+def test_not_equal_to_date_object(sample_date_obj):
     # Use any Date from fixtures to assert cross-type inequality
-    some_date = next(iter(sample_dates.values()))
+    some_date = sample_date_obj
     assert Period(1, 2, 3) != some_date
 
 
@@ -108,12 +73,12 @@ def test_repr_is_canonical():
     assert repr(Period(0, 0, 0)) == "Period(0, 0, 0)"
 
 
-def test_str_contains_components_without_overfitting(sample_periods):
+def test_str_contains_components_without_overfitting(sample_period_obj):
     # Avoid overspecifying exact format unless it's a public contract
-    for _, p in sample_periods.items():
-        s = str(p)
-        for token in (str(p.years), str(p.months), str(p.days)):
-            assert token in s
+    p = sample_period_obj
+    s = str(p)
+    for token in (str(p.years), str(p.months), str(p.days)):
+        assert token in s
 
 
 # --------------------------------------------------------------------
@@ -132,3 +97,26 @@ def test_attributes_are_immutable():
         p.years = 9
     with pytest.raises(AttributeError):
         p.months = 9
+
+
+# --------------------------------------------------------------------
+# Invalid input handling
+# --------------------------------------------------------------------
+
+
+def test_invalid_input_handling(invalid_period_format_tuple):
+    args = invalid_period_format_tuple
+    # Wrong arity should raise TypeError (constructor signature mismatch)
+    if not isinstance(args, tuple) or len(args) != 3:
+        with pytest.raises(TypeError):
+            Period(*args)
+        return
+    y, m, d = args
+    # Non-int (or bool) components should raise ValueError per Period validation
+    if not all(isinstance(v, int) and not isinstance(v, bool) for v in (y, m, d)):
+        with pytest.raises(ValueError):
+            Period(y, m, d)
+    else:
+        # This fixture is intended to contain only invalid cases; reaching here
+        # means a valid triple slipped into the invalid set.
+        pytest.fail(f"invalid_period_format_tuple contains valid input: {(y, m, d)}")

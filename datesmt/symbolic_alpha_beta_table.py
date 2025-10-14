@@ -36,7 +36,7 @@ from .core import Date, Period
 EPOCH_YEAR = 2000
 EPOCH_MONTH = 3
 # Linearized epoch month as a Z3 Int numeral
-E_LINEAR = IntVal(EPOCH_YEAR * 12 + EPOCH_MONTH)
+_EPOCH_LINEAR = IntVal(EPOCH_YEAR * 12 + EPOCH_MONTH)
 
 FOUR_YEAR_MONTHS = 48
 FOUR_YEAR_DAYS = 1461
@@ -100,18 +100,11 @@ def _mod48(x):
 
 
 def _alpha_to_abs_month(alpha):
-    return alpha + E_LINEAR
+    return alpha + _EPOCH_LINEAR
 
 
 def _months_since_epoch_from_ym(y, m):
-    return (y * IntVal(12) + m) - E_LINEAR
-
-
-def _ym_from_months_since_epoch(alpha):
-    k = alpha + E_LINEAR
-    y = (k - IntVal(1)) / IntVal(12)
-    m = k - y * IntVal(12)
-    return y, m
+    return (y * IntVal(12) + m) - _EPOCH_LINEAR
 
 
 def _century_correction(abs_month):
@@ -391,7 +384,14 @@ class PeriodVar:
 
 
 class AlphaBetaTableSolver:
+    """Alpha-beta date constraint solver using epoch-based conversion."""
+
     def __init__(self, timeout_ms=60000):
+        """Initialize the solver with timeout.
+
+        Args:
+            timeout_ms: Timeout in milliseconds (default: 60 seconds)
+        """
         self.solver = Solver()
         self.solver.set("timeout", timeout_ms)
         self.date_vars = {}

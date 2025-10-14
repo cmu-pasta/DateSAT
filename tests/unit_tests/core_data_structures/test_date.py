@@ -16,65 +16,23 @@ from datesmt.core import Date
 # -------------------------
 
 
-@pytest.mark.parametrize(
-    "y,m,d",
-    [
-        (2023, 6, 15),
-        (2024, 2, 29),  # leap
-        (2000, 2, 29),  # century leap (within supported range)
-        (1900, 1, 1),   # min supported boundary
-        (2100, 12, 31), # max supported boundary
-    ],
-)
-def test_constructor_valid(y, m, d):
-    dobj = Date(y, m, d)
-    assert (dobj.year, dobj.month, dobj.day) == (y, m, d)
-
-
-def test_constructor_valid_from_fixture(sample_dates):
+def test_constructor_valid_from_fixture(sample_date_obj):
     # bulk sanity over curated examples
-    for name, dobj in sample_dates.items():
-        assert isinstance(dobj, Date), f"fixture {name} must be Date"
-        assert 1 <= dobj.month <= 12
-        assert 1 <= dobj.day <= 31
+    dobj = sample_date_obj
+    assert isinstance(dobj, Date)
+    assert 1 <= dobj.month <= 12
+    assert 1 <= dobj.day <= 31
 
 
-@pytest.mark.parametrize(
-    "y,m,d",
-    [
-        (2023, 2, 29),  # non-leap Feb 29
-        (1900, 2, 29),  # century non-leap
-        (2023, 4, 31),  # 30-day month overflow
-        (2023, 13, 1),  # month > 12
-        (2023, 0, 1),  # month 0
-        (2023, 1, 0),  # day 0
-        (2023, 1, 32),  # day > 31
-        (-1, 1, 1),  # negative year (disallowed)
-        (10000, 1, 1),  # beyond 9999
-        (1, 1, 1),  # below supported range
-        (9999, 12, 31),  # above supported range
-    ],
-)
-def test_constructor_invalid_raises_value_error(y, m, d):
+def test_constructor_invalid_from_fixture(invalid_date_tuple):
+    y, m, d = invalid_date_tuple
     with pytest.raises(ValueError):
         Date(y, m, d)
 
 
-def test_constructor_invalid_from_fixture(invalid_dates):
-    for y, m, d in invalid_dates:
-        with pytest.raises(ValueError):
-            Date(y, m, d)
-
-
-@pytest.mark.parametrize(
-    "y,m,d,msg_re",
-    [
-        (2023, 2, 29, r"Invalid date"),
-    ],
-)
-def test_validation_message_format_is_stable(y, m, d, msg_re):
-    # keep this only if message text is part of the public contract
-    with pytest.raises(ValueError, match=msg_re):
+def test_constructor_out_of_range_from_fixture(out_of_range_date_tuple):
+    y, m, d = out_of_range_date_tuple
+    with pytest.raises(ValueError):
         Date(y, m, d)
 
 
@@ -83,10 +41,8 @@ def test_validation_message_format_is_stable(y, m, d, msg_re):
 # -------------------------
 
 
-def test_equality_and_hash():
-    a = Date(2023, 6, 15)
-    b = Date(2023, 6, 15)
-    c = Date(2023, 6, 16)
+def test_equality_and_hash(equality_triplet):
+    a, b, c = equality_triplet
     assert a == b
     assert not (a != b)
     assert hash(a) == hash(b)
@@ -94,8 +50,9 @@ def test_equality_and_hash():
 
 
 @pytest.mark.parametrize("other", ["2023-06-15", 2023, None, (2023, 6, 15)])
-def test_not_equal_to_non_date(other):
-    assert Date(2023, 6, 15) != other
+def test_not_equal_to_non_date(sample_date_obj, other):
+    a = sample_date_obj
+    assert a != other
 
 
 # -------------------------
@@ -119,50 +76,23 @@ def test_str_contains_fields():
 # -------------------------
 
 
-@pytest.mark.parametrize(
-    "y,m,d",
-    [
-        (2023, 6, 15),
-        (2024, 2, 29),
-    ],
-)
-def test_to_python_date(y, m, d):
-    dobj = Date(y, m, d)
+def test_to_python_date(edge_case_date):
+    dobj = edge_case_date
     pd = dobj.to_python_date()
     assert isinstance(pd, pydate)
-    assert (pd.year, pd.month, pd.day) == (y, m, d)
+    assert (pd.year, pd.month, pd.day) == (dobj.year, dobj.month, dobj.day)
 
 
-@pytest.mark.parametrize(
-    "y,m,d",
-    [
-        (2023, 6, 15),
-        (2024, 2, 29),
-    ],
-)
-def test_from_python_date(y, m, d):
-    dobj = Date.from_python_date(pydate(y, m, d))
-    assert (dobj.year, dobj.month, dobj.day) == (y, m, d)
+def test_from_python_date(python_date_obj):
+    p = python_date_obj
+    dobj = Date.from_python_date(p)
+    assert (dobj.year, dobj.month, dobj.day) == (p.year, p.month, p.day)
 
 
-@pytest.mark.parametrize(
-    "y,m,d",
-    [
-        (2023, 6, 15),
-        (2024, 2, 29),
-        (2000, 2, 29),
-    ],
-)
-def test_round_trip(y, m, d):
-    original = Date(y, m, d)
-    round_tripped = Date.from_python_date(original.to_python_date())
-    assert round_tripped == original
-
-
-def test_round_trip_edge_cases(edge_case_dates):
-    for original in edge_case_dates:
-        rt = Date.from_python_date(original.to_python_date())
-        assert rt == original
+def test_conversion(edge_case_date):
+    original = edge_case_date
+    converted = Date.from_python_date(original.to_python_date())
+    assert converted == original
 
 
 # -------------------------
@@ -170,23 +100,8 @@ def test_round_trip_edge_cases(edge_case_dates):
 # -------------------------
 
 
-@pytest.mark.parametrize(
-    "y,m,d",
-    [
-        (2023, 4, 30),
-        (2023, 6, 30),
-        (2023, 9, 30),
-        (2023, 11, 30),
-        (2023, 1, 31),
-        (2023, 3, 31),
-        (2023, 5, 31),
-        (2023, 7, 31),
-        (2023, 8, 31),
-        (2023, 10, 31),
-        (2023, 12, 31),
-    ],
-)
-def test_month_end_valid_dates(y, m, d):
+def test_month_end_valid_dates(month_end_date):
+    y, m, d = month_end_date
     assert Date(y, m, d).day == d
 
 
@@ -206,99 +121,20 @@ def test_attributes_are_immutable():
 # -------------------------
 
 
-def test_year_zero_policy():
-    """Test year 0 policy (astronomical vs proleptic Gregorian)."""
-    # This tests the chosen policy for year 0
-    # If year 0 is supported, it should follow leap year rules
-    try:
-        date_zero = Date(0, 1, 1)
-        # Year 0 should be a leap year (0 % 400 == 0)
-        assert date_zero.year == 0
-    except ValueError:
-        # If year 0 is not supported, that's also a valid policy
-        pass
-
-
-def test_negative_year_policy():
-    """Test negative year policy."""
-    # Test that negative years either work or are consistently rejected
-    try:
-        date_neg = Date(-1, 1, 1)
-        assert date_neg.year == -1
-        # If negative years are supported, test leap year rules
-        # -4 should be a leap year (divisible by 4)
-        date_neg4 = Date(-4, 2, 29)
-        assert date_neg4.year == -4
-    except ValueError:
-        # If negative years are not supported, that's also valid
-        pass
-
-
-def test_year_bounds_validation():
-    """Test year bounds validation."""
-    # Test minimum and maximum supported years
-    try:
-        # Test very early date
-        early_date = Date(1, 1, 1)
-        assert early_date.year == 1
-    except ValueError:
-        pass
-    
-    try:
-        # Test very late date
-        late_date = Date(9999, 12, 31)
-        assert late_date.year == 9999
-    except ValueError:
-        pass
-
-
-def test_invalid_month_handling():
+def test_invalid_month_handling(invalid_month_val):
     """Test comprehensive invalid month handling."""
-    invalid_months = [0, 13, -1, 14, 100]
-    
-    for month in invalid_months:
-        with pytest.raises(ValueError):
-            Date(2023, month, 1)
-
-
-def test_invalid_day_handling():
-    """Test comprehensive invalid day handling."""
-    # Test day 0 and negative days
     with pytest.raises(ValueError):
-        Date(2023, 1, 0)
-    
+        Date(2023, invalid_month_val, 1)
+
+
+def test_february_29_allowed_in_leap_year(leap_year_year):
+    d = Date(leap_year_year, 2, 29)
+    assert d.day == 29
+
+
+def test_february_29_rejected_in_non_leap_year(non_leap_year_year):
     with pytest.raises(ValueError):
-        Date(2023, 1, -1)
-    
-    # Test day overflow for each month
-    month_days = {
-        1: 31, 2: 28, 3: 31, 4: 30, 5: 31, 6: 30,
-        7: 31, 8: 31, 9: 30, 10: 31, 11: 30, 12: 31
-    }
-    
-    for month, max_days in month_days.items():
-        # Test day overflow
-        with pytest.raises(ValueError):
-            Date(2023, month, max_days + 1)
-        
-        # Test day overflow with very large number
-        with pytest.raises(ValueError):
-            Date(2023, month, 100)
-
-
-def test_february_29_validation():
-    """Test February 29 validation for leap and non-leap years."""
-    # Leap years (should allow Feb 29)
-    leap_years = [2000, 2004, 2008, 2012, 2016, 2020, 2024]
-    for year in leap_years:
-        date_leap = Date(year, 2, 29)
-        assert date_leap.day == 29
-    
-    # Non-leap years (should reject Feb 29)
-    non_leap_years = [1900, 2001, 2002, 2003, 2005, 2100]
-    for year in non_leap_years:
-        with pytest.raises(ValueError):
-            Date(year, 2, 29)
+        Date(non_leap_year_year, 2, 29)
 
 
 def test_century_leap_year_validation():
@@ -310,7 +146,7 @@ def test_century_leap_year_validation():
     for year in [1600, 2400]:
         with pytest.raises(ValueError):
             Date(year, 2, 29)
-    
+
     # Century years not divisible by 400 (not leap)
     century_non_leap_years = [1700, 1800, 1900, 2100, 2200, 2300]
     for year in century_non_leap_years:
@@ -318,39 +154,49 @@ def test_century_leap_year_validation():
             Date(year, 2, 29)
 
 
-def test_30_day_month_validation():
+def test_30_day_month_validation(thirty_day_month):
     """Test 30-day month validation."""
-    thirty_day_months = [4, 6, 9, 11]
-    for month in thirty_day_months:
-        # Should allow day 30
-        date_30 = Date(2023, month, 30)
-        assert date_30.day == 30
-        
-        # Should reject day 31
-        with pytest.raises(ValueError):
-            Date(2023, month, 31)
+    month = thirty_day_month
+    assert Date(2023, month, 30).day == 30
+    with pytest.raises(ValueError):
+        Date(2023, month, 31)
 
 
-def test_31_day_month_validation():
+def test_31_day_month_validation(thirty_one_day_month):
     """Test 31-day month validation."""
-    thirty_one_day_months = [1, 3, 5, 7, 8, 10, 12]
-    for month in thirty_one_day_months:
-        # Should allow day 31
-        date_31 = Date(2023, month, 31)
-        assert date_31.day == 31
+    month = thirty_one_day_month
+    assert Date(2023, month, 31).day == 31
 
 
-def test_date_construction_error_messages():
-    """Test that Date construction errors have informative messages."""
-    # Test that error messages are helpful
+def test_invalid_inrange_error_message(invalid_date_tuple):
+    """Invalid but in-range: should say 'Invalid date'."""
+    y, m, d = invalid_date_tuple
     with pytest.raises(ValueError) as exc_info:
-        Date(2023, 2, 29)  # Non-leap year Feb 29
-    assert "Invalid date" in str(exc_info.value) or "February" in str(exc_info.value)
-    
+        Date(y, m, d)
+    assert "Invalid date" in str(exc_info.value)
+
+
+def test_out_of_range_error_message(out_of_range_date_tuple):
+    """Outside allowed range: should say 'Date outside allowed range'."""
+    y, m, d = out_of_range_date_tuple
     with pytest.raises(ValueError) as exc_info:
-        Date(2023, 13, 1)  # Invalid month
-    assert "month" in str(exc_info.value) or "Invalid" in str(exc_info.value)
-    
-    with pytest.raises(ValueError) as exc_info:
-        Date(2023, 1, 0)  # Invalid day
-    assert "day" in str(exc_info.value) or "Invalid" in str(exc_info.value)
+        Date(y, m, d)
+    assert "Date outside allowed range" in str(exc_info.value)
+
+
+def test_invalid_date_input_format(invalid_date_format_tuple):
+    args = invalid_date_format_tuple
+    # Wrong arity should raise TypeError at call time
+    if not isinstance(args, tuple) or len(args) != 3:
+        with pytest.raises(TypeError):
+            Date(*args)
+        return
+    y, m, d = args
+    # Non-int (or bool) components should raise ValueError per Date validation
+    if not all(isinstance(v, int) and not isinstance(v, bool) for v in (y, m, d)):
+        with pytest.raises(ValueError):
+            Date(y, m, d)
+    else:
+        # This fixture is intended to contain only invalid cases; reaching here
+        # means a valid triple slipped into the invalid set.
+        pytest.fail(f"invalid_date_format_tuple contains valid input: {(y, m, d)}")

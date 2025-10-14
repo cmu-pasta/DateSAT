@@ -70,17 +70,17 @@ def get_period_arithmetic_test_cases():
             Date(2020, 6, 15),
             Period(0, 0, -50),
             Date(2020, 4, 26),
-        ),  # Jun 15 - 50 days = Apr 26
+        ),  # Jun 15 - 50 days = Apr 26 for 2020
         (
             Date(2020, 6, 15),
             Period(0, 0, -100),
             Date(2020, 3, 7),
-        ),  # Jun 15 - 100 days = Mar 7
+        ),  # Jun 15 - 100 days = Mar 7 for 2020
         (
             Date(2020, 6, 15),
             Period(0, 0, -200),
             Date(2019, 11, 28),
-        ),  # Jun 15 - 200 days = Nov 28 prev year
+        ),  # Jun 15 - 200 days = Nov 28 for 2020
         (
             Date(2020, 2, 29),
             Period(0, 0, -60),
@@ -143,6 +143,11 @@ def get_period_arithmetic_test_cases():
             Date(2021, 1, 31),
         ),  # Dec 31 + 1 month = Jan 31 next year
         (
+            Date(2020, 12, 31),
+            Period(0, 1, 0),
+            Date(2021, 1, 31),
+        ),  # Dec 31 + 1 month = Jan 31 next year
+        (
             Date(2020, 1, 31),
             Period(0, 13, 0),
             Date(2021, 2, 28),
@@ -168,6 +173,11 @@ def get_period_arithmetic_test_cases():
             Period(0, 0, -2),
             Date(2020, 12, 30),
         ),  # Jan 1 - 2 days = Dec 30 prev year
+        (
+            Date(2021, 1, 1),
+            Period(0, 0, -2),
+            Date(2020, 12, 30),
+        ),  # Jan 1 - 2 days = Dec 30 prev year
         # February leap year edge cases
         (
             Date(2020, 2, 28),
@@ -184,6 +194,21 @@ def get_period_arithmetic_test_cases():
             Period(0, 0, 1),
             Date(2021, 3, 1),
         ),  # Feb 28 + 1 day = Mar 1 (non-leap year)
+        (
+            Date(2020, 3, 1),
+            Period(0, 0, -1),
+            Date(2020, 2, 29),
+        ),  # Mar 1 - 1 day = Feb 29 (leap year)
+        (
+            Date(2021, 2, 28),
+            Period(0, 0, 1),
+            Date(2021, 3, 1),
+        ),  # Feb 28 + 1 day = Mar 1 (non-leap year)
+        (
+            Date(2021, 3, 1),
+            Period(0, 0, -1),
+            Date(2021, 2, 28),
+        ),  # Mar 1 - 1 day = Feb 28 (non-leap year)
         (
             Date(2020, 3, 1),
             Period(0, 0, -1),
@@ -241,11 +266,7 @@ def get_period_arithmetic_test_cases():
             Period(4, 0, 0),
             Date(2024, 2, 29),
         ),  # Feb 29 + 4 years = Feb 29 in 4 years (leap year)
-        (
-            Date(2020, 6, 15),
-            Period(79, 0, 0),
-            Date(2099, 6, 15),
-        ),  # max within range
+        (Date(2020, 6, 15), Period(79, 0, 0), Date(2099, 6, 15)),  # max within range
         # Complex mixed cases
         (
             Date(2020, 1, 31),
@@ -288,6 +309,16 @@ def get_period_arithmetic_test_cases():
             Period(0, -2, 0),
             Date(2020, 1, 1),
         ),  # Mar 1 - 2 months = Jan 1
+        (
+            Date(2020, 3, 1),
+            Period(0, -2, 0),
+            Date(2020, 1, 1),
+        ),  # Mar 1 - 2 months = Jan 1
+        (
+            Date(2020, 3, 1),
+            Period(-1, 0, 0),
+            Date(2019, 3, 1),
+        ),  # Mar 1 - 1 year = Mar 1 prev year
         (
             Date(2020, 3, 1),
             Period(-1, 0, 0),
@@ -445,6 +476,15 @@ def python_date_plus(base: Date, per: Period) -> Date:
     return Date.from_python_date(py_res)
 
 
+def _solve_single_add(solver_cls, base: Date, per: Period) -> dict:
+    s = solver_cls()
+    x = s.add_date_var("x")
+    y = s.add_date_var("y")
+    s.add_constraint(x == base)
+    s.add_constraint(y == x + per)
+    return s.solve()
+
+
 @pytest.mark.parametrize(
     "base,per,expect",
     [
@@ -469,12 +509,7 @@ def test_python_output_equals_ground_truth(base: Date, per: Period, expect: Date
 )
 @pytest.mark.baseline
 def test_baseline_equals_ground_truth(base: Date, per: Period, expect: Date):
-    sb = BaselineSolver()
-    xb = sb.add_date_var("x")
-    yb = sb.add_date_var("y")
-    sb.add_constraint(xb == base)
-    sb.add_constraint(yb == xb + per)
-    rb = sb.solve()
+    rb = _solve_single_add(BaselineSolver, base, per)
     assert rb["status"] == "sat"
     got_b = rb["dates"]["y"]
     assert got_b == expect, f"Baseline: {base} + {per} -> {got_b}, expected {expect}"
@@ -489,12 +524,7 @@ def test_baseline_equals_ground_truth(base: Date, per: Period, expect: Date):
 )
 @pytest.mark.epoch_days
 def test_epoch_days_equals_ground_truth(base: Date, per: Period, expect: Date):
-    sa = EpochDaysSolver()
-    xa = sa.add_date_var("x")
-    ya = sa.add_date_var("y")
-    sa.add_constraint(xa == base)
-    sa.add_constraint(ya == xa + per)
-    ra = sa.solve()
+    ra = _solve_single_add(EpochDaysSolver, base, per)
     assert ra["status"] == "sat"
     got_a = ra["dates"]["y"]
     assert got_a == expect, f"Epoch_days: {base} + {per} -> {got_a}, expected {expect}"
@@ -509,12 +539,7 @@ def test_epoch_days_equals_ground_truth(base: Date, per: Period, expect: Date):
 )
 @pytest.mark.hybrid
 def test_hybrid_equals_ground_truth(base: Date, per: Period, expect: Date):
-    sh = HybridDateSolver()
-    xh = sh.add_date_var("x")
-    yh = sh.add_date_var("y")
-    sh.add_constraint(xh == base)
-    sh.add_constraint(yh == xh + per)
-    rh = sh.solve()
+    rh = _solve_single_add(HybridDateSolver, base, per)
     assert rh["status"] == "sat"
     got_h = rh["dates"]["y"]
     assert got_h == expect, f"Hybrid: {base} + {per} -> {got_h}, expected {expect}"
@@ -529,12 +554,7 @@ def test_hybrid_equals_ground_truth(base: Date, per: Period, expect: Date):
 )
 @pytest.mark.alpha_beta
 def test_alpha_beta_equals_ground_truth(base: Date, per: Period, expect: Date):
-    sa = AlphaBetaSolver()
-    xa = sa.add_date_var("x")
-    ya = sa.add_date_var("y")
-    sa.add_constraint(xa == base)
-    sa.add_constraint(ya == xa + per)
-    ra = sa.solve()
+    ra = _solve_single_add(AlphaBetaSolver, base, per)
     assert ra["status"] == "sat"
     got_a = ra["dates"]["y"]
     assert got_a == expect, f"Alpha_beta: {base} + {per} -> {got_a}, expected {expect}"
@@ -549,12 +569,7 @@ def test_alpha_beta_equals_ground_truth(base: Date, per: Period, expect: Date):
 )
 @pytest.mark.alpha_beta_table
 def test_alpha_beta_table_equals_ground_truth(base: Date, per: Period, expect: Date):
-    sa = AlphaBetaTableSolver()
-    xa = sa.add_date_var("x")
-    ya = sa.add_date_var("y")
-    sa.add_constraint(xa == base)
-    sa.add_constraint(ya == xa + per)
-    ra = sa.solve()
+    ra = _solve_single_add(AlphaBetaTableSolver, base, per)
     assert ra["status"] == "sat"
     got_a = ra["dates"]["y"]
     assert (
