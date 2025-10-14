@@ -12,7 +12,8 @@ SITE_DIR = Path(
     os.environ.get("COVERAGE_SITE_DIR", REPO_ROOT / "documentation" / "coverage")
 )
 DOCS_DIR = SITE_DIR if SITE_DIR.is_absolute() else REPO_ROOT / SITE_DIR
-HTML_DIR = DOCS_DIR / "coverage_html"
+# Write coverage HTML directly to the site root so index.html is the detailed report
+HTML_DIR = DOCS_DIR
 XML_PATH = DOCS_DIR / "coverage.xml"
 INDEX_HTML = DOCS_DIR / "index.html"
 BADGE_SVG = DOCS_DIR / "badge.svg"
@@ -170,31 +171,25 @@ def fmt_pct(x: float) -> str:
     return f"{x*100:.0f}%" if x is not None else "-"
 
 
-def build_index_html(totals, rows) -> None:
-    # Keep the site root extremely simple: redirect to the full HTML report.
-    redirect_target = "coverage_html/index.html"
-    html = []
-    html.append("<!doctype html>")
-    html.append("<html lang='en'>")
-    html.append("<head>")
-    html.append("<meta charset='utf-8'>")
-    html.append("<meta http-equiv='refresh' content='0; url=coverage_html/index.html'>")
-    html.append(f"<link rel='canonical' href='{redirect_target}'>")
-    html.append("<title>DATE-SMT Coverage</title>")
-    html.append(
-        "<style>body{font-family:Arial,Helvetica,sans-serif;margin:24px}.small{color:#666;font-size:12px}</style>"
-    )
-    html.append("</head>")
-    html.append("<body>")
-    html.append(
-        "<p>Redirecting to the detailed coverage report… If you are not redirected automatically, <a href='coverage_html/index.html'>click here</a>.</p>"
-    )
-    html.append("<p class='small'>Created with coverage.py and pytest-cov.</p>")
-    html.append("</body>")
-    html.append("</html>")
+def _extract_percent_from_html(html_index: Path):
+    """
+    Parse the numeric percent from coverage.py's HTML index header to ensure
+    the badge matches the displayed value exactly. Returns an int percent or None.
+    """
+    try:
+        text = (html_index).read_text(encoding="utf-8", errors="ignore")
+    except Exception:
+        return None
+    import re
 
-    INDEX_HTML.write_text("\n".join(html), encoding="utf-8")
-    print(f"Wrote {INDEX_HTML} (redirect)")
+    # Matches "Coverage Report:61.5%" or "Coverage Report: 61.5%"
+    m = re.search(r"Coverage Report\s*:\s*([0-9]+(?:\.[0-9]+)?)%", text)
+    if not m:
+        return None
+    try:
+        return int(round(float(m.group(1))))
+    except Exception:
+        return None
 
 
 def build_badge_svg(totals) -> None:
@@ -202,10 +197,14 @@ def build_badge_svg(totals) -> None:
     Create a simple Shields-style SVG badge summarizing total statement coverage.
     The badge is written to BADGE_SVG and published with the site.
     """
-    # coverage_html header shows statement coverage; our XML line-rate also
-    # represents statement coverage for Python, so keep them aligned.
-    statement_rate = totals.get("line_rate") or 0.0
-    pct_int = int(round(statement_rate * 100))
+    # Try to read the exact percent shown by the HTML report header first.
+    pct_from_html = _extract_percent_from_html(HTML_DIR / "index.html")
+    if pct_from_html is not None:
+        pct_int = pct_from_html
+    else:
+        # Fallback to XML line-rate (statement coverage)
+        statement_rate = totals.get("line_rate") or 0.0
+        pct_int = int(round(statement_rate * 100))
     value_text = f"{pct_int}%"
 
     # Pick a color similar to Shields.io thresholds
@@ -268,7 +267,6 @@ def main() -> int:
     except FileNotFoundError as exc:
         print(str(exc))
         return 1
-    build_index_html(totals, rows)
     build_badge_svg(totals)
     return 0
 
