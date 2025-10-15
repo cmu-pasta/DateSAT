@@ -20,9 +20,9 @@ from typing import Any, Dict, List, Tuple
 
 import pytest
 
-from datesmt_int.core import Date, Period
-from datesmt_int.symbolic_baseline import BaselineSolver
-from datesmt_int.symbolic_epoch_days import (
+from datesmt.core import Date, Period
+from datesmt.symbolic_int.baseline_int import BaselineSolver
+from datesmt.symbolic_int.epoch_days_int import (
     EpochDaysSolver,
     from_days_since_epoch,
     to_days_since_epoch,

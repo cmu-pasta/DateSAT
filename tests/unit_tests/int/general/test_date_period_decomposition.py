@@ -3,12 +3,12 @@ from itertools import permutations
 import pytest
 from dateutil.relativedelta import relativedelta
 
-from datesmt_int.core import Date, Period
-from datesmt_int.symbolic_alpha_beta import AlphaBetaSolver
-from datesmt_int.symbolic_alpha_beta_table import AlphaBetaTableSolver
-from datesmt_int.symbolic_baseline import BaselineSolver
-from datesmt_int.symbolic_epoch_days import EpochDaysSolver
-from datesmt_int.symbolic_hybrid import HybridSolver
+from datesmt.core import Date, Period
+from datesmt.symbolic_int.alpha_beta_int import AlphaBetaSolver
+from datesmt.symbolic_int.alpha_beta_table_int import AlphaBetaTableSolver
+from datesmt.symbolic_int.baseline_int import BaselineSolver
+from datesmt.symbolic_int.epoch_days_int import EpochDaysSolver
+from datesmt.symbolic_int.hybrid_int import HybridSolver
 
 
 def get_period_arithmetic_test_cases():

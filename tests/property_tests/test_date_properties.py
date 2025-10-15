@@ -11,7 +11,7 @@ import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
-from datesmt_int.core import Date
+from datesmt.core import Date
 
 
 class TestDateProperties:

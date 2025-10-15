@@ -1,17 +1,13 @@
 """
-Epoch_days DATE-SMT implementation using epoch-based conversion.
+Alpha-beta DATE-SMT implementation using epoch-based conversion.
 
-This module implements the epoch_days approach where dates are represented
-as days since an epoch, and period arithmetic is done using approximate
-day conversions.
+This module implements the alpha-beta approach where dates are represented
+as (months, days) since an epoch.
 """
 
-from datetime import date, timedelta
 from typing import Union
 
 from z3 import (
-    UGE,
-    ULT,
     And,
     BitVec,
     BitVecVal,
@@ -26,33 +22,7 @@ from z3 import (
     unsat,
 )
 
-from .core import Date, Period
-
-
-def from_days_since_epoch(days: int) -> Date:
-    """Convert days since epoch to a Date using a more robust approach."""
-    # March 1, 2000 is day 0
-    # Convert our epoch to Python date
-    epoch_python = date(2000, 3, 1)
-
-    # Add the days
-    result_python = epoch_python + timedelta(days=days)
-
-    # Convert back to our Date class
-    return Date(result_python.year, result_python.month, result_python.day)
-
-
-def to_days_since_epoch(date_obj: Date) -> int:
-    """Convert a Date to days since epoch (March 1, 2000) using a more robust approach."""
-    # March 1, 2000 is day 0
-    # Convert to Python dates
-    epoch_python = date(2000, 3, 1)
-    target_python = date(date_obj.year, date_obj.month, date_obj.day)
-
-    # Calculate the difference
-    delta = target_python - epoch_python
-    return delta.days
-
+from ..core import Date, Period
 
 # -------------------------------
 # Z3-pure calendar helpers
@@ -71,28 +41,6 @@ def days_in_month(y, m):
         If(is_leap_year(y), BitVecVal(29, 32), BitVecVal(28, 32)),
         If(Or(m == 4, m == 6, m == 9, m == 11), BitVecVal(30, 32), BitVecVal(31, 32)),
     )
-
-
-def normalize_month(y, m):
-    """Z3-pure month normalization (1..12) with proper handling of negative values."""
-    # Check if m is negative (>= 2^31) when interpreted as signed
-    is_negative = UGE(m, BitVecVal(2**31, 32))
-
-    # Convert to signed value if negative
-    signed_m = If(is_negative, m - BitVecVal(2**32, 32), m)
-
-    # Normalize using signed arithmetic with floor division
-    t = signed_m - BitVecVal(1, 32)
-
-    # Implement floor division: if t < 0 and t % 12 != 0, subtract 1 from quotient
-    q_trunc = t / BitVecVal(12, 32)  # Truncating division
-    r = t % BitVecVal(12, 32)  # Modulo
-    is_negative_and_has_remainder = And(
-        UGE(t, BitVecVal(2**31, 32)), r != BitVecVal(0, 32)
-    )
-    q = If(is_negative_and_has_remainder, q_trunc - BitVecVal(1, 32), q_trunc)
-
-    return y + q, r + BitVecVal(1, 32)
 
 
 # -------------------------------
@@ -193,6 +141,34 @@ def days_since_epoch_from_ymd(y, m, d):
     return to_ordinal(y, m, d) - _ORD_EPOCH
 
 
+# -------------------------------
+# Alpha (months-since-epoch) helpers
+# Epoch month: 2000-03 (alpha = 0)
+# alpha = 12*y + m - (12*2000 + 3)
+# Inverse: let k = alpha + (12*2000 + 3), then
+#   y = (k - 1) / 12
+#   m = k - 12*y
+# -------------------------------
+# Python int epoch constants (for arithmetic outside Z3)
+EPOCH_YEAR = 2000
+EPOCH_MONTH = 3
+# Z3 epoch constants
+_EPOCH_LINEAR = EPOCH_YEAR * 12 + EPOCH_MONTH  # 12*2000 + 3
+
+
+def _months_since_epoch_from_ym(y, m):
+    """Z3-pure: compute months-since-epoch (alpha) from year/month."""
+    return (y * 12 + m) - _EPOCH_LINEAR
+
+
+def ym_from_months_since_epoch(alpha):
+    """Z3-pure inverse: decode (year, month) from alpha months-since-epoch."""
+    k = alpha + _EPOCH_LINEAR
+    y = (k - BitVecVal(1, 32)) / 12
+    m = k - y * 12
+    return y, m
+
+
 # Baseline-compatible helper alias
 def EOMClamp(y, m, d):
     """Z3-pure end-of-month clamping."""
@@ -201,35 +177,6 @@ def EOMClamp(y, m, d):
 
 
 FOUR_HUNDRED_YEARS = BitVecVal(146097, 32)  # 400*365 + 97 leap days
-
-
-# Original implementation with 400-year cycle reduction (commented out):
-'''
-def add_days_ordinal(y, m, d, delta_days):
-    d0 = EOMClamp(y, m, d)
-
-    # Fast path: no day shift → avoid any ordinal math.
-    no_shift = (delta_days == BitVecVal(0, 32))
-    y_ns, m_ns, d_ns = y, m, d0
-
-    # Reduce by 400-year eras to keep terms small
-    q = delta_days / FOUR_HUNDRED_YEARS
-    r = delta_days % FOUR_HUNDRED_YEARS
-
-    # Shift whole eras in the year; month/day unchanged for this step
-    y_era = y + q * BitVecVal(400, 32)
-
-    # Now add the small remainder r via ordinal conversion
-    z   = days_since_epoch_from_ymd(y_era, m, d0)
-    z2  = z + r
-    y2, m2, d2 = ymd_from_days_since_epoch(z2)
-
-    # If delta_days == 0, return (y,m,d0); else the computed (y2,m2,d2)
-    out_y = If(no_shift, y_ns, y2)
-    out_m = If(no_shift, m_ns, m2)
-    out_d = If(no_shift, d_ns, d2)
-    return out_y, out_m, out_d
-'''
 
 
 def add_days_ordinal(y, m, d, delta_days):
@@ -258,13 +205,19 @@ def add_days_ordinal(y, m, d, delta_days):
 
 
 class DateVar:
-    """Symbolic date variable for epoch_days implementation."""
+    """Symbolic date variable using alpha-beta representation.
+
+    alpha (months_var): months since epoch month 2000-03 (March 2000 = 0)
+    beta  (beta_var):   extra days within that month (0-based), so DOM = 1+beta
+    """
 
     def __init__(self, name: str):
         """Create a symbolic date variable."""
         self.name = name
-        # Use a single Z3 bitvector variable for days since epoch
-        self.days_var = BitVec(f"{name}_days", 32)
+        # Alpha: Z3 bitvector variable for months since epoch-month
+        self.months_var = BitVec(f"{name}_months", 32)
+        # Beta: Z3 bitvector variable for extra days (0-based) within month
+        self.beta_var = BitVec(f"{name}_beta", 32)
 
     def __str__(self):
         return f"DateVar({self.name})"
@@ -273,31 +226,59 @@ class DateVar:
         return self.__str__()
 
     def to_concrete_date(self, model: ModelRef) -> Date:
-        """Convert Z3 model to concrete Date."""
-        days_bv = model.evaluate(self.days_var, model_completion=True)
+        """Convert Z3 model to concrete Date using (alpha, beta)."""
+        alpha_bv = model.evaluate(self.months_var, model_completion=True)
+        beta_bv = model.evaluate(self.beta_var, model_completion=True)
         # Use as_signed_long() to handle negative values correctly
-        days = (
-            days_bv.as_signed_long()
-            if hasattr(days_bv, 'as_signed_long')
-            else days_bv.as_long()
+        alpha_val = (
+            alpha_bv.as_signed_long()
+            if hasattr(alpha_bv, 'as_signed_long')
+            else alpha_bv.as_long()
         )
-        return from_days_since_epoch(days)
+        beta_val = beta_bv.as_long()
+        k = alpha_val + (EPOCH_YEAR * 12 + EPOCH_MONTH)
+        year = (k - 1) // 12
+        month = k - year * 12
+        day = beta_val + 1
+        return Date(year, month, day)
 
     def __ge__(self, other):
         """Support x >= date comparison."""
-        if isinstance(other, Date):
-            return self.days_var >= to_days_since_epoch(other)
-        elif isinstance(other, DateVar):
-            return self.days_var >= other.days_var
+        if isinstance(other, Date) or isinstance(other, DateVar):
+            # Convert Date to bitvector values if needed
+            if isinstance(other, Date):
+                alpha_o = _months_since_epoch_from_ym(
+                    BitVecVal(other.year, 32), BitVecVal(other.month, 32)
+                )
+                beta_o = BitVecVal(other.day - 1, 32)
+            else:  # isinstance(other, DateVar)
+                alpha_o = other.months_var
+                beta_o = other.beta_var
+
+            return Or(
+                self.months_var > alpha_o,
+                And(self.months_var == alpha_o, self.beta_var >= beta_o),
+            )
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
     def __le__(self, other):
         """Support x <= date comparison."""
-        if isinstance(other, Date):
-            return self.days_var <= to_days_since_epoch(other)
-        elif isinstance(other, DateVar):
-            return self.days_var <= other.days_var
+        if isinstance(other, Date) or isinstance(other, DateVar):
+            # Convert Date to bitvector values if needed
+            if isinstance(other, Date):
+                alpha_o = _months_since_epoch_from_ym(
+                    BitVecVal(other.year, 32), BitVecVal(other.month, 32)
+                )
+                beta_o = BitVecVal(other.day - 1, 32)
+            else:  # isinstance(other, DateVar)
+                alpha_o = other.months_var
+                beta_o = other.beta_var
+
+            return Or(
+                self.months_var < alpha_o,
+                And(self.months_var == alpha_o, self.beta_var <= beta_o),
+            )
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
@@ -317,10 +298,18 @@ class DateVar:
 
     def __eq__(self, other):
         """Support x == date comparison."""
-        if isinstance(other, Date):
-            return self.days_var == to_days_since_epoch(other)
-        elif isinstance(other, DateVar):
-            return self.days_var == other.days_var
+        if isinstance(other, Date) or isinstance(other, DateVar):
+            # Convert Date to bitvector values if needed
+            if isinstance(other, Date):
+                alpha_o = _months_since_epoch_from_ym(
+                    BitVecVal(other.year, 32), BitVecVal(other.month, 32)
+                )
+                beta_o = BitVecVal(other.day - 1, 32)
+            else:  # isinstance(other, DateVar)
+                alpha_o = other.months_var
+                beta_o = other.beta_var
+
+            return And(self.months_var == alpha_o, self.beta_var == beta_o)
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
@@ -329,45 +318,42 @@ class DateVar:
         return Not(self.__eq__(other))
 
     def __add__(self, other):
-        """DateVar + Period/PeriodVar following baseline semantics.
-        Steps: normalize Y/M, EOM clamp, then add D days in ordinal space.
+        """DateVar + Period/PeriodVar using alpha for Y/M and beta for D.
+        Steps:
+          - If constant days-only period, shift beta only.
+          - Otherwise add months to alpha, clamp EOM using current day,
+            then add days in ordinal space and re-sync alpha/beta.
         """
         if isinstance(other, Period) or isinstance(other, PeriodVar):
             if isinstance(other, Period):
+                # Constant period
                 result = DateVar(
                     f"{self.name}_plus_{other.years}y_{other.months}m_{other.days}d"
                 )
-                oy, om, od = (
-                    BitVecVal(other.years, 32),
-                    BitVecVal(other.months, 32),
-                    BitVecVal(other.days, 32),
-                )
+                months_delta = BitVecVal(other.years * 12 + other.months, 32)
+                days_delta = BitVecVal(other.days, 32)
             else:
+                # Symbolic period
                 result = DateVar(f"{self.name}_plus_{other.name}")
-                oy, om, od = other.years, other.months, other.days
+                months_delta = other.years * 12 + other.months
+                days_delta = other.days
 
-            # Fast-path: only days component
-            if oy == 0 and om == 0:
-                result.days_var = self.days_var + BitVecVal(od, 32)
-                return result
+            # Decode current (y,m,d) from (alpha,beta)
+            y0, m0 = ym_from_months_since_epoch(self.months_var)
+            d0 = self.beta_var + BitVecVal(1, 32)
 
-            # Decode current date to Y/M/D
-            y0, m0, d0 = ymd_from_days_since_epoch(self.days_var)
+            # Step 1: shift alpha by months
+            alpha1 = self.months_var + months_delta
+            y1, m1 = ym_from_months_since_epoch(alpha1)
 
-            # Step 1: Combine Y and M with normalization (carry years)
-            period_total_months = oy * BitVecVal(12, 32) + om
-            total_months = m0 + period_total_months
-            year_carry, m1 = normalize_month(BitVecVal(0, 32), total_months)
-            y1 = y0 + year_carry
-
-            # Step 2: EOM clamp
+            # Step 2: EOM clamp with current DOM
             d1 = EOMClamp(y1, m1, d0)
 
-            # Step 3: add D days in ordinal space
-            y2, m2, d2 = add_days_ordinal(y1, m1, d1, od)
+            # Step 3: add D days in ordinal space and resync alpha/beta
+            y2, m2, d2 = add_days_ordinal(y1, m1, d1, days_delta)
 
-            # Encode back to days-since-epoch
-            result.days_var = days_since_epoch_from_ymd(y2, m2, d2)
+            result.months_var = _months_since_epoch_from_ym(y2, m2)
+            result.beta_var = d2 - BitVecVal(1, 32)
             return result
         else:
             raise TypeError(f"Cannot add {type(other)} to DateVar")
@@ -467,8 +453,8 @@ class PeriodVar:
             raise TypeError(f"Cannot subtract {type(other)} from PeriodVar")
 
 
-class EpochDaysSolver:
-    """Epoch_days date constraint solver using epoch-based conversion."""
+class AlphaBetaSolver:
+    """Alpha-beta date constraint solver using epoch-based conversion."""
 
     def __init__(self, timeout_ms=60000):
         """Initialize the solver with timeout.
@@ -488,12 +474,22 @@ class EpochDaysSolver:
         date_var = DateVar(name)
         self.date_vars[name] = date_var
 
-        # Add constraints for valid date ranges [1900-03-01 to 2100-02-28]
-        # Epoch is March 1, 2000
-        # 1900-03-01 to 2000-03-01
-        # 2000-03-01 to 2100-02-28
-        self.solver.add(date_var.days_var >= BitVecVal(-36525, 32))  # 1900-03-01
-        self.solver.add(date_var.days_var <= BitVecVal(36523, 32))  # 2100-02-28
+        # Alpha bounds: months since 2000-03
+        # 1900-03 => (1900-2000)*12 + (3-3)
+        # 2100-02 => (2100-2000)*12 + (2-3)
+        self.solver.add(
+            date_var.months_var
+            >= BitVecVal((1900 - EPOCH_YEAR) * 12 + (3 - EPOCH_MONTH), 32)
+        )
+        self.solver.add(
+            date_var.months_var
+            <= BitVecVal((2100 - EPOCH_YEAR) * 12 + (2 - EPOCH_MONTH), 32)
+        )
+
+        # Beta bounds depend on month length: 0 <= beta < days_in_month(y,m)
+        y, m = ym_from_months_since_epoch(date_var.months_var)
+        self.solver.add(date_var.beta_var >= BitVecVal(0, 32))
+        self.solver.add(date_var.beta_var < days_in_month(y, m))
 
         return date_var
 

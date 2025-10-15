@@ -7,7 +7,7 @@ immutability, and property-based sanity checks.
 
 import pytest
 
-from datesmt_int.core import Period
+from datesmt.core import Period
 
 # --------------------------------------------------------------------
 # Constructor & basic value semantics

@@ -10,8 +10,10 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from datesmt_int.core import Date, Period  # noqa: E402
-from datesmt_int.symbolic_api import DateSMTBuilder as _UnifiedBuilder  # noqa: E402
+from datesmt.core import Date, Period  # noqa: E402
+from datesmt.symbolic_int.symbolic_api import (  # noqa: E402
+    DateSMTBuilder as _UnifiedBuilder,
+)
 
 # --------------------------
 # Parsing helpers
@@ -80,7 +82,7 @@ def _try_import_builders() -> List[Tuple[BuilderType, bool]]:
     candidates: List[Tuple[BuilderType, bool]] = []
     # Try constraints module
     try:
-        from datesmt_int.integration import constraints as _C  # type: ignore
+        from datesmt.symbolic_int.integration import constraints as _C  # type: ignore
 
         if hasattr(_C, "build_constraint"):
             # Two signatures are supported; we’ll try both, gated by needs_approach flag
@@ -90,7 +92,7 @@ def _try_import_builders() -> List[Tuple[BuilderType, bool]]:
         pass
     # Try registry module
     try:
-        from datesmt_int.integration import registry as _R  # type: ignore
+        from datesmt.symbolic_int.integration import registry as _R  # type: ignore
 
         if hasattr(_R, "build_constraint"):
             candidates.append((_R.build_constraint, False))

@@ -1,7 +1,7 @@
 """
 Unified API for DATE-SMT constraint solving.
 
-This module provides a unified interface for both baseline and epoch_days
+This module provides a unified interface for both bitvector and integer
 approaches to DATE-SMT constraint solving.
 """
 
@@ -10,24 +10,47 @@ from typing import Any, Dict, List, Union
 from z3 import BoolRef
 
 from .core import Date, Period
-from .symbolic_alpha_beta import AlphaBetaSolver
-from .symbolic_alpha_beta_table import AlphaBetaTableSolver
-from .symbolic_baseline import BaselineSolver
-from .symbolic_epoch_days import EpochDaysSolver
-from .symbolic_hybrid import HybridSolver
 
 
 class DateSMTBuilder:
     """Unified API for DATE-SMT constraint solving."""
 
-    def __init__(self, approach: str = "epoch_days", timeout_ms: int = 60000):
-        """Initialize the builder with the specified approach and timeout.
+    def __init__(
+        self,
+        approach: str = "epoch_days",
+        implementation: str = "int",
+        timeout_ms: int = 60000,
+    ):
+        """Initialize the builder with the specified approach, implementation, and timeout.
 
         Args:
-            approach: Either "baseline", "epoch_days", or "hybrid"
+            approach: Either "baseline", "epoch_days", "hybrid", "alpha_beta", or "alpha_beta_table"
+            implementation: Either "int" or "bitvector" (default: "int")
             timeout_ms: Timeout in milliseconds (default: 60 seconds)
         """
         self.approach = approach
+        self.implementation = implementation
+        self.timeout_ms = timeout_ms
+
+        # Import the appropriate solver based on implementation
+        if implementation == "bitvector":
+            from .symbolic_bitvector.alpha_beta_bv import AlphaBetaSolver
+            from .symbolic_bitvector.alpha_beta_table_bv import AlphaBetaTableSolver
+            from .symbolic_bitvector.baseline_bv import BaselineSolver
+            from .symbolic_bitvector.epoch_days_bv import EpochDaysSolver
+            from .symbolic_bitvector.hybrid_bv import HybridSolver
+        elif implementation == "int":
+            from .symbolic_int.alpha_beta_int import AlphaBetaSolver
+            from .symbolic_int.alpha_beta_table_int import AlphaBetaTableSolver
+            from .symbolic_int.baseline_int import BaselineSolver
+            from .symbolic_int.epoch_days_int import EpochDaysSolver
+            from .symbolic_int.hybrid_int import HybridSolver
+        else:
+            raise ValueError(
+                f"Unknown implementation: {implementation}. Must be 'int' or 'bitvector'"
+            )
+
+        # Initialize the appropriate solver
         if approach == "baseline":
             self.solver = BaselineSolver(timeout_ms=timeout_ms)
         elif approach == "epoch_days":
@@ -45,7 +68,6 @@ class DateSMTBuilder:
 
         self.constraints = []
         self._print_smt_on_solve = True
-        self.timeout_ms = timeout_ms
 
     def add_date_var(self, name: str):
         """Add a symbolic date variable."""
@@ -95,3 +117,22 @@ class DateSMTBuilder:
     def to_smt2(self) -> str:
         """Return the current solver state as SMT-LIB v2 string."""
         return self.solver.to_smt2()
+
+
+# Convenience functions for common use cases
+def create_int_solver(
+    approach: str = "epoch_days", timeout_ms: int = 60000
+) -> DateSMTBuilder:
+    """Create a solver using integer implementation."""
+    return DateSMTBuilder(
+        approach=approach, implementation="int", timeout_ms=timeout_ms
+    )
+
+
+def create_bitvector_solver(
+    approach: str = "epoch_days", timeout_ms: int = 60000
+) -> DateSMTBuilder:
+    """Create a solver using bitvector implementation."""
+    return DateSMTBuilder(
+        approach=approach, implementation="bitvector", timeout_ms=timeout_ms
+    )
