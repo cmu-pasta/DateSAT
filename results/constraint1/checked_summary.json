@@ -1,32 +1,62 @@
 {
-  "results_dir": "/Users/angelc2/Documents/GitHub/Date-SMT/results/constraint1",
+  "results_dir": "/Users/angelcui/Documents/GitHub/Date-SMT/results/constraint1",
   "constraints_checked": 10,
   "counts_by_approach": {
-    "alpha_beta": {
+    "alpha_beta_bitvector": {
       "correct": 8,
       "wrong": 0,
       "error": 2,
       "timeout": 0
     },
-    "alpha_beta_table": {
+    "alpha_beta_int": {
       "correct": 8,
       "wrong": 0,
       "error": 2,
       "timeout": 0
     },
-    "epoch_days": {
+    "alpha_beta_table_bitvector": {
       "correct": 8,
       "wrong": 0,
       "error": 2,
       "timeout": 0
     },
-    "baseline": {
+    "alpha_beta_table_int": {
       "correct": 8,
       "wrong": 0,
       "error": 2,
       "timeout": 0
     },
-    "hybrid": {
+    "baseline_bitvector": {
+      "correct": 8,
+      "wrong": 0,
+      "error": 2,
+      "timeout": 0
+    },
+    "baseline_int": {
+      "correct": 8,
+      "wrong": 0,
+      "error": 2,
+      "timeout": 0
+    },
+    "epoch_days_bitvector": {
+      "correct": 8,
+      "wrong": 0,
+      "error": 2,
+      "timeout": 0
+    },
+    "epoch_days_int": {
+      "correct": 8,
+      "wrong": 0,
+      "error": 2,
+      "timeout": 0
+    },
+    "hybrid_bitvector": {
+      "correct": 8,
+      "wrong": 0,
+      "error": 2,
+      "timeout": 0
+    },
+    "hybrid_int": {
       "correct": 8,
       "wrong": 0,
       "error": 2,
@@ -38,44 +68,84 @@
       "constraint_id": "1758086606-1",
       "description": "Check if a date is February 29 in a leap year",
       "approach_statuses": {
-        "alpha_beta": "sat",
-        "alpha_beta_table": "sat",
-        "epoch_days": "sat",
-        "baseline": "sat",
-        "hybrid": "sat"
+        "alpha_beta_bitvector": "sat",
+        "alpha_beta_int": "sat",
+        "alpha_beta_table_bitvector": "sat",
+        "alpha_beta_table_int": "sat",
+        "baseline_bitvector": "sat",
+        "baseline_int": "sat",
+        "epoch_days_bitvector": "sat",
+        "epoch_days_int": "sat",
+        "hybrid_bitvector": "sat",
+        "hybrid_int": "sat"
       },
       "sat_validation": {
-        "alpha_beta": {
+        "alpha_beta_bitvector": {
           "valid": true,
-          "message": "model satisfies assertions",
+          "message": "Solution validated successfully with concrete implementation",
           "solution": {
             "x": "Date(2000, 2, 29)"
           }
         },
-        "alpha_beta_table": {
+        "alpha_beta_int": {
           "valid": true,
-          "message": "model satisfies assertions",
+          "message": "Solution validated successfully with concrete implementation",
           "solution": {
             "x": "Date(2000, 2, 29)"
           }
         },
-        "epoch_days": {
+        "alpha_beta_table_bitvector": {
           "valid": true,
-          "message": "model satisfies assertions",
+          "message": "Solution validated successfully with concrete implementation",
           "solution": {
             "x": "Date(2000, 2, 29)"
           }
         },
-        "baseline": {
+        "alpha_beta_table_int": {
           "valid": true,
-          "message": "model satisfies assertions",
+          "message": "Solution validated successfully with concrete implementation",
           "solution": {
             "x": "Date(2000, 2, 29)"
           }
         },
-        "hybrid": {
+        "baseline_bitvector": {
           "valid": true,
-          "message": "model satisfies assertions",
+          "message": "Solution validated successfully with concrete implementation",
+          "solution": {
+            "x": "Date(2000, 2, 29)"
+          }
+        },
+        "baseline_int": {
+          "valid": true,
+          "message": "Solution validated successfully with concrete implementation",
+          "solution": {
+            "x": "Date(2000, 2, 29)"
+          }
+        },
+        "epoch_days_bitvector": {
+          "valid": true,
+          "message": "Solution validated successfully with concrete implementation",
+          "solution": {
+            "x": "Date(2000, 2, 29)"
+          }
+        },
+        "epoch_days_int": {
+          "valid": true,
+          "message": "Solution validated successfully with concrete implementation",
+          "solution": {
+            "x": "Date(2000, 2, 29)"
+          }
+        },
+        "hybrid_bitvector": {
+          "valid": true,
+          "message": "Solution validated successfully with concrete implementation",
+          "solution": {
+            "x": "Date(2000, 2, 29)"
+          }
+        },
+        "hybrid_int": {
+          "valid": true,
+          "message": "Solution validated successfully with concrete implementation",
           "solution": {
             "x": "Date(2000, 2, 29)"
           }
@@ -83,11 +153,16 @@
       },
       "unsat_consensus": false,
       "verdicts_by_approach": {
-        "alpha_beta": "correct",
-        "alpha_beta_table": "correct",
-        "epoch_days": "correct",
-        "baseline": "correct",
-        "hybrid": "correct"
+        "alpha_beta_bitvector": "correct",
+        "alpha_beta_int": "correct",
+        "alpha_beta_table_bitvector": "correct",
+        "alpha_beta_table_int": "correct",
+        "baseline_bitvector": "correct",
+        "baseline_int": "correct",
+        "epoch_days_bitvector": "correct",
+        "epoch_days_int": "correct",
+        "hybrid_bitvector": "correct",
+        "hybrid_int": "correct"
       },
       "wrong_approaches": [],
       "might_correct_approaches": []
@@ -96,58 +171,105 @@
       "constraint_id": "1758086606-10",
       "description": "Find dates where adding 2 months equals adding 61 days",
       "approach_statuses": {
-        "alpha_beta": "sat",
-        "alpha_beta_table": "sat",
-        "epoch_days": "sat",
-        "baseline": "sat",
-        "hybrid": "sat"
+        "alpha_beta_bitvector": "sat",
+        "alpha_beta_int": "sat",
+        "alpha_beta_table_bitvector": "sat",
+        "alpha_beta_table_int": "sat",
+        "baseline_bitvector": "sat",
+        "baseline_int": "sat",
+        "epoch_days_bitvector": "sat",
+        "epoch_days_int": "sat",
+        "hybrid_bitvector": "sat",
+        "hybrid_int": "sat"
       },
       "sat_validation": {
-        "alpha_beta": {
+        "alpha_beta_bitvector": {
           "valid": true,
-          "message": "model satisfies assertions",
+          "message": "Solution validated successfully with concrete implementation",
+          "solution": {
+            "x": "Date(2023, 6, 29)"
+          }
+        },
+        "alpha_beta_int": {
+          "valid": true,
+          "message": "Solution validated successfully with concrete implementation",
+          "solution": {
+            "x": "Date(2023, 9, 30)"
+          }
+        },
+        "alpha_beta_table_bitvector": {
+          "valid": true,
+          "message": "Solution validated successfully with concrete implementation",
+          "solution": {
+            "x": "Date(2023, 4, 11)"
+          }
+        },
+        "alpha_beta_table_int": {
+          "valid": true,
+          "message": "Solution validated successfully with concrete implementation",
+          "solution": {
+            "x": "Date(2023, 11, 1)"
+          }
+        },
+        "baseline_bitvector": {
+          "valid": true,
+          "message": "Solution validated successfully with concrete implementation",
+          "solution": {
+            "x": "Date(2023, 4, 24)"
+          }
+        },
+        "baseline_int": {
+          "valid": true,
+          "message": "Solution validated successfully with concrete implementation",
+          "solution": {
+            "x": "Date(2023, 4, 30)"
+          }
+        },
+        "epoch_days_bitvector": {
+          "valid": true,
+          "message": "Solution validated successfully with concrete implementation",
           "solution": {
             "x": "Date(2023, 12, 30)"
           }
         },
-        "alpha_beta_table": {
+        "epoch_days_int": {
           "valid": true,
-          "message": "model satisfies assertions",
+          "message": "Solution validated successfully with concrete implementation",
           "solution": {
-            "x": "Date(2023, 12, 30)"
+            "x": "Date(2023, 10, 3)"
           }
         },
-        "epoch_days": {
+        "hybrid_bitvector": {
           "valid": true,
-          "message": "model satisfies assertions",
+          "message": "Solution validated successfully with concrete implementation",
           "solution": {
-            "x": "Date(2023, 12, 30)"
+            "x": "Date(2023, 10, 24)",
+            "x_plus": "Date(2023, 12, 24)",
+            "x_plus_1": "Date(2023, 12, 24)"
           }
         },
-        "baseline": {
+        "hybrid_int": {
           "valid": true,
-          "message": "model satisfies assertions",
+          "message": "Solution validated successfully with concrete implementation",
           "solution": {
-            "x": "Date(2023, 11, 30)"
-          }
-        },
-        "hybrid": {
-          "valid": true,
-          "message": "model satisfies assertions",
-          "solution": {
-            "x": "Date(2023, 12, 30)",
-            "x_plus": "Date(2024, 2, 29)",
-            "x_plus_1": "Date(2024, 2, 29)"
+            "x": "Date(2023, 8, 30)",
+            "x_plus": "Date(2023, 10, 30)",
+            "x_plus_1": "Date(2023, 10, 30)"
           }
         }
       },
       "unsat_consensus": false,
       "verdicts_by_approach": {
-        "alpha_beta": "correct",
-        "alpha_beta_table": "correct",
-        "epoch_days": "correct",
-        "baseline": "correct",
-        "hybrid": "correct"
+        "alpha_beta_bitvector": "correct",
+        "alpha_beta_int": "correct",
+        "alpha_beta_table_bitvector": "correct",
+        "alpha_beta_table_int": "correct",
+        "baseline_bitvector": "correct",
+        "baseline_int": "correct",
+        "epoch_days_bitvector": "correct",
+        "epoch_days_int": "correct",
+        "hybrid_bitvector": "correct",
+        "hybrid_int": "correct"
       },
       "wrong_approaches": [],
       "might_correct_approaches": []
@@ -156,44 +278,86 @@
       "constraint_id": "1758086606-2",
       "description": "Adding 1 month vs adding 30 days can produce different results at month boundaries",
       "approach_statuses": {
-        "alpha_beta": "sat",
-        "alpha_beta_table": "sat",
-        "epoch_days": "sat",
-        "baseline": "sat",
-        "hybrid": "sat"
+        "alpha_beta_bitvector": "sat",
+        "alpha_beta_int": "sat",
+        "alpha_beta_table_bitvector": "sat",
+        "alpha_beta_table_int": "sat",
+        "baseline_bitvector": "sat",
+        "baseline_int": "sat",
+        "epoch_days_bitvector": "sat",
+        "epoch_days_int": "sat",
+        "hybrid_bitvector": "sat",
+        "hybrid_int": "sat"
       },
       "sat_validation": {
-        "alpha_beta": {
+        "alpha_beta_bitvector": {
           "valid": true,
-          "message": "model satisfies assertions",
+          "message": "Solution validated successfully with concrete implementation",
           "solution": {
-            "x": "Date(2023, 1, 30)"
+            "x": "Date(2023, 1, 9)"
           }
         },
-        "alpha_beta_table": {
+        "alpha_beta_int": {
           "valid": true,
-          "message": "model satisfies assertions",
+          "message": "Solution validated successfully with concrete implementation",
           "solution": {
-            "x": "Date(2023, 1, 30)"
+            "x": "Date(2023, 1, 1)"
           }
         },
-        "epoch_days": {
+        "alpha_beta_table_bitvector": {
           "valid": true,
-          "message": "model satisfies assertions",
+          "message": "Solution validated successfully with concrete implementation",
           "solution": {
-            "x": "Date(2023, 1, 28)"
+            "x": "Date(2023, 1, 22)"
           }
         },
-        "baseline": {
+        "alpha_beta_table_int": {
           "valid": true,
-          "message": "model satisfies assertions",
+          "message": "Solution validated successfully with concrete implementation",
           "solution": {
             "x": "Date(2023, 1, 31)"
           }
         },
-        "hybrid": {
+        "baseline_bitvector": {
           "valid": true,
-          "message": "model satisfies assertions",
+          "message": "Solution validated successfully with concrete implementation",
+          "solution": {
+            "x": "Date(2023, 1, 1)"
+          }
+        },
+        "baseline_int": {
+          "valid": true,
+          "message": "Solution validated successfully with concrete implementation",
+          "solution": {
+            "x": "Date(2023, 1, 2)"
+          }
+        },
+        "epoch_days_bitvector": {
+          "valid": true,
+          "message": "Solution validated successfully with concrete implementation",
+          "solution": {
+            "x": "Date(2023, 1, 28)"
+          }
+        },
+        "epoch_days_int": {
+          "valid": true,
+          "message": "Solution validated successfully with concrete implementation",
+          "solution": {
+            "x": "Date(2023, 1, 28)"
+          }
+        },
+        "hybrid_bitvector": {
+          "valid": true,
+          "message": "Solution validated successfully with concrete implementation",
+          "solution": {
+            "x": "Date(2023, 1, 13)",
+            "x_plus": "Date(2023, 2, 13)",
+            "x_plus_1": "Date(2023, 2, 12)"
+          }
+        },
+        "hybrid_int": {
+          "valid": true,
+          "message": "Solution validated successfully with concrete implementation",
           "solution": {
             "x": "Date(2023, 1, 1)",
             "x_plus": "Date(2023, 2, 1)",
@@ -203,11 +367,16 @@
       },
       "unsat_consensus": false,
       "verdicts_by_approach": {
-        "alpha_beta": "correct",
-        "alpha_beta_table": "correct",
-        "epoch_days": "correct",
-        "baseline": "correct",
-        "hybrid": "correct"
+        "alpha_beta_bitvector": "correct",
+        "alpha_beta_int": "correct",
+        "alpha_beta_table_bitvector": "correct",
+        "alpha_beta_table_int": "correct",
+        "baseline_bitvector": "correct",
+        "baseline_int": "correct",
+        "epoch_days_bitvector": "correct",
+        "epoch_days_int": "correct",
+        "hybrid_bitvector": "correct",
+        "hybrid_int": "correct"
       },
       "wrong_approaches": [],
       "might_correct_approaches": []
@@ -216,44 +385,86 @@
       "constraint_id": "1758086606-3",
       "description": "Adding 1 year vs 366 days differs when crossing leap year boundaries",
       "approach_statuses": {
-        "alpha_beta": "sat",
-        "alpha_beta_table": "sat",
-        "epoch_days": "sat",
-        "baseline": "sat",
-        "hybrid": "sat"
+        "alpha_beta_bitvector": "sat",
+        "alpha_beta_int": "sat",
+        "alpha_beta_table_bitvector": "sat",
+        "alpha_beta_table_int": "sat",
+        "baseline_bitvector": "sat",
+        "baseline_int": "sat",
+        "epoch_days_bitvector": "sat",
+        "epoch_days_int": "sat",
+        "hybrid_bitvector": "sat",
+        "hybrid_int": "sat"
       },
       "sat_validation": {
-        "alpha_beta": {
+        "alpha_beta_bitvector": {
           "valid": true,
-          "message": "model satisfies assertions",
+          "message": "Solution validated successfully with concrete implementation",
           "solution": {
             "x": "Date(2020, 2, 29)"
           }
         },
-        "alpha_beta_table": {
+        "alpha_beta_int": {
           "valid": true,
-          "message": "model satisfies assertions",
+          "message": "Solution validated successfully with concrete implementation",
           "solution": {
             "x": "Date(2020, 2, 29)"
           }
         },
-        "epoch_days": {
+        "alpha_beta_table_bitvector": {
           "valid": true,
-          "message": "model satisfies assertions",
+          "message": "Solution validated successfully with concrete implementation",
           "solution": {
             "x": "Date(2020, 2, 29)"
           }
         },
-        "baseline": {
+        "alpha_beta_table_int": {
           "valid": true,
-          "message": "model satisfies assertions",
+          "message": "Solution validated successfully with concrete implementation",
           "solution": {
             "x": "Date(2020, 2, 29)"
           }
         },
-        "hybrid": {
+        "baseline_bitvector": {
           "valid": true,
-          "message": "model satisfies assertions",
+          "message": "Solution validated successfully with concrete implementation",
+          "solution": {
+            "x": "Date(2020, 2, 29)"
+          }
+        },
+        "baseline_int": {
+          "valid": true,
+          "message": "Solution validated successfully with concrete implementation",
+          "solution": {
+            "x": "Date(2020, 2, 29)"
+          }
+        },
+        "epoch_days_bitvector": {
+          "valid": true,
+          "message": "Solution validated successfully with concrete implementation",
+          "solution": {
+            "x": "Date(2020, 2, 29)"
+          }
+        },
+        "epoch_days_int": {
+          "valid": true,
+          "message": "Solution validated successfully with concrete implementation",
+          "solution": {
+            "x": "Date(2020, 2, 29)"
+          }
+        },
+        "hybrid_bitvector": {
+          "valid": true,
+          "message": "Solution validated successfully with concrete implementation",
+          "solution": {
+            "x": "Date(2020, 2, 29)",
+            "x_plus": "Date(2021, 2, 28)",
+            "x_plus_1": "Date(2021, 3, 1)"
+          }
+        },
+        "hybrid_int": {
+          "valid": true,
+          "message": "Solution validated successfully with concrete implementation",
           "solution": {
             "x": "Date(2020, 2, 29)",
             "x_plus": "Date(2021, 2, 28)",
@@ -263,11 +474,16 @@
       },
       "unsat_consensus": false,
       "verdicts_by_approach": {
-        "alpha_beta": "correct",
-        "alpha_beta_table": "correct",
-        "epoch_days": "correct",
-        "baseline": "correct",
-        "hybrid": "correct"
+        "alpha_beta_bitvector": "correct",
+        "alpha_beta_int": "correct",
+        "alpha_beta_table_bitvector": "correct",
+        "alpha_beta_table_int": "correct",
+        "baseline_bitvector": "correct",
+        "baseline_int": "correct",
+        "epoch_days_bitvector": "correct",
+        "epoch_days_int": "correct",
+        "hybrid_bitvector": "correct",
+        "hybrid_int": "correct"
       },
       "wrong_approaches": [],
       "might_correct_approaches": []
@@ -276,48 +492,94 @@
       "constraint_id": "1758086606-4",
       "description": "Chain of period additions that requires normalization",
       "approach_statuses": {
-        "alpha_beta": "sat",
-        "alpha_beta_table": "sat",
-        "epoch_days": "sat",
-        "baseline": "sat",
-        "hybrid": "sat"
+        "alpha_beta_bitvector": "sat",
+        "alpha_beta_int": "sat",
+        "alpha_beta_table_bitvector": "sat",
+        "alpha_beta_table_int": "sat",
+        "baseline_bitvector": "sat",
+        "baseline_int": "sat",
+        "epoch_days_bitvector": "sat",
+        "epoch_days_int": "sat",
+        "hybrid_bitvector": "sat",
+        "hybrid_int": "sat"
       },
       "sat_validation": {
-        "alpha_beta": {
+        "alpha_beta_bitvector": {
           "valid": true,
-          "message": "model satisfies assertions",
+          "message": "Solution validated successfully with concrete implementation",
           "solution": {
             "x": "Date(2022, 1, 15)",
             "y": "Date(2023, 3, 27)"
           }
         },
-        "alpha_beta_table": {
+        "alpha_beta_int": {
           "valid": true,
-          "message": "model satisfies assertions",
+          "message": "Solution validated successfully with concrete implementation",
           "solution": {
             "x": "Date(2022, 1, 15)",
             "y": "Date(2023, 3, 27)"
           }
         },
-        "epoch_days": {
+        "alpha_beta_table_bitvector": {
           "valid": true,
-          "message": "model satisfies assertions",
+          "message": "Solution validated successfully with concrete implementation",
           "solution": {
             "x": "Date(2022, 1, 15)",
             "y": "Date(2023, 3, 27)"
           }
         },
-        "baseline": {
+        "alpha_beta_table_int": {
           "valid": true,
-          "message": "model satisfies assertions",
+          "message": "Solution validated successfully with concrete implementation",
           "solution": {
             "x": "Date(2022, 1, 15)",
             "y": "Date(2023, 3, 27)"
           }
         },
-        "hybrid": {
+        "baseline_bitvector": {
           "valid": true,
-          "message": "model satisfies assertions",
+          "message": "Solution validated successfully with concrete implementation",
+          "solution": {
+            "x": "Date(2022, 1, 15)",
+            "y": "Date(2023, 3, 27)"
+          }
+        },
+        "baseline_int": {
+          "valid": true,
+          "message": "Solution validated successfully with concrete implementation",
+          "solution": {
+            "x": "Date(2022, 1, 15)",
+            "y": "Date(2023, 3, 27)"
+          }
+        },
+        "epoch_days_bitvector": {
+          "valid": true,
+          "message": "Solution validated successfully with concrete implementation",
+          "solution": {
+            "x": "Date(2022, 1, 15)",
+            "y": "Date(2023, 3, 27)"
+          }
+        },
+        "epoch_days_int": {
+          "valid": true,
+          "message": "Solution validated successfully with concrete implementation",
+          "solution": {
+            "x": "Date(2022, 1, 15)",
+            "y": "Date(2023, 3, 27)"
+          }
+        },
+        "hybrid_bitvector": {
+          "valid": true,
+          "message": "Solution validated successfully with concrete implementation",
+          "solution": {
+            "x": "Date(2022, 1, 15)",
+            "y": "Date(2023, 3, 27)",
+            "x_plus": "Date(2023, 3, 27)"
+          }
+        },
+        "hybrid_int": {
+          "valid": true,
+          "message": "Solution validated successfully with concrete implementation",
           "solution": {
             "x": "Date(2022, 1, 15)",
             "y": "Date(2023, 3, 27)",
@@ -327,11 +589,16 @@
       },
       "unsat_consensus": false,
       "verdicts_by_approach": {
-        "alpha_beta": "correct",
-        "alpha_beta_table": "correct",
-        "epoch_days": "correct",
-        "baseline": "correct",
-        "hybrid": "correct"
+        "alpha_beta_bitvector": "correct",
+        "alpha_beta_int": "correct",
+        "alpha_beta_table_bitvector": "correct",
+        "alpha_beta_table_int": "correct",
+        "baseline_bitvector": "correct",
+        "baseline_int": "correct",
+        "epoch_days_bitvector": "correct",
+        "epoch_days_int": "correct",
+        "hybrid_bitvector": "correct",
+        "hybrid_int": "correct"
       },
       "wrong_approaches": [],
       "might_correct_approaches": []
@@ -340,20 +607,30 @@
       "constraint_id": "1758086606-5",
       "description": "Three dates must be exactly 1 month apart within a specific range",
       "approach_statuses": {
-        "alpha_beta": "error",
-        "alpha_beta_table": "error",
-        "epoch_days": "error",
-        "baseline": "error",
-        "hybrid": "error"
+        "alpha_beta_bitvector": "error",
+        "alpha_beta_int": "error",
+        "alpha_beta_table_bitvector": "error",
+        "alpha_beta_table_int": "error",
+        "baseline_bitvector": "error",
+        "baseline_int": "error",
+        "epoch_days_bitvector": "error",
+        "epoch_days_int": "error",
+        "hybrid_bitvector": "error",
+        "hybrid_int": "error"
       },
       "sat_validation": {},
       "unsat_consensus": false,
       "verdicts_by_approach": {
-        "alpha_beta": "error",
-        "alpha_beta_table": "error",
-        "epoch_days": "error",
-        "baseline": "error",
-        "hybrid": "error"
+        "alpha_beta_bitvector": "error",
+        "alpha_beta_int": "error",
+        "alpha_beta_table_bitvector": "error",
+        "alpha_beta_table_int": "error",
+        "baseline_bitvector": "error",
+        "baseline_int": "error",
+        "epoch_days_bitvector": "error",
+        "epoch_days_int": "error",
+        "hybrid_bitvector": "error",
+        "hybrid_int": "error"
       },
       "wrong_approaches": [],
       "might_correct_approaches": []
@@ -362,48 +639,94 @@
       "constraint_id": "1758086606-6",
       "description": "End-of-month rollover from a 31-day month to a 30-day month",
       "approach_statuses": {
-        "alpha_beta": "sat",
-        "alpha_beta_table": "sat",
-        "epoch_days": "sat",
-        "baseline": "sat",
-        "hybrid": "sat"
+        "alpha_beta_bitvector": "sat",
+        "alpha_beta_int": "sat",
+        "alpha_beta_table_bitvector": "sat",
+        "alpha_beta_table_int": "sat",
+        "baseline_bitvector": "sat",
+        "baseline_int": "sat",
+        "epoch_days_bitvector": "sat",
+        "epoch_days_int": "sat",
+        "hybrid_bitvector": "sat",
+        "hybrid_int": "sat"
       },
       "sat_validation": {
-        "alpha_beta": {
+        "alpha_beta_bitvector": {
           "valid": true,
-          "message": "model satisfies assertions",
+          "message": "Solution validated successfully with concrete implementation",
           "solution": {
             "x": "Date(2023, 1, 31)",
             "y": "Date(2023, 4, 30)"
           }
         },
-        "alpha_beta_table": {
+        "alpha_beta_int": {
           "valid": true,
-          "message": "model satisfies assertions",
+          "message": "Solution validated successfully with concrete implementation",
           "solution": {
             "x": "Date(2023, 1, 31)",
             "y": "Date(2023, 4, 30)"
           }
         },
-        "epoch_days": {
+        "alpha_beta_table_bitvector": {
           "valid": true,
-          "message": "model satisfies assertions",
+          "message": "Solution validated successfully with concrete implementation",
           "solution": {
             "x": "Date(2023, 1, 31)",
             "y": "Date(2023, 4, 30)"
           }
         },
-        "baseline": {
+        "alpha_beta_table_int": {
           "valid": true,
-          "message": "model satisfies assertions",
+          "message": "Solution validated successfully with concrete implementation",
           "solution": {
             "x": "Date(2023, 1, 31)",
             "y": "Date(2023, 4, 30)"
           }
         },
-        "hybrid": {
+        "baseline_bitvector": {
           "valid": true,
-          "message": "model satisfies assertions",
+          "message": "Solution validated successfully with concrete implementation",
+          "solution": {
+            "x": "Date(2023, 1, 31)",
+            "y": "Date(2023, 4, 30)"
+          }
+        },
+        "baseline_int": {
+          "valid": true,
+          "message": "Solution validated successfully with concrete implementation",
+          "solution": {
+            "x": "Date(2023, 1, 31)",
+            "y": "Date(2023, 4, 30)"
+          }
+        },
+        "epoch_days_bitvector": {
+          "valid": true,
+          "message": "Solution validated successfully with concrete implementation",
+          "solution": {
+            "x": "Date(2023, 1, 31)",
+            "y": "Date(2023, 4, 30)"
+          }
+        },
+        "epoch_days_int": {
+          "valid": true,
+          "message": "Solution validated successfully with concrete implementation",
+          "solution": {
+            "x": "Date(2023, 1, 31)",
+            "y": "Date(2023, 4, 30)"
+          }
+        },
+        "hybrid_bitvector": {
+          "valid": true,
+          "message": "Solution validated successfully with concrete implementation",
+          "solution": {
+            "x": "Date(2023, 1, 31)",
+            "y": "Date(2023, 4, 30)",
+            "x_plus": "Date(2023, 4, 30)"
+          }
+        },
+        "hybrid_int": {
+          "valid": true,
+          "message": "Solution validated successfully with concrete implementation",
           "solution": {
             "x": "Date(2023, 1, 31)",
             "y": "Date(2023, 4, 30)",
@@ -413,11 +736,16 @@
       },
       "unsat_consensus": false,
       "verdicts_by_approach": {
-        "alpha_beta": "correct",
-        "alpha_beta_table": "correct",
-        "epoch_days": "correct",
-        "baseline": "correct",
-        "hybrid": "correct"
+        "alpha_beta_bitvector": "correct",
+        "alpha_beta_int": "correct",
+        "alpha_beta_table_bitvector": "correct",
+        "alpha_beta_table_int": "correct",
+        "baseline_bitvector": "correct",
+        "baseline_int": "correct",
+        "epoch_days_bitvector": "correct",
+        "epoch_days_int": "correct",
+        "hybrid_bitvector": "correct",
+        "hybrid_int": "correct"
       },
       "wrong_approaches": [],
       "might_correct_approaches": []
@@ -426,20 +754,30 @@
       "constraint_id": "1758086606-7",
       "description": "Tight inequality window that is unsatisfiable",
       "approach_statuses": {
-        "alpha_beta": "unsat",
-        "alpha_beta_table": "unsat",
-        "epoch_days": "unsat",
-        "baseline": "unsat",
-        "hybrid": "unsat"
+        "alpha_beta_bitvector": "unsat",
+        "alpha_beta_int": "unsat",
+        "alpha_beta_table_bitvector": "unsat",
+        "alpha_beta_table_int": "unsat",
+        "baseline_bitvector": "unsat",
+        "baseline_int": "unsat",
+        "epoch_days_bitvector": "unsat",
+        "epoch_days_int": "unsat",
+        "hybrid_bitvector": "unsat",
+        "hybrid_int": "unsat"
       },
       "sat_validation": {},
       "unsat_consensus": true,
       "verdicts_by_approach": {
-        "alpha_beta": "correct",
-        "alpha_beta_table": "correct",
-        "epoch_days": "correct",
-        "baseline": "correct",
-        "hybrid": "correct"
+        "alpha_beta_bitvector": "correct",
+        "alpha_beta_int": "correct",
+        "alpha_beta_table_bitvector": "correct",
+        "alpha_beta_table_int": "correct",
+        "baseline_bitvector": "correct",
+        "baseline_int": "correct",
+        "epoch_days_bitvector": "correct",
+        "epoch_days_int": "correct",
+        "hybrid_bitvector": "correct",
+        "hybrid_int": "correct"
       },
       "wrong_approaches": [],
       "might_correct_approaches": []
@@ -448,20 +786,30 @@
       "constraint_id": "1758086606-8",
       "description": "Complex chain of period arithmetic with multiple variables",
       "approach_statuses": {
-        "alpha_beta": "error",
-        "alpha_beta_table": "error",
-        "epoch_days": "error",
-        "baseline": "error",
-        "hybrid": "error"
+        "alpha_beta_bitvector": "error",
+        "alpha_beta_int": "error",
+        "alpha_beta_table_bitvector": "error",
+        "alpha_beta_table_int": "error",
+        "baseline_bitvector": "error",
+        "baseline_int": "error",
+        "epoch_days_bitvector": "error",
+        "epoch_days_int": "error",
+        "hybrid_bitvector": "error",
+        "hybrid_int": "error"
       },
       "sat_validation": {},
       "unsat_consensus": false,
       "verdicts_by_approach": {
-        "alpha_beta": "error",
-        "alpha_beta_table": "error",
-        "epoch_days": "error",
-        "baseline": "error",
-        "hybrid": "error"
+        "alpha_beta_bitvector": "error",
+        "alpha_beta_int": "error",
+        "alpha_beta_table_bitvector": "error",
+        "alpha_beta_table_int": "error",
+        "baseline_bitvector": "error",
+        "baseline_int": "error",
+        "epoch_days_bitvector": "error",
+        "epoch_days_int": "error",
+        "hybrid_bitvector": "error",
+        "hybrid_int": "error"
       },
       "wrong_approaches": [],
       "might_correct_approaches": []
@@ -470,20 +818,30 @@
       "constraint_id": "1758086606-9",
       "description": "Date transitions across leap year February boundary",
       "approach_statuses": {
-        "alpha_beta": "unsat",
-        "alpha_beta_table": "unsat",
-        "epoch_days": "unsat",
-        "baseline": "unsat",
-        "hybrid": "unsat"
+        "alpha_beta_bitvector": "unsat",
+        "alpha_beta_int": "unsat",
+        "alpha_beta_table_bitvector": "unsat",
+        "alpha_beta_table_int": "unsat",
+        "baseline_bitvector": "unsat",
+        "baseline_int": "unsat",
+        "epoch_days_bitvector": "unsat",
+        "epoch_days_int": "unsat",
+        "hybrid_bitvector": "unsat",
+        "hybrid_int": "unsat"
       },
       "sat_validation": {},
       "unsat_consensus": true,
       "verdicts_by_approach": {
-        "alpha_beta": "correct",
-        "alpha_beta_table": "correct",
-        "epoch_days": "correct",
-        "baseline": "correct",
-        "hybrid": "correct"
+        "alpha_beta_bitvector": "correct",
+        "alpha_beta_int": "correct",
+        "alpha_beta_table_bitvector": "correct",
+        "alpha_beta_table_int": "correct",
+        "baseline_bitvector": "correct",
+        "baseline_int": "correct",
+        "epoch_days_bitvector": "correct",
+        "epoch_days_int": "correct",
+        "hybrid_bitvector": "correct",
+        "hybrid_int": "correct"
       },
       "wrong_approaches": [],
       "might_correct_approaches": []
@@ -495,236 +853,536 @@
         "lines_by_approach": [
           {
             "approach": "epoch_days",
+            "implementation": "bitvector",
+            "lines": 16
+          },
+          {
+            "approach": "epoch_days",
+            "implementation": "int",
             "lines": 16
           },
           {
             "approach": "hybrid",
+            "implementation": "bitvector",
             "lines": 16
           },
           {
+            "approach": "hybrid",
+            "implementation": "int",
+            "lines": 16
+          },
+          {
+            "approach": "baseline",
+            "implementation": "bitvector",
+            "lines": 29
+          },
+          {
             "approach": "alpha_beta",
+            "implementation": "int",
             "lines": 34
           },
           {
             "approach": "baseline",
-            "lines": 38
+            "implementation": "int",
+            "lines": 34
+          },
+          {
+            "approach": "alpha_beta",
+            "implementation": "bitvector",
+            "lines": 35
           },
           {
             "approach": "alpha_beta_table",
+            "implementation": "int",
             "lines": 78
+          },
+          {
+            "approach": "alpha_beta_table",
+            "implementation": "bitvector",
+            "lines": 81
           }
         ],
         "time_by_approach": [
           {
             "approach": "hybrid",
-            "execution_time": 0.0013129711151123047
+            "implementation": "int",
+            "execution_time": 0.00133514404296875
+          },
+          {
+            "approach": "hybrid",
+            "implementation": "bitvector",
+            "execution_time": 0.001844167709350586
           },
           {
             "approach": "alpha_beta",
-            "execution_time": 0.0026061534881591797
+            "implementation": "int",
+            "execution_time": 0.0026710033416748047
           },
           {
             "approach": "epoch_days",
-            "execution_time": 0.0036318302154541016
+            "implementation": "bitvector",
+            "execution_time": 0.0027031898498535156
+          },
+          {
+            "approach": "epoch_days",
+            "implementation": "int",
+            "execution_time": 0.0032889842987060547
           },
           {
             "approach": "alpha_beta_table",
-            "execution_time": 0.01192021369934082
+            "implementation": "int",
+            "execution_time": 0.0070798397064208984
+          },
+          {
+            "approach": "alpha_beta",
+            "implementation": "bitvector",
+            "execution_time": 0.007684230804443359
           },
           {
             "approach": "baseline",
-            "execution_time": 0.024661779403686523
+            "implementation": "bitvector",
+            "execution_time": 0.011955976486206055
+          },
+          {
+            "approach": "alpha_beta_table",
+            "implementation": "bitvector",
+            "execution_time": 0.012172937393188477
+          },
+          {
+            "approach": "baseline",
+            "implementation": "int",
+            "execution_time": 0.02249598503112793
           }
         ],
-        "avg_lines": 36.4,
-        "avg_time": 0.008826589584350586
+        "avg_lines": 35.5,
+        "avg_time": 0.007323145866394043
       },
       "1758086606-2": {
         "lines_by_approach": [
           {
             "approach": "epoch_days",
+            "implementation": "bitvector",
+            "lines": 131
+          },
+          {
+            "approach": "epoch_days",
+            "implementation": "int",
             "lines": 132
           },
           {
             "approach": "alpha_beta",
+            "implementation": "int",
             "lines": 152
           },
           {
+            "approach": "alpha_beta",
+            "implementation": "bitvector",
+            "lines": 153
+          },
+          {
             "approach": "baseline",
-            "lines": 158
+            "implementation": "int",
+            "lines": 154
+          },
+          {
+            "approach": "baseline",
+            "implementation": "bitvector",
+            "lines": 163
           },
           {
             "approach": "hybrid",
+            "implementation": "int",
             "lines": 341
           },
           {
+            "approach": "hybrid",
+            "implementation": "bitvector",
+            "lines": 347
+          },
+          {
             "approach": "alpha_beta_table",
+            "implementation": "int",
             "lines": 356
+          },
+          {
+            "approach": "alpha_beta_table",
+            "implementation": "bitvector",
+            "lines": 457
           }
         ],
         "time_by_approach": [
           {
-            "approach": "hybrid",
-            "execution_time": 0.18731307983398438
+            "approach": "epoch_days",
+            "implementation": "bitvector",
+            "execution_time": 0.04789614677429199
           },
           {
-            "approach": "alpha_beta_table",
-            "execution_time": 0.6168038845062256
+            "approach": "hybrid",
+            "implementation": "bitvector",
+            "execution_time": 0.06277227401733398
           },
           {
             "approach": "alpha_beta",
-            "execution_time": 0.9073419570922852
-          },
-          {
-            "approach": "epoch_days",
-            "execution_time": 1.1025261878967285
+            "implementation": "bitvector",
+            "execution_time": 0.0786433219909668
           },
           {
             "approach": "baseline",
-            "execution_time": 1.2851719856262207
+            "implementation": "bitvector",
+            "execution_time": 0.08440899848937988
+          },
+          {
+            "approach": "hybrid",
+            "implementation": "int",
+            "execution_time": 0.5614521503448486
+          },
+          {
+            "approach": "alpha_beta",
+            "implementation": "int",
+            "execution_time": 0.6537888050079346
+          },
+          {
+            "approach": "alpha_beta_table",
+            "implementation": "int",
+            "execution_time": 0.8081557750701904
+          },
+          {
+            "approach": "alpha_beta_table",
+            "implementation": "bitvector",
+            "execution_time": 1.0463647842407227
+          },
+          {
+            "approach": "epoch_days",
+            "implementation": "int",
+            "execution_time": 1.2404251098632812
+          },
+          {
+            "approach": "baseline",
+            "implementation": "int",
+            "execution_time": 1.4292097091674805
           }
         ],
-        "avg_lines": 227.8,
-        "avg_time": 0.8198314189910889
+        "avg_lines": 238.6,
+        "avg_time": 0.6013117074966431
       },
       "1758086606-3": {
         "lines_by_approach": [
           {
             "approach": "epoch_days",
+            "implementation": "bitvector",
+            "lines": 131
+          },
+          {
+            "approach": "epoch_days",
+            "implementation": "int",
             "lines": 132
           },
           {
             "approach": "alpha_beta",
+            "implementation": "bitvector",
+            "lines": 150
+          },
+          {
+            "approach": "alpha_beta",
+            "implementation": "int",
             "lines": 150
           },
           {
             "approach": "baseline",
-            "lines": 158
+            "implementation": "int",
+            "lines": 154
+          },
+          {
+            "approach": "baseline",
+            "implementation": "bitvector",
+            "lines": 162
+          },
+          {
+            "approach": "hybrid",
+            "implementation": "bitvector",
+            "lines": 350
           },
           {
             "approach": "alpha_beta_table",
+            "implementation": "int",
             "lines": 353
           },
           {
             "approach": "hybrid",
+            "implementation": "int",
             "lines": 355
+          },
+          {
+            "approach": "alpha_beta_table",
+            "implementation": "bitvector",
+            "lines": 454
           }
         ],
         "time_by_approach": [
           {
-            "approach": "alpha_beta",
-            "execution_time": 0.44661498069763184
-          },
-          {
-            "approach": "baseline",
-            "execution_time": 0.9983129501342773
-          },
-          {
-            "approach": "alpha_beta_table",
-            "execution_time": 1.5487401485443115
-          },
-          {
             "approach": "epoch_days",
-            "execution_time": 2.6513309478759766
+            "implementation": "bitvector",
+            "execution_time": 0.04577493667602539
           },
           {
             "approach": "hybrid",
-            "execution_time": 4.480284929275513
+            "implementation": "bitvector",
+            "execution_time": 0.06754207611083984
+          },
+          {
+            "approach": "alpha_beta",
+            "implementation": "bitvector",
+            "execution_time": 0.0901479721069336
+          },
+          {
+            "approach": "baseline",
+            "implementation": "bitvector",
+            "execution_time": 0.18741488456726074
+          },
+          {
+            "approach": "alpha_beta",
+            "implementation": "int",
+            "execution_time": 1.0279209613800049
+          },
+          {
+            "approach": "alpha_beta_table",
+            "implementation": "int",
+            "execution_time": 1.1543488502502441
+          },
+          {
+            "approach": "alpha_beta_table",
+            "implementation": "bitvector",
+            "execution_time": 1.1655611991882324
+          },
+          {
+            "approach": "hybrid",
+            "implementation": "int",
+            "execution_time": 1.4274530410766602
+          },
+          {
+            "approach": "baseline",
+            "implementation": "int",
+            "execution_time": 2.953946113586426
+          },
+          {
+            "approach": "epoch_days",
+            "implementation": "int",
+            "execution_time": 3.0005979537963867
           }
         ],
-        "avg_lines": 229.6,
-        "avg_time": 2.025056791305542
+        "avg_lines": 239.1,
+        "avg_time": 1.1120707988739014
       },
       "1758086606-4": {
         "lines_by_approach": [
           {
             "approach": "alpha_beta",
+            "implementation": "bitvector",
+            "lines": 102
+          },
+          {
+            "approach": "alpha_beta",
+            "implementation": "int",
             "lines": 102
           },
           {
             "approach": "baseline",
-            "lines": 118
+            "implementation": "bitvector",
+            "lines": 104
+          },
+          {
+            "approach": "baseline",
+            "implementation": "int",
+            "lines": 110
           },
           {
             "approach": "epoch_days",
+            "implementation": "bitvector",
+            "lines": 137
+          },
+          {
+            "approach": "epoch_days",
+            "implementation": "int",
             "lines": 137
           },
           {
             "approach": "alpha_beta_table",
+            "implementation": "int",
             "lines": 278
           },
           {
+            "approach": "alpha_beta_table",
+            "implementation": "bitvector",
+            "lines": 329
+          },
+          {
             "approach": "hybrid",
+            "implementation": "bitvector",
+            "lines": 352
+          },
+          {
+            "approach": "hybrid",
+            "implementation": "int",
             "lines": 357
           }
         ],
         "time_by_approach": [
           {
-            "approach": "baseline",
-            "execution_time": 0.01029515266418457
+            "approach": "alpha_beta",
+            "implementation": "bitvector",
+            "execution_time": 0.008208990097045898
           },
           {
             "approach": "alpha_beta",
-            "execution_time": 0.010679006576538086
+            "implementation": "int",
+            "execution_time": 0.010609865188598633
+          },
+          {
+            "approach": "baseline",
+            "implementation": "bitvector",
+            "execution_time": 0.010757207870483398
           },
           {
             "approach": "epoch_days",
-            "execution_time": 0.01631307601928711
+            "implementation": "bitvector",
+            "execution_time": 0.011709928512573242
+          },
+          {
+            "approach": "baseline",
+            "implementation": "int",
+            "execution_time": 0.01267099380493164
           },
           {
             "approach": "hybrid",
-            "execution_time": 0.017274856567382812
+            "implementation": "bitvector",
+            "execution_time": 0.013423681259155273
           },
           {
             "approach": "alpha_beta_table",
-            "execution_time": 0.017313718795776367
+            "implementation": "bitvector",
+            "execution_time": 0.013949871063232422
+          },
+          {
+            "approach": "epoch_days",
+            "implementation": "int",
+            "execution_time": 0.016235828399658203
+          },
+          {
+            "approach": "hybrid",
+            "implementation": "int",
+            "execution_time": 0.0175931453704834
+          },
+          {
+            "approach": "alpha_beta_table",
+            "implementation": "int",
+            "execution_time": 0.018342018127441406
           }
         ],
-        "avg_lines": 198.4,
-        "avg_time": 0.01437516212463379
+        "avg_lines": 200.8,
+        "avg_time": 0.013350152969360351
       },
       "1758086606-5": {
         "lines_by_approach": [
           {
             "approach": "alpha_beta",
+            "implementation": "bitvector",
+            "lines": 0
+          },
+          {
+            "approach": "alpha_beta",
+            "implementation": "int",
             "lines": 0
           },
           {
             "approach": "alpha_beta_table",
+            "implementation": "bitvector",
             "lines": 0
           },
           {
-            "approach": "epoch_days",
+            "approach": "alpha_beta_table",
+            "implementation": "int",
             "lines": 0
           },
           {
             "approach": "baseline",
+            "implementation": "bitvector",
+            "lines": 0
+          },
+          {
+            "approach": "baseline",
+            "implementation": "int",
+            "lines": 0
+          },
+          {
+            "approach": "epoch_days",
+            "implementation": "bitvector",
+            "lines": 0
+          },
+          {
+            "approach": "epoch_days",
+            "implementation": "int",
             "lines": 0
           },
           {
             "approach": "hybrid",
+            "implementation": "bitvector",
+            "lines": 0
+          },
+          {
+            "approach": "hybrid",
+            "implementation": "int",
             "lines": 0
           }
         ],
         "time_by_approach": [
           {
             "approach": "alpha_beta",
+            "implementation": "bitvector",
+            "execution_time": 0.0
+          },
+          {
+            "approach": "alpha_beta",
+            "implementation": "int",
             "execution_time": 0.0
           },
           {
             "approach": "alpha_beta_table",
+            "implementation": "bitvector",
             "execution_time": 0.0
           },
           {
-            "approach": "epoch_days",
+            "approach": "alpha_beta_table",
+            "implementation": "int",
             "execution_time": 0.0
           },
           {
             "approach": "baseline",
+            "implementation": "bitvector",
+            "execution_time": 0.0
+          },
+          {
+            "approach": "baseline",
+            "implementation": "int",
+            "execution_time": 0.0
+          },
+          {
+            "approach": "epoch_days",
+            "implementation": "bitvector",
+            "execution_time": 0.0
+          },
+          {
+            "approach": "epoch_days",
+            "implementation": "int",
             "execution_time": 0.0
           },
           {
             "approach": "hybrid",
+            "implementation": "bitvector",
+            "execution_time": 0.0
+          },
+          {
+            "approach": "hybrid",
+            "implementation": "int",
             "execution_time": 0.0
           }
         ],
@@ -735,140 +1393,320 @@
         "lines_by_approach": [
           {
             "approach": "alpha_beta",
+            "implementation": "bitvector",
+            "lines": 100
+          },
+          {
+            "approach": "alpha_beta",
+            "implementation": "int",
             "lines": 100
           },
           {
             "approach": "baseline",
-            "lines": 122
+            "implementation": "bitvector",
+            "lines": 104
+          },
+          {
+            "approach": "baseline",
+            "implementation": "int",
+            "lines": 113
           },
           {
             "approach": "epoch_days",
+            "implementation": "bitvector",
+            "lines": 136
+          },
+          {
+            "approach": "epoch_days",
+            "implementation": "int",
             "lines": 136
           },
           {
             "approach": "alpha_beta_table",
+            "implementation": "int",
             "lines": 277
           },
           {
+            "approach": "alpha_beta_table",
+            "implementation": "bitvector",
+            "lines": 328
+          },
+          {
             "approach": "hybrid",
-            "lines": 345
+            "implementation": "bitvector",
+            "lines": 351
+          },
+          {
+            "approach": "hybrid",
+            "implementation": "int",
+            "lines": 356
           }
         ],
         "time_by_approach": [
           {
+            "approach": "alpha_beta",
+            "implementation": "bitvector",
+            "execution_time": 0.007652997970581055
+          },
+          {
             "approach": "baseline",
-            "execution_time": 0.009955883026123047
+            "implementation": "bitvector",
+            "execution_time": 0.010185003280639648
           },
           {
             "approach": "alpha_beta",
-            "execution_time": 0.010208845138549805
+            "implementation": "int",
+            "execution_time": 0.010584115982055664
           },
           {
             "approach": "epoch_days",
-            "execution_time": 0.01628899574279785
+            "implementation": "bitvector",
+            "execution_time": 0.011536836624145508
+          },
+          {
+            "approach": "baseline",
+            "implementation": "int",
+            "execution_time": 0.012224197387695312
           },
           {
             "approach": "hybrid",
-            "execution_time": 0.017045021057128906
+            "implementation": "bitvector",
+            "execution_time": 0.012515068054199219
           },
           {
             "approach": "alpha_beta_table",
-            "execution_time": 0.017332792282104492
+            "implementation": "bitvector",
+            "execution_time": 0.013535022735595703
+          },
+          {
+            "approach": "epoch_days",
+            "implementation": "int",
+            "execution_time": 0.016299962997436523
+          },
+          {
+            "approach": "hybrid",
+            "implementation": "int",
+            "execution_time": 0.01724696159362793
+          },
+          {
+            "approach": "alpha_beta_table",
+            "implementation": "int",
+            "execution_time": 0.017976999282836914
           }
         ],
-        "avg_lines": 196.0,
-        "avg_time": 0.014166307449340821
+        "avg_lines": 200.1,
+        "avg_time": 0.012975716590881347
       },
       "1758086606-7": {
         "lines_by_approach": [
           {
             "approach": "epoch_days",
+            "implementation": "bitvector",
+            "lines": 12
+          },
+          {
+            "approach": "epoch_days",
+            "implementation": "int",
             "lines": 12
           },
           {
             "approach": "hybrid",
+            "implementation": "bitvector",
+            "lines": 12
+          },
+          {
+            "approach": "hybrid",
+            "implementation": "int",
             "lines": 12
           },
           {
             "approach": "alpha_beta",
+            "implementation": "int",
             "lines": 24
           },
           {
             "approach": "baseline",
-            "lines": 34
+            "implementation": "bitvector",
+            "lines": 25
+          },
+          {
+            "approach": "alpha_beta",
+            "implementation": "bitvector",
+            "lines": 26
+          },
+          {
+            "approach": "baseline",
+            "implementation": "int",
+            "lines": 30
           },
           {
             "approach": "alpha_beta_table",
+            "implementation": "int",
             "lines": 70
+          },
+          {
+            "approach": "alpha_beta_table",
+            "implementation": "bitvector",
+            "lines": 72
           }
         ],
         "time_by_approach": [
           {
+            "approach": "epoch_days",
+            "implementation": "bitvector",
+            "execution_time": 0.0006608963012695312
+          },
+          {
             "approach": "hybrid",
-            "execution_time": 0.0013110637664794922
+            "implementation": "bitvector",
+            "execution_time": 0.0006957054138183594
+          },
+          {
+            "approach": "hybrid",
+            "implementation": "int",
+            "execution_time": 0.001374959945678711
           },
           {
             "approach": "alpha_beta_table",
-            "execution_time": 0.001577138900756836
+            "implementation": "int",
+            "execution_time": 0.00173187255859375
           },
           {
             "approach": "baseline",
-            "execution_time": 0.0026581287384033203
+            "implementation": "int",
+            "execution_time": 0.0027158260345458984
           },
           {
             "approach": "alpha_beta",
-            "execution_time": 0.0027420520782470703
+            "implementation": "int",
+            "execution_time": 0.002763032913208008
           },
           {
             "approach": "epoch_days",
-            "execution_time": 0.0030798912048339844
+            "implementation": "int",
+            "execution_time": 0.0032792091369628906
+          },
+          {
+            "approach": "baseline",
+            "implementation": "bitvector",
+            "execution_time": 0.0051610469818115234
+          },
+          {
+            "approach": "alpha_beta",
+            "implementation": "bitvector",
+            "execution_time": 0.0055010318756103516
+          },
+          {
+            "approach": "alpha_beta_table",
+            "implementation": "bitvector",
+            "execution_time": 0.012012958526611328
           }
         ],
-        "avg_lines": 30.4,
-        "avg_time": 0.0022736549377441405
+        "avg_lines": 29.5,
+        "avg_time": 0.0035896539688110352
       },
       "1758086606-8": {
         "lines_by_approach": [
           {
             "approach": "alpha_beta",
+            "implementation": "bitvector",
+            "lines": 0
+          },
+          {
+            "approach": "alpha_beta",
+            "implementation": "int",
             "lines": 0
           },
           {
             "approach": "alpha_beta_table",
+            "implementation": "bitvector",
             "lines": 0
           },
           {
-            "approach": "epoch_days",
+            "approach": "alpha_beta_table",
+            "implementation": "int",
             "lines": 0
           },
           {
             "approach": "baseline",
+            "implementation": "bitvector",
+            "lines": 0
+          },
+          {
+            "approach": "baseline",
+            "implementation": "int",
+            "lines": 0
+          },
+          {
+            "approach": "epoch_days",
+            "implementation": "bitvector",
+            "lines": 0
+          },
+          {
+            "approach": "epoch_days",
+            "implementation": "int",
             "lines": 0
           },
           {
             "approach": "hybrid",
+            "implementation": "bitvector",
+            "lines": 0
+          },
+          {
+            "approach": "hybrid",
+            "implementation": "int",
             "lines": 0
           }
         ],
         "time_by_approach": [
           {
             "approach": "alpha_beta",
+            "implementation": "bitvector",
+            "execution_time": 0.0
+          },
+          {
+            "approach": "alpha_beta",
+            "implementation": "int",
             "execution_time": 0.0
           },
           {
             "approach": "alpha_beta_table",
+            "implementation": "bitvector",
             "execution_time": 0.0
           },
           {
-            "approach": "epoch_days",
+            "approach": "alpha_beta_table",
+            "implementation": "int",
             "execution_time": 0.0
           },
           {
             "approach": "baseline",
+            "implementation": "bitvector",
+            "execution_time": 0.0
+          },
+          {
+            "approach": "baseline",
+            "implementation": "int",
+            "execution_time": 0.0
+          },
+          {
+            "approach": "epoch_days",
+            "implementation": "bitvector",
+            "execution_time": 0.0
+          },
+          {
+            "approach": "epoch_days",
+            "implementation": "int",
             "execution_time": 0.0
           },
           {
             "approach": "hybrid",
+            "implementation": "bitvector",
+            "execution_time": 0.0
+          },
+          {
+            "approach": "hybrid",
+            "implementation": "int",
             "execution_time": 0.0
           }
         ],
@@ -879,169 +1717,323 @@
         "lines_by_approach": [
           {
             "approach": "alpha_beta",
+            "implementation": "bitvector",
+            "lines": 101
+          },
+          {
+            "approach": "alpha_beta",
+            "implementation": "int",
             "lines": 101
           },
           {
             "approach": "baseline",
-            "lines": 118
+            "implementation": "bitvector",
+            "lines": 105
+          },
+          {
+            "approach": "baseline",
+            "implementation": "int",
+            "lines": 110
           },
           {
             "approach": "epoch_days",
+            "implementation": "bitvector",
+            "lines": 136
+          },
+          {
+            "approach": "epoch_days",
+            "implementation": "int",
             "lines": 136
           },
           {
             "approach": "alpha_beta_table",
+            "implementation": "int",
             "lines": 278
           },
           {
+            "approach": "alpha_beta_table",
+            "implementation": "bitvector",
+            "lines": 329
+          },
+          {
             "approach": "hybrid",
-            "lines": 342
+            "implementation": "int",
+            "lines": 339
+          },
+          {
+            "approach": "hybrid",
+            "implementation": "bitvector",
+            "lines": 348
           }
         ],
         "time_by_approach": [
           {
+            "approach": "alpha_beta",
+            "implementation": "bitvector",
+            "execution_time": 0.007558107376098633
+          },
+          {
             "approach": "baseline",
-            "execution_time": 0.009672880172729492
+            "implementation": "bitvector",
+            "execution_time": 0.010289907455444336
           },
           {
             "approach": "alpha_beta",
-            "execution_time": 0.010029077529907227
+            "implementation": "int",
+            "execution_time": 0.010461091995239258
           },
           {
             "approach": "epoch_days",
-            "execution_time": 0.01614999771118164
+            "implementation": "bitvector",
+            "execution_time": 0.01196599006652832
+          },
+          {
+            "approach": "baseline",
+            "implementation": "int",
+            "execution_time": 0.01227712631225586
           },
           {
             "approach": "hybrid",
-            "execution_time": 0.016909122467041016
+            "implementation": "bitvector",
+            "execution_time": 0.012649059295654297
           },
           {
             "approach": "alpha_beta_table",
-            "execution_time": 0.017829179763793945
+            "implementation": "bitvector",
+            "execution_time": 0.013362884521484375
+          },
+          {
+            "approach": "epoch_days",
+            "implementation": "int",
+            "execution_time": 0.016078948974609375
+          },
+          {
+            "approach": "alpha_beta_table",
+            "implementation": "int",
+            "execution_time": 0.017906904220581055
+          },
+          {
+            "approach": "hybrid",
+            "implementation": "int",
+            "execution_time": 0.018146038055419922
           }
         ],
-        "avg_lines": 195.0,
-        "avg_time": 0.014118051528930664
+        "avg_lines": 198.3,
+        "avg_time": 0.013069605827331543
       },
       "1758086606-10": {
         "lines_by_approach": [
           {
             "approach": "epoch_days",
+            "implementation": "bitvector",
+            "lines": 131
+          },
+          {
+            "approach": "epoch_days",
+            "implementation": "int",
             "lines": 131
           },
           {
             "approach": "alpha_beta",
+            "implementation": "int",
             "lines": 149
           },
           {
+            "approach": "alpha_beta",
+            "implementation": "bitvector",
+            "lines": 150
+          },
+          {
             "approach": "baseline",
-            "lines": 157
+            "implementation": "int",
+            "lines": 153
+          },
+          {
+            "approach": "baseline",
+            "implementation": "bitvector",
+            "lines": 162
           },
           {
             "approach": "hybrid",
-            "lines": 347
+            "implementation": "int",
+            "lines": 344
           },
           {
             "approach": "alpha_beta_table",
+            "implementation": "int",
             "lines": 353
+          },
+          {
+            "approach": "hybrid",
+            "implementation": "bitvector",
+            "lines": 353
+          },
+          {
+            "approach": "alpha_beta_table",
+            "implementation": "bitvector",
+            "lines": 454
           }
         ],
         "time_by_approach": [
           {
-            "approach": "alpha_beta_table",
-            "execution_time": 0.2874758243560791
-          },
-          {
-            "approach": "baseline",
-            "execution_time": 0.36025309562683105
-          },
-          {
-            "approach": "hybrid",
-            "execution_time": 0.6506290435791016
-          },
-          {
             "approach": "epoch_days",
-            "execution_time": 0.8902788162231445
+            "implementation": "bitvector",
+            "execution_time": 0.04830288887023926
           },
           {
             "approach": "alpha_beta",
-            "execution_time": 1.5757172107696533
+            "implementation": "bitvector",
+            "execution_time": 0.07924985885620117
+          },
+          {
+            "approach": "baseline",
+            "implementation": "bitvector",
+            "execution_time": 0.08611702919006348
+          },
+          {
+            "approach": "hybrid",
+            "implementation": "bitvector",
+            "execution_time": 0.09807395935058594
+          },
+          {
+            "approach": "hybrid",
+            "implementation": "int",
+            "execution_time": 0.13644909858703613
+          },
+          {
+            "approach": "epoch_days",
+            "implementation": "int",
+            "execution_time": 0.2092452049255371
+          },
+          {
+            "approach": "alpha_beta_table",
+            "implementation": "int",
+            "execution_time": 0.607874870300293
+          },
+          {
+            "approach": "alpha_beta",
+            "implementation": "int",
+            "execution_time": 0.9433982372283936
+          },
+          {
+            "approach": "alpha_beta_table",
+            "implementation": "bitvector",
+            "execution_time": 1.218785047531128
+          },
+          {
+            "approach": "baseline",
+            "implementation": "int",
+            "execution_time": 1.592622995376587
           }
         ],
-        "avg_lines": 227.4,
-        "avg_time": 0.7528707981109619
+        "avg_lines": 238.0,
+        "avg_time": 0.5020119190216065
       }
     },
     "per_approach_averages": {
       "alpha_beta": {
-        "average_lines": 81.2,
-        "average_time": 0.2965939283370972,
-        "count": 10
+        "average_lines": 81.45,
+        "average_time": 0.14734218120574952,
+        "count": 20
       },
       "alpha_beta_table": {
-        "average_lines": 204.3,
-        "average_time": 0.25189929008483886,
-        "count": 10
-      },
-      "epoch_days": {
-        "average_lines": 83.2,
-        "average_time": 0.46995997428894043,
-        "count": 10
+        "average_lines": 227.35,
+        "average_time": 0.3064580917358398,
+        "count": 20
       },
       "baseline": {
-        "average_lines": 90.3,
-        "average_time": 0.2700981855392456,
-        "count": 10
+        "average_lines": 85.6,
+        "average_time": 0.32222265005111694,
+        "count": 20
+      },
+      "epoch_days": {
+        "average_lines": 83.1,
+        "average_time": 0.23430010080337524,
+        "count": 20
       },
       "hybrid": {
-        "average_lines": 211.5,
-        "average_time": 0.5372080087661744,
-        "count": 10
+        "average_lines": 212.45,
+        "average_time": 0.12252832651138305,
+        "count": 20
+      }
+    },
+    "per_implementation_averages": {
+      "bitvector": {
+        "average_lines": 142.68,
+        "average_time": 0.09273496150970459,
+        "count": 50
+      },
+      "int": {
+        "average_lines": 133.3,
+        "average_time": 0.36040557861328126,
+        "count": 50
       }
     },
     "per_approach_sorted": {
       "avg_lines_sorted": [
         {
           "approach": "alpha_beta",
-          "average_lines": 81.2
+          "average_lines": 81.45
         },
         {
           "approach": "epoch_days",
-          "average_lines": 83.2
+          "average_lines": 83.1
         },
         {
           "approach": "baseline",
-          "average_lines": 90.3
-        },
-        {
-          "approach": "alpha_beta_table",
-          "average_lines": 204.3
+          "average_lines": 85.6
         },
         {
           "approach": "hybrid",
-          "average_lines": 211.5
+          "average_lines": 212.45
+        },
+        {
+          "approach": "alpha_beta_table",
+          "average_lines": 227.35
         }
       ],
       "avg_time_sorted": [
         {
-          "approach": "alpha_beta_table",
-          "average_time": 0.25189929008483886
-        },
-        {
-          "approach": "baseline",
-          "average_time": 0.2700981855392456
+          "approach": "hybrid",
+          "average_time": 0.12252832651138305
         },
         {
           "approach": "alpha_beta",
-          "average_time": 0.2965939283370972
+          "average_time": 0.14734218120574952
         },
         {
           "approach": "epoch_days",
-          "average_time": 0.46995997428894043
+          "average_time": 0.23430010080337524
         },
         {
-          "approach": "hybrid",
-          "average_time": 0.5372080087661744
+          "approach": "alpha_beta_table",
+          "average_time": 0.3064580917358398
+        },
+        {
+          "approach": "baseline",
+          "average_time": 0.32222265005111694
+        }
+      ]
+    },
+    "per_implementation_sorted": {
+      "avg_lines_sorted": [
+        {
+          "implementation": "int",
+          "average_lines": 133.3
+        },
+        {
+          "implementation": "bitvector",
+          "average_lines": 142.68
+        }
+      ],
+      "avg_time_sorted": [
+        {
+          "implementation": "bitvector",
+          "average_time": 0.09273496150970459
+        },
+        {
+          "implementation": "int",
+          "average_time": 0.36040557861328126
         }
       ]
     },
@@ -1057,35 +2049,35 @@
         },
         {
           "constraint_id": "1758086606-7",
-          "avg_lines": 30.4
+          "avg_lines": 29.5
         },
         {
           "constraint_id": "1758086606-1",
-          "avg_lines": 36.4
+          "avg_lines": 35.5
         },
         {
           "constraint_id": "1758086606-9",
-          "avg_lines": 195.0
+          "avg_lines": 198.3
         },
         {
           "constraint_id": "1758086606-6",
-          "avg_lines": 196.0
+          "avg_lines": 200.1
         },
         {
           "constraint_id": "1758086606-4",
-          "avg_lines": 198.4
+          "avg_lines": 200.8
         },
         {
           "constraint_id": "1758086606-10",
-          "avg_lines": 227.4
+          "avg_lines": 238.0
         },
         {
           "constraint_id": "1758086606-2",
-          "avg_lines": 227.8
+          "avg_lines": 238.6
         },
         {
           "constraint_id": "1758086606-3",
-          "avg_lines": 229.6
+          "avg_lines": 239.1
         }
       ],
       "avg_time_sorted": [
@@ -1099,35 +2091,35 @@
         },
         {
           "constraint_id": "1758086606-7",
-          "avg_time": 0.0022736549377441405
+          "avg_time": 0.0035896539688110352
         },
         {
           "constraint_id": "1758086606-1",
-          "avg_time": 0.008826589584350586
-        },
-        {
-          "constraint_id": "1758086606-9",
-          "avg_time": 0.014118051528930664
+          "avg_time": 0.007323145866394043
         },
         {
           "constraint_id": "1758086606-6",
-          "avg_time": 0.014166307449340821
+          "avg_time": 0.012975716590881347
+        },
+        {
+          "constraint_id": "1758086606-9",
+          "avg_time": 0.013069605827331543
         },
         {
           "constraint_id": "1758086606-4",
-          "avg_time": 0.01437516212463379
+          "avg_time": 0.013350152969360351
         },
         {
           "constraint_id": "1758086606-10",
-          "avg_time": 0.7528707981109619
+          "avg_time": 0.5020119190216065
         },
         {
           "constraint_id": "1758086606-2",
-          "avg_time": 0.8198314189910889
+          "avg_time": 0.6013117074966431
         },
         {
           "constraint_id": "1758086606-3",
-          "avg_time": 2.025056791305542
+          "avg_time": 1.1120707988739014
         }
       ]
     }
