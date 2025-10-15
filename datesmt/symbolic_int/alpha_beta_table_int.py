@@ -159,42 +159,40 @@ class DateVar:
 
     def __ge__(self, other):
         """Support x >= date comparison."""
-        if isinstance(other, Date):
-            alpha_o = _months_since_epoch_from_ym(
-                IntVal(other.year), IntVal(other.month)
-            )
-            beta_o = IntVal(other.day - 1)
+        if isinstance(other, Date) or isinstance(other, DateVar):
+            # Convert Date to integer values if needed
+            if isinstance(other, Date):
+                alpha_o = _months_since_epoch_from_ym(
+                    IntVal(other.year), IntVal(other.month)
+                )
+                beta_o = IntVal(other.day - 1)
+            else:  # isinstance(other, DateVar)
+                alpha_o = other.months_var
+                beta_o = other.beta_var
+
             return Or(
                 self.months_var > alpha_o,
                 And(self.months_var == alpha_o, self.beta_var >= beta_o),
-            )
-        elif isinstance(other, DateVar):
-            return Or(
-                self.months_var > other.months_var,
-                And(
-                    self.months_var == other.months_var, self.beta_var >= other.beta_var
-                ),
             )
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
     def __le__(self, other):
         """Support x <= date comparison."""
-        if isinstance(other, Date):
-            alpha_o = _months_since_epoch_from_ym(
-                IntVal(other.year), IntVal(other.month)
-            )
-            beta_o = IntVal(other.day - 1)
+        if isinstance(other, Date) or isinstance(other, DateVar):
+            # Convert Date to integer values if needed
+            if isinstance(other, Date):
+                alpha_o = _months_since_epoch_from_ym(
+                    IntVal(other.year), IntVal(other.month)
+                )
+                beta_o = IntVal(other.day - 1)
+            else:  # isinstance(other, DateVar)
+                alpha_o = other.months_var
+                beta_o = other.beta_var
+
             return Or(
                 self.months_var < alpha_o,
                 And(self.months_var == alpha_o, self.beta_var <= beta_o),
-            )
-        elif isinstance(other, DateVar):
-            return Or(
-                self.months_var < other.months_var,
-                And(
-                    self.months_var == other.months_var, self.beta_var <= other.beta_var
-                ),
             )
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
@@ -215,16 +213,18 @@ class DateVar:
 
     def __eq__(self, other):
         """Support x == date comparison."""
-        if isinstance(other, Date):
-            alpha_o = _months_since_epoch_from_ym(
-                IntVal(other.year), IntVal(other.month)
-            )
-            beta_o = IntVal(other.day - 1)
+        if isinstance(other, Date) or isinstance(other, DateVar):
+            # Convert Date to integer values if needed
+            if isinstance(other, Date):
+                alpha_o = _months_since_epoch_from_ym(
+                    IntVal(other.year), IntVal(other.month)
+                )
+                beta_o = IntVal(other.day - 1)
+            else:  # isinstance(other, DateVar)
+                alpha_o = other.months_var
+                beta_o = other.beta_var
+
             return And(self.months_var == alpha_o, self.beta_var == beta_o)
-        elif isinstance(other, DateVar):
-            return And(
-                self.months_var == other.months_var, self.beta_var == other.beta_var
-            )
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 

@@ -227,15 +227,10 @@ class DateVar:
 
     def to_concrete_date(self, model: ModelRef) -> Date:
         """Convert Z3 model to concrete Date using (alpha, beta)."""
-        alpha_bv = model.evaluate(self.months_var, model_completion=True)
-        beta_bv = model.evaluate(self.beta_var, model_completion=True)
-        # Use as_signed_long() to handle negative values correctly
-        alpha_val = (
-            alpha_bv.as_signed_long()
-            if hasattr(alpha_bv, 'as_signed_long')
-            else alpha_bv.as_long()
-        )
-        beta_val = beta_bv.as_long()
+        alpha_val = model.evaluate(
+            self.months_var, model_completion=True
+        ).as_signed_long()
+        beta_val = model.evaluate(self.beta_var, model_completion=True).as_long()
         k = alpha_val + (EPOCH_YEAR * 12 + EPOCH_MONTH)
         year = (k - 1) // 12
         month = k - year * 12

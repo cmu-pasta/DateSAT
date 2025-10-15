@@ -359,7 +359,6 @@ class DateVar:
         2) Apply EOM clamp: day := min(original_day, days_in_month(new_year,new_month))
         3) Add D days in ordinal space (exact day arithmetic)
         """
-        # Handle Period objects
         if isinstance(other, Period) or isinstance(other, PeriodVar):
             if isinstance(other, Period):
                 result = DateVar(
