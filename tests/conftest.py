@@ -6,7 +6,7 @@ from datetime import date, timedelta
 
 import pytest
 
-from datesmt.core import Date, Period
+from datesmt_int.core import Date, Period
 
 # --------------------------------------------------------------------
 # Date fixtures
@@ -282,7 +282,7 @@ def invalid_period_format_tuple(request):
     return request.param
 
 
-# Autouse session fixture to import all modules under `datesmt` so coverage includes files
+# Autouse session fixture to import all modules under `datesmt_int` so coverage includes files
 import importlib
 import pkgutil
 
@@ -290,9 +290,11 @@ import pkgutil
 @pytest.fixture(autouse=True, scope="session")
 def _import_all_datesmt_modules():
     try:
-        pkg = importlib.import_module("datesmt")
+        pkg = importlib.import_module("datesmt_int")
         if hasattr(pkg, "__path__"):
-            for _, name, _ in pkgutil.walk_packages(pkg.__path__, prefix="datesmt."):
+            for _, name, _ in pkgutil.walk_packages(
+                pkg.__path__, prefix="datesmt_int."
+            ):
                 try:
                     importlib.import_module(name)
                 except Exception:

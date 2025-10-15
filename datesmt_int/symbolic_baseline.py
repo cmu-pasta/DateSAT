@@ -401,7 +401,7 @@ class PeriodVar:
             raise TypeError(f"Cannot multiply PeriodVar with {type(other)}")
 
 
-class DateSolver:
+class BaselineSolver:
     """Baseline date constraint solver using component-based representation."""
 
     def __init__(self, min_year=None, max_year=None, timeout_ms=60000):

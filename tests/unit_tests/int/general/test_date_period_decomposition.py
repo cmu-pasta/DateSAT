@@ -3,12 +3,12 @@ from itertools import permutations
 import pytest
 from dateutil.relativedelta import relativedelta
 
-from datesmt.core import Date, Period
-from datesmt.symbolic_alpha_beta import AlphaBetaSolver
-from datesmt.symbolic_alpha_beta_table import AlphaBetaTableSolver
-from datesmt.symbolic_baseline import DateSolver as BaselineSolver
-from datesmt.symbolic_epoch_days import EpochDaysSolver
-from datesmt.symbolic_hybrid import HybridDateSolver
+from datesmt_int.core import Date, Period
+from datesmt_int.symbolic_alpha_beta import AlphaBetaSolver
+from datesmt_int.symbolic_alpha_beta_table import AlphaBetaTableSolver
+from datesmt_int.symbolic_baseline import BaselineSolver
+from datesmt_int.symbolic_epoch_days import EpochDaysSolver
+from datesmt_int.symbolic_hybrid import HybridSolver
 
 
 def get_period_arithmetic_test_cases():
@@ -240,6 +240,7 @@ def _solve_decomposed_with_solver_sub(solver_cls, base: Date, seq: list[Period])
     ],
 )
 @pytest.mark.baseline
+@pytest.mark.integer
 def test_baseline_matches_java_decomposed(
     base: Date, per: Period, label: str, seq: list[Period]
 ):
@@ -260,6 +261,7 @@ def test_baseline_matches_java_decomposed(
     ],
 )
 @pytest.mark.epoch_days
+@pytest.mark.integer
 def test_epoch_days_matches_java_decomposed(
     base: Date, per: Period, label: str, seq: list[Period]
 ):
@@ -280,11 +282,12 @@ def test_epoch_days_matches_java_decomposed(
     ],
 )
 @pytest.mark.hybrid
+@pytest.mark.integer
 def test_hybrid_matches_java_decomposed(
     base: Date, per: Period, label: str, seq: list[Period]
 ):
     expect = python_date_plus_sequence(base, seq, label)
-    model = _solve_decomposed_with_solver(HybridDateSolver, base, seq)
+    model = _solve_decomposed_with_solver(HybridSolver, base, seq)
     assert model["status"] == "sat"
     got = model["dates"]["y"]
     assert (
@@ -300,6 +303,7 @@ def test_hybrid_matches_java_decomposed(
     ],
 )
 @pytest.mark.alpha_beta
+@pytest.mark.integer
 def test_alpha_beta_matches_java_decomposed(
     base: Date, per: Period, label: str, seq: list[Period]
 ):
@@ -319,7 +323,8 @@ def test_alpha_beta_matches_java_decomposed(
         for base, per, label, seq in all_decomposed_cases()
     ],
 )
-@pytest.mark.alpha_beta_table
+@pytest.mark.alpha_beta
+@pytest.mark.integer
 def test_alpha_beta_table_matches_java_decomposed(
     base: Date, per: Period, label: str, seq: list[Period]
 ):
@@ -341,6 +346,7 @@ def test_alpha_beta_table_matches_java_decomposed(
     ],
 )
 @pytest.mark.baseline
+@pytest.mark.integer
 def test_baseline_radd_matches_java_decomposed(
     base: Date, per: Period, label: str, seq: list[Period]
 ):
@@ -361,6 +367,7 @@ def test_baseline_radd_matches_java_decomposed(
     ],
 )
 @pytest.mark.epoch_days
+@pytest.mark.integer
 def test_epoch_days_radd_matches_java_decomposed(
     base: Date, per: Period, label: str, seq: list[Period]
 ):
@@ -381,11 +388,12 @@ def test_epoch_days_radd_matches_java_decomposed(
     ],
 )
 @pytest.mark.hybrid
+@pytest.mark.integer
 def test_hybrid_radd_matches_java_decomposed(
     base: Date, per: Period, label: str, seq: list[Period]
 ):
     expect = python_date_plus_sequence(base, seq, label)
-    model = _solve_decomposed_with_solver_radd(HybridDateSolver, base, seq)
+    model = _solve_decomposed_with_solver_radd(HybridSolver, base, seq)
     assert model["status"] == "sat"
     got = model["dates"]["y"]
     assert (
@@ -401,6 +409,7 @@ def test_hybrid_radd_matches_java_decomposed(
     ],
 )
 @pytest.mark.alpha_beta
+@pytest.mark.integer
 def test_alpha_beta_radd_matches_java_decomposed(
     base: Date, per: Period, label: str, seq: list[Period]
 ):
@@ -423,6 +432,7 @@ def test_alpha_beta_radd_matches_java_decomposed(
     ],
 )
 @pytest.mark.alpha_beta_table
+@pytest.mark.integer
 def test_alpha_beta_table_radd_matches_java_decomposed(
     base: Date, per: Period, label: str, seq: list[Period]
 ):
@@ -445,6 +455,7 @@ def test_alpha_beta_table_radd_matches_java_decomposed(
     ],
 )
 @pytest.mark.baseline
+@pytest.mark.integer
 def test_baseline_sub_matches_java_decomposed(
     base: Date, per: Period, label: str, seq: list[Period]
 ):
@@ -466,6 +477,7 @@ def test_baseline_sub_matches_java_decomposed(
     ],
 )
 @pytest.mark.epoch_days
+@pytest.mark.integer
 def test_epoch_days_sub_matches_java_decomposed(
     base: Date, per: Period, label: str, seq: list[Period]
 ):
@@ -487,10 +499,11 @@ def test_epoch_days_sub_matches_java_decomposed(
     ],
 )
 @pytest.mark.hybrid
+@pytest.mark.integer
 def test_hybrid_sub_matches_java_decomposed(
     base: Date, per: Period, label: str, seq: list[Period]
 ):
-    model = _solve_decomposed_with_solver_sub(HybridDateSolver, base, seq)
+    model = _solve_decomposed_with_solver_sub(HybridSolver, base, seq)
     if model["status"] == "unsat":
         return
     expect = python_date_plus_sequence(base, seq, label)
@@ -508,6 +521,7 @@ def test_hybrid_sub_matches_java_decomposed(
     ],
 )
 @pytest.mark.alpha_beta
+@pytest.mark.integer
 def test_alpha_beta_sub_matches_java_decomposed(
     base: Date, per: Period, label: str, seq: list[Period]
 ):
@@ -531,6 +545,7 @@ def test_alpha_beta_sub_matches_java_decomposed(
     ],
 )
 @pytest.mark.alpha_beta_table
+@pytest.mark.integer
 def test_alpha_beta_table_sub_matches_java_decomposed(
     base: Date, per: Period, label: str, seq: list[Period]
 ):

@@ -12,9 +12,9 @@ from z3 import BoolRef
 from .core import Date, Period
 from .symbolic_alpha_beta import AlphaBetaSolver
 from .symbolic_alpha_beta_table import AlphaBetaTableSolver
-from .symbolic_baseline import DateSolver
+from .symbolic_baseline import BaselineSolver
 from .symbolic_epoch_days import EpochDaysSolver
-from .symbolic_hybrid import HybridDateSolver
+from .symbolic_hybrid import HybridSolver
 
 
 class DateSMTBuilder:
@@ -29,11 +29,11 @@ class DateSMTBuilder:
         """
         self.approach = approach
         if approach == "baseline":
-            self.solver = DateSolver(timeout_ms=timeout_ms)
+            self.solver = BaselineSolver(timeout_ms=timeout_ms)
         elif approach == "epoch_days":
             self.solver = EpochDaysSolver(timeout_ms=timeout_ms)
         elif approach == "hybrid":
-            self.solver = HybridDateSolver(timeout_ms=timeout_ms)
+            self.solver = HybridSolver(timeout_ms=timeout_ms)
         elif approach == "alpha_beta":
             self.solver = AlphaBetaSolver(timeout_ms=timeout_ms)
         elif approach == "alpha_beta_table":

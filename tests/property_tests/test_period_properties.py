@@ -9,7 +9,7 @@ import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
-from datesmt.core import Period
+from datesmt_int.core import Period
 
 
 class TestPeriodProperties:

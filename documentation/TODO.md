@@ -6,8 +6,10 @@ DateSMT
 [X] Update constraints to (1900,3,1) to (2100,2,28) - inclusive
 [X] Library behavior when an input is an invalid day/out of range?
 [X] Clean up symbolic_alpha_beta_table
-[ ] Check if we can specify temp var (var that we don't need result for)
+[X] Check if we can specify temp var (var that we don't need result for) - still need to solve but can not return the result -> don't matter in terms of performance?
 [ ] Think about hybrid method: do we need lazy approach?
+[X] Use bit vector? - Added
+[ ] Further reduce bit width?
 
 Unit test
 [X] Add unit test coverage (Angel)
@@ -33,6 +35,9 @@ Debugging
 [ ] Figure out 1758090062-13 for baseline
 [ ] Figure out the "error" cases in the results
 [ ] Figure out the "timeout" cases in the results
+
+Evaluation
+[ ] Dump smt to run on cvc 5 - better performance?
 
 General
 [X] Organize repo (Angel)

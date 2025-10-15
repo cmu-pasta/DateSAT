@@ -11,8 +11,8 @@ import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
-from datesmt.core import Date
-from datesmt.symbolic_epoch_days import from_days_since_epoch, to_days_since_epoch
+from datesmt_int.core import Date
+from datesmt_int.symbolic_epoch_days import from_days_since_epoch, to_days_since_epoch
 
 
 class TestEpochConversionProperties:

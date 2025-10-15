@@ -15,7 +15,7 @@ from dateutil.relativedelta import relativedelta
 from hypothesis import HealthCheck, assume, given, settings
 from hypothesis import strategies as st
 
-from datesmt.core import Date, Period
+from datesmt_int.core import Date, Period
 
 JAVA_DIR = Path(__file__).resolve().parents[1] / "property_tests" / "java"
 JAVA_SRC = JAVA_DIR / "LocalDateGroundTruth.java"

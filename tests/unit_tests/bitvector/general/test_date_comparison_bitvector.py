@@ -2,12 +2,12 @@ import operator
 
 import pytest
 
-from datesmt.core import Date
-from datesmt.symbolic_alpha_beta import AlphaBetaSolver
-from datesmt.symbolic_alpha_beta_table import AlphaBetaTableSolver
-from datesmt.symbolic_baseline import DateSolver as BaselineSolver
-from datesmt.symbolic_epoch_days import EpochDaysSolver
-from datesmt.symbolic_hybrid import HybridDateSolver
+from datesmt_bitvector.core import Date
+from datesmt_bitvector.symbolic_alpha_beta import AlphaBetaSolver
+from datesmt_bitvector.symbolic_alpha_beta_table import AlphaBetaTableSolver
+from datesmt_bitvector.symbolic_baseline import BaselineSolver
+from datesmt_bitvector.symbolic_epoch_days import EpochDaysSolver
+from datesmt_bitvector.symbolic_hybrid import HybridSolver
 
 # We cover equality, less/greater, boundary conditions, leap cases, and month ends.
 CASES = [
@@ -80,6 +80,7 @@ def _solve_compare(solver_cls, a: Date, b: Date, op_symbol: str) -> bool:
 )
 @pytest.mark.parametrize("op_name,op", OPS)
 @pytest.mark.baseline
+@pytest.mark.bitvector
 def test_baseline_date_comparisons_match_truth(op_name: str, op, a: Date, b: Date):
     expect = _expect_truth(op, a, b)
     sat = _solve_compare(BaselineSolver, a, b, op_name)
@@ -92,6 +93,7 @@ def test_baseline_date_comparisons_match_truth(op_name: str, op, a: Date, b: Dat
 )
 @pytest.mark.parametrize("op_name,op", OPS)
 @pytest.mark.epoch_days
+@pytest.mark.bitvector
 def test_epoch_days_date_comparisons_match_truth(op_name: str, op, a: Date, b: Date):
     expect = _expect_truth(op, a, b)
     sat = _solve_compare(EpochDaysSolver, a, b, op_name)
@@ -104,9 +106,10 @@ def test_epoch_days_date_comparisons_match_truth(op_name: str, op, a: Date, b: D
 )
 @pytest.mark.parametrize("op_name,op", OPS)
 @pytest.mark.hybrid
+@pytest.mark.bitvector
 def test_hybrid_date_comparisons_match_truth(op_name: str, op, a: Date, b: Date):
     expect = _expect_truth(op, a, b)
-    sat = _solve_compare(HybridDateSolver, a, b, op_name)
+    sat = _solve_compare(HybridSolver, a, b, op_name)
     assert sat == expect, f"Hybrid: expected {expect} for {a} {op_name} {b}"
 
 
@@ -116,6 +119,7 @@ def test_hybrid_date_comparisons_match_truth(op_name: str, op, a: Date, b: Date)
 )
 @pytest.mark.parametrize("op_name,op", OPS)
 @pytest.mark.alpha_beta
+@pytest.mark.bitvector
 def test_alpha_beta_date_comparisons_match_truth(op_name: str, op, a: Date, b: Date):
     expect = _expect_truth(op, a, b)
     sat = _solve_compare(AlphaBetaSolver, a, b, op_name)
@@ -128,6 +132,7 @@ def test_alpha_beta_date_comparisons_match_truth(op_name: str, op, a: Date, b: D
 )
 @pytest.mark.parametrize("op_name,op", OPS)
 @pytest.mark.alpha_beta_table
+@pytest.mark.bitvector
 def test_alpha_beta_table_date_comparisons_match_truth(
     op_name: str, op, a: Date, b: Date
 ):

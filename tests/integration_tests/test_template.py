@@ -9,21 +9,21 @@ import sys
 import time
 from datetime import datetime
 
-# Ensure repository root is on sys.path so `import datesmt` works
+# Ensure repository root is on sys.path so `import datesmt_int` works
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
 try:
-    from datesmt.core import Date, Period
-    from datesmt.symbolic_api import DateSMTBuilder
+    from datesmt_int.core import Date, Period
+    from datesmt_int.symbolic_api import DateSMTBuilder
 except ImportError:
     # Fallback: attempt to re-add repo root (in case environment modified sys.path)
     REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
     if REPO_ROOT not in sys.path:
         sys.path.insert(0, REPO_ROOT)
-    from datesmt.core import Date, Period
-    from datesmt.symbolic_api import DateSMTBuilder
+    from datesmt_int.core import Date, Period
+    from datesmt_int.symbolic_api import DateSMTBuilder
 
 
 def test_constraint_with_approach(

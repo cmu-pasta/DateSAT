@@ -33,7 +33,8 @@ def run_tests_with_coverage() -> None:
         "--maxfail=1",
         "--disable-warnings",
         "--color=yes",
-        "--cov=datesmt",
+        "--cov=datesmt_bitvector",
+        "--cov=datesmt_int",
         "--cov-branch",
         f"--cov-report=xml:{XML_PATH}",
         f"--cov-report=html:{HTML_DIR}",
@@ -98,13 +99,13 @@ def parse_cobertura(xml_path: Path):
         ),
     }
 
-    # Per-file aggregation grouped as module names like datesmt.core
+    # Per-file aggregation grouped as module names like datesmt_int.core
     packages = {}
     for cls in root.findall('.//class'):
         filename = cls.attrib.get('filename', '')
         if not filename or not filename.endswith('.py'):
             continue
-        # Expect paths like datesmt/core.py
+        # Expect paths like datesmt_int/core.py
         module = filename.replace(os.sep, "/").replace('/', '.')
         if module.endswith('.py'):
             module = module[:-3]

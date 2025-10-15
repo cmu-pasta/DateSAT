@@ -149,7 +149,7 @@ The baseline implementation now uses the same efficient algorithm as the epoch_d
 
 ## Files Modified
 
-- `datesmt/symbolic_baseline.py`: Updated `_days_from_civil` and `_civil_from_days` functions
+- `datesmt_TYPE/symbolic_baseline.py`: Updated `_days_from_civil` and `_civil_from_days` functions
 
 ## Impact
 
