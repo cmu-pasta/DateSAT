@@ -21,6 +21,7 @@ try:
         ConcreteDateVar,
         ConcretePeriodVar,
     )
+    from datesmt.constraint_parser import ConstraintParser
     from datesmt.core import Date, Period
 except ImportError:
     # Fallback: attempt to re-add repo root (in case environment modified sys.path)
@@ -33,7 +34,14 @@ except ImportError:
         ConcreteDateVar,
         ConcretePeriodVar,
     )
+    from datesmt.constraint_parser import ConstraintParser
     from datesmt.core import Date, Period
+
+
+def _get_constraint_code(constraint_data: dict) -> str:
+    """Get constraint code from new format constraint data."""
+    parser = ConstraintParser()
+    return parser.parse_constraint_data(constraint_data)
 
 
 def run_constraint_with_approach(
@@ -42,10 +50,16 @@ def run_constraint_with_approach(
     """Run a single constraint with a specific approach and implementation."""
 
     constraint_id = constraint_data["id"]
-    constraint_code = constraint_data["constraint_code"]
     description = constraint_data.get("description", "")
-    variables = constraint_data.get("variables", [])
     coverage_tags = constraint_data.get("coverage_tags", [])
+
+    # Get constraint code from new format
+    constraint_code = _get_constraint_code(constraint_data)
+
+    # Extract variables from new format
+    variables = constraint_data.get("date_variables", []) + constraint_data.get(
+        "period_variables", []
+    )
 
     print(
         f"\n=== Running {constraint_id} ({approach.upper()}, {implementation.upper()}) ==="
@@ -55,11 +69,18 @@ def run_constraint_with_approach(
     print(f"Constraint: {constraint_code}")
 
     result = {
-        "constraint_id": constraint_id,
+        # New format fields (copied directly from input)
+        "id": constraint_id,
         "description": description,
+        "constraints": constraint_data.get("constraints", []),
+        "date_variables": constraint_data.get("date_variables", []),
+        "period_variables": constraint_data.get("period_variables", []),
+        "coverage_tags": coverage_tags,
+        # Old format fields (for backward compatibility)
+        "constraint_id": constraint_id,
         "constraint_code": constraint_code,
         "variables": variables,
-        "coverage_tags": coverage_tags,
+        # Execution metadata
         "approach": approach,
         "implementation": implementation,
         "status": "error",

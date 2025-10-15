@@ -78,22 +78,22 @@ Each element must be an object:
 {
   "id": "string-unique",
   "description": "brief human explanation",
-  "constraint_code": "Python code string to build/assert the constraint(s)",
-  "variables": ["list", "of", "used", "names"],
+  "constraints": ["x >= Date(2000,2,28)", "x <= Date(2000,3,1)", "x != Date(2000,2,28)", "x != Date(2000,3,1)"],
+  "date_variables": ["x"],
+  "period_variables": [],
   "coverage_tags": ["leap_boundary","eom","year_vs_days","month_vs_days","chain_add","ineq_window","multi_var"]
 }
 
-STYLE FOR constraint_code
-- Build with DateSMTBuilder(); declare or reuse x,y,z,p,q,r; then assert constraints.
-- Prefer small, readable snippets; avoid random() or environment calls.
-- No printing; just build constraints. Example skeleton:
-
-builder = DateSMTBuilder()
-x = builder.add_date_var("x")
-y = builder.add_date_var("y")
-# ... your constraints ...
-builder.add_constraint(x + Period(1,2,0) > y)
-result = builder  # implicit: harness will solve
+STYLE FOR constraints
+- Write constraints as individual strings that can be parsed by the constraint parser.
+- Use simple, readable constraint expressions.
+- Each constraint should be a complete boolean expression.
+- Example format:
+  "x >= Date(2000,2,28)"
+  "x <= Date(2000,3,1)"
+  "x != Date(2000,2,28)"
+  "x != Date(2000,3,1)"
+  "(x + Period(0,1,0)) != (x + Period(0,0,30))"
 
 VALIDATION GUARDRAILS
 - Ensure all dates are within 1900-03-01..2100-02-28.
@@ -103,8 +103,8 @@ VALIDATION GUARDRAILS
 FINAL INSTRUCTIONS
 - Output MUST be a single JSON array with the exact schema above.
 - No code fences. No prose. No trailing commas. No comments.
-- Inside JSON strings, use ONLY plain ASCII quotes. Prefer single quotes in Python snippets (e.g., add_date_var('x')).
-- Ensure any newlines inside constraint_code are encoded as \n in the JSON string, not raw line breaks.
+- Inside JSON strings, use ONLY plain ASCII quotes.
+- Each constraint string should be a complete boolean expression that can be parsed by the constraint parser.
 - Do not include backticks, markdown, or explanations before/after the JSON."""
 
 
@@ -114,8 +114,9 @@ def _basic_schema_ok(items: Any) -> bool:
     required_keys = {
         "id",
         "description",
-        "constraint_code",
-        "variables",
+        "constraints",
+        "date_variables",
+        "period_variables",
         "coverage_tags",
     }
     for it in items:
@@ -127,9 +128,11 @@ def _basic_schema_ok(items: Any) -> bool:
             return False
         if not isinstance(it["description"], str):
             return False
-        if not isinstance(it["constraint_code"], str):
+        if not isinstance(it["constraints"], list):
             return False
-        if not isinstance(it["variables"], list):
+        if not isinstance(it["date_variables"], list):
+            return False
+        if not isinstance(it["period_variables"], list):
             return False
         if not isinstance(it["coverage_tags"], list):
             return False

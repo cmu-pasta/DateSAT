@@ -42,18 +42,18 @@ class TestConcreteValidation:
 
     def test_validate_simple_constraint(self):
         """Test validating a simple constraint."""
-        constraint_code = """
-# Simple constraint: d1 >= Date(2020, 1, 1)
-builder = DateSMTBuilder()
-d1 = builder.add_date_var("d1")
-builder.add_constraint(d1 >= Date(2020, 1, 1))
-result = builder
-"""
+        constraint_data = {
+            "id": "test_simple",
+            "description": "Simple constraint test",
+            "constraints": ["d1 >= Date(2020, 1, 1)"],
+            "date_variables": ["d1"],
+            "period_variables": [],
+        }
 
         # Valid solution
         solution = {"d1": "Date(2020, 3, 15)"}
         is_valid, message = validate_solution_with_concrete(
-            constraint_code, solution, {}
+            constraint_data, solution, {}
         )
         assert is_valid
         assert "successfully" in message
@@ -61,49 +61,59 @@ result = builder
         # Invalid solution (should still execute without error)
         solution = {"d1": "Date(2019, 12, 31)"}
         is_valid, message = validate_solution_with_concrete(
-            constraint_code, solution, {}
+            constraint_data, solution, {}
         )
         # Note: This might still be valid since we're not actually checking constraints yet
         # The concrete validation currently just checks if the code executes
 
     def test_validate_with_periods(self):
         """Test validating constraints with periods."""
-        constraint_code = """
-# Constraint with periods: d1 + p1 >= Date(2020, 6, 1)
-builder = DateSMTBuilder()
-d1 = builder.add_date_var("d1")
-p1 = builder.add_period_var("p1")
-builder.add_constraint(d1 + p1 >= Date(2020, 6, 1))
-result = builder
-"""
+        constraint_data = {
+            "id": "test_periods",
+            "description": "Constraint with periods test",
+            "constraints": ["d1 + p1 >= Date(2020, 6, 1)"],
+            "date_variables": ["d1"],
+            "period_variables": ["p1"],
+        }
 
         solution = {"d1": "Date(2020, 3, 15)", "p1": "Period(0, 2, 15)"}
         is_valid, message = validate_solution_with_concrete(
-            constraint_code, solution, {}
+            constraint_data, solution, {}
         )
         assert is_valid
         assert "successfully" in message
 
     def test_validate_invalid_solution_format(self):
         """Test validation with invalid solution format."""
-        constraint_code = """
-builder = DateSMTBuilder()
-d1 = builder.add_date_var("d1")
-result = builder
-"""
+        constraint_data = {
+            "id": "test_invalid",
+            "description": "Invalid solution format test",
+            "constraints": ["d1 >= Date(2020, 1, 1)"],
+            "date_variables": ["d1"],
+            "period_variables": [],
+        }
 
         # Invalid variable value
         solution = {"d1": "Invalid format"}
         is_valid, message = validate_solution_with_concrete(
-            constraint_code, solution, {}
+            constraint_data, solution, {}
         )
         assert not is_valid
         assert "Could not parse" in message
 
     def test_validate_missing_constraint_code(self):
         """Test validation with missing constraint code."""
+        constraint_data = {
+            "id": "test_empty",
+            "description": "Empty constraint test",
+            "constraints": [],
+            "date_variables": [],
+            "period_variables": [],
+        }
         solution = {"d1": "Date(2020, 3, 15)"}
-        is_valid, message = validate_solution_with_concrete("", solution, {})
+        is_valid, message = validate_solution_with_concrete(
+            constraint_data, solution, {}
+        )
         # Should still execute (empty code is valid)
         assert is_valid
 

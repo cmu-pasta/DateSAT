@@ -308,9 +308,17 @@ def validate_sat_record(
     if not constraint_code:
         return False, "missing constraint code"
 
+    # Construct constraint data from new format fields for validation
+    constraint_data = {
+        "constraints": rec.get("constraints", []),
+        "date_variables": rec.get("date_variables", []),
+        "period_variables": rec.get("period_variables", []),
+        "coverage_tags": rec.get("coverage_tags", []),
+    }
+
     # Use concrete validation from validation.py
     is_valid, message = validate_solution_with_concrete(
-        constraint_code, solution, constraint_id
+        constraint_data, solution, constraint_id
     )
 
     if save_dir is not None:

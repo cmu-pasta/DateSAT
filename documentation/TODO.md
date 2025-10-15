@@ -29,7 +29,7 @@ Integration test
 
 LLM test generation
 [ ] Make llm_generator better in generating integration tests that cover more cases
-[ ] Make constraint_code just a list of strings of constraints
+[X] Make constraint_code just a list of strings of constraints, write the constraints parser
 
 Debugging
 [X] Figure out 1758090062-13 for baseline - See nothing wrong after updating the implementation -> ?
