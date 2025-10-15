@@ -1,0 +1,440 @@
+[
+  {
+    "id": "1758090062-1",
+    "description": "Date on Feb 29 of a leap year plus 1 year lands on Feb 28",
+    "constraints": [
+      "x == Date(2020, 2, 29)",
+      "x + Period(1, 0, 0) == Date(2021, 2, 28)"
+    ],
+    "date_variables": [
+      "x"
+    ],
+    "period_variables": [],
+    "coverage_tags": [
+      "leap_boundary"
+    ],
+    "constraint_id": "1758090062-1",
+    "constraint_code": "builder = DateSMTBuilder()\nx = builder.add_date_var(\"x\")\nbuilder.add_constraint(x == Date(2020, 2, 29))\nbuilder.add_constraint(x + Period(1, 0, 0) == Date(2021, 2, 28))\nresult = builder",
+    "variables": [
+      "x"
+    ],
+    "approach": "epoch_days",
+    "implementation": "int",
+    "status": "sat",
+    "execution_time": 0.016935348510742188,
+    "error_message": null,
+    "solution": {
+      "x": "Date(2020, 2, 29)"
+    },
+    "smtlib": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun x_days () Int)\n(assert\n (>= x_days (- 36525)))\n(assert\n (<= x_days 36523))\n(assert\n (= x_days 7304))\n(assert\n (let ((?x594 (+ x_days 730179)))\n(let ((?x666 (mod ?x594 146097)))\n(let ((?x1167 (div ?x666 36524)))\n(let ((?x1107 (ite (<= 4 ?x1167) 3 ?x1167)))\n(let ((?x425 (- ?x666 (* ?x1107 36524))))\n(let ((?x909 (mod ?x425 1461)))\n(let ((?x1024 (div ?x909 365)))\n(let ((?x748 (ite (<= 4 ?x1024) 3 ?x1024)))\n(let ((?x3086 (+ (+ (* (div ?x594 146097) 400) (* ?x1107 100)) (* (div ?x425 1461) 4))))\n(let ((?x2125 (+ (+ ?x3086 ?x748) 1)))\n(let (($x3503 (or (and (= (mod ?x2125 4) 0) (and (distinct (mod ?x2125 100) 0) true)) (= (mod ?x2125 400) 0))))\n(let ((?x878 (- ?x909 (* ?x748 365))))\n(let ((?x1058 (ite $x3503 31 31)))\n(let (($x1100 (>= ?x878 ?x1058)))\n(let ((?x632 (ite $x1100 (+ (- ?x878 ?x1058) 1) (+ (- ?x878 (ite $x3503 0 0)) 1))))\n(let ((?x795 (ite $x3503 60 59)))\n(let (($x947 (>= ?x878 ?x795)))\n(let ((?x910 (ite $x3503 91 90)))\n(let (($x1175 (>= ?x878 ?x910)))\n(let ((?x495 (ite $x1175 (+ (- ?x878 ?x910) 1) (ite $x947 (+ (- ?x878 ?x795) 1) ?x632))))\n(let ((?x563 (ite $x3503 121 120)))\n(let (($x1263 (>= ?x878 ?x563)))\n(let ((?x606 (ite $x3503 152 151)))\n(let (($x844 (>= ?x878 ?x606)))\n(let ((?x987 (ite $x844 (+ (- ?x878 ?x606) 1) (ite $x1263 (+ (- ?x878 ?x563) 1) ?x495))))\n(let ((?x1010 (ite $x3503 182 181)))\n(let (($x946 (>= ?x878 ?x1010)))\n(let ((?x1179 (ite $x3503 213 212)))\n(let (($x1067 (>= ?x878 ?x1179)))\n(let ((?x595 (ite $x1067 (+ (- ?x878 ?x1179) 1) (ite $x946 (+ (- ?x878 ?x1010) 1) ?x987))))\n(let ((?x764 (ite $x3503 244 243)))\n(let (($x691 (>= ?x878 ?x764)))\n(let ((?x813 (ite $x3503 274 273)))\n(let (($x1104 (>= ?x878 ?x813)))\n(let ((?x401 (ite $x1104 (+ (- ?x878 ?x813) 1) (ite $x691 (+ (- ?x878 ?x764) 1) ?x595))))\n(let ((?x457 (ite $x3503 305 304)))\n(let (($x1026 (>= ?x878 ?x457)))\n(let ((?x1134 (ite $x3503 335 334)))\n(let (($x990 (>= ?x878 ?x1134)))\n(let ((?x465 (ite $x990 (+ (- ?x878 ?x1134) 1) (ite $x1026 (+ (- ?x878 ?x457) 1) ?x401))))\n(let ((?x1835 (ite $x1263 5 (ite $x1175 4 (ite $x947 3 (ite $x1100 2 1))))))\n(let ((?x1174 (ite $x691 9 (ite $x1067 8 (ite $x946 7 (ite $x844 6 ?x1835))))))\n(let ((?x1003 (+ (ite $x990 12 (ite $x1026 11 (ite $x1104 10 ?x1174))) (+ (* 1 12) 0))))\n(let ((?x645 (- ?x1003 1)))\n(let ((?x453 (+ (mod ?x645 12) 1)))\n(let ((?x598 (ite (or (= ?x453 4) (= ?x453 6) (= ?x453 9) (= ?x453 11)) 30 31)))\n(let (($x992 (and (= (mod (+ ?x2125 (+ 0 (div ?x645 12))) 4) 0) (and (distinct (mod (+ ?x2125 (+ 0 (div ?x645 12))) 100) 0) true))))\n(let (($x888 (or $x992 (= (mod (+ ?x2125 (+ 0 (div ?x645 12))) 400) 0))))\n(let ((?x836 (ite (= ?x453 2) (ite $x888 29 28) ?x598)))\n(let ((?x1048 (ite (> 1 ?x465) 1 (ite (> ?x465 ?x836) ?x836 ?x465))))\n(let ((?x842 (ite (> 1 ?x1048) 1 (ite (> ?x1048 ?x836) ?x836 ?x1048))))\n(let ((?x840 (ite (= 2 ?x453) (ite $x888 31 31) (ite (= 1 ?x453) (ite $x888 0 0) 0))))\n(let ((?x525 (ite (= 4 ?x453) (ite $x888 91 90) (ite (= 3 ?x453) (ite $x888 60 59) ?x840))))\n(let ((?x877 (ite (= 6 ?x453) (ite $x888 152 151) (ite (= 5 ?x453) (ite $x888 121 120) ?x525))))\n(let ((?x578 (ite (= 8 ?x453) (ite $x888 213 212) (ite (= 7 ?x453) (ite $x888 182 181) ?x877))))\n(let ((?x542 (ite (= 10 ?x453) (ite $x888 274 273) (ite (= 9 ?x453) (ite $x888 244 243) ?x578))))\n(let ((?x832 (ite (= 12 ?x453) (ite $x888 335 334) (ite (= 11 ?x453) (ite $x888 305 304) ?x542))))\n(let ((?x861 (+ (* 365 (- (+ ?x2125 (+ 0 (div ?x645 12))) 1)) (div (- (+ ?x2125 (+ 0 (div ?x645 12))) 1) 4))))\n(let ((?x918 (+ (- ?x861 (div (- (+ ?x2125 (+ 0 (div ?x645 12))) 1) 100)) (div (- (+ ?x2125 (+ 0 (div ?x645 12))) 1) 400))))\n(let ((?x839 (+ (+ (- (+ (+ ?x918 ?x832) (- ?x842 1)) 730179) 0) 730179)))\n(let ((?x900 (mod ?x839 146097)))\n(let ((?x537 (div ?x900 36524)))\n(let ((?x498 (ite (<= 4 ?x537) 3 ?x537)))\n(let ((?x3531 (- ?x900 (* ?x498 36524))))\n(let ((?x3269 (mod ?x3531 1461)))\n(let ((?x2785 (div ?x3269 365)))\n(let ((?x480 (ite (<= 4 ?x2785) 3 ?x2785)))\n(let ((?x797 (+ (+ (* (div ?x839 146097) 400) (* ?x498 100)) (* (div ?x3531 1461) 4))))\n(let ((?x1147 (+ (+ ?x797 ?x480) 1)))\n(let (($x846 (or (and (= (mod ?x1147 4) 0) (and (distinct (mod ?x1147 100) 0) true)) (= (mod ?x1147 400) 0))))\n(let ((?x998 (- ?x3269 (* ?x480 365))))\n(let ((?x1145 (ite $x846 31 31)))\n(let (($x2064 (>= ?x998 ?x1145)))\n(let ((?x855 (ite $x2064 (+ (- ?x998 ?x1145) 1) (+ (- ?x998 (ite $x846 0 0)) 1))))\n(let ((?x1018 (ite $x846 60 59)))\n(let (($x1135 (>= ?x998 ?x1018)))\n(let ((?x752 (ite $x846 91 90)))\n(let (($x403 (>= ?x998 ?x752)))\n(let ((?x1063 (ite $x403 (+ (- ?x998 ?x752) 1) (ite $x1135 (+ (- ?x998 ?x1018) 1) ?x855))))\n(let ((?x3451 (ite $x846 121 120)))\n(let (($x735 (>= ?x998 ?x3451)))\n(let ((?x858 (ite $x846 152 151)))\n(let (($x422 (>= ?x998 ?x858)))\n(let ((?x486 (ite $x422 (+ (- ?x998 ?x858) 1) (ite $x735 (+ (- ?x998 ?x3451) 1) ?x1063))))\n(let ((?x1069 (ite $x846 182 181)))\n(let (($x493 (>= ?x998 ?x1069)))\n(let ((?x535 (ite $x846 213 212)))\n(let (($x814 (>= ?x998 ?x535)))\n(let ((?x679 (ite $x814 (+ (- ?x998 ?x535) 1) (ite $x493 (+ (- ?x998 ?x1069) 1) ?x486))))\n(let ((?x809 (ite $x846 244 243)))\n(let (($x1128 (>= ?x998 ?x809)))\n(let ((?x629 (ite $x846 274 273)))\n(let (($x974 (>= ?x998 ?x629)))\n(let ((?x585 (ite $x974 (+ (- ?x998 ?x629) 1) (ite $x1128 (+ (- ?x998 ?x809) 1) ?x679))))\n(let ((?x718 (ite $x846 305 304)))\n(let (($x1871 (>= ?x998 ?x718)))\n(let ((?x1144 (ite $x846 335 334)))\n(let (($x837 (>= ?x998 ?x1144)))\n(let ((?x491 (ite $x837 (+ (- ?x998 ?x1144) 1) (ite $x1871 (+ (- ?x998 ?x718) 1) ?x585))))\n(let (($x2528 (= 0 0)))\n(let (($x1635 (= (mod (ite $x2528 (+ ?x2125 (+ 0 (div ?x645 12))) ?x1147) 400) 0)))\n(let (($x739 (and (distinct (mod (ite $x2528 (+ ?x2125 (+ 0 (div ?x645 12))) ?x1147) 100) 0) true)))\n(let (($x734 (= (mod (ite $x2528 (+ ?x2125 (+ 0 (div ?x645 12))) ?x1147) 4) 0)))\n(let (($x654 (or (and $x734 $x739) $x1635)))\n(let ((?x699 (ite $x735 5 (ite $x403 4 (ite $x1135 3 (ite $x2064 2 1))))))\n(let ((?x3529 (ite $x1128 9 (ite $x814 8 (ite $x493 7 (ite $x422 6 ?x699))))))\n(let ((?x496 (ite $x2528 ?x453 (ite $x837 12 (ite $x1871 11 (ite $x974 10 ?x3529))))))\n(let ((?x3031 (ite (= 2 ?x496) (ite $x654 31 31) (ite (= 1 ?x496) (ite $x654 0 0) 0))))\n(let ((?x712 (ite (= 4 ?x496) (ite $x654 91 90) (ite (= 3 ?x496) (ite $x654 60 59) ?x3031))))\n(let ((?x754 (ite (= 6 ?x496) (ite $x654 152 151) (ite (= 5 ?x496) (ite $x654 121 120) ?x712))))\n(let ((?x705 (ite (= 8 ?x496) (ite $x654 213 212) (ite (= 7 ?x496) (ite $x654 182 181) ?x754))))\n(let ((?x3157 (ite (= 10 ?x496) (ite $x654 274 273) (ite (= 9 ?x496) (ite $x654 244 243) ?x705))))\n(let ((?x1106 (ite (= 12 ?x496) (ite $x654 335 334) (ite (= 11 ?x496) (ite $x654 305 304) ?x3157))))\n(let ((?x769 (+ ?x2125 (+ 0 (div ?x645 12)))))\n(let ((?x501 (ite $x2528 ?x769 ?x1147)))\n(let ((?x820 (- ?x501 1)))\n(let ((?x1533 (+ (- (+ (* 365 ?x820) (div ?x820 4)) (div ?x820 100)) (div ?x820 400))))\n(= (- (+ (+ ?x1533 ?x1106) (- (ite $x2528 ?x842 ?x491) 1)) 730179) 7669)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))\n(check-sat)\n",
+    "smtlib_file": "results_new/constraint2/smt2/1758090062-1_epoch_days_int.smt2"
+  },
+  {
+    "id": "1758090062-2",
+    "description": "Adding 1 month to Jan 31 gives Feb 28/29 depending on leap year",
+    "constraints": [
+      "x == Date(2020, 1, 31)",
+      "y == Date(2019, 1, 31)",
+      "x + Period(0, 1, 0) == Date(2020, 2, 29)",
+      "y + Period(0, 1, 0) == Date(2019, 2, 28)"
+    ],
+    "date_variables": [
+      "x",
+      "y"
+    ],
+    "period_variables": [],
+    "coverage_tags": [
+      "month_vs_days",
+      "eom"
+    ],
+    "constraint_id": "1758090062-2",
+    "constraint_code": "builder = DateSMTBuilder()\nx = builder.add_date_var(\"x\")\ny = builder.add_date_var(\"y\")\nbuilder.add_constraint(x == Date(2020, 1, 31))\nbuilder.add_constraint(y == Date(2019, 1, 31))\nbuilder.add_constraint(x + Period(0, 1, 0) == Date(2020, 2, 29))\nbuilder.add_constraint(y + Period(0, 1, 0) == Date(2019, 2, 28))\nresult = builder",
+    "variables": [
+      "x",
+      "y"
+    ],
+    "approach": "epoch_days",
+    "implementation": "int",
+    "status": "sat",
+    "execution_time": 0.031256914138793945,
+    "error_message": null,
+    "solution": {
+      "x": "Date(2020, 1, 31)",
+      "y": "Date(2019, 1, 31)"
+    },
+    "smtlib": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun x_days () Int)\n(declare-fun y_days () Int)\n(assert\n (>= x_days (- 36525)))\n(assert\n (<= x_days 36523))\n(assert\n (>= y_days (- 36525)))\n(assert\n (<= y_days 36523))\n(assert\n (= x_days 7275))\n(assert\n (= y_days 6910))\n(assert\n (let ((?x2045 (+ x_days 730179)))\n (let ((?x3259 (mod ?x2045 146097)))\n (let ((?x3454 (div ?x3259 36524)))\n (let ((?x3503 (ite (<= 4 ?x3454) 3 ?x3454)))\n (let ((?x869 (- ?x3259 (* ?x3503 36524))))\n (let ((?x990 (mod ?x869 1461)))\n (let ((?x968 (div ?x990 365)))\n (let ((?x457 (ite (<= 4 ?x968) 3 ?x968)))\n (let ((?x691 (+ (+ (* (div ?x2045 146097) 400) (* ?x3503 100)) (* (div ?x869 1461) 4))))\n (let ((?x750 (+ (+ ?x691 ?x457) 1)))\n (let (($x570 (or (and (= (mod ?x750 4) 0) (and (distinct (mod ?x750 100) 0) true)) (= (mod ?x750 400) 0))))\n (let ((?x1176 (- ?x990 (* ?x457 365))))\n (let ((?x844 (ite $x570 31 31)))\n (let (($x639 (>= ?x1176 ?x844)))\n (let ((?x873 (ite $x639 (+ (- ?x1176 ?x844) 1) (+ (- ?x1176 (ite $x570 0 0)) 1))))\n (let ((?x563 (ite $x570 60 59)))\n (let (($x966 (>= ?x1176 ?x563)))\n (let ((?x2891 (ite $x570 91 90)))\n (let (($x3452 (>= ?x1176 ?x2891)))\n (let ((?x895 (ite $x3452 (+ (- ?x1176 ?x2891) 1) (ite $x966 (+ (- ?x1176 ?x563) 1) ?x873))))\n (let ((?x1265 (ite $x570 121 120)))\n (let (($x940 (>= ?x1176 ?x1265)))\n (let ((?x947 (ite $x570 152 151)))\n (let (($x804 (>= ?x1176 ?x947)))\n (let ((?x532 (ite $x804 (+ (- ?x1176 ?x947) 1) (ite $x940 (+ (- ?x1176 ?x1265) 1) ?x895))))\n (let ((?x1139 (ite $x570 182 181)))\n (let (($x876 (>= ?x1176 ?x1139)))\n (let ((?x1835 (ite $x570 213 212)))\n (let (($x581 (>= ?x1176 ?x1835)))\n (let ((?x999 (ite $x581 (+ (- ?x1176 ?x1835) 1) (ite $x876 (+ (- ?x1176 ?x1139) 1) ?x532))))\n (let ((?x678 (ite $x570 244 243)))\n (let (($x1142 (>= ?x1176 ?x678)))\n (let ((?x1008 (ite $x570 274 273)))\n (let (($x3258 (>= ?x1176 ?x1008)))\n (let ((?x436 (ite $x3258 (+ (- ?x1176 ?x1008) 1) (ite $x1142 (+ (- ?x1176 ?x678) 1) ?x999))))\n (let ((?x660 (ite $x570 305 304)))\n (let (($x2496 (>= ?x1176 ?x660)))\n (let ((?x1019 (ite $x570 335 334)))\n (let (($x888 (>= ?x1176 ?x1019)))\n (let ((?x467 (ite $x888 (+ (- ?x1176 ?x1019) 1) (ite $x2496 (+ (- ?x1176 ?x660) 1) ?x436))))\n (let ((?x530 (+ (* 0 12) 1)))\n (let ((?x471 (ite $x940 5 (ite $x3452 4 (ite $x966 3 (ite $x639 2 1))))))\n (let ((?x1131 (ite $x1142 9 (ite $x581 8 (ite $x876 7 (ite $x804 6 ?x471))))))\n (let ((?x737 (- (+ (ite $x888 12 (ite $x2496 11 (ite $x3258 10 ?x1131))) ?x530) 1)))\n (let ((?x997 (+ (mod ?x737 12) 1)))\n (let ((?x630 (ite (or (= ?x997 4) (= ?x997 6) (= ?x997 9) (= ?x997 11)) 30 31)))\n (let (($x426 (and (= (mod (+ ?x750 (+ 0 (div ?x737 12))) 4) 0) (and (distinct (mod (+ ?x750 (+ 0 (div ?x737 12))) 100) 0) true))))\n (let (($x469 (or $x426 (= (mod (+ ?x750 (+ 0 (div ?x737 12))) 400) 0))))\n (let ((?x632 (ite (= ?x997 2) (ite $x469 29 28) ?x630)))\n (let ((?x987 (ite (> 1 ?x467) 1 (ite (> ?x467 ?x632) ?x632 ?x467))))\n (let ((?x401 (ite (> 1 ?x987) 1 (ite (> ?x987 ?x632) ?x632 ?x987))))\n (let ((?x1048 (ite (= 2 ?x997) (ite $x469 31 31) (ite (= 1 ?x997) (ite $x469 0 0) 0))))\n (let ((?x852 (ite (= 4 ?x997) (ite $x469 91 90) (ite (= 3 ?x997) (ite $x469 60 59) ?x1048))))\n (let ((?x900 (ite (= 6 ?x997) (ite $x469 152 151) (ite (= 5 ?x997) (ite $x469 121 120) ?x852))))\n (let ((?x731 (ite (= 8 ?x997) (ite $x469 213 212) (ite (= 7 ?x997) (ite $x469 182 181) ?x900))))\n (let ((?x2785 (ite (= 10 ?x997) (ite $x469 274 273) (ite (= 9 ?x997) (ite $x469 244 243) ?x731))))\n (let ((?x820 (ite (= 12 ?x997) (ite $x469 335 334) (ite (= 11 ?x997) (ite $x469 305 304) ?x2785))))\n (let ((?x586 (+ (* 365 (- (+ ?x750 (+ 0 (div ?x737 12))) 1)) (div (- (+ ?x750 (+ 0 (div ?x737 12))) 1) 4))))\n (let ((?x1042 (+ (- ?x586 (div (- (+ ?x750 (+ 0 (div ?x737 12))) 1) 100)) (div (- (+ ?x750 (+ 0 (div ?x737 12))) 1) 400))))\n (let ((?x717 (+ (+ (- (+ (+ ?x1042 ?x820) (- ?x401 1)) 730179) 0) 730179)))\n (let ((?x1050 (mod ?x717 146097)))\n (let ((?x998 (div ?x1050 36524)))\n (let ((?x970 (ite (<= 4 ?x998) 3 ?x998)))\n (let ((?x2893 (- ?x1050 (* ?x970 36524))))\n (let ((?x577 (mod ?x2893 1461)))\n (let ((?x2702 (div ?x577 365)))\n (let ((?x1144 (ite (<= 4 ?x2702) 3 ?x2702)))\n (let ((?x1128 (+ (+ (* (div ?x717 146097) 400) (* ?x970 100)) (* (div ?x2893 1461) 4))))\n (let ((?x814 (+ (+ ?x1128 ?x1144) 1)))\n (let (($x403 (or (and (= (mod ?x814 4) 0) (and (distinct (mod ?x814 100) 0) true)) (= (mod ?x814 400) 0))))\n (let ((?x718 (- ?x577 (* ?x1144 365))))\n (let ((?x1135 (ite $x403 31 31)))\n (let (($x835 (>= ?x718 ?x1135)))\n (let ((?x800 (ite $x835 (+ (- ?x718 ?x1135) 1) (+ (- ?x718 (ite $x403 0 0)) 1))))\n (let ((?x1145 (ite $x403 60 59)))\n (let (($x497 (>= ?x718 ?x1145)))\n (let ((?x2064 (ite $x403 91 90)))\n (let (($x3701 (>= ?x718 ?x2064)))\n (let ((?x3022 (ite $x3701 (+ (- ?x718 ?x2064) 1) (ite $x497 (+ (- ?x718 ?x1145) 1) ?x800))))\n (let ((?x3197 (ite $x403 121 120)))\n (let (($x734 (>= ?x718 ?x3197)))\n (let ((?x620 (ite $x403 152 151)))\n (let (($x739 (>= ?x718 ?x620)))\n (let ((?x843 (ite $x739 (+ (- ?x718 ?x620) 1) (ite $x734 (+ (- ?x718 ?x3197) 1) ?x3022))))\n (let ((?x1016 (ite $x403 182 181)))\n (let (($x864 (>= ?x718 ?x1016)))\n (let ((?x699 (ite $x403 213 212)))\n (let (($x654 (>= ?x718 ?x699)))\n (let ((?x1725 (ite $x654 (+ (- ?x718 ?x699) 1) (ite $x864 (+ (- ?x718 ?x1016) 1) ?x843))))\n (let ((?x438 (ite $x403 244 243)))\n (let (($x2916 (>= ?x718 ?x438)))\n (let ((?x482 (ite $x403 274 273)))\n (let (($x1728 (>= ?x718 ?x482)))\n (let ((?x1136 (ite $x1728 (+ (- ?x718 ?x482) 1) (ite $x2916 (+ (- ?x718 ?x438) 1) ?x1725))))\n (let ((?x1710 (ite $x403 305 304)))\n (let (($x466 (>= ?x718 ?x1710)))\n (let ((?x3529 (ite $x403 335 334)))\n (let (($x3040 (>= ?x718 ?x3529)))\n (let ((?x822 (ite $x3040 (+ (- ?x718 ?x3529) 1) (ite $x466 (+ (- ?x718 ?x1710) 1) ?x1136))))\n (let (($x533 (= 0 0)))\n (let (($x1034 (= (mod (ite $x533 (+ ?x750 (+ 0 (div ?x737 12))) ?x814) 400) 0)))\n (let (($x669 (and (distinct (mod (ite $x533 (+ ?x750 (+ 0 (div ?x737 12))) ?x814) 100) 0) true)))\n (let (($x848 (= (mod (ite $x533 (+ ?x750 (+ 0 (div ?x737 12))) ?x814) 4) 0)))\n (let (($x1063 (or (and $x848 $x669) $x1034)))\n (let ((?x792 (ite $x734 5 (ite $x3701 4 (ite $x497 3 (ite $x835 2 1))))))\n (let ((?x3231 (ite $x2916 9 (ite $x654 8 (ite $x864 7 (ite $x739 6 ?x792))))))\n (let ((?x607 (ite $x533 ?x997 (ite $x3040 12 (ite $x466 11 (ite $x1728 10 ?x3231))))))\n (let ((?x856 (ite (= 2 ?x607) (ite $x1063 31 31) (ite (= 1 ?x607) (ite $x1063 0 0) 0))))\n (let ((?x3150 (ite (= 4 ?x607) (ite $x1063 91 90) (ite (= 3 ?x607) (ite $x1063 60 59) ?x856))))\n (let ((?x1028 (ite (= 6 ?x607) (ite $x1063 152 151) (ite (= 5 ?x607) (ite $x1063 121 120) ?x3150))))\n (let ((?x1717 (ite (= 8 ?x607) (ite $x1063 213 212) (ite (= 7 ?x607) (ite $x1063 182 181) ?x1028))))\n (let ((?x704 (ite (= 10 ?x607) (ite $x1063 274 273) (ite (= 9 ?x607) (ite $x1063 244 243) ?x1717))))\n (let ((?x979 (ite (= 12 ?x607) (ite $x1063 335 334) (ite (= 11 ?x607) (ite $x1063 305 304) ?x704))))\n (let ((?x932 (+ ?x750 (+ 0 (div ?x737 12)))))\n (let ((?x867 (ite $x533 ?x932 ?x814)))\n (let ((?x755 (- ?x867 1)))\n (let ((?x488 (+ (- (+ (* 365 ?x755) (div ?x755 4)) (div ?x755 100)) (div ?x755 400))))\n (= (- (+ (+ ?x488 ?x979) (- (ite $x533 ?x401 ?x822) 1)) 730179) 7304)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))\n(assert\n (let ((?x517 (+ y_days 730179)))\n(let ((?x2743 (mod ?x517 146097)))\n(let ((?x2951 (div ?x2743 36524)))\n(let ((?x539 (ite (<= 4 ?x2951) 3 ?x2951)))\n(let ((?x3029 (- ?x2743 (* ?x539 36524))))\n(let ((?x898 (mod ?x3029 1461)))\n(let ((?x441 (div ?x898 365)))\n(let ((?x516 (ite (<= 4 ?x441) 3 ?x441)))\n(let ((?x1544 (+ (+ (* (div ?x517 146097) 400) (* ?x539 100)) (* (div ?x3029 1461) 4))))\n(let ((?x1722 (+ (+ ?x1544 ?x516) 1)))\n(let (($x957 (or (and (= (mod ?x1722 4) 0) (and (distinct (mod ?x1722 100) 0) true)) (= (mod ?x1722 400) 0))))\n(let ((?x418 (- ?x898 (* ?x516 365))))\n(let ((?x1997 (ite $x957 31 31)))\n(let (($x2703 (>= ?x418 ?x1997)))\n(let ((?x2099 (ite $x2703 (+ (- ?x418 ?x1997) 1) (+ (- ?x418 (ite $x957 0 0)) 1))))\n(let ((?x1565 (ite $x957 60 59)))\n(let (($x697 (>= ?x418 ?x1565)))\n(let ((?x860 (ite $x957 91 90)))\n(let (($x455 (>= ?x418 ?x860)))\n(let ((?x1771 (ite $x455 (+ (- ?x418 ?x860) 1) (ite $x697 (+ (- ?x418 ?x1565) 1) ?x2099))))\n(let ((?x892 (ite $x957 121 120)))\n(let (($x2488 (>= ?x418 ?x892)))\n(let ((?x657 (ite $x957 152 151)))\n(let (($x665 (>= ?x418 ?x657)))\n(let ((?x1141 (ite $x665 (+ (- ?x418 ?x657) 1) (ite $x2488 (+ (- ?x418 ?x892) 1) ?x1771))))\n(let ((?x706 (ite $x957 182 181)))\n(let (($x723 (>= ?x418 ?x706)))\n(let ((?x725 (ite $x957 213 212)))\n(let (($x587 (>= ?x418 ?x725)))\n(let ((?x3198 (ite $x587 (+ (- ?x418 ?x725) 1) (ite $x723 (+ (- ?x418 ?x706) 1) ?x1141))))\n(let ((?x3134 (ite $x957 244 243)))\n(let (($x673 (>= ?x418 ?x3134)))\n(let ((?x3419 (ite $x957 274 273)))\n(let (($x1528 (>= ?x418 ?x3419)))\n(let ((?x3126 (ite $x1528 (+ (- ?x418 ?x3419) 1) (ite $x673 (+ (- ?x418 ?x3134) 1) ?x3198))))\n(let ((?x494 (ite $x957 305 304)))\n(let (($x1118 (>= ?x418 ?x494)))\n(let ((?x3633 (ite $x957 335 334)))\n(let (($x825 (>= ?x418 ?x3633)))\n(let ((?x3023 (ite $x825 (+ (- ?x418 ?x3633) 1) (ite $x1118 (+ (- ?x418 ?x494) 1) ?x3126))))\n(let ((?x530 (+ (* 0 12) 1)))\n(let ((?x3450 (ite $x2488 5 (ite $x455 4 (ite $x697 3 (ite $x2703 2 1))))))\n(let ((?x747 (ite $x673 9 (ite $x587 8 (ite $x723 7 (ite $x665 6 ?x3450))))))\n(let ((?x3087 (- (+ (ite $x825 12 (ite $x1118 11 (ite $x1528 10 ?x747))) ?x530) 1)))\n(let ((?x412 (+ (mod ?x3087 12) 1)))\n(let ((?x2664 (ite (or (= ?x412 4) (= ?x412 6) (= ?x412 9) (= ?x412 11)) 30 31)))\n(let (($x3151 (and (= (mod (+ ?x1722 (+ 0 (div ?x3087 12))) 4) 0) (and (distinct (mod (+ ?x1722 (+ 0 (div ?x3087 12))) 100) 0) true))))\n(let (($x885 (or $x3151 (= (mod (+ ?x1722 (+ 0 (div ?x3087 12))) 400) 0))))\n(let ((?x845 (ite (= ?x412 2) (ite $x885 29 28) ?x2664)))\n(let ((?x1036 (ite (> 1 ?x3023) 1 (ite (> ?x3023 ?x845) ?x845 ?x3023))))\n(let ((?x617 (ite (> 1 ?x1036) 1 (ite (> ?x1036 ?x845) ?x845 ?x1036))))\n(let ((?x675 (ite (= 2 ?x412) (ite $x885 31 31) (ite (= 1 ?x412) (ite $x885 0 0) 0))))\n(let ((?x3010 (ite (= 4 ?x412) (ite $x885 91 90) (ite (= 3 ?x412) (ite $x885 60 59) ?x675))))\n(let ((?x2742 (ite (= 6 ?x412) (ite $x885 152 151) (ite (= 5 ?x412) (ite $x885 121 120) ?x3010))))\n(let ((?x3189 (ite (= 8 ?x412) (ite $x885 213 212) (ite (= 7 ?x412) (ite $x885 182 181) ?x2742))))\n(let ((?x1015 (ite (= 10 ?x412) (ite $x885 274 273) (ite (= 9 ?x412) (ite $x885 244 243) ?x3189))))\n(let ((?x1462 (ite (= 12 ?x412) (ite $x885 335 334) (ite (= 11 ?x412) (ite $x885 305 304) ?x1015))))\n(let ((?x1149 (+ (* 365 (- (+ ?x1722 (+ 0 (div ?x3087 12))) 1)) (div (- (+ ?x1722 (+ 0 (div ?x3087 12))) 1) 4))))\n(let ((?x636 (+ (- ?x1149 (div (- (+ ?x1722 (+ 0 (div ?x3087 12))) 1) 100)) (div (- (+ ?x1722 (+ 0 (div ?x3087 12))) 1) 400))))\n(let ((?x1132 (+ (+ (- (+ (+ ?x636 ?x1462) (- ?x617 1)) 730179) 0) 730179)))\n(let ((?x1465 (mod ?x1132 146097)))\n(let ((?x2704 (div ?x1465 36524)))\n(let ((?x1677 (ite (<= 4 ?x2704) 3 ?x2704)))\n(let ((?x2786 (- ?x1465 (* ?x1677 36524))))\n(let ((?x796 (mod ?x2786 1461)))\n(let ((?x3211 (div ?x796 365)))\n(let ((?x3075 (ite (<= 4 ?x3211) 3 ?x3211)))\n(let ((?x1564 (+ (+ (* (div ?x1132 146097) 400) (* ?x1677 100)) (* (div ?x2786 1461) 4))))\n(let ((?x1356 (+ (+ ?x1564 ?x3075) 1)))\n(let (($x707 (or (and (= (mod ?x1356 4) 0) (and (distinct (mod ?x1356 100) 0) true)) (= (mod ?x1356 400) 0))))\n(let ((?x3418 (- ?x796 (* ?x3075 365))))\n(let ((?x753 (ite $x707 31 31)))\n(let (($x550 (>= ?x3418 ?x753)))\n(let ((?x433 (ite $x550 (+ (- ?x3418 ?x753) 1) (+ (- ?x3418 (ite $x707 0 0)) 1))))\n(let ((?x504 (ite $x707 60 59)))\n(let (($x571 (>= ?x3418 ?x504)))\n(let ((?x1108 (ite $x707 91 90)))\n(let (($x621 (>= ?x3418 ?x1108)))\n(let ((?x3027 (ite $x621 (+ (- ?x3418 ?x1108) 1) (ite $x571 (+ (- ?x3418 ?x504) 1) ?x433))))\n(let ((?x411 (ite $x707 121 120)))\n(let (($x862 (>= ?x3418 ?x411)))\n(let ((?x3127 (ite $x707 152 151)))\n(let (($x3160 (>= ?x3418 ?x3127)))\n(let ((?x2460 (ite $x3160 (+ (- ?x3418 ?x3127) 1) (ite $x862 (+ (- ?x3418 ?x411) 1) ?x3027))))\n(let ((?x1055 (ite $x707 182 181)))\n(let (($x522 (>= ?x3418 ?x1055)))\n(let ((?x1089 (ite $x707 213 212)))\n(let (($x993 (>= ?x3418 ?x1089)))\n(let ((?x978 (ite $x993 (+ (- ?x3418 ?x1089) 1) (ite $x522 (+ (- ?x3418 ?x1055) 1) ?x2460))))\n(let ((?x3083 (ite $x707 244 243)))\n(let (($x2461 (>= ?x3418 ?x3083)))\n(let ((?x981 (ite $x707 274 273)))\n(let (($x945 (>= ?x3418 ?x981)))\n(let ((?x973 (ite $x945 (+ (- ?x3418 ?x981) 1) (ite $x2461 (+ (- ?x3418 ?x3083) 1) ?x978))))\n(let ((?x414 (ite $x707 305 304)))\n(let (($x730 (>= ?x3418 ?x414)))\n(let ((?x787 (ite $x707 335 334)))\n(let (($x461 (>= ?x3418 ?x787)))\n(let ((?x902 (ite $x461 (+ (- ?x3418 ?x787) 1) (ite $x730 (+ (- ?x3418 ?x414) 1) ?x973))))\n(let (($x533 (= 0 0)))\n(let (($x527 (= (mod (ite $x533 (+ ?x1722 (+ 0 (div ?x3087 12))) ?x1356) 400) 0)))\n(let (($x936 (and (distinct (mod (ite $x533 (+ ?x1722 (+ 0 (div ?x3087 12))) ?x1356) 100) 0) true)))\n(let (($x965 (= (mod (ite $x533 (+ ?x1722 (+ 0 (div ?x3087 12))) ?x1356) 4) 0)))\n(let (($x468 (or (and $x965 $x936) $x527)))\n(let ((?x2705 (ite $x862 5 (ite $x621 4 (ite $x571 3 (ite $x550 2 1))))))\n(let ((?x3025 (ite $x2461 9 (ite $x993 8 (ite $x522 7 (ite $x3160 6 ?x2705))))))\n(let ((?x460 (ite $x533 ?x412 (ite $x461 12 (ite $x730 11 (ite $x945 10 ?x3025))))))\n(let ((?x421 (ite (= 2 ?x460) (ite $x468 31 31) (ite (= 1 ?x460) (ite $x468 0 0) 0))))\n(let ((?x2105 (ite (= 4 ?x460) (ite $x468 91 90) (ite (= 3 ?x460) (ite $x468 60 59) ?x421))))\n(let ((?x1502 (ite (= 6 ?x460) (ite $x468 152 151) (ite (= 5 ?x460) (ite $x468 121 120) ?x2105))))\n(let ((?x1557 (ite (= 8 ?x460) (ite $x468 213 212) (ite (= 7 ?x460) (ite $x468 182 181) ?x1502))))\n(let ((?x1811 (ite (= 10 ?x460) (ite $x468 274 273) (ite (= 9 ?x460) (ite $x468 244 243) ?x1557))))\n(let ((?x2848 (ite (= 12 ?x460) (ite $x468 335 334) (ite (= 11 ?x460) (ite $x468 305 304) ?x1811))))\n(let ((?x1678 (+ ?x1722 (+ 0 (div ?x3087 12)))))\n(let ((?x672 (ite $x533 ?x1678 ?x1356)))\n(let ((?x406 (- ?x672 1)))\n(let ((?x473 (+ (- (+ (* 365 ?x406) (div ?x406 4)) (div ?x406 100)) (div ?x406 400))))\n(= (- (+ (+ ?x473 ?x2848) (- (ite $x533 ?x617 ?x902) 1)) 730179) 6938)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))\n(check-sat)\n",
+    "smtlib_file": "results_new/constraint2/smt2/1758090062-2_epoch_days_int.smt2"
+  },
+  {
+    "id": "1758090062-3",
+    "description": "One year is not always equal to 365 days",
+    "constraints": [
+      "x >= Date(2020, 1, 1)",
+      "x <= Date(2020, 2, 28)",
+      "x + Period(1, 0, 0) != x + Period(0, 0, 365)"
+    ],
+    "date_variables": [
+      "x"
+    ],
+    "period_variables": [],
+    "coverage_tags": [
+      "year_vs_days",
+      "ineq_window"
+    ],
+    "constraint_id": "1758090062-3",
+    "constraint_code": "builder = DateSMTBuilder()\nx = builder.add_date_var(\"x\")\nbuilder.add_constraint(x >= Date(2020, 1, 1))\nbuilder.add_constraint(x <= Date(2020, 2, 28))\nbuilder.add_constraint(x + Period(1, 0, 0) != x + Period(0, 0, 365))\nresult = builder",
+    "variables": [
+      "x"
+    ],
+    "approach": "epoch_days",
+    "implementation": "int",
+    "status": "sat",
+    "execution_time": 1.4324889183044434,
+    "error_message": null,
+    "solution": {
+      "x": "Date(2020, 1, 1)"
+    },
+    "smtlib": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun x_days () Int)\n(assert\n (>= x_days (- 36525)))\n(assert\n (<= x_days 36523))\n(assert\n (>= x_days 7245))\n(assert\n (<= x_days 7303))\n(assert\n (let ((?x1134 (+ x_days 730179)))\n(let ((?x1133 (mod ?x1134 146097)))\n(let ((?x750 (div ?x1133 36524)))\n(let ((?x1067 (ite (<= 4 ?x750) 3 ?x750)))\n(let ((?x616 (- ?x1133 (* ?x1067 36524))))\n(let ((?x946 (mod ?x616 1461)))\n(let ((?x955 (div ?x946 365)))\n(let ((?x645 (ite (<= 4 ?x955) 3 ?x955)))\n(let ((?x1174 (+ (+ (* (div ?x1134 146097) 400) (* ?x1067 100)) (* (div ?x616 1461) 4))))\n(let ((?x3258 (+ (+ ?x1174 ?x645) 1)))\n(let (($x581 (or (and (= (mod ?x3258 4) 0) (and (distinct (mod ?x3258 100) 0) true)) (= (mod ?x3258 400) 0))))\n(let ((?x1019 (- ?x946 (* ?x645 365))))\n(let ((?x1058 (ite $x581 31 31)))\n(let (($x3484 (>= ?x1019 ?x1058)))\n(let ((?x469 (ite $x3484 (+ (- ?x1019 ?x1058) 1) (+ (- ?x1019 (ite $x581 0 0)) 1))))\n(let ((?x795 (ite $x581 60 59)))\n(let (($x530 (>= ?x1019 ?x795)))\n(let ((?x804 (ite $x581 91 90)))\n(let (($x737 (>= ?x1019 ?x804)))\n(let ((?x3531 (ite $x737 (+ (- ?x1019 ?x804) 1) (ite $x530 (+ (- ?x1019 ?x795) 1) ?x469))))\n(let ((?x1265 (ite $x581 121 120)))\n(let (($x720 (>= ?x1019 ?x1265)))\n(let ((?x1263 (ite $x581 152 151)))\n(let (($x465 (>= ?x1019 ?x1263)))\n(let ((?x633 (ite $x465 (+ (- ?x1019 ?x1263) 1) (ite $x720 (+ (- ?x1019 ?x1265) 1) ?x3531))))\n(let ((?x762 (ite $x581 182 181)))\n(let (($x1071 (>= ?x1019 ?x762)))\n(let ((?x966 (ite $x581 213 212)))\n(let (($x930 (>= ?x1019 ?x966)))\n(let ((?x3024 (ite $x930 (+ (- ?x1019 ?x966) 1) (ite $x1071 (+ (- ?x1019 ?x762) 1) ?x633))))\n(let ((?x769 (ite $x581 244 243)))\n(let (($x810 (>= ?x1019 ?x769)))\n(let ((?x471 (ite $x581 274 273)))\n(let (($x969 (>= ?x1019 ?x471)))\n(let ((?x836 (ite $x969 (+ (- ?x1019 ?x471) 1) (ite $x810 (+ (- ?x1019 ?x769) 1) ?x3024))))\n(let ((?x773 (ite $x581 305 304)))\n(let (($x1147 (>= ?x1019 ?x773)))\n(let ((?x1088 (ite $x581 335 334)))\n(let (($x459 (>= ?x1019 ?x1088)))\n(let ((?x498 (ite $x459 (+ (- ?x1019 ?x1088) 1) (ite $x1147 (+ (- ?x1019 ?x773) 1) ?x836))))\n(let ((?x932 (ite $x720 5 (ite $x737 4 (ite $x530 3 (ite $x3484 2 1))))))\n(let ((?x1042 (ite $x810 9 (ite $x930 8 (ite $x1071 7 (ite $x465 6 ?x932))))))\n(let ((?x2785 (+ (ite $x459 12 (ite $x1147 11 (ite $x969 10 ?x1042))) (+ (* 1 12) 0))))\n(let ((?x440 (- ?x2785 1)))\n(let ((?x832 (+ (mod ?x440 12) 1)))\n(let ((?x443 (ite (or (= ?x832 4) (= ?x832 6) (= ?x832 9) (= ?x832 11)) 30 31)))\n(let (($x1032 (and (= (mod (+ ?x3258 (+ 0 (div ?x440 12))) 4) 0) (and (distinct (mod (+ ?x3258 (+ 0 (div ?x440 12))) 100) 0) true))))\n(let (($x523 (or $x1032 (= (mod (+ ?x3258 (+ 0 (div ?x440 12))) 400) 0))))\n(let ((?x964 (ite (= ?x832 2) (ite $x523 29 28) ?x443)))\n(let ((?x492 (ite (> 1 ?x498) 1 (ite (> ?x498 ?x964) ?x964 ?x498))))\n(let ((?x895 (ite (> 1 ?x492) 1 (ite (> ?x492 ?x964) ?x964 ?x492))))\n(let ((?x1181 (ite (= 2 ?x832) (ite $x523 31 31) (ite (= 1 ?x832) (ite $x523 0 0) 0))))\n(let ((?x987 (ite (= 4 ?x832) (ite $x523 91 90) (ite (= 3 ?x832) (ite $x523 60 59) ?x1181))))\n(let ((?x829 (ite (= 6 ?x832) (ite $x523 152 151) (ite (= 5 ?x832) (ite $x523 121 120) ?x987))))\n(let ((?x1050 (ite (= 8 ?x832) (ite $x523 213 212) (ite (= 7 ?x832) (ite $x523 182 181) ?x829))))\n(let ((?x1127 (ite (= 10 ?x832) (ite $x523 274 273) (ite (= 9 ?x832) (ite $x523 244 243) ?x1050))))\n(let ((?x2702 (ite (= 12 ?x832) (ite $x523 335 334) (ite (= 11 ?x832) (ite $x523 305 304) ?x1127))))\n(let ((?x525 (+ (* 365 (- (+ ?x3258 (+ 0 (div ?x440 12))) 1)) (div (- (+ ?x3258 (+ 0 (div ?x440 12))) 1) 4))))\n(let ((?x431 (+ (- ?x525 (div (- (+ ?x3258 (+ 0 (div ?x440 12))) 1) 100)) (div (- (+ ?x3258 (+ 0 (div ?x440 12))) 1) 400))))\n(let ((?x755 (+ (+ (- (+ (+ ?x431 ?x2702) (- ?x895 1)) 730179) 0) 730179)))\n(let ((?x573 (mod ?x755 146097)))\n(let ((?x1011 (div ?x573 36524)))\n(let ((?x859 (ite (<= 4 ?x1011) 3 ?x1011)))\n(let ((?x488 (- ?x573 (* ?x859 36524))))\n(let ((?x718 (mod ?x488 1461)))\n(let ((?x1069 (div ?x718 365)))\n(let ((?x858 (ite (<= 4 ?x1069) 3 ?x1069)))\n(let ((?x3040 (+ (+ (* (div ?x755 146097) 400) (* ?x859 100)) (* (div ?x488 1461) 4))))\n(let ((?x466 (+ (+ ?x3040 ?x858) 1)))\n(let (($x864 (or (and (= (mod ?x466 4) 0) (and (distinct (mod ?x466 100) 0) true)) (= (mod ?x466 400) 0))))\n(let ((?x3451 (- ?x718 (* ?x858 365))))\n(let ((?x739 (ite $x864 31 31)))\n(let (($x512 (>= ?x3451 ?x739)))\n(let ((?x1126 (ite $x512 (+ (- ?x3451 ?x739) 1) (+ (- ?x3451 (ite $x864 0 0)) 1))))\n(let ((?x3197 (ite $x864 60 59)))\n(let (($x534 (>= ?x3451 ?x3197)))\n(let ((?x734 (ite $x864 91 90)))\n(let (($x758 (>= ?x3451 ?x734)))\n(let ((?x3230 (ite $x758 (+ (- ?x3451 ?x734) 1) (ite $x534 (+ (- ?x3451 ?x3197) 1) ?x1126))))\n(let ((?x2064 (ite $x864 121 120)))\n(let (($x485 (>= ?x3451 ?x2064)))\n(let ((?x3701 (ite $x864 152 151)))\n(let (($x1769 (>= ?x3451 ?x3701)))\n(let ((?x464 (ite $x1769 (+ (- ?x3451 ?x3701) 1) (ite $x485 (+ (- ?x3451 ?x2064) 1) ?x3230))))\n(let ((?x1145 (ite $x864 182 181)))\n(let (($x596 (>= ?x3451 ?x1145)))\n(let ((?x497 (ite $x864 213 212)))\n(let (($x848 (>= ?x3451 ?x497)))\n(let ((?x491 (ite $x848 (+ (- ?x3451 ?x497) 1) (ite $x596 (+ (- ?x3451 ?x1145) 1) ?x464))))\n(let ((?x1135 (ite $x864 244 243)))\n(let (($x669 (>= ?x3451 ?x1135)))\n(let ((?x835 (ite $x864 274 273)))\n(let (($x855 (>= ?x3451 ?x835)))\n(let ((?x784 (ite $x855 (+ (- ?x3451 ?x835) 1) (ite $x669 (+ (- ?x3451 ?x1135) 1) ?x491))))\n(let ((?x2625 (ite $x864 305 304)))\n(let (($x1063 (>= ?x3451 ?x2625)))\n(let ((?x496 (ite $x864 335 334)))\n(let (($x2645 (>= ?x3451 ?x496)))\n(let ((?x806 (ite $x2645 (+ (- ?x3451 ?x496) 1) (ite $x1063 (+ (- ?x3451 ?x2625) 1) ?x784))))\n(let (($x767 (= 0 0)))\n(let (($x3538 (= (mod (ite $x767 (+ ?x3258 (+ 0 (div ?x440 12))) ?x466) 400) 0)))\n(let (($x1119 (and (distinct (mod (ite $x767 (+ ?x3258 (+ 0 (div ?x440 12))) ?x466) 100) 0) true)))\n(let (($x927 (= (mod (ite $x767 (+ ?x3258 (+ 0 (div ?x440 12))) ?x466) 4) 0)))\n(let (($x2663 (or (and $x927 $x1119) $x3538)))\n(let ((?x1102 (ite $x485 5 (ite $x758 4 (ite $x534 3 (ite $x512 2 1))))))\n(let ((?x726 (ite $x669 9 (ite $x848 8 (ite $x596 7 (ite $x1769 6 ?x1102))))))\n(let ((?x576 (ite $x767 ?x832 (ite $x2645 12 (ite $x1063 11 (ite $x855 10 ?x726))))))\n(let ((?x807 (ite (= 2 ?x576) (ite $x2663 31 31) (ite (= 1 ?x576) (ite $x2663 0 0) 0))))\n(let ((?x1106 (ite (= 4 ?x576) (ite $x2663 91 90) (ite (= 3 ?x576) (ite $x2663 60 59) ?x807))))\n(let ((?x1060 (ite (= 6 ?x576) (ite $x2663 152 151) (ite (= 5 ?x576) (ite $x2663 121 120) ?x1106))))\n(let ((?x2951 (ite (= 8 ?x576) (ite $x2663 213 212) (ite (= 7 ?x576) (ite $x2663 182 181) ?x1060))))\n(let ((?x441 (ite (= 10 ?x576) (ite $x2663 274 273) (ite (= 9 ?x576) (ite $x2663 244 243) ?x2951))))\n(let ((?x740 (ite (= 12 ?x576) (ite $x2663 335 334) (ite (= 11 ?x576) (ite $x2663 305 304) ?x441))))\n(let ((?x578 (+ ?x3258 (+ 0 (div ?x440 12)))))\n(let ((?x959 (ite $x767 ?x578 ?x466)))\n(let ((?x799 (- ?x959 1)))\n(let ((?x417 (+ (- (+ (* 365 ?x799) (div ?x799 4)) (div ?x799 100)) (div ?x799 400))))\n(let (($x458 (= (- (+ (+ ?x417 ?x740) (- (ite $x767 ?x895 ?x806) 1)) 730179) (+ x_days 365))))\n(not $x458))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))\n(check-sat)\n",
+    "smtlib_file": "results_new/constraint2/smt2/1758090062-3_epoch_days_int.smt2"
+  },
+  {
+    "id": "1758090062-4",
+    "description": "Complex chain of period additions requires proper normalization",
+    "constraints": [
+      "x == Date(2000, 1, 1)",
+      "p == Period(0, 13, 0)",
+      "q == Period(0, 0, 400)",
+      "x + p + q == Date(2001, 3, 6)"
+    ],
+    "date_variables": [
+      "p",
+      "q",
+      "x"
+    ],
+    "period_variables": [
+      "p",
+      "q"
+    ],
+    "coverage_tags": [
+      "chain_add",
+      "multi_var"
+    ],
+    "constraint_id": "1758090062-4",
+    "constraint_code": "builder = DateSMTBuilder()\np = builder.add_date_var(\"p\")\nq = builder.add_date_var(\"q\")\nx = builder.add_date_var(\"x\")\np = builder.add_period_var(\"p\")\nq = builder.add_period_var(\"q\")\nbuilder.add_constraint(x == Date(2000, 1, 1))\nbuilder.add_constraint(p == Period(0, 13, 0))\nbuilder.add_constraint(q == Period(0, 0, 400))\nbuilder.add_constraint(x + p + q == Date(2001, 3, 6))\nresult = builder",
+    "variables": [
+      "p",
+      "q",
+      "x",
+      "p",
+      "q"
+    ],
+    "approach": "epoch_days",
+    "implementation": "int",
+    "status": "error",
+    "execution_time": 0,
+    "error_message": "Cannot compare PeriodVar.",
+    "solution": null,
+    "smtlib": null
+  },
+  {
+    "id": "1758090062-5",
+    "description": "Unsatisfiable constraint due to tight date bounds",
+    "constraints": [
+      "x >= Date(2022, 1, 1)",
+      "x <= Date(2022, 1, 31)",
+      "y >= Date(2022, 3, 1)",
+      "y <= Date(2022, 3, 31)",
+      "y - x <= Period(0, 1, 15)"
+    ],
+    "date_variables": [
+      "x",
+      "y"
+    ],
+    "period_variables": [],
+    "coverage_tags": [
+      "ineq_window",
+      "multi_var"
+    ],
+    "constraint_id": "1758090062-5",
+    "constraint_code": "builder = DateSMTBuilder()\nx = builder.add_date_var(\"x\")\ny = builder.add_date_var(\"y\")\nbuilder.add_constraint(x >= Date(2022, 1, 1))\nbuilder.add_constraint(x <= Date(2022, 1, 31))\nbuilder.add_constraint(y >= Date(2022, 3, 1))\nbuilder.add_constraint(y <= Date(2022, 3, 31))\nbuilder.add_constraint(y - x <= Period(0, 1, 15))\nresult = builder",
+    "variables": [
+      "x",
+      "y"
+    ],
+    "approach": "epoch_days",
+    "implementation": "int",
+    "status": "error",
+    "execution_time": 0,
+    "error_message": "Cannot subtract <class 'datesmt.symbolic_int.epoch_days_int.DateVar'> from DateVar",
+    "solution": null,
+    "smtlib": null
+  },
+  {
+    "id": "1758090062-6",
+    "description": "Verify leap year handling with Feb 29",
+    "constraints": [
+      "x >= Date(2020, 2, 28)",
+      "x <= Date(2020, 3, 1)",
+      "x + Period(0, 0, 1) == Date(2020, 3, 1)"
+    ],
+    "date_variables": [
+      "x"
+    ],
+    "period_variables": [],
+    "coverage_tags": [
+      "leap_boundary"
+    ],
+    "constraint_id": "1758090062-6",
+    "constraint_code": "builder = DateSMTBuilder()\nx = builder.add_date_var(\"x\")\nbuilder.add_constraint(x >= Date(2020, 2, 28))\nbuilder.add_constraint(x <= Date(2020, 3, 1))\nbuilder.add_constraint(x + Period(0, 0, 1) == Date(2020, 3, 1))\nresult = builder",
+    "variables": [
+      "x"
+    ],
+    "approach": "epoch_days",
+    "implementation": "int",
+    "status": "sat",
+    "execution_time": 0.0025072097778320312,
+    "error_message": null,
+    "solution": {
+      "x": "Date(2020, 2, 29)"
+    },
+    "smtlib": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun x_days () Int)\n(assert\n (>= x_days (- 36525)))\n(assert\n (<= x_days 36523))\n(assert\n (>= x_days 7303))\n(assert\n (<= x_days 7305))\n(assert\n (= (+ x_days 1) 7305))\n(check-sat)\n",
+    "smtlib_file": "results_new/constraint2/smt2/1758090062-6_epoch_days_int.smt2"
+  },
+  {
+    "id": "1758090062-7",
+    "description": "Adding 1 month vs 30 days produces different results at month end",
+    "constraints": [
+      "x == Date(2023, 1, 31)",
+      "y == x + Period(0, 1, 0)",
+      "z == x + Period(0, 0, 30)",
+      "y != z"
+    ],
+    "date_variables": [
+      "x",
+      "y",
+      "z"
+    ],
+    "period_variables": [],
+    "coverage_tags": [
+      "month_vs_days",
+      "eom",
+      "multi_var"
+    ],
+    "constraint_id": "1758090062-7",
+    "constraint_code": "builder = DateSMTBuilder()\nx = builder.add_date_var(\"x\")\ny = builder.add_date_var(\"y\")\nz = builder.add_date_var(\"z\")\nbuilder.add_constraint(x == Date(2023, 1, 31))\nbuilder.add_constraint(y == x + Period(0, 1, 0))\nbuilder.add_constraint(z == x + Period(0, 0, 30))\nbuilder.add_constraint(y != z)\nresult = builder",
+    "variables": [
+      "x",
+      "y",
+      "z"
+    ],
+    "approach": "epoch_days",
+    "implementation": "int",
+    "status": "sat",
+    "execution_time": 0.017076969146728516,
+    "error_message": null,
+    "solution": {
+      "x": "Date(2023, 1, 31)",
+      "y": "Date(2023, 2, 28)",
+      "z": "Date(2023, 3, 2)"
+    },
+    "smtlib": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun x_days () Int)\n(declare-fun y_days () Int)\n(declare-fun z_days () Int)\n(assert\n (>= x_days (- 36525)))\n(assert\n (<= x_days 36523))\n(assert\n (>= y_days (- 36525)))\n(assert\n (<= y_days 36523))\n(assert\n (>= z_days (- 36525)))\n(assert\n (<= z_days 36523))\n(assert\n (= x_days 8371))\n(assert\n (let ((?x1008 (+ x_days 730179)))\n (let ((?x1142 (mod ?x1008 146097)))\n (let ((?x1777 (div ?x1142 36524)))\n (let ((?x1835 (ite (<= 4 ?x1777) 3 ?x1777)))\n (let ((?x992 (- ?x1142 (* ?x1835 36524))))\n (let ((?x1088 (mod ?x992 1461)))\n (let ((?x459 (div ?x1088 365)))\n (let ((?x918 (ite (<= 4 ?x459) 3 ?x459)))\n (let ((?x769 (+ (+ (* (div ?x1008 146097) 400) (* ?x1835 100)) (* (div ?x992 1461) 4))))\n (let ((?x563 (+ (+ ?x769 ?x918) 1)))\n (let (($x746 (or (and (= (mod ?x563 4) 0) (and (distinct (mod ?x563 100) 0) true)) (= (mod ?x563 400) 0))))\n (let ((?x1147 (- ?x1088 (* ?x918 365))))\n (let ((?x1263 (ite $x746 31 31)))\n (let (($x820 (>= ?x1147 ?x1263)))\n (let ((?x974 (ite $x820 (+ (- ?x1147 ?x1263) 1) (+ (- ?x1147 (ite $x746 0 0)) 1))))\n (let ((?x1175 (ite $x746 60 59)))\n (let (($x578 (>= ?x1147 ?x1175)))\n (let ((?x947 (ite $x746 91 90)))\n (let (($x531 (>= ?x1147 ?x947)))\n (let ((?x728 (ite $x531 (+ (- ?x1147 ?x947) 1) (ite $x578 (+ (- ?x1147 ?x1175) 1) ?x974))))\n (let ((?x737 (ite $x746 121 120)))\n (let (($x525 (>= ?x1147 ?x737)))\n (let ((?x795 (ite $x746 152 151)))\n (let (($x542 (>= ?x1147 ?x795)))\n (let ((?x916 (ite $x542 (+ (- ?x1147 ?x795) 1) (ite $x525 (+ (- ?x1147 ?x737) 1) ?x728))))\n (let ((?x3484 (ite $x746 182 181)))\n (let (($x431 (>= ?x1147 ?x3484)))\n (let ((?x483 (ite $x746 213 212)))\n (let (($x832 (>= ?x1147 ?x483)))\n (let ((?x950 (ite $x832 (+ (- ?x1147 ?x483) 1) (ite $x431 (+ (- ?x1147 ?x3484) 1) ?x916))))\n (let ((?x586 (ite $x746 244 243)))\n (let (($x763 (>= ?x1147 ?x586)))\n (let ((?x997 (ite $x746 274 273)))\n (let (($x840 (>= ?x1147 ?x997)))\n (let ((?x829 (ite $x840 (+ (- ?x1147 ?x997) 1) (ite $x763 (+ (- ?x1147 ?x586) 1) ?x950))))\n (let ((?x731 (ite $x746 305 304)))\n (let (($x1032 (>= ?x1147 ?x731)))\n (let ((?x440 (ite $x746 335 334)))\n (let (($x729 (>= ?x1147 ?x440)))\n (let ((?x2702 (ite $x729 (+ (- ?x1147 ?x440) 1) (ite $x1032 (+ (- ?x1147 ?x731) 1) ?x829))))\n (let ((?x436 (ite $x525 5 (ite $x531 4 (ite $x578 3 (ite $x820 2 1))))))\n (let ((?x877 (ite $x763 9 (ite $x832 8 (ite $x431 7 (ite $x542 6 ?x436))))))\n (let ((?x900 (+ (ite $x729 12 (ite $x1032 11 (ite $x840 10 ?x877))) (+ (* 0 12) 1))))\n (let ((?x1048 (- ?x900 1)))\n (let ((?x2063 (+ (mod ?x1048 12) 1)))\n (let ((?x566 (ite (or (= ?x2063 4) (= ?x2063 6) (= ?x2063 9) (= ?x2063 11)) 30 31)))\n (let (($x449 (and (= (mod (+ ?x563 (+ 0 (div ?x1048 12))) 4) 0) (and (distinct (mod (+ ?x563 (+ 0 (div ?x1048 12))) 100) 0) true))))\n (let (($x797 (or $x449 (= (mod (+ ?x563 (+ 0 (div ?x1048 12))) 400) 0))))\n (let ((?x426 (ite (= ?x2063 2) (ite $x797 29 28) ?x566)))\n (let ((?x921 (ite (> 1 ?x2702) 1 (ite (> ?x2702 ?x426) ?x426 ?x2702))))\n (let ((?x2349 (ite (> 1 ?x921) 1 (ite (> ?x921 ?x426) ?x426 ?x921))))\n (let ((?x606 (ite (= 2 ?x2063) (ite $x797 31 31) (ite (= 1 ?x2063) (ite $x797 0 0) 0))))\n (let ((?x1144 (ite (= 4 ?x2063) (ite $x797 91 90) (ite (= 3 ?x2063) (ite $x797 60 59) ?x606))))\n (let ((?x735 (ite (= 6 ?x2063) (ite $x797 152 151) (ite (= 5 ?x2063) (ite $x797 121 120) ?x1144))))\n (let ((?x403 (ite (= 8 ?x2063) (ite $x797 213 212) (ite (= 7 ?x2063) (ite $x797 182 181) ?x735))))\n (let ((?x718 (ite (= 10 ?x2063) (ite $x797 274 273) (ite (= 9 ?x2063) (ite $x797 244 243) ?x403))))\n (let ((?x959 (ite (= 12 ?x2063) (ite $x797 335 334) (ite (= 11 ?x2063) (ite $x797 305 304) ?x718))))\n (let ((?x830 (+ (* 365 (- (+ ?x563 (+ 0 (div ?x1048 12))) 1)) (div (- (+ ?x563 (+ 0 (div ?x1048 12))) 1) 4))))\n (let ((?x1000 (+ (- ?x830 (div (- (+ ?x563 (+ 0 (div ?x1048 12))) 1) 100)) (div (- (+ ?x563 (+ 0 (div ?x1048 12))) 1) 400))))\n (let ((?x712 (+ (+ (- (+ (+ ?x1000 ?x959) (- ?x2349 1)) 730179) 0) 730179)))\n (let ((?x417 (mod ?x712 146097)))\n (let ((?x422 (div ?x417 36524)))\n (let ((?x482 (ite (<= 4 ?x422) 3 ?x422)))\n (let ((?x438 (- ?x417 (* ?x482 36524))))\n (let ((?x699 (mod ?x438 1461)))\n (let ((?x654 (div ?x699 365)))\n (let ((?x864 (ite (<= 4 ?x654) 3 ?x654)))\n (let ((?x1135 (+ (+ (* (div ?x712 146097) 400) (* ?x482 100)) (* (div ?x438 1461) 4))))\n (let ((?x497 (+ (+ ?x1135 ?x864) 1)))\n (let (($x734 (or (and (= (mod ?x497 4) 0) (and (distinct (mod ?x497 100) 0) true)) (= (mod ?x497 400) 0))))\n (let ((?x2645 (- ?x699 (* ?x864 365))))\n (let ((?x3197 (ite $x734 31 31)))\n (let (($x726 (>= ?x2645 ?x3197)))\n (let ((?x3271 (ite $x726 (+ (- ?x2645 ?x3197) 1) (+ (- ?x2645 (ite $x734 0 0)) 1))))\n (let ((?x534 (ite $x734 60 59)))\n (let (($x631 (>= ?x2645 ?x534)))\n (let ((?x739 (ite $x734 91 90)))\n (let (($x576 (>= ?x2645 ?x739)))\n (let ((?x2983 (ite $x576 (+ (- ?x2645 ?x739) 1) (ite $x631 (+ (- ?x2645 ?x534) 1) ?x3271))))\n (let ((?x512 (ite $x734 121 120)))\n (let (($x854 (>= ?x2645 ?x512)))\n (let ((?x792 (ite $x734 152 151)))\n (let (($x427 (>= ?x2645 ?x792)))\n (let ((?x807 (ite $x427 (+ (- ?x2645 ?x792) 1) (ite $x854 (+ (- ?x2645 ?x512) 1) ?x2983))))\n (let ((?x1635 (ite $x734 182 181)))\n (let (($x834 (>= ?x2645 ?x1635)))\n (let ((?x3231 (ite $x734 213 212)))\n (let (($x3538 (>= ?x2645 ?x3231)))\n (let ((?x2951 (ite $x3538 (+ (- ?x2645 ?x3231) 1) (ite $x834 (+ (- ?x2645 ?x1635) 1) ?x807))))\n (let ((?x1102 (ite $x734 244 243)))\n (let (($x777 (>= ?x2645 ?x1102)))\n (let ((?x607 (ite $x734 274 273)))\n (let (($x516 (>= ?x2645 ?x607)))\n (let ((?x765 (ite $x516 (+ (- ?x2645 ?x607) 1) (ite $x777 (+ (- ?x2645 ?x1102) 1) ?x2951))))\n (let ((?x3501 (ite $x734 305 304)))\n (let (($x898 (>= ?x2645 ?x3501)))\n (let ((?x802 (ite $x734 335 334)))\n (let (($x539 (>= ?x2645 ?x802)))\n (let ((?x3150 (ite $x539 (+ (- ?x2645 ?x802) 1) (ite $x898 (+ (- ?x2645 ?x3501) 1) ?x765))))\n (let (($x836 (= 0 0)))\n (let (($x1126 (= (mod (ite $x836 (+ ?x563 (+ 0 (div ?x1048 12))) ?x497) 400) 0)))\n (let (($x620 (and (distinct (mod (ite $x836 (+ ?x563 (+ 0 (div ?x1048 12))) ?x497) 100) 0) true)))\n (let (($x3057 (= (mod (ite $x836 (+ ?x563 (+ 0 (div ?x1048 12))) ?x497) 4) 0)))\n (let (($x643 (or (and $x3057 $x620) $x1126)))\n (let ((?x927 (ite $x854 5 (ite $x576 4 (ite $x631 3 (ite $x726 2 1))))))\n (let ((?x506 (ite $x777 9 (ite $x3538 8 (ite $x834 7 (ite $x427 6 ?x927))))))\n (let ((?x486 (ite $x836 ?x2063 (ite $x539 12 (ite $x898 11 (ite $x516 10 ?x506))))))\n (let ((?x491 (ite (= 2 ?x486) (ite $x643 31 31) (ite (= 1 ?x486) (ite $x643 0 0) 0))))\n (let ((?x3494 (ite (= 4 ?x486) (ite $x643 91 90) (ite (= 3 ?x486) (ite $x643 60 59) ?x491))))\n (let ((?x1026 (ite (= 6 ?x486) (ite $x643 152 151) (ite (= 5 ?x486) (ite $x643 121 120) ?x3494))))\n (let ((?x982 (ite (= 8 ?x486) (ite $x643 213 212) (ite (= 7 ?x486) (ite $x643 182 181) ?x1026))))\n (let ((?x1565 (ite (= 10 ?x486) (ite $x643 274 273) (ite (= 9 ?x486) (ite $x643 244 243) ?x982))))\n (let ((?x658 (ite (= 12 ?x486) (ite $x643 335 334) (ite (= 11 ?x486) (ite $x643 305 304) ?x1565))))\n (let ((?x1087 (+ ?x563 (+ 0 (div ?x1048 12)))))\n (let ((?x696 (ite $x836 ?x1087 ?x497)))\n (let ((?x679 (- ?x696 1)))\n (let ((?x451 (+ (- (+ (* 365 ?x679) (div ?x679 4)) (div ?x679 100)) (div ?x679 400))))\n (= y_days (- (+ (+ ?x451 ?x658) (- (ite $x836 ?x2349 ?x3150) 1)) 730179))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))\n(assert\n (= z_days (+ x_days 30)))\n(assert\n (not (= y_days z_days)))\n(check-sat)\n",
+    "smtlib_file": "results_new/constraint2/smt2/1758090062-7_epoch_days_int.smt2"
+  },
+  {
+    "id": "1758090062-8",
+    "description": "One year is not always equal to 365 days",
+    "constraints": [
+      "x >= Date(2019, 12, 31)",
+      "x <= Date(2020, 2, 1)",
+      "y == x + Period(1, 0, 0)",
+      "y != x + Period(0, 0, 365)"
+    ],
+    "date_variables": [
+      "x",
+      "y"
+    ],
+    "period_variables": [],
+    "coverage_tags": [
+      "year_vs_days",
+      "leap_boundary"
+    ],
+    "constraint_id": "1758090062-8",
+    "constraint_code": "builder = DateSMTBuilder()\nx = builder.add_date_var(\"x\")\ny = builder.add_date_var(\"y\")\nbuilder.add_constraint(x >= Date(2019, 12, 31))\nbuilder.add_constraint(x <= Date(2020, 2, 1))\nbuilder.add_constraint(y == x + Period(1, 0, 0))\nbuilder.add_constraint(y != x + Period(0, 0, 365))\nresult = builder",
+    "variables": [
+      "x",
+      "y"
+    ],
+    "approach": "epoch_days",
+    "implementation": "int",
+    "status": "sat",
+    "execution_time": 0.5058941841125488,
+    "error_message": null,
+    "solution": {
+      "x": "Date(2020, 2, 1)",
+      "y": "Date(2021, 2, 1)"
+    },
+    "smtlib": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun x_days () Int)\n(declare-fun y_days () Int)\n(assert\n (>= x_days (- 36525)))\n(assert\n (<= x_days 36523))\n(assert\n (>= y_days (- 36525)))\n(assert\n (<= y_days 36523))\n(assert\n (>= x_days 7244))\n(assert\n (<= x_days 7276))\n(assert\n (let ((?x810 (+ x_days 730179)))\n (let ((?x966 (mod ?x810 146097)))\n (let ((?x930 (div ?x966 36524)))\n (let ((?x2891 (ite (<= 4 ?x930) 3 ?x930)))\n (let ((?x1071 (- ?x966 (* ?x2891 36524))))\n (let ((?x2785 (mod ?x1071 1461)))\n (let ((?x815 (div ?x2785 365)))\n (let ((?x729 (ite (<= 4 ?x815) 3 ?x815)))\n (let ((?x557 (+ (+ (* (div ?x810 146097) 400) (* ?x2891 100)) (* (div ?x1071 1461) 4))))\n (let ((?x586 (+ (+ ?x557 ?x729) 1)))\n (let (($x3484 (or (and (= (mod ?x586 4) 0) (and (distinct (mod ?x586 100) 0) true)) (= (mod ?x586 400) 0))))\n (let ((?x904 (- ?x2785 (* ?x729 365))))\n (let ((?x1139 (ite $x3484 31 31)))\n (let (($x900 (>= ?x904 ?x1139)))\n (let ((?x493 (ite $x900 (+ (- ?x904 ?x1139) 1) (+ (- ?x904 (ite $x3484 0 0)) 1))))\n (let ((?x542 (ite $x3484 60 59)))\n (let (($x793 (>= ?x904 ?x542)))\n (let ((?x737 (ite $x3484 91 90)))\n (let (($x1087 (>= ?x904 ?x737)))\n (let ((?x752 (ite $x1087 (+ (- ?x904 ?x737) 1) (ite $x793 (+ (- ?x904 ?x542) 1) ?x493))))\n (let ((?x1265 (ite $x3484 121 120)))\n (let (($x498 (>= ?x904 ?x1265)))\n (let ((?x910 (ite $x3484 152 151)))\n (let (($x830 (>= ?x904 ?x910)))\n (let ((?x814 (ite $x830 (+ (- ?x904 ?x910) 1) (ite $x498 (+ (- ?x904 ?x1265) 1) ?x752))))\n (let ((?x578 (ite $x3484 182 181)))\n (let (($x428 (>= ?x904 ?x578)))\n (let ((?x772 (ite $x3484 213 212)))\n (let (($x1000 (>= ?x904 ?x772)))\n (let ((?x791 (ite $x1000 (+ (- ?x904 ?x772) 1) (ite $x428 (+ (- ?x904 ?x578) 1) ?x814))))\n (let ((?x436 (ite $x3484 244 243)))\n (let (($x2063 (>= ?x904 ?x436)))\n (let ((?x1128 (ite $x3484 274 273)))\n (let (($x3480 (>= ?x904 ?x1128)))\n (let ((?x1144 (ite $x3480 (+ (- ?x904 ?x1128) 1) (ite $x2063 (+ (- ?x904 ?x436) 1) ?x791))))\n (let ((?x637 (ite $x3484 305 304)))\n (let (($x661 (>= ?x904 ?x637)))\n (let ((?x839 (ite $x3484 335 334)))\n (let (($x449 (>= ?x904 ?x839)))\n (let ((?x718 (ite $x449 (+ (- ?x904 ?x839) 1) (ite $x661 (+ (- ?x904 ?x637) 1) ?x1144))))\n (let ((?x627 (ite $x498 5 (ite $x1087 4 (ite $x793 3 (ite $x900 2 1))))))\n (let ((?x1710 (ite $x2063 9 (ite $x1000 8 (ite $x428 7 (ite $x830 6 ?x627))))))\n (let ((?x799 (+ (ite $x449 12 (ite $x661 11 (ite $x3480 10 ?x1710))) (+ (* 1 12) 0))))\n (let ((?x1127 (- ?x799 1)))\n (let ((?x987 (+ (mod ?x1127 12) 1)))\n (let ((?x629 (ite (or (= ?x987 4) (= ?x987 6) (= ?x987 9) (= ?x987 11)) 30 31)))\n (let (($x630 (and (= (mod (+ ?x586 (+ 0 (div ?x1127 12))) 4) 0) (and (distinct (mod (+ ?x586 (+ 0 (div ?x1127 12))) 100) 0) true))))\n (let (($x401 (or $x630 (= (mod (+ ?x586 (+ 0 (div ?x1127 12))) 400) 0))))\n (let ((?x940 (ite (= ?x987 2) (ite $x401 29 28) ?x629)))\n (let ((?x1533 (ite (> 1 ?x718) 1 (ite (> ?x718 ?x940) ?x940 ?x718))))\n (let ((?x1085 (ite (> 1 ?x1533) 1 (ite (> ?x1533 ?x940) ?x940 ?x1533))))\n (let ((?x426 (ite (= 2 ?x987) (ite $x401 31 31) (ite (= 1 ?x987) (ite $x401 0 0) 0))))\n (let ((?x3024 (ite (= 4 ?x987) (ite $x401 91 90) (ite (= 3 ?x987) (ite $x401 60 59) ?x426))))\n (let ((?x712 (ite (= 6 ?x987) (ite $x401 152 151) (ite (= 5 ?x987) (ite $x401 121 120) ?x3024))))\n (let ((?x482 (ite (= 8 ?x987) (ite $x401 213 212) (ite (= 7 ?x987) (ite $x401 182 181) ?x712))))\n (let ((?x855 (ite (= 10 ?x987) (ite $x401 274 273) (ite (= 9 ?x987) (ite $x401 244 243) ?x482))))\n (let ((?x669 (ite (= 12 ?x987) (ite $x401 335 334) (ite (= 11 ?x987) (ite $x401 305 304) ?x855))))\n (let ((?x2702 (+ (* 365 (- (+ ?x586 (+ 0 (div ?x1127 12))) 1)) (div (- (+ ?x586 (+ 0 (div ?x1127 12))) 1) 4))))\n (let ((?x501 (+ (- ?x2702 (div (- (+ ?x586 (+ 0 (div ?x1127 12))) 1) 100)) (div (- (+ ?x586 (+ 0 (div ?x1127 12))) 1) 400))))\n (let ((?x863 (+ (+ (- (+ (+ ?x501 ?x669) (- ?x1085 1)) 730179) 0) 730179)))\n (let ((?x628 (mod ?x863 146097)))\n (let ((?x1182 (div ?x628 36524)))\n (let ((?x496 (ite (<= 4 ?x1182) 3 ?x1182)))\n (let ((?x848 (- ?x628 (* ?x496 36524))))\n (let ((?x596 (mod ?x848 1461)))\n (let ((?x3701 (div ?x596 365)))\n (let ((?x2064 (ite (<= 4 ?x3701) 3 ?x3701)))\n (let ((?x607 (+ (+ (* (div ?x863 146097) 400) (* ?x496 100)) (* (div ?x848 1461) 4))))\n (let ((?x1102 (+ (+ ?x607 ?x2064) 1)))\n (let (($x512 (or (and (= (mod ?x1102 4) 0) (and (distinct (mod ?x1102 100) 0) true)) (= (mod ?x1102 400) 0))))\n (let ((?x734 (- ?x596 (* ?x2064 365))))\n (let ((?x739 (ite $x512 31 31)))\n (let (($x1157 (>= ?x734 ?x739)))\n (let ((?x3086 (ite $x1157 (+ (- ?x734 ?x739) 1) (+ (- ?x734 (ite $x512 0 0)) 1))))\n (let ((?x576 (ite $x512 60 59)))\n (let (($x506 (>= ?x734 ?x576)))\n (let ((?x534 (ite $x512 91 90)))\n (let (($x515 (>= ?x734 ?x534)))\n (let ((?x929 (ite $x515 (+ (- ?x734 ?x534) 1) (ite $x506 (+ (- ?x734 ?x576) 1) ?x3086))))\n (let ((?x631 (ite $x512 121 120)))\n (let (($x486 (>= ?x734 ?x631)))\n (let ((?x3197 (ite $x512 152 151)))\n (let (($x953 (>= ?x734 ?x3197)))\n (let ((?x3230 (ite $x953 (+ (- ?x734 ?x3197) 1) (ite $x486 (+ (- ?x734 ?x631) 1) ?x929))))\n (let ((?x726 (ite $x512 182 181)))\n (let (($x415 (>= ?x734 ?x726)))\n (let ((?x1034 (ite $x512 213 212)))\n (let (($x788 (>= ?x734 ?x1034)))\n (let ((?x1026 (ite $x788 (+ (- ?x734 ?x1034) 1) (ite $x415 (+ (- ?x734 ?x726) 1) ?x3230))))\n (let ((?x2917 (ite $x512 244 243)))\n (let (($x1126 (>= ?x734 ?x2917)))\n (let ((?x418 (ite $x512 274 273)))\n (let (($x747 (>= ?x734 ?x418)))\n (let ((?x658 (ite $x747 (+ (- ?x734 ?x418) 1) (ite $x1126 (+ (- ?x734 ?x2917) 1) ?x1026))))\n (let ((?x927 (ite $x512 305 304)))\n (let (($x1997 (>= ?x734 ?x927)))\n (let ((?x1119 (ite $x512 335 334)))\n (let (($x1118 (>= ?x734 ?x1119)))\n (let ((?x740 (ite $x1118 (+ (- ?x734 ?x1119) 1) (ite $x1997 (+ (- ?x734 ?x927) 1) ?x658))))\n (let (($x950 (= 0 0)))\n (let (($x2743 (= (mod (ite $x950 (+ ?x586 (+ 0 (div ?x1127 12))) ?x1102) 400) 0)))\n (let (($x2125 (and (distinct (mod (ite $x950 (+ ?x586 (+ 0 (div ?x1127 12))) ?x1102) 100) 0) true)))\n (let (($x1136 (= (mod (ite $x950 (+ ?x586 (+ 0 (div ?x1127 12))) ?x1102) 4) 0)))\n (let (($x2490 (or (and $x1136 $x2125) $x2743)))\n (let ((?x2703 (ite $x486 5 (ite $x515 4 (ite $x506 3 (ite $x1157 2 1))))))\n (let ((?x643 (ite $x1126 9 (ite $x788 8 (ite $x415 7 (ite $x953 6 ?x2703))))))\n (let ((?x2915 (ite $x950 ?x987 (ite $x1118 12 (ite $x1997 11 (ite $x747 10 ?x643))))))\n (let ((?x807 (ite (= 2 ?x2915) (ite $x2490 31 31) (ite (= 1 ?x2915) (ite $x2490 0 0) 0))))\n (let ((?x3150 (ite (= 4 ?x2915) (ite $x2490 91 90) (ite (= 3 ?x2915) (ite $x2490 60 59) ?x807))))\n (let ((?x503 (ite (= 6 ?x2915) (ite $x2490 152 151) (ite (= 5 ?x2915) (ite $x2490 121 120) ?x3150))))\n (let ((?x1067 (ite (= 8 ?x2915) (ite $x2490 213 212) (ite (= 7 ?x2915) (ite $x2490 182 181) ?x503))))\n (let ((?x813 (ite (= 10 ?x2915) (ite $x2490 274 273) (ite (= 9 ?x2915) (ite $x2490 244 243) ?x1067))))\n (let ((?x948 (ite (= 12 ?x2915) (ite $x2490 335 334) (ite (= 11 ?x2915) (ite $x2490 305 304) ?x813))))\n (let ((?x583 (+ ?x586 (+ 0 (div ?x1127 12)))))\n (let ((?x702 (ite $x950 ?x583 ?x1102)))\n (let ((?x1060 (- ?x702 1)))\n (let ((?x800 (+ (- (+ (* 365 ?x1060) (div ?x1060 4)) (div ?x1060 100)) (div ?x1060 400))))\n (= y_days (- (+ (+ ?x800 ?x948) (- (ite $x950 ?x1085 ?x740) 1)) 730179))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))\n(assert\n (not (= y_days (+ x_days 365))))\n(check-sat)\n",
+    "smtlib_file": "results_new/constraint2/smt2/1758090062-8_epoch_days_int.smt2"
+  },
+  {
+    "id": "1758090062-9",
+    "description": "Complex period chain addition with normalization",
+    "constraints": [
+      "x == Date(2022, 1, 15)",
+      "p == Period(0, 13, 0)",
+      "q == Period(0, 0, 400)",
+      "x + p + q == Date(2023, 3, 21)"
+    ],
+    "date_variables": [
+      "p",
+      "q",
+      "x"
+    ],
+    "period_variables": [
+      "p",
+      "q"
+    ],
+    "coverage_tags": [
+      "chain_add",
+      "multi_var"
+    ],
+    "constraint_id": "1758090062-9",
+    "constraint_code": "builder = DateSMTBuilder()\np = builder.add_date_var(\"p\")\nq = builder.add_date_var(\"q\")\nx = builder.add_date_var(\"x\")\np = builder.add_period_var(\"p\")\nq = builder.add_period_var(\"q\")\nbuilder.add_constraint(x == Date(2022, 1, 15))\nbuilder.add_constraint(p == Period(0, 13, 0))\nbuilder.add_constraint(q == Period(0, 0, 400))\nbuilder.add_constraint(x + p + q == Date(2023, 3, 21))\nresult = builder",
+    "variables": [
+      "p",
+      "q",
+      "x",
+      "p",
+      "q"
+    ],
+    "approach": "epoch_days",
+    "implementation": "int",
+    "status": "error",
+    "execution_time": 0,
+    "error_message": "Cannot compare PeriodVar.",
+    "solution": null,
+    "smtlib": null
+  },
+  {
+    "id": "1758090062-10",
+    "description": "Tight inequality window creates unsatisfiable constraint",
+    "constraints": [
+      "x > Date(2023, 4, 30)",
+      "x < Date(2023, 5, 1)"
+    ],
+    "date_variables": [
+      "x"
+    ],
+    "period_variables": [],
+    "coverage_tags": [
+      "ineq_window",
+      "eom"
+    ],
+    "constraint_id": "1758090062-10",
+    "constraint_code": "builder = DateSMTBuilder()\nx = builder.add_date_var(\"x\")\nbuilder.add_constraint(x > Date(2023, 4, 30))\nbuilder.add_constraint(x < Date(2023, 5, 1))\nresult = builder",
+    "variables": [
+      "x"
+    ],
+    "approach": "epoch_days",
+    "implementation": "int",
+    "status": "unsat",
+    "execution_time": 0.0050580501556396484,
+    "error_message": null,
+    "solution": {},
+    "smtlib": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun x_days () Int)\n(assert\n (>= x_days (- 36525)))\n(assert\n (<= x_days 36523))\n(assert\n (not (<= x_days 8460)))\n(assert\n (not (>= x_days 8461)))\n(check-sat)\n",
+    "smtlib_file": "results_new/constraint2/smt2/1758090062-10_epoch_days_int.smt2"
+  },
+  {
+    "id": "1758090062-11",
+    "description": "End of month rollover",
+    "constraints": [
+      "x >= Date(2023, 1, 31), 'x >= 2023-01-31'",
+      "(x + Period(0, 1, 0)) <= Date(2023, 3, 1), 'x + 1 month <= 2023-03-01'"
+    ],
+    "date_variables": [
+      "x"
+    ],
+    "period_variables": [],
+    "coverage_tags": [
+      "eom"
+    ],
+    "constraint_id": "1758090062-11",
+    "constraint_code": "builder = DateSMTBuilder()\nx = builder.add_date_var(\"x\")\nbuilder.add_constraint(x >= Date(2023, 1, 31))\nbuilder.add_constraint((x + Period(0, 1, 0)) <= Date(2023, 3, 1))\nresult = builder",
+    "variables": [
+      "x"
+    ],
+    "approach": "epoch_days",
+    "implementation": "int",
+    "status": "sat",
+    "execution_time": 0.25223326683044434,
+    "error_message": null,
+    "solution": {
+      "x": "Date(2023, 2, 1)"
+    },
+    "smtlib": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun x_days () Int)\n(assert\n (>= x_days (- 36525)))\n(assert\n (<= x_days 36523))\n(assert\n (>= x_days 8371))\n(assert\n (let ((?x746 (+ x_days 730179)))\n(let ((?x966 (mod ?x746 146097)))\n(let ((?x950 (div ?x966 36524)))\n(let ((?x810 (ite (<= 4 ?x950) 3 ?x950)))\n(let ((?x763 (- ?x966 (* ?x810 36524))))\n(let ((?x588 (mod ?x763 1461)))\n(let ((?x483 (div ?x588 365)))\n(let ((?x1058 (ite (<= 4 ?x483) 3 ?x483)))\n(let ((?x637 (+ (+ (* (div ?x746 146097) 400) (* ?x810 100)) (* (div ?x763 1461) 4))))\n(let ((?x2956 (+ (+ ?x637 ?x1058) 1)))\n(let (($x820 (or (and (= (mod ?x2956 4) 0) (and (distinct (mod ?x2956 100) 0) true)) (= (mod ?x2956 400) 0))))\n(let ((?x3484 (- ?x588 (* ?x1058 365))))\n(let ((?x772 (ite $x820 31 31)))\n(let (($x1710 (>= ?x3484 ?x772)))\n(let ((?x630 (ite $x1710 (+ (- ?x3484 ?x772) 1) (+ (- ?x3484 (ite $x820 0 0)) 1))))\n(let ((?x465 (ite $x820 60 59)))\n(let (($x537 (>= ?x3484 ?x465)))\n(let ((?x531 (ite $x820 91 90)))\n(let (($x858 (>= ?x3484 ?x531)))\n(let ((?x699 (ite $x858 (+ (- ?x3484 ?x531) 1) (ite $x537 (+ (- ?x3484 ?x465) 1) ?x630))))\n(let ((?x830 (ite $x820 121 120)))\n(let (($x799 (>= ?x3484 ?x830)))\n(let ((?x1265 (ite $x820 152 151)))\n(let (($x809 (>= ?x3484 ?x1265)))\n(let ((?x3451 (ite $x809 (+ (- ?x3484 ?x1265) 1) (ite $x799 (+ (- ?x3484 ?x830) 1) ?x699))))\n(let ((?x804 (ite $x820 182 181)))\n(let (($x583 (>= ?x3484 ?x804)))\n(let ((?x795 (ite $x820 213 212)))\n(let (($x829 (>= ?x3484 ?x795)))\n(let ((?x3157 (ite $x829 (+ (- ?x3484 ?x795) 1) (ite $x583 (+ (- ?x3484 ?x804) 1) ?x3451))))\n(let ((?x793 (ite $x820 244 243)))\n(let (($x2702 (>= ?x3484 ?x793)))\n(let ((?x1048 (ite $x820 274 273)))\n(let (($x842 (>= ?x3484 ?x1048)))\n(let ((?x566 (ite $x842 (+ (- ?x3484 ?x1048) 1) (ite $x2702 (+ (- ?x3484 ?x793) 1) ?x3157))))\n(let ((?x627 (ite $x820 305 304)))\n(let (($x501 (>= ?x3484 ?x627)))\n(let ((?x963 (ite $x820 335 334)))\n(let (($x987 (>= ?x3484 ?x963)))\n(let ((?x3024 (ite $x987 (+ (- ?x3484 ?x963) 1) (ite $x501 (+ (- ?x3484 ?x627) 1) ?x566))))\n(let ((?x1127 (ite $x799 5 (ite $x858 4 (ite $x537 3 (ite $x1710 2 1))))))\n(let ((?x469 (ite $x2702 9 (ite $x829 8 (ite $x583 7 (ite $x809 6 ?x1127))))))\n(let ((?x417 (+ (ite $x987 12 (ite $x501 11 (ite $x842 10 ?x469))) (+ (* 0 12) 1))))\n(let ((?x482 (- ?x417 1)))\n(let ((?x669 (+ (mod ?x482 12) 1)))\n(let ((?x1011 (ite (or (= ?x669 4) (= ?x669 6) (= ?x669 9) (= ?x669 11)) 30 31)))\n(let (($x873 (and (= (mod (+ ?x2956 (+ 0 (div ?x482 12))) 4) 0) (and (distinct (mod (+ ?x2956 (+ 0 (div ?x482 12))) 100) 0) true))))\n(let (($x776 (or $x873 (= (mod (+ ?x2956 (+ 0 (div ?x482 12))) 400) 0))))\n(let ((?x488 (ite (= ?x669 2) (ite $x776 29 28) ?x1011)))\n(let ((?x466 (ite (> 1 ?x3024) 1 (ite (> ?x3024 ?x488) ?x488 ?x3024))))\n(let ((?x797 (ite (> 1 ?x466) 1 (ite (> ?x466 ?x488) ?x488 ?x466))))\n(let ((?x1871 (ite (= 2 ?x669) (ite $x776 31 31) (ite (= 1 ?x669) (ite $x776 0 0) 0))))\n(let ((?x940 (ite (= 4 ?x669) (ite $x776 91 90) (ite (= 3 ?x669) (ite $x776 60 59) ?x1871))))\n(let ((?x916 (ite (= 6 ?x669) (ite $x776 152 151) (ite (= 5 ?x669) (ite $x776 121 120) ?x940))))\n(let ((?x863 (ite (= 8 ?x669) (ite $x776 213 212) (ite (= 7 ?x669) (ite $x776 182 181) ?x916))))\n(let ((?x496 (ite (= 10 ?x669) (ite $x776 274 273) (ite (= 9 ?x669) (ite $x776 244 243) ?x863))))\n(let ((?x898 (ite (= 12 ?x669) (ite $x776 335 334) (ite (= 11 ?x669) (ite $x776 305 304) ?x496))))\n(let ((?x814 (+ (* 365 (- (+ ?x2956 (+ 0 (div ?x482 12))) 1)) (div (- (+ ?x2956 (+ 0 (div ?x482 12))) 1) 4))))\n(let ((?x1144 (+ (- ?x814 (div (- (+ ?x2956 (+ 0 (div ?x482 12))) 1) 100)) (div (- (+ ?x2956 (+ 0 (div ?x482 12))) 1) 400))))\n(let ((?x516 (+ (+ (- (+ (+ ?x1144 ?x898) (- ?x797 1)) 730179) 0) 730179)))\n(let ((?x702 (mod ?x516 146097)))\n(let ((?x1060 (div ?x702 36524)))\n(let ((?x843 (ite (<= 4 ?x1060) 3 ?x1060)))\n(let ((?x1018 (- ?x702 (* ?x843 36524))))\n(let ((?x1049 (mod ?x1018 1461)))\n(let ((?x800 (div ?x1049 365)))\n(let ((?x734 (ite (<= 4 ?x800) 3 ?x800)))\n(let ((?x427 (+ (+ (* (div ?x516 146097) 400) (* ?x843 100)) (* (div ?x1018 1461) 4))))\n(let ((?x1119 (+ (+ ?x427 ?x734) 1)))\n(let (($x1034 (or (and (= (mod ?x1119 4) 0) (and (distinct (mod ?x1119 100) 0) true)) (= (mod ?x1119 400) 0))))\n(let ((?x3231 (- ?x1049 (* ?x734 365))))\n(let ((?x726 (ite $x1034 31 31)))\n(let (($x1157 (>= ?x3231 ?x726)))\n(let ((?x761 (ite $x1157 (+ (- ?x3231 ?x726) 1) (+ (- ?x3231 (ite $x1034 0 0)) 1))))\n(let ((?x415 (ite $x1034 60 59)))\n(let (($x3029 (>= ?x3231 ?x415)))\n(let ((?x3197 (ite $x1034 91 90)))\n(let (($x2703 (>= ?x3231 ?x3197)))\n(let ((?x533 (ite $x2703 (+ (- ?x3231 ?x3197) 1) (ite $x3029 (+ (- ?x3231 ?x415) 1) ?x761))))\n(let ((?x953 (ite $x1034 121 120)))\n(let (($x620 (>= ?x3231 ?x953)))\n(let ((?x631 (ite $x1034 152 151)))\n(let (($x643 (>= ?x3231 ?x631)))\n(let ((?x1122 (ite $x643 (+ (- ?x3231 ?x631) 1) (ite $x620 (+ (- ?x3231 ?x953) 1) ?x533))))\n(let ((?x486 (ite $x1034 182 181)))\n(let (($x3134 (>= ?x3231 ?x486)))\n(let ((?x534 (ite $x1034 213 212)))\n(let (($x2915 (>= ?x3231 ?x534)))\n(let ((?x3271 (ite $x2915 (+ (- ?x3231 ?x534) 1) (ite $x3134 (+ (- ?x3231 ?x486) 1) ?x1122))))\n(let ((?x515 (ite $x1034 244 243)))\n(let (($x3022 (>= ?x3231 ?x515)))\n(let ((?x576 (ite $x1034 274 273)))\n(let (($x1017 (>= ?x3231 ?x576)))\n(let ((?x503 (ite $x1017 (+ (- ?x3231 ?x576) 1) (ite $x3022 (+ (- ?x3231 ?x515) 1) ?x3271))))\n(let ((?x506 (ite $x1034 305 304)))\n(let (($x757 (>= ?x3231 ?x506)))\n(let ((?x739 (ite $x1034 335 334)))\n(let (($x2743 (>= ?x3231 ?x739)))\n(let ((?x948 (ite $x2743 (+ (- ?x3231 ?x739) 1) (ite $x757 (+ (- ?x3231 ?x506) 1) ?x503))))\n(let (($x493 (= 0 0)))\n(let (($x806 (= (mod (ite $x493 (+ ?x2956 (+ 0 (div ?x482 12))) ?x1119) 400) 0)))\n(let (($x1028 (and (distinct (mod (ite $x493 (+ ?x2956 (+ 0 (div ?x482 12))) ?x1119) 100) 0) true)))\n(let (($x490 (= (mod (ite $x493 (+ ?x2956 (+ 0 (div ?x482 12))) ?x1119) 4) 0)))\n(let (($x458 (or (and $x490 $x1028) $x806)))\n(let ((?x489 (ite $x620 5 (ite $x2703 4 (ite $x3029 3 (ite $x1157 2 1))))))\n(let ((?x1136 (ite $x3022 9 (ite $x2915 8 (ite $x3134 7 (ite $x643 6 ?x489))))))\n(let ((?x405 (ite $x493 ?x669 (ite $x2743 12 (ite $x757 11 (ite $x1017 10 ?x1136))))))\n(let ((?x825 (ite (= 2 ?x405) (ite $x458 31 31) (ite (= 1 ?x405) (ite $x458 0 0) 0))))\n(let ((?x3230 (ite (= 4 ?x405) (ite $x458 91 90) (ite (= 3 ?x405) (ite $x458 60 59) ?x825))))\n(let ((?x740 (ite (= 6 ?x405) (ite $x458 152 151) (ite (= 5 ?x405) (ite $x458 121 120) ?x3230))))\n(let ((?x1148 (ite (= 8 ?x405) (ite $x458 213 212) (ite (= 7 ?x405) (ite $x458 182 181) ?x740))))\n(let ((?x861 (ite (= 10 ?x405) (ite $x458 274 273) (ite (= 9 ?x405) (ite $x458 244 243) ?x1148))))\n(let ((?x3450 (ite (= 12 ?x405) (ite $x458 335 334) (ite (= 11 ?x405) (ite $x458 305 304) ?x861))))\n(let ((?x497 (+ ?x2956 (+ 0 (div ?x482 12)))))\n(let ((?x673 (ite $x493 ?x497 ?x1119)))\n(let ((?x2097 (- ?x673 1)))\n(let ((?x1544 (+ (- (+ (* 365 ?x2097) (div ?x2097 4)) (div ?x2097 100)) (div ?x2097 400))))\n(<= (- (+ (+ ?x1544 ?x3450) (- (ite $x493 ?x797 ?x948) 1)) 730179) 8400)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))\n(check-sat)\n",
+    "smtlib_file": "results_new/constraint2/smt2/1758090062-11_epoch_days_int.smt2"
+  },
+  {
+    "id": "1758090062-12",
+    "description": "Month vs days contrast",
+    "constraints": [
+      "x >= Date(2023, 1, 1), 'x >= 2023-01-01'",
+      "(x + Period(0, 1, 0)) > (x + Period(0, 0, 31)), 'month > 31 days'"
+    ],
+    "date_variables": [
+      "x"
+    ],
+    "period_variables": [],
+    "coverage_tags": [
+      "month_vs_days"
+    ],
+    "constraint_id": "1758090062-12",
+    "constraint_code": "builder = DateSMTBuilder()\nx = builder.add_date_var(\"x\")\nbuilder.add_constraint(x >= Date(2023, 1, 1))\nbuilder.add_constraint((x + Period(0, 1, 0)) > (x + Period(0, 0, 31)))\nresult = builder",
+    "variables": [
+      "x"
+    ],
+    "approach": "epoch_days",
+    "implementation": "int",
+    "status": "unsat",
+    "execution_time": 1.5661640167236328,
+    "error_message": null,
+    "solution": {},
+    "smtlib": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun x_days () Int)\n(assert\n (>= x_days (- 36525)))\n(assert\n (<= x_days 36523))\n(assert\n (>= x_days 8341))\n(assert\n (let ((?x893 (+ x_days 730179)))\n(let ((?x661 (mod ?x893 146097)))\n(let ((?x2956 (div ?x661 36524)))\n(let ((?x1128 (ite (<= 4 ?x2956) 3 ?x2956)))\n(let ((?x999 (- ?x661 (* ?x1128 36524))))\n(let ((?x436 (mod ?x999 1461)))\n(let ((?x2063 (div ?x436 365)))\n(let ((?x831 (ite (<= 4 ?x2063) 3 ?x2063)))\n(let ((?x1139 (+ (+ (* (div ?x893 146097) 400) (* ?x1128 100)) (* (div ?x999 1461) 4))))\n(let ((?x842 (+ (+ ?x1139 ?x831) 1)))\n(let (($x829 (or (and (= (mod ?x842 4) 0) (and (distinct (mod ?x842 100) 0) true)) (= (mod ?x842 400) 0))))\n(let ((?x963 (- ?x436 (* ?x831 365))))\n(let ((?x498 (ite $x829 31 31)))\n(let (($x1016 (>= ?x963 ?x498)))\n(let ((?x776 (ite $x1016 (+ (- ?x963 ?x498) 1) (+ (- ?x963 (ite $x829 0 0)) 1))))\n(let ((?x525 (ite $x829 60 59)))\n(let (($x712 (>= ?x963 ?x525)))\n(let ((?x809 (ite $x829 91 90)))\n(let (($x482 (>= ?x963 ?x809)))\n(let ((?x1095 (ite $x482 (+ (- ?x963 ?x809) 1) (ite $x712 (+ (- ?x963 ?x525) 1) ?x776))))\n(let ((?x830 (ite $x829 121 120)))\n(let (($x654 (>= ?x963 ?x830)))\n(let ((?x578 (ite $x829 152 151)))\n(let (($x608 (>= ?x963 ?x578)))\n(let ((?x728 (ite $x608 (+ (- ?x963 ?x578) 1) (ite $x654 (+ (- ?x963 ?x830) 1) ?x1095))))\n(let ((?x1175 (ite $x829 182 181)))\n(let (($x755 (>= ?x963 ?x1175)))\n(let ((?x537 (ite $x829 213 212)))\n(let (($x492 (>= ?x963 ?x537)))\n(let ((?x941 (ite $x492 (+ (- ?x963 ?x537) 1) (ite $x755 (+ (- ?x963 ?x1175) 1) ?x728))))\n(let ((?x610 (ite $x829 244 243)))\n(let (($x443 (>= ?x963 ?x610)))\n(let ((?x1127 (ite $x829 274 273)))\n(let (($x855 (>= ?x963 ?x1127)))\n(let ((?x577 (ite $x855 (+ (- ?x963 ?x1127) 1) (ite $x443 (+ (- ?x963 ?x610) 1) ?x941))))\n(let ((?x970 (ite $x829 305 304)))\n(let (($x848 (>= ?x963 ?x970)))\n(let ((?x717 (ite $x829 335 334)))\n(let (($x867 (>= ?x963 ?x717)))\n(let ((?x679 (ite $x867 (+ (- ?x963 ?x717) 1) (ite $x848 (+ (- ?x963 ?x970) 1) ?x577))))\n(let ((?x497 (ite $x654 5 (ite $x482 4 (ite $x712 3 (ite $x1016 2 1))))))\n(let ((?x1144 (ite $x443 9 (ite $x492 8 (ite $x755 7 (ite $x608 6 ?x497))))))\n(let ((?x496 (+ (ite $x867 12 (ite $x848 11 (ite $x855 10 ?x1144))) (+ (* 0 12) 1))))\n(let ((?x2645 (- ?x496 1)))\n(let ((?x921 (+ (mod ?x2645 12) 1)))\n(let ((?x595 (ite (or (= ?x921 4) (= ?x921 6) (= ?x921 9) (= ?x921 11)) 30 31)))\n(let (($x705 (and (= (mod (+ ?x842 (+ 0 (div ?x2645 12))) 4) 0) (and (distinct (mod (+ ?x842 (+ 0 (div ?x2645 12))) 100) 0) true))))\n(let (($x2625 (or $x705 (= (mod (+ ?x842 (+ 0 (div ?x2645 12))) 400) 0))))\n(let ((?x495 (ite (= ?x921 2) (ite $x2625 29 28) ?x595)))\n(let ((?x1181 (ite (> 1 ?x679) 1 (ite (> ?x679 ?x495) ?x495 ?x679))))\n(let ((?x699 (ite (> 1 ?x1181) 1 (ite (> ?x1181 ?x495) ?x495 ?x1181))))\n(let ((?x535 (ite (= 2 ?x921) (ite $x2625 31 31) (ite (= 1 ?x921) (ite $x2625 0 0) 0))))\n(let ((?x466 (ite (= 4 ?x921) (ite $x2625 91 90) (ite (= 3 ?x921) (ite $x2625 60 59) ?x535))))\n(let ((?x3701 (ite (= 6 ?x921) (ite $x2625 152 151) (ite (= 5 ?x921) (ite $x2625 121 120) ?x466))))\n(let ((?x702 (ite (= 8 ?x921) (ite $x2625 213 212) (ite (= 7 ?x921) (ite $x2625 182 181) ?x3701))))\n(let ((?x1106 (ite (= 10 ?x921) (ite $x2625 274 273) (ite (= 9 ?x921) (ite $x2625 244 243) ?x702))))\n(let ((?x800 (ite (= 12 ?x921) (ite $x2625 335 334) (ite (= 11 ?x921) (ite $x2625 305 304) ?x1106))))\n(let ((?x480 (+ (* 365 (- (+ ?x842 (+ 0 (div ?x2645 12))) 1)) (div (- (+ ?x842 (+ 0 (div ?x2645 12))) 1) 4))))\n(let ((?x859 (+ (- ?x480 (div (- (+ ?x842 (+ 0 (div ?x2645 12))) 1) 100)) (div (- (+ ?x842 (+ 0 (div ?x2645 12))) 1) 400))))\n(let ((?x2097 (+ (+ (- (+ (+ ?x859 ?x800) (- ?x699 1)) 730179) 0) 730179)))\n(let ((?x1565 (mod ?x2097 146097)))\n(let ((?x3021 (div ?x1565 36524)))\n(let ((?x982 (ite (<= 4 ?x3021) 3 ?x3021)))\n(let ((?x1544 (- ?x1565 (* ?x982 36524))))\n(let ((?x3231 (mod ?x1544 1461)))\n(let ((?x1118 (div ?x3231 365)))\n(let ((?x1997 (ite (<= 4 ?x1118) 3 ?x1118)))\n(let ((?x2743 (+ (+ (* (div ?x2097 146097) 400) (* ?x982 100)) (* (div ?x1544 1461) 4))))\n(let ((?x757 (+ (+ ?x2743 ?x1997) 1)))\n(let (($x3134 (or (and (= (mod ?x757 4) 0) (and (distinct (mod ?x757 100) 0) true)) (= (mod ?x757 400) 0))))\n(let ((?x747 (- ?x3231 (* ?x1997 365))))\n(let ((?x643 (ite $x3134 31 31)))\n(let (($x3057 (>= ?x747 ?x643)))\n(let ((?x562 (ite $x3057 (+ (- ?x747 ?x643) 1) (+ (- ?x747 (ite $x3134 0 0)) 1))))\n(let ((?x953 (ite $x3134 60 59)))\n(let (($x697 (>= ?x747 ?x953)))\n(let ((?x620 (ite $x3134 91 90)))\n(let (($x665 (>= ?x747 ?x620)))\n(let ((?x979 (ite $x665 (+ (- ?x747 ?x620) 1) (ite $x697 (+ (- ?x747 ?x953) 1) ?x562))))\n(let ((?x3197 (ite $x3134 121 120)))\n(let (($x2125 (>= ?x747 ?x3197)))\n(let ((?x2703 (ite $x3134 152 151)))\n(let (($x2490 (>= ?x747 ?x2703)))\n(let ((?x1176 (ite $x2490 (+ (- ?x747 ?x2703) 1) (ite $x2125 (+ (- ?x747 ?x3197) 1) ?x979))))\n(let ((?x415 (ite $x3134 182 181)))\n(let (($x1083 (>= ?x747 ?x415)))\n(let ((?x3029 (ite $x3134 213 212)))\n(let (($x490 (>= ?x747 ?x3029)))\n(let ((?x1072 (ite $x490 (+ (- ?x747 ?x3029) 1) (ite $x1083 (+ (- ?x747 ?x415) 1) ?x1176))))\n(let ((?x726 (ite $x3134 244 243)))\n(let (($x1028 (>= ?x747 ?x726)))\n(let ((?x1157 (ite $x3134 274 273)))\n(let (($x615 (>= ?x747 ?x1157)))\n(let ((?x773 (ite $x615 (+ (- ?x747 ?x1157) 1) (ite $x1028 (+ (- ?x747 ?x726) 1) ?x1072))))\n(let ((?x2663 (ite $x3134 305 304)))\n(let (($x458 (>= ?x747 ?x2663)))\n(let ((?x517 (ite $x3134 335 334)))\n(let (($x1147 (>= ?x747 ?x517)))\n(let ((?x657 (ite $x1147 (+ (- ?x747 ?x517) 1) (ite $x458 (+ (- ?x747 ?x2663) 1) ?x773))))\n(let (($x1063 (= 0 0)))\n(let (($x1103 (= (mod (ite $x1063 (+ ?x842 (+ 0 (div ?x2645 12))) ?x757) 400) 0)))\n(let (($x3190 (and (distinct (mod (ite $x1063 (+ ?x842 (+ 0 (div ?x2645 12))) ?x757) 100) 0) true)))\n(let (($x1019 (= (mod (ite $x1063 (+ ?x842 (+ 0 (div ?x2645 12))) ?x757) 4) 0)))\n(let (($x570 (or (and $x1019 $x3190) $x1103)))\n(let ((?x758 (ite $x2125 5 (ite $x665 4 (ite $x697 3 (ite $x3057 2 1))))))\n(let ((?x784 (ite $x1028 9 (ite $x490 8 (ite $x1083 7 (ite $x2490 6 ?x758))))))\n(let ((?x1067 (ite $x1063 ?x921 (ite $x1147 12 (ite $x458 11 (ite $x615 10 ?x784))))))\n(let ((?x942 (ite (= 2 ?x1067) (ite $x570 31 31) (ite (= 1 ?x1067) (ite $x570 0 0) 0))))\n(let ((?x589 (ite (= 4 ?x1067) (ite $x570 91 90) (ite (= 3 ?x1067) (ite $x570 60 59) ?x942))))\n(let ((?x1517 (ite (= 6 ?x1067) (ite $x570 152 151) (ite (= 5 ?x1067) (ite $x570 121 120) ?x589))))\n(let ((?x1071 (ite (= 8 ?x1067) (ite $x570 213 212) (ite (= 7 ?x1067) (ite $x570 182 181) ?x1517))))\n(let ((?x2829 (ite (= 10 ?x1067) (ite $x570 274 273) (ite (= 9 ?x1067) (ite $x570 244 243) ?x1071))))\n(let ((?x692 (ite (= 12 ?x1067) (ite $x570 335 334) (ite (= 11 ?x1067) (ite $x570 305 304) ?x2829))))\n(let ((?x838 (+ ?x842 (+ 0 (div ?x2645 12)))))\n(let ((?x1105 (ite $x1063 ?x838 ?x757)))\n(let ((?x760 (- ?x1105 1)))\n(let ((?x1678 (+ (- (+ (* 365 ?x760) (div ?x760 4)) (div ?x760 100)) (div ?x760 400))))\n(let (($x449 (<= (- (+ (+ ?x1678 ?x692) (- (ite $x1063 ?x699 ?x657) 1)) 730179) (+ x_days 31))))\n(not $x449))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))\n(check-sat)\n",
+    "smtlib_file": "results_new/constraint2/smt2/1758090062-12_epoch_days_int.smt2"
+  },
+  {
+    "id": "1758090062-13",
+    "description": "Chain of additions",
+    "constraints": [
+      "x >= Date(2023, 6, 1), 'x >= 2023-06-01'",
+      "(x + Period(0, 1, 0) + Period(0, 0, 15)) == y, 'x + 1 month + 15 days = y'",
+      "y >= Date(2023, 6, 1), 'y >= 2023-06-01'"
+    ],
+    "date_variables": [
+      "x",
+      "y"
+    ],
+    "period_variables": [],
+    "coverage_tags": [
+      "chain_add",
+      "multi_var"
+    ],
+    "constraint_id": "1758090062-13",
+    "constraint_code": "builder = DateSMTBuilder()\nx = builder.add_date_var(\"x\")\ny = builder.add_date_var(\"y\")\nbuilder.add_constraint(x >= Date(2023, 6, 1))\nbuilder.add_constraint((x + Period(0, 1, 0) + Period(0, 0, 15)) == y)\nbuilder.add_constraint(y >= Date(2023, 6, 1))\nresult = builder",
+    "variables": [
+      "x",
+      "y"
+    ],
+    "approach": "epoch_days",
+    "implementation": "int",
+    "status": "sat",
+    "execution_time": 0.1337878704071045,
+    "error_message": null,
+    "solution": {
+      "x": "Date(2023, 12, 31)",
+      "y": "Date(2024, 2, 15)"
+    },
+    "smtlib": "; benchmark generated from python API\n(set-info :status unknown)\n(declare-fun x_days () Int)\n(declare-fun y_days () Int)\n(assert\n (>= x_days (- 36525)))\n(assert\n (<= x_days 36523))\n(assert\n (>= y_days (- 36525)))\n(assert\n (<= y_days 36523))\n(assert\n (>= x_days 8492))\n(assert\n (let ((?x876 (+ x_days 730179)))\n (let ((?x1087 (mod ?x876 146097)))\n (let ((?x737 (div ?x1087 36524)))\n (let ((?x829 (ite (<= 4 ?x737) 3 ?x737)))\n (let ((?x469 (- ?x1087 (* ?x829 36524))))\n (let ((?x867 (mod ?x469 1461)))\n (let ((?x632 (div ?x867 365)))\n (let ((?x970 (ite (<= 4 ?x632) 3 ?x632)))\n (let ((?x443 (+ (+ (* (div ?x876 146097) 400) (* ?x829 100)) (* (div ?x469 1461) 4))))\n (let ((?x1000 (+ (+ ?x443 ?x970) 1)))\n (let (($x799 (or (and (= (mod ?x1000 4) 0) (and (distinct (mod ?x1000 100) 0) true)) (= (mod ?x1000 400) 0))))\n (let ((?x959 (- ?x867 (* ?x970 365))))\n (let ((?x608 (ite $x799 31 31)))\n (let (($x426 (>= ?x959 ?x608)))\n (let ((?x1060 (ite $x426 (+ (- ?x959 ?x608) 1) (+ (- ?x959 (ite $x799 0 0)) 1))))\n (let ((?x830 (ite $x799 60 59)))\n (let (($x3451 (>= ?x959 ?x830)))\n (let ((?x720 (ite $x799 91 90)))\n (let (($x3157 (>= ?x959 ?x720)))\n (let ((?x797 (ite $x3157 (+ (- ?x959 ?x720) 1) (ite $x3451 (+ (- ?x959 ?x830) 1) ?x1060))))\n (let ((?x583 (ite $x799 121 120)))\n (let (($x566 (>= ?x959 ?x583)))\n (let ((?x712 (ite $x799 152 151)))\n (let (($x3024 (>= ?x959 ?x712)))\n (let ((?x573 (ite $x3024 (+ (- ?x959 ?x712) 1) (ite $x566 (+ (- ?x959 ?x583) 1) ?x797))))\n (let ((?x756 (ite $x799 182 181)))\n (let (($x607 (>= ?x959 ?x756)))\n (let ((?x497 (ite $x799 213 212)))\n (let (($x427 (>= ?x959 ?x497)))\n (let ((?x768 (ite $x427 (+ (- ?x959 ?x497) 1) (ite $x607 (+ (- ?x959 ?x756) 1) ?x573))))\n (let ((?x791 (ite $x799 244 243)))\n (let (($x1100 (>= ?x959 ?x791)))\n (let ((?x837 (ite $x799 274 273)))\n (let (($x744 (>= ?x959 ?x837)))\n (let ((?x516 (ite $x744 (+ (- ?x959 ?x837) 1) (ite $x1100 (+ (- ?x959 ?x791) 1) ?x768))))\n (let ((?x628 (ite $x799 305 304)))\n (let (($x2349 (>= ?x959 ?x628)))\n (let ((?x898 (ite $x799 335 334)))\n (let (($x2625 (>= ?x959 ?x898)))\n (let ((?x485 (ite $x2625 (+ (- ?x959 ?x898) 1) (ite $x2349 (+ (- ?x959 ?x628) 1) ?x516))))\n (let ((?x926 (ite $x566 5 (ite $x3157 4 (ite $x3451 3 (ite $x426 2 1))))))\n (let ((?x633 (ite $x1100 9 (ite $x427 8 (ite $x607 7 (ite $x3024 6 ?x926))))))\n (let ((?x1871 (+ (ite $x2625 12 (ite $x2349 11 (ite $x744 10 ?x633))) (+ (* 0 12) 1))))\n (let ((?x721 (- ?x1871 1)))\n (let ((?x906 (+ (mod ?x721 12) 1)))\n (let ((?x873 (ite (or (= ?x906 4) (= ?x906 6) (= ?x906 9) (= ?x906 11)) 30 31)))\n (let (($x802 (and (= (mod (+ ?x1000 (+ 0 (div ?x721 12))) 4) 0) (and (distinct (mod (+ ?x1000 (+ 0 (div ?x721 12))) 100) 0) true))))\n (let (($x451 (or $x802 (= (mod (+ ?x1000 (+ 0 (div ?x721 12))) 400) 0))))\n (let ((?x776 (ite (= ?x906 2) (ite $x451 29 28) ?x873)))\n (let ((?x728 (ite (> 1 ?x485) 1 (ite (> ?x485 ?x776) ?x776 ?x485))))\n (let ((?x577 (ite (> 1 ?x728) 1 (ite (> ?x728 ?x776) ?x776 ?x728))))\n (let ((?x1181 (ite (= 2 ?x906) (ite $x451 31 31) (ite (= 1 ?x906) (ite $x451 0 0) 0))))\n (let ((?x512 (ite (= 4 ?x906) (ite $x451 91 90) (ite (= 3 ?x906) (ite $x451 60 59) ?x1181))))\n (let ((?x1565 (ite (= 6 ?x906) (ite $x451 152 151) (ite (= 5 ?x906) (ite $x451 121 120) ?x512))))\n (let ((?x3494 (ite (= 8 ?x906) (ite $x451 213 212) (ite (= 7 ?x906) (ite $x451 182 181) ?x1565))))\n (let ((?x1118 (ite (= 10 ?x906) (ite $x451 274 273) (ite (= 9 ?x906) (ite $x451 244 243) ?x3494))))\n (let ((?x760 (ite (= 12 ?x906) (ite $x451 335 334) (ite (= 11 ?x906) (ite $x451 305 304) ?x1118))))\n (let ((?x835 (+ (* 365 (- (+ ?x1000 (+ 0 (div ?x721 12))) 1)) (div (- (+ ?x1000 (+ 0 (div ?x721 12))) 1) 4))))\n (let ((?x864 (+ (- ?x835 (div (- (+ ?x1000 (+ 0 (div ?x721 12))) 1) 100)) (div (- (+ ?x1000 (+ 0 (div ?x721 12))) 1) 400))))\n (let ((?x2951 (+ (+ (- (+ (+ ?x864 ?x760) (- ?x577 1)) 730179) 0) 730179)))\n (let ((?x418 (mod ?x2951 146097)))\n (let ((?x747 (div ?x418 36524)))\n (let ((?x1017 (ite (<= 4 ?x747) 3 ?x747)))\n (let ((?x3022 (- ?x418 (* ?x1017 36524))))\n (let ((?x2915 (mod ?x3022 1461)))\n (let ((?x486 (div ?x2915 365)))\n (let ((?x517 (ite (<= 4 ?x486) 3 ?x486)))\n (let ((?x1028 (+ (+ (* (div ?x2951 146097) 400) (* ?x1017 100)) (* (div ?x3022 1461) 4))))\n (let ((?x490 (+ (+ ?x1028 ?x517) 1)))\n (let (($x665 (or (and (= (mod ?x490 4) 0) (and (distinct (mod ?x490 100) 0) true)) (= (mod ?x490 400) 0))))\n (let ((?x2663 (- ?x2915 (* ?x517 365))))\n (let ((?x697 (ite $x665 31 31)))\n (let (($x806 (>= ?x2663 ?x697)))\n (let ((?x503 (ite $x806 (+ (- ?x2663 ?x697) 1) (+ (- ?x2663 (ite $x665 0 0)) 1))))\n (let ((?x643 (ite $x665 60 59)))\n (let (($x2987 (>= ?x2663 ?x643)))\n (let ((?x3057 (ite $x665 91 90)))\n (let (($x2076 (>= ?x2663 ?x3057)))\n (let ((?x986 (ite $x2076 (+ (- ?x2663 ?x3057) 1) (ite $x2987 (+ (- ?x2663 ?x643) 1) ?x503))))\n (let ((?x489 (ite $x665 121 120)))\n (let (($x1019 (>= ?x2663 ?x489)))\n (let ((?x954 (ite $x665 152 151)))\n (let (($x3190 (>= ?x2663 ?x954)))\n (let ((?x1122 (ite $x3190 (+ (- ?x2663 ?x954) 1) (ite $x1019 (+ (- ?x2663 ?x489) 1) ?x986))))\n (let ((?x1136 (ite $x665 182 181)))\n (let (($x750 (>= ?x2663 ?x1136)))\n (let ((?x758 (ite $x665 213 212)))\n (let (($x570 (>= ?x2663 ?x758)))\n (let ((?x1273 (ite $x570 (+ (- ?x2663 ?x758) 1) (ite $x750 (+ (- ?x2663 ?x1136) 1) ?x1122))))\n (let ((?x405 (ite $x665 244 243)))\n (let (($x2593 (>= ?x2663 ?x405)))\n (let ((?x491 (ite $x665 274 273)))\n (let (($x2626 (>= ?x2663 ?x491)))\n (let ((?x813 (ite $x2626 (+ (- ?x2663 ?x491) 1) (ite $x2593 (+ (- ?x2663 ?x405) 1) ?x1273))))\n (let ((?x3026 (ite $x665 305 304)))\n (let (($x762 (>= ?x2663 ?x3026)))\n (let ((?x784 (ite $x665 335 334)))\n (let (($x803 (>= ?x2663 ?x784)))\n (let ((?x494 (ite $x803 (+ (- ?x2663 ?x784) 1) (ite $x762 (+ (- ?x2663 ?x3026) 1) ?x813))))\n (let (($x940 (= 0 0)))\n (let (($x951 (= (mod (ite $x940 (+ ?x1000 (+ 0 (div ?x721 12))) ?x490) 400) 0)))\n (let (($x3030 (and (distinct (mod (ite $x940 (+ ?x1000 (+ 0 (div ?x721 12))) ?x490) 100) 0) true)))\n (let (($x1174 (= (mod (ite $x940 (+ ?x1000 (+ 0 (div ?x721 12))) ?x490) 4) 0)))\n (let (($x979 (or (and $x1174 $x3030) $x951)))\n (let ((?x888 (ite $x1019 5 (ite $x2076 4 (ite $x2987 3 (ite $x806 2 1))))))\n (let ((?x796 (ite $x2593 9 (ite $x570 8 (ite $x750 7 (ite $x3190 6 ?x888))))))\n (let ((?x825 (ite $x940 ?x906 (ite $x803 12 (ite $x762 11 (ite $x2626 10 ?x796))))))\n (let ((?x740 (ite (= 2 ?x825) (ite $x979 31 31) (ite (= 1 ?x825) (ite $x979 0 0) 0))))\n (let ((?x2974 (ite (= 4 ?x825) (ite $x979 91 90) (ite (= 3 ?x825) (ite $x979 60 59) ?x740))))\n (let ((?x839 (ite (= 6 ?x825) (ite $x979 152 151) (ite (= 5 ?x825) (ite $x979 121 120) ?x2974))))\n (let ((?x1955 (ite (= 8 ?x825) (ite $x979 213 212) (ite (= 7 ?x825) (ite $x979 182 181) ?x839))))\n (let ((?x2723 (ite (= 10 ?x825) (ite $x979 274 273) (ite (= 9 ?x825) (ite $x979 244 243) ?x1955))))\n (let ((?x2684 (ite (= 12 ?x825) (ite $x979 335 334) (ite (= 11 ?x825) (ite $x979 305 304) ?x2723))))\n (let ((?x604 (+ ?x1000 (+ 0 (div ?x721 12)))))\n (let ((?x3631 (ite $x940 ?x604 ?x490)))\n (let ((?x1760 (- ?x3631 1)))\n (let ((?x844 (+ (- (+ (* 365 ?x1760) (div ?x1760 4)) (div ?x1760 100)) (div ?x1760 400))))\n (let ((?x3428 (+ (- (+ (+ ?x844 ?x2684) (- (ite $x940 ?x577 ?x494) 1)) 730179) 15)))\n (= ?x3428 y_days))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))\n(assert\n (>= y_days 8492))\n(check-sat)\n",
+    "smtlib_file": "results_new/constraint2/smt2/1758090062-13_epoch_days_int.smt2"
+  }
+]

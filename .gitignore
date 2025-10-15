@@ -212,3 +212,5 @@ Miniforge3-MacOSX-arm64.sh
 
 # Java
 *.class
+
+local/

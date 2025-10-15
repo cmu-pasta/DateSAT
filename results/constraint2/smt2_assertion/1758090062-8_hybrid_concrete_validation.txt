@@ -1,4 +1,4 @@
 Concrete validation for 1758090062-8 (hybrid)
 Valid: True
 Message: Solution validated successfully with concrete implementation
-Solution: {'x': 'Date(2019, 12, 31)', 'y': 'Date(2020, 12, 31)', 'x_plus': 'Date(2020, 12, 31)', 'x_plus_1': 'Date(2020, 12, 30)'}
+Solution: {'x': 'Date(2020, 1, 1)', 'y': 'Date(2021, 1, 1)', 'x_plus': 'Date(2021, 1, 1)', 'x_plus_1': 'Date(2020, 12, 31)'}

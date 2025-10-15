@@ -7,7 +7,7 @@
 (assert
  (>= 1199 x_months))
 (assert
- (let ((?x5771 (mod x_months 48)))
+ (let ((?x5018 (mod x_months 48)))
  (let ((?x211 ((as const (Array Int Int)) 0)))
  (let ((?x213 (store ?x211 0 31)))
  (let ((?x216 (store ?x213 1 30)))
@@ -57,14 +57,14 @@
  (let ((?x302 (store ?x300 45 31)))
  (let ((?x304 (store ?x302 46 31)))
  (let ((?x306 (store ?x304 47 29)))
- (let ((?x5324 (ite (or (= 22802 (+ x_months 24003)) (= 25202 (+ x_months 24003))) 28 (select ?x306 ?x5771))))
- (let (($x2816 (<= 0 x_beta)))
- (and $x2816 (< x_beta ?x5324)))))))))))))))))))))))))))))))))))))))))))))))))))))))
+ (let ((?x1718 (ite (or (= 22802 (+ x_months 24003)) (= 25202 (+ x_months 24003))) 28 (select ?x306 ?x5018))))
+ (let (($x3536 (<= 0 x_beta)))
+ (and $x3536 (< x_beta ?x1718)))))))))))))))))))))))))))))))))))))))))))))))))))))))
 (assert
- (let (($x5383 (and (= x_months (- (+ (* 2023 12) 4) 24003)) (>= 29 x_beta))))
- (not (or (< x_months (- (+ (* 2023 12) 4) 24003)) $x5383))))
+ (let (($x3891 (and (= x_months (- (+ (* 2023 12) 4) 24003)) (>= 29 x_beta))))
+ (not (or (< x_months (- (+ (* 2023 12) 4) 24003)) $x3891))))
 (assert
- (let (($x2816 (<= 0 x_beta)))
-(let (($x3110 (or (> x_months (- (+ (* 2023 12) 5) 24003)) (and (= x_months (- (+ (* 2023 12) 5) 24003)) $x2816))))
-(not $x3110))))
+ (let (($x3536 (<= 0 x_beta)))
+(let (($x6090 (or (> x_months (- (+ (* 2023 12) 5) 24003)) (and (= x_months (- (+ (* 2023 12) 5) 24003)) $x3536))))
+(not $x6090))))
 (check-sat)

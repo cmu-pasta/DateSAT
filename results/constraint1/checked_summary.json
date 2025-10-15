@@ -1,5 +1,5 @@
 {
-  "results_dir": "/Users/angelcui/Documents/GitHub/Date-SMT/results/constraint1",
+  "results_dir": "/Users/angelcui/Documents/GitHub/Date-SMT/results_new/constraint1",
   "constraints_checked": 10,
   "counts_by_approach": {
     "alpha_beta_bitvector": {
@@ -187,74 +187,74 @@
           "valid": true,
           "message": "Solution validated successfully with concrete implementation",
           "solution": {
-            "x": "Date(2023, 6, 29)"
+            "x": "Date(2023, 11, 29)"
           }
         },
         "alpha_beta_int": {
           "valid": true,
           "message": "Solution validated successfully with concrete implementation",
           "solution": {
-            "x": "Date(2023, 9, 30)"
+            "x": "Date(2023, 9, 2)"
           }
         },
         "alpha_beta_table_bitvector": {
           "valid": true,
           "message": "Solution validated successfully with concrete implementation",
           "solution": {
-            "x": "Date(2023, 4, 11)"
+            "x": "Date(2023, 8, 1)"
           }
         },
         "alpha_beta_table_int": {
           "valid": true,
           "message": "Solution validated successfully with concrete implementation",
           "solution": {
-            "x": "Date(2023, 11, 1)"
+            "x": "Date(2023, 12, 30)"
           }
         },
         "baseline_bitvector": {
           "valid": true,
           "message": "Solution validated successfully with concrete implementation",
           "solution": {
-            "x": "Date(2023, 4, 24)"
+            "x": "Date(2023, 12, 30)"
           }
         },
         "baseline_int": {
           "valid": true,
           "message": "Solution validated successfully with concrete implementation",
           "solution": {
-            "x": "Date(2023, 4, 30)"
+            "x": "Date(2023, 12, 30)"
           }
         },
         "epoch_days_bitvector": {
           "valid": true,
           "message": "Solution validated successfully with concrete implementation",
           "solution": {
-            "x": "Date(2023, 12, 30)"
+            "x": "Date(2023, 8, 23)"
           }
         },
         "epoch_days_int": {
           "valid": true,
           "message": "Solution validated successfully with concrete implementation",
           "solution": {
-            "x": "Date(2023, 10, 3)"
+            "x": "Date(2023, 12, 30)"
           }
         },
         "hybrid_bitvector": {
           "valid": true,
           "message": "Solution validated successfully with concrete implementation",
           "solution": {
-            "x": "Date(2023, 10, 24)",
-            "x_plus": "Date(2023, 12, 24)",
-            "x_plus_1": "Date(2023, 12, 24)"
+            "x": "Date(2023, 12, 30)",
+            "x_plus": "Date(2024, 2, 29)",
+            "x_plus_1": "Date(2024, 2, 29)"
           }
         },
         "hybrid_int": {
           "valid": true,
           "message": "Solution validated successfully with concrete implementation",
           "solution": {
-            "x": "Date(2023, 8, 30)",
-            "x_plus": "Date(2023, 10, 30)",
-            "x_plus_1": "Date(2023, 10, 30)"
+            "x": "Date(2023, 12, 30)",
+            "x_plus": "Date(2024, 2, 29)",
+            "x_plus_1": "Date(2024, 2, 29)"
           }
         }
       },
@@ -294,7 +294,7 @@
           "valid": true,
           "message": "Solution validated successfully with concrete implementation",
           "solution": {
-            "x": "Date(2023, 1, 9)"
+            "x": "Date(2023, 1, 21)"
           }
         },
         "alpha_beta_int": {
@@ -308,60 +308,60 @@
           "valid": true,
           "message": "Solution validated successfully with concrete implementation",
           "solution": {
-            "x": "Date(2023, 1, 22)"
+            "x": "Date(2023, 1, 25)"
           }
         },
         "alpha_beta_table_int": {
           "valid": true,
           "message": "Solution validated successfully with concrete implementation",
           "solution": {
-            "x": "Date(2023, 1, 31)"
+            "x": "Date(2023, 1, 30)"
           }
         },
         "baseline_bitvector": {
           "valid": true,
           "message": "Solution validated successfully with concrete implementation",
           "solution": {
-            "x": "Date(2023, 1, 1)"
+            "x": "Date(2023, 1, 23)"
           }
         },
         "baseline_int": {
           "valid": true,
           "message": "Solution validated successfully with concrete implementation",
           "solution": {
-            "x": "Date(2023, 1, 2)"
+            "x": "Date(2023, 1, 1)"
           }
         },
         "epoch_days_bitvector": {
           "valid": true,
           "message": "Solution validated successfully with concrete implementation",
           "solution": {
-            "x": "Date(2023, 1, 28)"
+            "x": "Date(2023, 1, 13)"
           }
         },
         "epoch_days_int": {
           "valid": true,
           "message": "Solution validated successfully with concrete implementation",
           "solution": {
-            "x": "Date(2023, 1, 28)"
+            "x": "Date(2023, 1, 31)"
           }
         },
         "hybrid_bitvector": {
           "valid": true,
           "message": "Solution validated successfully with concrete implementation",
           "solution": {
-            "x": "Date(2023, 1, 13)",
-            "x_plus": "Date(2023, 2, 13)",
-            "x_plus_1": "Date(2023, 2, 12)"
+            "x": "Date(2023, 1, 5)",
+            "x_plus": "Date(2023, 2, 5)",
+            "x_plus_1": "Date(2023, 2, 4)"
           }
         },
         "hybrid_int": {
           "valid": true,
           "message": "Solution validated successfully with concrete implementation",
           "solution": {
-            "x": "Date(2023, 1, 1)",
-            "x_plus": "Date(2023, 2, 1)",
-            "x_plus_1": "Date(2023, 1, 31)"
+            "x": "Date(2023, 1, 30)",
+            "x_plus": "Date(2023, 2, 28)",
+            "x_plus_1": "Date(2023, 3, 1)"
           }
         }
       },
@@ -906,56 +906,56 @@
           {
             "approach": "hybrid",
             "implementation": "int",
-            "execution_time": 0.00133514404296875
+            "execution_time": 0.0012192726135253906
           },
           {
             "approach": "hybrid",
             "implementation": "bitvector",
-            "execution_time": 0.001844167709350586
+            "execution_time": 0.0017349720001220703
           },
           {
             "approach": "alpha_beta",
             "implementation": "int",
-            "execution_time": 0.0026710033416748047
+            "execution_time": 0.0025548934936523438
           },
           {
             "approach": "epoch_days",
             "implementation": "bitvector",
-            "execution_time": 0.0027031898498535156
+            "execution_time": 0.0032830238342285156
           },
           {
             "approach": "epoch_days",
             "implementation": "int",
-            "execution_time": 0.0032889842987060547
-          },
-          {
-            "approach": "alpha_beta_table",
-            "implementation": "int",
-            "execution_time": 0.0070798397064208984
+            "execution_time": 0.003326892852783203
           },
           {
             "approach": "alpha_beta",
             "implementation": "bitvector",
-            "execution_time": 0.007684230804443359
-          },
-          {
-            "approach": "baseline",
-            "implementation": "bitvector",
-            "execution_time": 0.011955976486206055
+            "execution_time": 0.0068700313568115234
           },
           {
             "approach": "alpha_beta_table",
             "implementation": "bitvector",
-            "execution_time": 0.012172937393188477
+            "execution_time": 0.011181116104125977
+          },
+          {
+            "approach": "alpha_beta_table",
+            "implementation": "int",
+            "execution_time": 0.011449098587036133
+          },
+          {
+            "approach": "baseline",
+            "implementation": "bitvector",
+            "execution_time": 0.013226985931396484
           },
           {
             "approach": "baseline",
             "implementation": "int",
-            "execution_time": 0.02249598503112793
+            "execution_time": 0.02179694175720215
           }
         ],
         "avg_lines": 35.5,
-        "avg_time": 0.007323145866394043
+        "avg_time": 0.007664322853088379
       },
       "1758086606-2": {
         "lines_by_approach": [
@@ -1012,58 +1012,58 @@
         ],
         "time_by_approach": [
           {
-            "approach": "epoch_days",
-            "implementation": "bitvector",
-            "execution_time": 0.04789614677429199
-          },
-          {
             "approach": "hybrid",
             "implementation": "bitvector",
-            "execution_time": 0.06277227401733398
+            "execution_time": 0.05181288719177246
+          },
+          {
+            "approach": "epoch_days",
+            "implementation": "bitvector",
+            "execution_time": 0.055346012115478516
           },
           {
             "approach": "alpha_beta",
             "implementation": "bitvector",
-            "execution_time": 0.0786433219909668
+            "execution_time": 0.0771949291229248
           },
           {
             "approach": "baseline",
             "implementation": "bitvector",
-            "execution_time": 0.08440899848937988
+            "execution_time": 0.08167290687561035
           },
           {
             "approach": "hybrid",
             "implementation": "int",
-            "execution_time": 0.5614521503448486
-          },
-          {
-            "approach": "alpha_beta",
-            "implementation": "int",
-            "execution_time": 0.6537888050079346
-          },
-          {
-            "approach": "alpha_beta_table",
-            "implementation": "int",
-            "execution_time": 0.8081557750701904
+            "execution_time": 0.42704296112060547
           },
           {
             "approach": "alpha_beta_table",
             "implementation": "bitvector",
-            "execution_time": 1.0463647842407227
+            "execution_time": 0.758173942565918
           },
           {
-            "approach": "epoch_days",
+            "approach": "alpha_beta",
             "implementation": "int",
-            "execution_time": 1.2404251098632812
+            "execution_time": 1.0818672180175781
+          },
+          {
+            "approach": "alpha_beta_table",
+            "implementation": "int",
+            "execution_time": 1.359792947769165
           },
           {
             "approach": "baseline",
             "implementation": "int",
-            "execution_time": 1.4292097091674805
+            "execution_time": 1.5200347900390625
+          },
+          {
+            "approach": "epoch_days",
+            "implementation": "int",
+            "execution_time": 1.623326063156128
           }
         ],
         "avg_lines": 238.6,
-        "avg_time": 0.6013117074966431
+        "avg_time": 0.7036264657974243
       },
       "1758086606-3": {
         "lines_by_approach": [
@@ -1122,56 +1122,56 @@
           {
             "approach": "epoch_days",
             "implementation": "bitvector",
-            "execution_time": 0.04577493667602539
+            "execution_time": 0.03777623176574707
           },
           {
             "approach": "hybrid",
             "implementation": "bitvector",
-            "execution_time": 0.06754207611083984
+            "execution_time": 0.05362391471862793
           },
           {
             "approach": "alpha_beta",
             "implementation": "bitvector",
-            "execution_time": 0.0901479721069336
+            "execution_time": 0.14244580268859863
           },
           {
             "approach": "baseline",
             "implementation": "bitvector",
-            "execution_time": 0.18741488456726074
+            "execution_time": 0.18965888023376465
           },
           {
             "approach": "alpha_beta",
             "implementation": "int",
-            "execution_time": 1.0279209613800049
-          },
-          {
-            "approach": "alpha_beta_table",
-            "implementation": "int",
-            "execution_time": 1.1543488502502441
-          },
-          {
-            "approach": "alpha_beta_table",
-            "implementation": "bitvector",
-            "execution_time": 1.1655611991882324
+            "execution_time": 0.6305139064788818
           },
           {
             "approach": "hybrid",
             "implementation": "int",
-            "execution_time": 1.4274530410766602
+            "execution_time": 0.7683730125427246
+          },
+          {
+            "approach": "alpha_beta_table",
+            "implementation": "int",
+            "execution_time": 1.0361888408660889
+          },
+          {
+            "approach": "alpha_beta_table",
+            "implementation": "bitvector",
+            "execution_time": 1.2277469635009766
           },
           {
             "approach": "baseline",
             "implementation": "int",
-            "execution_time": 2.953946113586426
+            "execution_time": 1.754176139831543
           },
           {
             "approach": "epoch_days",
             "implementation": "int",
-            "execution_time": 3.0005979537963867
+            "execution_time": 1.8777399063110352
           }
         ],
         "avg_lines": 239.1,
-        "avg_time": 1.1120707988739014
+        "avg_time": 0.7718243598937988
       },
       "1758086606-4": {
         "lines_by_approach": [
@@ -1230,56 +1230,56 @@
           {
             "approach": "alpha_beta",
             "implementation": "bitvector",
-            "execution_time": 0.008208990097045898
+            "execution_time": 0.006455183029174805
+          },
+          {
+            "approach": "baseline",
+            "implementation": "bitvector",
+            "execution_time": 0.008433818817138672
+          },
+          {
+            "approach": "epoch_days",
+            "implementation": "bitvector",
+            "execution_time": 0.00958108901977539
           },
           {
             "approach": "alpha_beta",
             "implementation": "int",
-            "execution_time": 0.010609865188598633
-          },
-          {
-            "approach": "baseline",
-            "implementation": "bitvector",
-            "execution_time": 0.010757207870483398
-          },
-          {
-            "approach": "epoch_days",
-            "implementation": "bitvector",
-            "execution_time": 0.011709928512573242
+            "execution_time": 0.009730815887451172
           },
           {
             "approach": "baseline",
             "implementation": "int",
-            "execution_time": 0.01267099380493164
+            "execution_time": 0.010617971420288086
           },
           {
             "approach": "hybrid",
             "implementation": "bitvector",
-            "execution_time": 0.013423681259155273
+            "execution_time": 0.01081395149230957
           },
           {
             "approach": "alpha_beta_table",
             "implementation": "bitvector",
-            "execution_time": 0.013949871063232422
+            "execution_time": 0.010921955108642578
           },
           {
             "approach": "epoch_days",
             "implementation": "int",
-            "execution_time": 0.016235828399658203
+            "execution_time": 0.013668060302734375
           },
           {
             "approach": "hybrid",
             "implementation": "int",
-            "execution_time": 0.0175931453704834
+            "execution_time": 0.01468205451965332
           },
           {
             "approach": "alpha_beta_table",
             "implementation": "int",
-            "execution_time": 0.018342018127441406
+            "execution_time": 0.016472816467285156
           }
         ],
         "avg_lines": 200.8,
-        "avg_time": 0.013350152969360351
+        "avg_time": 0.011137771606445312
       },
       "1758086606-5": {
         "lines_by_approach": [
@@ -1446,56 +1446,56 @@
           {
             "approach": "alpha_beta",
             "implementation": "bitvector",
-            "execution_time": 0.007652997970581055
+            "execution_time": 0.006319999694824219
           },
           {
             "approach": "baseline",
             "implementation": "bitvector",
-            "execution_time": 0.010185003280639648
+            "execution_time": 0.00843191146850586
           },
           {
             "approach": "alpha_beta",
             "implementation": "int",
-            "execution_time": 0.010584115982055664
+            "execution_time": 0.009037017822265625
           },
           {
             "approach": "epoch_days",
             "implementation": "bitvector",
-            "execution_time": 0.011536836624145508
+            "execution_time": 0.009318828582763672
+          },
+          {
+            "approach": "hybrid",
+            "implementation": "bitvector",
+            "execution_time": 0.010509014129638672
           },
           {
             "approach": "baseline",
             "implementation": "int",
-            "execution_time": 0.012224197387695312
-          },
-          {
-            "approach": "hybrid",
-            "implementation": "bitvector",
-            "execution_time": 0.012515068054199219
+            "execution_time": 0.010590076446533203
           },
           {
             "approach": "alpha_beta_table",
             "implementation": "bitvector",
-            "execution_time": 0.013535022735595703
+            "execution_time": 0.010848045349121094
           },
           {
             "approach": "epoch_days",
             "implementation": "int",
-            "execution_time": 0.016299962997436523
+            "execution_time": 0.013477802276611328
           },
           {
             "approach": "hybrid",
             "implementation": "int",
-            "execution_time": 0.01724696159362793
+            "execution_time": 0.014522790908813477
           },
           {
             "approach": "alpha_beta_table",
             "implementation": "int",
-            "execution_time": 0.017976999282836914
+            "execution_time": 0.014580249786376953
           }
         ],
         "avg_lines": 200.1,
-        "avg_time": 0.012975716590881347
+        "avg_time": 0.01076357364654541
       },
       "1758086606-7": {
         "lines_by_approach": [
@@ -1554,56 +1554,56 @@
           {
             "approach": "epoch_days",
             "implementation": "bitvector",
-            "execution_time": 0.0006608963012695312
+            "execution_time": 0.0004930496215820312
           },
           {
             "approach": "hybrid",
             "implementation": "bitvector",
-            "execution_time": 0.0006957054138183594
+            "execution_time": 0.0005371570587158203
           },
           {
             "approach": "hybrid",
             "implementation": "int",
-            "execution_time": 0.001374959945678711
+            "execution_time": 0.0012810230255126953
           },
           {
             "approach": "alpha_beta_table",
             "implementation": "int",
-            "execution_time": 0.00173187255859375
-          },
-          {
-            "approach": "baseline",
-            "implementation": "int",
-            "execution_time": 0.0027158260345458984
+            "execution_time": 0.00189208984375
           },
           {
             "approach": "alpha_beta",
             "implementation": "int",
-            "execution_time": 0.002763032913208008
+            "execution_time": 0.0024361610412597656
+          },
+          {
+            "approach": "baseline",
+            "implementation": "int",
+            "execution_time": 0.0026412010192871094
           },
           {
             "approach": "epoch_days",
             "implementation": "int",
-            "execution_time": 0.0032792091369628906
+            "execution_time": 0.0026831626892089844
           },
           {
             "approach": "baseline",
             "implementation": "bitvector",
-            "execution_time": 0.0051610469818115234
+            "execution_time": 0.004456996917724609
           },
           {
             "approach": "alpha_beta",
             "implementation": "bitvector",
-            "execution_time": 0.0055010318756103516
+            "execution_time": 0.004876136779785156
           },
           {
             "approach": "alpha_beta_table",
             "implementation": "bitvector",
-            "execution_time": 0.012012958526611328
+            "execution_time": 0.011883974075317383
           }
         ],
         "avg_lines": 29.5,
-        "avg_time": 0.0035896539688110352
+        "avg_time": 0.0033180952072143556
       },
       "1758086606-8": {
         "lines_by_approach": [
@@ -1757,69 +1757,69 @@
           },
           {
             "approach": "hybrid",
-            "implementation": "int",
-            "lines": 339
+            "implementation": "bitvector",
+            "lines": 348
           },
           {
             "approach": "hybrid",
-            "implementation": "bitvector",
-            "lines": 348
+            "implementation": "int",
+            "lines": 353
           }
         ],
         "time_by_approach": [
           {
             "approach": "alpha_beta",
             "implementation": "bitvector",
-            "execution_time": 0.007558107376098633
+            "execution_time": 0.006021022796630859
           },
           {
             "approach": "baseline",
             "implementation": "bitvector",
-            "execution_time": 0.010289907455444336
+            "execution_time": 0.008353948593139648
           },
           {
             "approach": "alpha_beta",
             "implementation": "int",
-            "execution_time": 0.010461091995239258
+            "execution_time": 0.008854150772094727
           },
           {
             "approach": "epoch_days",
             "implementation": "bitvector",
-            "execution_time": 0.01196599006652832
+            "execution_time": 0.00901484489440918
           },
           {
             "approach": "baseline",
             "implementation": "int",
-            "execution_time": 0.01227712631225586
+            "execution_time": 0.009654045104980469
           },
           {
             "approach": "hybrid",
             "implementation": "bitvector",
-            "execution_time": 0.012649059295654297
+            "execution_time": 0.01035761833190918
           },
           {
             "approach": "alpha_beta_table",
             "implementation": "bitvector",
-            "execution_time": 0.013362884521484375
+            "execution_time": 0.010468006134033203
           },
           {
             "approach": "epoch_days",
             "implementation": "int",
-            "execution_time": 0.016078948974609375
+            "execution_time": 0.013510942459106445
           },
           {
             "approach": "alpha_beta_table",
             "implementation": "int",
-            "execution_time": 0.017906904220581055
+            "execution_time": 0.014373064041137695
           },
           {
             "approach": "hybrid",
             "implementation": "int",
-            "execution_time": 0.018146038055419922
+            "execution_time": 0.014574050903320312
           }
         ],
-        "avg_lines": 198.3,
-        "avg_time": 0.013069605827331543
+        "avg_lines": 199.7,
+        "avg_time": 0.010518169403076172
       },
       "1758086606-10": {
         "lines_by_approach": [
@@ -1854,11 +1854,6 @@
             "lines": 162
           },
           {
-            "approach": "hybrid",
-            "implementation": "int",
-            "lines": 344
-          },
-          {
             "approach": "alpha_beta_table",
             "implementation": "int",
             "lines": 353
@@ -1867,6 +1862,11 @@
             "approach": "hybrid",
             "implementation": "bitvector",
             "lines": 353
+          },
+          {
+            "approach": "hybrid",
+            "implementation": "int",
+            "lines": 358
           },
           {
             "approach": "alpha_beta_table",
@@ -1878,94 +1878,94 @@
           {
             "approach": "epoch_days",
             "implementation": "bitvector",
-            "execution_time": 0.04830288887023926
+            "execution_time": 0.04027390480041504
+          },
+          {
+            "approach": "hybrid",
+            "implementation": "bitvector",
+            "execution_time": 0.0471041202545166
           },
           {
             "approach": "alpha_beta",
             "implementation": "bitvector",
-            "execution_time": 0.07924985885620117
+            "execution_time": 0.07709693908691406
           },
           {
             "approach": "baseline",
             "implementation": "bitvector",
-            "execution_time": 0.08611702919006348
-          },
-          {
-            "approach": "hybrid",
-            "implementation": "bitvector",
-            "execution_time": 0.09807395935058594
-          },
-          {
-            "approach": "hybrid",
-            "implementation": "int",
-            "execution_time": 0.13644909858703613
+            "execution_time": 0.08286619186401367
           },
           {
             "approach": "epoch_days",
             "implementation": "int",
-            "execution_time": 0.2092452049255371
-          },
-          {
-            "approach": "alpha_beta_table",
-            "implementation": "int",
-            "execution_time": 0.607874870300293
-          },
-          {
-            "approach": "alpha_beta",
-            "implementation": "int",
-            "execution_time": 0.9433982372283936
-          },
-          {
-            "approach": "alpha_beta_table",
-            "implementation": "bitvector",
-            "execution_time": 1.218785047531128
+            "execution_time": 0.9090633392333984
           },
           {
             "approach": "baseline",
             "implementation": "int",
-            "execution_time": 1.592622995376587
+            "execution_time": 0.9709899425506592
+          },
+          {
+            "approach": "alpha_beta_table",
+            "implementation": "bitvector",
+            "execution_time": 2.1399800777435303
+          },
+          {
+            "approach": "hybrid",
+            "implementation": "int",
+            "execution_time": 2.1687400341033936
+          },
+          {
+            "approach": "alpha_beta",
+            "implementation": "int",
+            "execution_time": 4.811375141143799
+          },
+          {
+            "approach": "alpha_beta_table",
+            "implementation": "int",
+            "execution_time": 4.897488117218018
           }
         ],
-        "avg_lines": 238.0,
-        "avg_time": 0.5020119190216065
+        "avg_lines": 239.4,
+        "avg_time": 1.6144977807998657
       }
     },
     "per_approach_averages": {
       "alpha_beta": {
         "average_lines": 81.45,
-        "average_time": 0.14734218120574952,
+        "average_time": 0.3441824674606323,
         "count": 20
       },
       "alpha_beta_table": {
         "average_lines": 227.35,
-        "average_time": 0.3064580917358398,
+        "average_time": 0.5766720652580262,
         "count": 20
       },
       "baseline": {
         "average_lines": 85.6,
-        "average_time": 0.32222265005111694,
+        "average_time": 0.23488013744354247,
         "count": 20
       },
       "epoch_days": {
         "average_lines": 83.1,
-        "average_time": 0.23430010080337524,
+        "average_time": 0.23109415769577027,
         "count": 20
       },
       "hybrid": {
-        "average_lines": 212.45,
-        "average_time": 0.12252832651138305,
+        "average_lines": 213.85,
+        "average_time": 0.17984644174575806,
         "count": 20
       }
     },
     "per_implementation_averages": {
       "bitvector": {
         "average_lines": 142.68,
-        "average_time": 0.09273496150970459,
+        "average_time": 0.1051433277130127,
         "count": 50
       },
       "int": {
-        "average_lines": 133.3,
-        "average_time": 0.36040557861328126,
+        "average_lines": 133.86,
+        "average_time": 0.521526780128479,
         "count": 50
       }
     },
@@ -1985,7 +1985,7 @@
         },
         {
           "approach": "hybrid",
-          "average_lines": 212.45
+          "average_lines": 213.85
         },
         {
           "approach": "alpha_beta_table",
@@ -1995,23 +1995,23 @@
       "avg_time_sorted": [
         {
           "approach": "hybrid",
-          "average_time": 0.12252832651138305
-        },
-        {
-          "approach": "alpha_beta",
-          "average_time": 0.14734218120574952
+          "average_time": 0.17984644174575806
         },
         {
           "approach": "epoch_days",
-          "average_time": 0.23430010080337524
-        },
-        {
-          "approach": "alpha_beta_table",
-          "average_time": 0.3064580917358398
+          "average_time": 0.23109415769577027
         },
         {
           "approach": "baseline",
-          "average_time": 0.32222265005111694
+          "average_time": 0.23488013744354247
+        },
+        {
+          "approach": "alpha_beta",
+          "average_time": 0.3441824674606323
+        },
+        {
+          "approach": "alpha_beta_table",
+          "average_time": 0.5766720652580262
         }
       ]
     },
@@ -2019,7 +2019,7 @@
       "avg_lines_sorted": [
         {
           "implementation": "int",
-          "average_lines": 133.3
+          "average_lines": 133.86
         },
         {
           "implementation": "bitvector",
@@ -2029,11 +2029,11 @@
       "avg_time_sorted": [
         {
           "implementation": "bitvector",
-          "average_time": 0.09273496150970459
+          "average_time": 0.1051433277130127
         },
         {
           "implementation": "int",
-          "average_time": 0.36040557861328126
+          "average_time": 0.521526780128479
         }
       ]
     },
@@ -2057,7 +2057,7 @@
         },
         {
           "constraint_id": "1758086606-9",
-          "avg_lines": 198.3
+          "avg_lines": 199.7
         },
         {
           "constraint_id": "1758086606-6",
@@ -2068,16 +2068,16 @@
           "avg_lines": 200.8
         },
         {
-          "constraint_id": "1758086606-10",
-          "avg_lines": 238.0
-        },
-        {
           "constraint_id": "1758086606-2",
           "avg_lines": 238.6
         },
         {
           "constraint_id": "1758086606-3",
           "avg_lines": 239.1
+        },
+        {
+          "constraint_id": "1758086606-10",
+          "avg_lines": 239.4
         }
       ],
       "avg_time_sorted": [
@@ -2091,35 +2091,35 @@
         },
         {
           "constraint_id": "1758086606-7",
-          "avg_time": 0.0035896539688110352
+          "avg_time": 0.0033180952072143556
         },
         {
           "constraint_id": "1758086606-1",
-          "avg_time": 0.007323145866394043
-        },
-        {
-          "constraint_id": "1758086606-6",
-          "avg_time": 0.012975716590881347
+          "avg_time": 0.007664322853088379
         },
         {
           "constraint_id": "1758086606-9",
-          "avg_time": 0.013069605827331543
+          "avg_time": 0.010518169403076172
+        },
+        {
+          "constraint_id": "1758086606-6",
+          "avg_time": 0.01076357364654541
         },
         {
           "constraint_id": "1758086606-4",
-          "avg_time": 0.013350152969360351
-        },
-        {
-          "constraint_id": "1758086606-10",
-          "avg_time": 0.5020119190216065
+          "avg_time": 0.011137771606445312
         },
         {
           "constraint_id": "1758086606-2",
-          "avg_time": 0.6013117074966431
+          "avg_time": 0.7036264657974243
         },
         {
           "constraint_id": "1758086606-3",
-          "avg_time": 1.1120707988739014
+          "avg_time": 0.7718243598937988
+        },
+        {
+          "constraint_id": "1758086606-10",
+          "avg_time": 1.6144977807998657
         }
       ]
     }

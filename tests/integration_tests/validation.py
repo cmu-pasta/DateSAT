@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 from datesmt.concrete import BaselineConcreteSolver, ConcreteDateVar, ConcretePeriodVar
+from datesmt.constraint_parser import ConstraintParser
 from datesmt.core import Date, Period
 
 # --------------------------
@@ -42,6 +43,12 @@ def parse_period_string(period_str: str) -> Tuple[int, int, int]:
 # --------------------------
 # Constraint execution helpers
 # --------------------------
+
+
+def _get_constraint_code(constraint_data: dict) -> str:
+    """Get constraint code from new format constraint data."""
+    parser = ConstraintParser()
+    return parser.parse_constraint_data(constraint_data)
 
 
 def execute_constraint_code(
@@ -163,7 +170,7 @@ def execute_constraint_code(
 
 
 def validate_solution_with_concrete(
-    constraint_code: str,
+    constraint_data: dict,
     solution: Dict[str, Union[str, Date, Period]],
     constraint_id: str = "",
 ) -> Tuple[bool, str]:
@@ -171,16 +178,19 @@ def validate_solution_with_concrete(
     Validate a solution using concrete implementation.
 
     Args:
-        constraint_id: ID of the constraint
-        constraint_code: The constraint code to validate
+        constraint_data: Constraint data dict in new format
         solution: Dictionary mapping variable names to their concrete values
                  (can be strings like "Date(2020, 3, 15)" or actual Date/Period objects)
+        constraint_id: ID of the constraint
 
     Returns:
         (is_valid, message)
     """
     if not solution:
         return False, "Empty solution"
+
+    # Convert new format to executable code
+    constraint_code = _get_constraint_code(constraint_data)
 
     # Convert solution to string format if needed
     string_solution = {}
