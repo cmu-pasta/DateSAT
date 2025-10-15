@@ -28,11 +28,11 @@ export PYTHONPATH=$PYTHONPATH:$(pwd)
 
 ## Core Components
 
-### Date/Period Classes (`datesmt/core.py`)
+### Date/Period Classes (`datesmt_TYPE/core.py`)
 - **Unified**: Single Date/Period class with year/month/day representation
 - **Epoch Support**: Built-in epoch conversion methods for efficient constraint solving
 
-### Symbolic Constraint Solving (`datesmt/`)
+### Symbolic Constraint Solving (`datesmt_TYPE/`)
 - **DateVar**: Symbolic date variables
 - **PeriodVar**: Symbolic period variables
 - **Z3 Integration**: Direct constraint translation to Z3

@@ -2,12 +2,12 @@ from datetime import date as pydate
 
 import pytest
 
-from datesmt.core import Date, Period
-from datesmt.symbolic_alpha_beta import AlphaBetaSolver
-from datesmt.symbolic_alpha_beta_table import AlphaBetaTableSolver
-from datesmt.symbolic_baseline import DateSolver as BaselineSolver
-from datesmt.symbolic_epoch_days import EpochDaysSolver
-from datesmt.symbolic_hybrid import HybridDateSolver
+from datesmt_int.core import Date, Period
+from datesmt_int.symbolic_alpha_beta import AlphaBetaSolver
+from datesmt_int.symbolic_alpha_beta_table import AlphaBetaTableSolver
+from datesmt_int.symbolic_baseline import BaselineSolver
+from datesmt_int.symbolic_epoch_days import EpochDaysSolver
+from datesmt_int.symbolic_hybrid import HybridSolver
 
 
 def _apply_sequence_python(base: Date, seq: list[Period]) -> Date:
@@ -95,6 +95,7 @@ MULTI_OP_CASES = [
 
 @pytest.mark.parametrize("base,seq", MULTI_OP_CASES)
 @pytest.mark.baseline
+@pytest.mark.integer
 def test_stepwise_multi_op_baseline_matches_python(base: Date, seq: list[Period]):
     expected = _apply_sequence_python(base, seq)
     res = _solve_with_solver(BaselineSolver, base, seq)
@@ -104,6 +105,7 @@ def test_stepwise_multi_op_baseline_matches_python(base: Date, seq: list[Period]
 
 @pytest.mark.parametrize("base,seq", MULTI_OP_CASES)
 @pytest.mark.epoch_days
+@pytest.mark.integer
 def test_stepwise_multi_op_epoch_days_matches_python(base: Date, seq: list[Period]):
     expected = _apply_sequence_python(base, seq)
     res = _solve_with_solver(EpochDaysSolver, base, seq)
@@ -113,15 +115,17 @@ def test_stepwise_multi_op_epoch_days_matches_python(base: Date, seq: list[Perio
 
 @pytest.mark.parametrize("base,seq", MULTI_OP_CASES)
 @pytest.mark.hybrid
+@pytest.mark.integer
 def test_stepwise_multi_op_hybrid_matches_python(base: Date, seq: list[Period]):
     expected = _apply_sequence_python(base, seq)
-    res = _solve_with_solver(HybridDateSolver, base, seq)
+    res = _solve_with_solver(HybridSolver, base, seq)
     assert res["status"] == "sat"
     assert res["dates"]["y"] == expected
 
 
 @pytest.mark.parametrize("base,seq", MULTI_OP_CASES)
 @pytest.mark.alpha_beta
+@pytest.mark.integer
 def test_stepwise_multi_op_alpha_beta_matches_python(base: Date, seq: list[Period]):
     expected = _apply_sequence_python(base, seq)
     res = _solve_with_solver(AlphaBetaSolver, base, seq)
@@ -131,6 +135,7 @@ def test_stepwise_multi_op_alpha_beta_matches_python(base: Date, seq: list[Perio
 
 @pytest.mark.parametrize("base,seq", MULTI_OP_CASES)
 @pytest.mark.alpha_beta_table
+@pytest.mark.integer
 def test_stepwise_multi_op_alpha_beta_table_matches_python(
     base: Date, seq: list[Period]
 ):
@@ -143,6 +148,7 @@ def test_stepwise_multi_op_alpha_beta_table_matches_python(
 # radd sequence: Period + Date at each step
 @pytest.mark.parametrize("base,seq", MULTI_OP_CASES)
 @pytest.mark.baseline
+@pytest.mark.integer
 def test_stepwise_multi_op_radd_baseline_matches_python(base: Date, seq: list[Period]):
     expected = _apply_sequence_python(base, seq)
     res = _solve_with_solver_radd(BaselineSolver, base, seq)
@@ -152,6 +158,7 @@ def test_stepwise_multi_op_radd_baseline_matches_python(base: Date, seq: list[Pe
 
 @pytest.mark.parametrize("base,seq", MULTI_OP_CASES)
 @pytest.mark.epoch_days
+@pytest.mark.integer
 def test_stepwise_multi_op_radd_epoch_days_matches_python(
     base: Date, seq: list[Period]
 ):
@@ -163,15 +170,17 @@ def test_stepwise_multi_op_radd_epoch_days_matches_python(
 
 @pytest.mark.parametrize("base,seq", MULTI_OP_CASES)
 @pytest.mark.hybrid
+@pytest.mark.integer
 def test_stepwise_multi_op_radd_hybrid_matches_python(base: Date, seq: list[Period]):
     expected = _apply_sequence_python(base, seq)
-    res = _solve_with_solver_radd(HybridDateSolver, base, seq)
+    res = _solve_with_solver_radd(HybridSolver, base, seq)
     assert res["status"] == "sat"
     assert res["dates"]["y"] == expected
 
 
 @pytest.mark.parametrize("base,seq", MULTI_OP_CASES)
 @pytest.mark.alpha_beta
+@pytest.mark.integer
 def test_stepwise_multi_op_radd_alpha_beta_matches_python(
     base: Date, seq: list[Period]
 ):
@@ -183,6 +192,7 @@ def test_stepwise_multi_op_radd_alpha_beta_matches_python(
 
 @pytest.mark.parametrize("base,seq", MULTI_OP_CASES)
 @pytest.mark.alpha_beta_table
+@pytest.mark.integer
 def test_stepwise_multi_op_radd_alpha_beta_table_matches_python(
     base: Date, seq: list[Period]
 ):
@@ -196,6 +206,7 @@ def test_stepwise_multi_op_radd_alpha_beta_table_matches_python(
 # If any intermediate step would go out of domain, the solver should report UNSAT.
 @pytest.mark.parametrize("base,seq", MULTI_OP_CASES)
 @pytest.mark.baseline
+@pytest.mark.integer
 def test_stepwise_multi_op_sub_baseline_matches_python(base: Date, seq: list[Period]):
     res = _solve_with_solver_sub(BaselineSolver, base, seq)
     if res["status"] == "unsat":
@@ -206,6 +217,7 @@ def test_stepwise_multi_op_sub_baseline_matches_python(base: Date, seq: list[Per
 
 @pytest.mark.parametrize("base,seq", MULTI_OP_CASES)
 @pytest.mark.epoch_days
+@pytest.mark.integer
 def test_stepwise_multi_op_sub_epoch_days_matches_python(base: Date, seq: list[Period]):
     res = _solve_with_solver_sub(EpochDaysSolver, base, seq)
     if res["status"] == "unsat":
@@ -216,8 +228,9 @@ def test_stepwise_multi_op_sub_epoch_days_matches_python(base: Date, seq: list[P
 
 @pytest.mark.parametrize("base,seq", MULTI_OP_CASES)
 @pytest.mark.hybrid
+@pytest.mark.integer
 def test_stepwise_multi_op_sub_hybrid_matches_python(base: Date, seq: list[Period]):
-    res = _solve_with_solver_sub(HybridDateSolver, base, seq)
+    res = _solve_with_solver_sub(HybridSolver, base, seq)
     if res["status"] == "unsat":
         return
     expected = _apply_sequence_python(base, seq)
@@ -226,6 +239,7 @@ def test_stepwise_multi_op_sub_hybrid_matches_python(base: Date, seq: list[Perio
 
 @pytest.mark.parametrize("base,seq", MULTI_OP_CASES)
 @pytest.mark.alpha_beta
+@pytest.mark.integer
 def test_stepwise_multi_op_sub_alpha_beta_matches_python(base: Date, seq: list[Period]):
     res = _solve_with_solver_sub(AlphaBetaSolver, base, seq)
     if res["status"] == "unsat":
@@ -236,6 +250,7 @@ def test_stepwise_multi_op_sub_alpha_beta_matches_python(base: Date, seq: list[P
 
 @pytest.mark.parametrize("base,seq", MULTI_OP_CASES)
 @pytest.mark.alpha_beta_table
+@pytest.mark.integer
 def test_stepwise_multi_op_sub_alpha_beta_table_matches_python(
     base: Date, seq: list[Period]
 ):

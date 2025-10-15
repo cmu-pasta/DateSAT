@@ -1,5 +1,5 @@
 """
-Unit tests for the Date class in datesmt.core.
+Unit tests for the Date class in datesmt_int.core.
 
 Tests cover constructor validation, equality comparison, string representation,
 Python date conversion, and edge cases.
@@ -9,7 +9,7 @@ from datetime import date as pydate
 
 import pytest
 
-from datesmt.core import Date
+from datesmt_int.core import Date
 
 # -------------------------
 # Constructor and validation

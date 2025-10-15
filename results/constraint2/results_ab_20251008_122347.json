@@ -98,7 +98,7 @@
     "approach": "alpha_beta",
     "status": "error",
     "execution_time": 0,
-    "error_message": "Cannot subtract <class 'datesmt.symbolic_alpha_beta.DateVar'> from DateVar",
+    "error_message": "Cannot subtract <class 'datesmt_int.symbolic_alpha_beta.DateVar'> from DateVar",
     "solution": null,
     "smtlib": null
   },

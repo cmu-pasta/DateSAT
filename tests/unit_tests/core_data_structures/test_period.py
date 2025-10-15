@@ -1,5 +1,5 @@
 """
-Unit tests for the Period class in datesmt.core.
+Unit tests for the Period class in datesmt_int.core.
 
 Tests cover constructor, equality comparison, string/repr,
 immutability, and property-based sanity checks.
@@ -7,7 +7,7 @@ immutability, and property-based sanity checks.
 
 import pytest
 
-from datesmt.core import Period
+from datesmt_int.core import Period
 
 # --------------------------------------------------------------------
 # Constructor & basic value semantics

@@ -1,12 +1,12 @@
 import pytest
 from dateutil.relativedelta import relativedelta
 
-from datesmt.core import Date, Period
-from datesmt.symbolic_alpha_beta import AlphaBetaSolver
-from datesmt.symbolic_alpha_beta_table import AlphaBetaTableSolver
-from datesmt.symbolic_baseline import DateSolver as BaselineSolver
-from datesmt.symbolic_epoch_days import EpochDaysSolver
-from datesmt.symbolic_hybrid import HybridDateSolver
+from datesmt_int.core import Date, Period
+from datesmt_int.symbolic_alpha_beta import AlphaBetaSolver
+from datesmt_int.symbolic_alpha_beta_table import AlphaBetaTableSolver
+from datesmt_int.symbolic_baseline import BaselineSolver
+from datesmt_int.symbolic_epoch_days import EpochDaysSolver
+from datesmt_int.symbolic_hybrid import HybridSolver
 
 # Reuse canonical test cases locally (migrated from test_date_period_operation.py)
 
@@ -158,6 +158,7 @@ def _solve_single_add(solver_cls, base: Date, per: Period) -> dict:
     y = s.add_date_var("y")
     s.add_constraint(x == base)
     s.add_constraint(y == x + per)
+
     return s.solve()
 
 
@@ -202,6 +203,7 @@ def test_python_output_equals_ground_truth(base: Date, per: Period, expect: Date
     ],
 )
 @pytest.mark.baseline
+@pytest.mark.integer
 def test_baseline_equals_ground_truth(base: Date, per: Period, expect: Date):
     rb = _solve_single_add(BaselineSolver, base, per)
     assert rb["status"] == "sat"
@@ -217,6 +219,7 @@ def test_baseline_equals_ground_truth(base: Date, per: Period, expect: Date):
     ],
 )
 @pytest.mark.epoch_days
+@pytest.mark.integer
 def test_epoch_days_equals_ground_truth(base: Date, per: Period, expect: Date):
     ra = _solve_single_add(EpochDaysSolver, base, per)
     assert ra["status"] == "sat"
@@ -232,8 +235,9 @@ def test_epoch_days_equals_ground_truth(base: Date, per: Period, expect: Date):
     ],
 )
 @pytest.mark.hybrid
+@pytest.mark.integer
 def test_hybrid_equals_ground_truth(base: Date, per: Period, expect: Date):
-    rh = _solve_single_add(HybridDateSolver, base, per)
+    rh = _solve_single_add(HybridSolver, base, per)
     assert rh["status"] == "sat"
     got_h = rh["dates"]["y"]
     assert got_h == expect, f"Hybrid: {base} + {per} -> {got_h}, expected {expect}"
@@ -247,6 +251,7 @@ def test_hybrid_equals_ground_truth(base: Date, per: Period, expect: Date):
     ],
 )
 @pytest.mark.alpha_beta
+@pytest.mark.integer
 def test_alpha_beta_equals_ground_truth(base: Date, per: Period, expect: Date):
     ra = _solve_single_add(AlphaBetaSolver, base, per)
     assert ra["status"] == "sat"
@@ -261,7 +266,8 @@ def test_alpha_beta_equals_ground_truth(base: Date, per: Period, expect: Date):
         for base, per, expect in get_period_arithmetic_test_cases()
     ],
 )
-@pytest.mark.alpha_beta_table
+@pytest.mark.alpha_beta
+@pytest.mark.integer
 def test_alpha_beta_table_equals_ground_truth(base: Date, per: Period, expect: Date):
     ra = _solve_single_add(AlphaBetaTableSolver, base, per)
     assert ra["status"] == "sat"
@@ -280,6 +286,7 @@ def test_alpha_beta_table_equals_ground_truth(base: Date, per: Period, expect: D
     ],
 )
 @pytest.mark.baseline
+@pytest.mark.integer
 def test_baseline_radd_equals_ground_truth(base: Date, per: Period, expect: Date):
     model = _solve_single_radd(BaselineSolver, base, per)
     assert model["status"] == "sat"
@@ -295,6 +302,7 @@ def test_baseline_radd_equals_ground_truth(base: Date, per: Period, expect: Date
     ],
 )
 @pytest.mark.epoch_days
+@pytest.mark.integer
 def test_epoch_days_radd_equals_ground_truth(base: Date, per: Period, expect: Date):
     model = _solve_single_radd(EpochDaysSolver, base, per)
     assert model["status"] == "sat"
@@ -310,8 +318,9 @@ def test_epoch_days_radd_equals_ground_truth(base: Date, per: Period, expect: Da
     ],
 )
 @pytest.mark.hybrid
+@pytest.mark.integer
 def test_hybrid_radd_equals_ground_truth(base: Date, per: Period, expect: Date):
-    model = _solve_single_radd(HybridDateSolver, base, per)
+    model = _solve_single_radd(HybridSolver, base, per)
     assert model["status"] == "sat"
     got = model["dates"]["y"]
     assert got == expect, f"Hybrid radd: {per} + {base} -> {got}, expected {expect}"
@@ -325,6 +334,7 @@ def test_hybrid_radd_equals_ground_truth(base: Date, per: Period, expect: Date):
     ],
 )
 @pytest.mark.alpha_beta
+@pytest.mark.integer
 def test_alpha_beta_radd_equals_ground_truth(base: Date, per: Period, expect: Date):
     model = _solve_single_radd(AlphaBetaSolver, base, per)
     assert model["status"] == "sat"
@@ -339,7 +349,8 @@ def test_alpha_beta_radd_equals_ground_truth(base: Date, per: Period, expect: Da
         for base, per, expect in get_period_arithmetic_test_cases()
     ],
 )
-@pytest.mark.alpha_beta_table
+@pytest.mark.alpha_beta
+@pytest.mark.integer
 def test_alpha_beta_table_radd_equals_ground_truth(
     base: Date, per: Period, expect: Date
 ):
@@ -360,6 +371,7 @@ def test_alpha_beta_table_radd_equals_ground_truth(
     ],
 )
 @pytest.mark.baseline
+@pytest.mark.integer
 def test_baseline_subtract_matches_python(base: Date, per: Period):
     model = _solve_single_sub(BaselineSolver, base, per)
     try:
@@ -380,6 +392,7 @@ def test_baseline_subtract_matches_python(base: Date, per: Period):
     ],
 )
 @pytest.mark.epoch_days
+@pytest.mark.integer
 def test_epoch_days_subtract_matches_python(base: Date, per: Period):
     model = _solve_single_sub(EpochDaysSolver, base, per)
     try:
@@ -400,8 +413,9 @@ def test_epoch_days_subtract_matches_python(base: Date, per: Period):
     ],
 )
 @pytest.mark.hybrid
+@pytest.mark.integer
 def test_hybrid_subtract_matches_python(base: Date, per: Period):
-    model = _solve_single_sub(HybridDateSolver, base, per)
+    model = _solve_single_sub(HybridSolver, base, per)
     try:
         expect = python_date_plus(base, Period(-per.years, -per.months, -per.days))
     except ValueError:
@@ -420,6 +434,7 @@ def test_hybrid_subtract_matches_python(base: Date, per: Period):
     ],
 )
 @pytest.mark.alpha_beta
+@pytest.mark.integer
 def test_alpha_beta_subtract_matches_python(base: Date, per: Period):
     model = _solve_single_sub(AlphaBetaSolver, base, per)
     try:
@@ -439,7 +454,8 @@ def test_alpha_beta_subtract_matches_python(base: Date, per: Period):
         for base, per, _ in get_period_arithmetic_test_cases()
     ],
 )
-@pytest.mark.alpha_beta_table
+@pytest.mark.alpha_beta
+@pytest.mark.integer
 def test_alpha_beta_table_subtract_matches_python(base: Date, per: Period):
     model = _solve_single_sub(AlphaBetaTableSolver, base, per)
     try:
