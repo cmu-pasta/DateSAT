@@ -247,19 +247,27 @@ class DateVar:
 
     def __ge__(self, other):
         """Support x >= date comparison."""
-        if isinstance(other, Date):
-            return self.days_var >= to_days_since_epoch(other)
-        elif isinstance(other, DateVar):
-            return self.days_var >= other.days_var
+        if isinstance(other, Date) or isinstance(other, DateVar):
+            # Convert Date to epoch days if needed
+            if isinstance(other, Date):
+                other_days = to_days_since_epoch(other)
+            else:  # isinstance(other, DateVar)
+                other_days = other.days_var
+
+            return self.days_var >= other_days
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
     def __le__(self, other):
         """Support x <= date comparison."""
-        if isinstance(other, Date):
-            return self.days_var <= to_days_since_epoch(other)
-        elif isinstance(other, DateVar):
-            return self.days_var <= other.days_var
+        if isinstance(other, Date) or isinstance(other, DateVar):
+            # Convert Date to epoch days if needed
+            if isinstance(other, Date):
+                other_days = to_days_since_epoch(other)
+            else:  # isinstance(other, DateVar)
+                other_days = other.days_var
+
+            return self.days_var <= other_days
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
@@ -279,10 +287,14 @@ class DateVar:
 
     def __eq__(self, other):
         """Support x == date comparison."""
-        if isinstance(other, Date):
-            return self.days_var == to_days_since_epoch(other)
-        elif isinstance(other, DateVar):
-            return self.days_var == other.days_var
+        if isinstance(other, Date) or isinstance(other, DateVar):
+            # Convert Date to epoch days if needed
+            if isinstance(other, Date):
+                other_days = to_days_since_epoch(other)
+            else:  # isinstance(other, DateVar)
+                other_days = other.days_var
+
+            return self.days_var == other_days
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 

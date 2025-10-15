@@ -86,7 +86,7 @@ def days_in_month(y, m):
 
 
 def normalize_month(y, m):
-    """Z3-pure month normalization (1..12) with proper handling of negative values."""
+    """Z3-pure month normalization (1..12)."""
     # Check if m is negative (>= 2^31) when interpreted as signed
     is_negative = UGE(m, BitVecVal(2**31, 32))
 
@@ -344,27 +344,19 @@ class DateVar:
 
     def __ge__(self, other):
         """Support x >= date comparison."""
-        if isinstance(other, Date) or isinstance(other, DateVar):
-            # Convert Date to epoch days if needed
-            if isinstance(other, Date):
-                other_epoch = to_days_since_epoch(other)
-            else:  # isinstance(other, DateVar)
-                other_epoch = other.epoch_var
-
-            return self.epoch_var >= other_epoch
+        if isinstance(other, Date):
+            return self.epoch_var >= to_days_since_epoch(other)
+        elif isinstance(other, DateVar):
+            return self.epoch_var >= other.epoch_var
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
     def __le__(self, other):
         """Support x <= date comparison."""
-        if isinstance(other, Date) or isinstance(other, DateVar):
-            # Convert Date to epoch days if needed
-            if isinstance(other, Date):
-                other_epoch = to_days_since_epoch(other)
-            else:  # isinstance(other, DateVar)
-                other_epoch = other.epoch_var
-
-            return self.epoch_var <= other_epoch
+        if isinstance(other, Date):
+            return self.epoch_var <= to_days_since_epoch(other)
+        elif isinstance(other, DateVar):
+            return self.epoch_var <= other.epoch_var
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
@@ -384,14 +376,10 @@ class DateVar:
 
     def __eq__(self, other):
         """Support x == date comparison."""
-        if isinstance(other, Date) or isinstance(other, DateVar):
-            # Convert Date to epoch days if needed
-            if isinstance(other, Date):
-                other_epoch = to_days_since_epoch(other)
-            else:  # isinstance(other, DateVar)
-                other_epoch = other.epoch_var
-
-            return self.epoch_var == other_epoch
+        if isinstance(other, Date):
+            return self.epoch_var == to_days_since_epoch(other)
+        elif isinstance(other, DateVar):
+            return self.epoch_var == other.epoch_var
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
