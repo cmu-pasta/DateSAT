@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from tests.integration_tests.test_template import (
+from tests.integration_tests.run_examples import (
     test_constraints_file as run_constraint_tests,
 )
 

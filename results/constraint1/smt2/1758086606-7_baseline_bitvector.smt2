@@ -1,0 +1,25 @@
+; benchmark generated from python API
+(set-info :status unknown)
+(declare-fun x_month () (_ BitVec 32))
+(declare-fun x_year () (_ BitVec 32))
+(declare-fun x_day () (_ BitVec 32))
+(assert
+ (let (($x3906 (or (= (_ bv4 32) x_month) (= (_ bv6 32) x_month) (= (_ bv9 32) x_month) (= (_ bv11 32) x_month))))
+ (let (($x2569 (and (= (_ bv0 32) (bvsmod x_year (_ bv4 32))) (and (distinct (_ bv0 32) (bvsmod x_year (_ bv100 32))) true))))
+ (let (($x1875 (= (_ bv2 32) x_month)))
+ (let ((?x4396 (ite $x1875 (ite (or $x2569 (= (_ bv0 32) (bvsmod x_year (_ bv400 32)))) (_ bv29 32) (_ bv28 32)) (ite $x3906 (_ bv30 32) (_ bv31 32)))))
+ (let (($x2094 (bvsle x_day ?x4396)))
+ (let (($x3915 (bvsle (_ bv1 32) x_day)))
+ (let (($x1922 (bvsle (_ bv1 32) x_month)))
+ (let (($x1679 (bvsge (_ bv12 32) x_month)))
+ (let (($x3643 (bvsle (_ bv1901 32) x_year)))
+ (or (and (= (_ bv1900 32) x_year) (bvsle (_ bv3 32) x_month) $x1679 $x3915 $x2094) (and $x3643 (bvsge (_ bv2099 32) x_year) $x1922 $x1679 $x3915 $x2094) (and (= (_ bv2100 32) x_year) $x1922 (bvsge (_ bv2 32) x_month) $x3915 $x2094))))))))))))
+(assert
+ (let (($x2192 (or (bvsgt (_ bv2 32) x_month) (and (= (_ bv2 32) x_month) (bvsge (_ bv28 32) x_day)))))
+ (let (($x4489 (= (_ bv2022 32) x_year)))
+ (not (or (bvsgt (_ bv2022 32) x_year) (and $x4489 $x2192))))))
+(assert
+ (let (($x3222 (or (bvslt (_ bv3 32) x_month) (and (= (_ bv3 32) x_month) (bvsle (_ bv1 32) x_day)))))
+(let (($x4489 (= (_ bv2022 32) x_year)))
+(not (or (bvslt (_ bv2022 32) x_year) (and $x4489 $x3222))))))
+(check-sat)
