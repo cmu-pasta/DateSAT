@@ -9,7 +9,7 @@ from datetime import date as pydate
 
 import pytest
 
-from datesmt_int.core import Date
+from datesmt.core import Date
 
 # -------------------------
 # Constructor and validation

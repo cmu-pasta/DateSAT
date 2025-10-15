@@ -1,8 +1,7 @@
 [run]
 branch = True
 source =
-    datesmt_bitvector
-    datesmt_int
+    datesmt
 
 [report]
 show_missing = True
@@ -18,5 +17,4 @@ title = DATE-SMT Coverage Report
 
 [paths]
 source =
-    datesmt_bitvector
-    datesmt_int
+    datesmt

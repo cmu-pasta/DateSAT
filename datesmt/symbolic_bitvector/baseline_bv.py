@@ -26,7 +26,7 @@ from z3 import (
     unsat,
 )
 
-from .core import Date, Period
+from ..core import Date, Period
 
 
 def is_leap(year):
@@ -61,10 +61,8 @@ def days_in_month(year, month):
 def normalize_month(y, m):
     """
     NormMonth(y,m) = (y + ((m-1) div 12), ((m-1) mod 12) + 1)
-    Works for concrete and symbolic inputs with proper handling of negative values.
+    Works for concrete and symbolic inputs.
     """
-    from z3 import UGE, If
-
     # Check if m is negative (>= 2^31) when interpreted as signed
     is_negative = UGE(m, BitVecVal(2**31, 32))
 
@@ -262,32 +260,24 @@ class DateVar:
 
     def __ge__(self, other):
         """Support x >= date comparison using lexicographic ordering."""
-        # Handle DateVar vs DateVar comparison first
-        if isinstance(other, DateVar):
+        if isinstance(other, Date) or isinstance(other, DateVar):
+            # Convert Date to bitvector values if needed
+            if isinstance(other, Date):
+                other_year = BitVecVal(other.year, 32)
+                other_month = BitVecVal(other.month, 32)
+                other_day = BitVecVal(other.day, 32)
+            else:  # isinstance(other, DateVar)
+                other_year = other.year
+                other_month = other.month
+                other_day = other.day
+
             return Or(
-                self.year > other.year,
+                self.year > other_year,
                 And(
-                    self.year == other.year,
+                    self.year == other_year,
                     Or(
-                        self.month > other.month,
-                        And(self.month == other.month, self.day >= other.day),
-                    ),
-                ),
-            )
-        # Handle both datesmt_int.core.Date and datesmt_bitvector.core.Date
-        elif (
-            hasattr(other, 'year') and hasattr(other, 'month') and hasattr(other, 'day')
-        ):
-            return Or(
-                self.year > BitVecVal(other.year, 32),
-                And(
-                    self.year == BitVecVal(other.year, 32),
-                    Or(
-                        self.month > BitVecVal(other.month, 32),
-                        And(
-                            self.month == BitVecVal(other.month, 32),
-                            self.day >= BitVecVal(other.day, 32),
-                        ),
+                        self.month > other_month,
+                        And(self.month == other_month, self.day >= other_day),
                     ),
                 ),
             )
@@ -296,32 +286,24 @@ class DateVar:
 
     def __le__(self, other):
         """Support x <= date comparison using lexicographic ordering."""
-        # Handle DateVar vs DateVar comparison first
-        if isinstance(other, DateVar):
+        if isinstance(other, Date) or isinstance(other, DateVar):
+            # Convert Date to bitvector values if needed
+            if isinstance(other, Date):
+                other_year = BitVecVal(other.year, 32)
+                other_month = BitVecVal(other.month, 32)
+                other_day = BitVecVal(other.day, 32)
+            else:  # isinstance(other, DateVar)
+                other_year = other.year
+                other_month = other.month
+                other_day = other.day
+
             return Or(
-                self.year < other.year,
+                self.year < other_year,
                 And(
-                    self.year == other.year,
+                    self.year == other_year,
                     Or(
-                        self.month < other.month,
-                        And(self.month == other.month, self.day <= other.day),
-                    ),
-                ),
-            )
-        # Handle both datesmt_int.core.Date and datesmt_bitvector.core.Date
-        elif (
-            hasattr(other, 'year') and hasattr(other, 'month') and hasattr(other, 'day')
-        ):
-            return Or(
-                self.year < BitVecVal(other.year, 32),
-                And(
-                    self.year == BitVecVal(other.year, 32),
-                    Or(
-                        self.month < BitVecVal(other.month, 32),
-                        And(
-                            self.month == BitVecVal(other.month, 32),
-                            self.day <= BitVecVal(other.day, 32),
-                        ),
+                        self.month < other_month,
+                        And(self.month == other_month, self.day <= other_day),
                     ),
                 ),
             )
@@ -330,57 +312,42 @@ class DateVar:
 
     def __lt__(self, other):
         """Support x < date comparison using lexicographic ordering."""
-        if (
-            hasattr(other, 'year')
-            and hasattr(other, 'month')
-            and hasattr(other, 'day')
-            or isinstance(other, DateVar)
-        ):
+        if isinstance(other, Date) or isinstance(other, DateVar):
             return Not(self.__ge__(other))
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
     def __gt__(self, other):
         """Support x > date comparison using lexicographic ordering."""
-        if (
-            hasattr(other, 'year')
-            and hasattr(other, 'month')
-            and hasattr(other, 'day')
-            or isinstance(other, DateVar)
-        ):
+        if isinstance(other, Date) or isinstance(other, DateVar):
             return Not(self.__le__(other))
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
     def __eq__(self, other):
         """Support x == date comparison using lexicographic ordering."""
-        # Handle DateVar vs DateVar comparison first
-        if isinstance(other, DateVar):
+        if isinstance(other, Date) or isinstance(other, DateVar):
+            # Convert Date to bitvector values if needed
+            if isinstance(other, Date):
+                other_year = BitVecVal(other.year, 32)
+                other_month = BitVecVal(other.month, 32)
+                other_day = BitVecVal(other.day, 32)
+            else:  # isinstance(other, DateVar)
+                other_year = other.year
+                other_month = other.month
+                other_day = other.day
+
             return And(
-                self.year == other.year,
-                self.month == other.month,
-                self.day == other.day,
-            )
-        # Handle both datesmt_int.core.Date and datesmt_bitvector.core.Date
-        elif (
-            hasattr(other, 'year') and hasattr(other, 'month') and hasattr(other, 'day')
-        ):
-            return And(
-                self.year == BitVecVal(other.year, 32),
-                self.month == BitVecVal(other.month, 32),
-                self.day == BitVecVal(other.day, 32),
+                self.year == other_year,
+                self.month == other_month,
+                self.day == other_day,
             )
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
     def __ne__(self, other):
         """Support x != date comparison using ordinal arithmetic."""
-        if (
-            hasattr(other, 'year')
-            and hasattr(other, 'month')
-            and hasattr(other, 'day')
-            or isinstance(other, DateVar)
-        ):
+        if isinstance(other, Date) or isinstance(other, DateVar):
             return Not(self.__eq__(other))
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
@@ -392,19 +359,9 @@ class DateVar:
         2) Apply EOM clamp: day := min(original_day, days_in_month(new_year,new_month))
         3) Add D days in ordinal space (exact day arithmetic)
         """
-        # Handle both datesmt_int.core.Period and datesmt_bitvector.core.Period
-        if (
-            hasattr(other, 'years')
-            and hasattr(other, 'months')
-            and hasattr(other, 'days')
-            or isinstance(other, PeriodVar)
-        ):
-            if (
-                hasattr(other, 'years')
-                and hasattr(other, 'months')
-                and hasattr(other, 'days')
-                and not isinstance(other, PeriodVar)
-            ):
+        # Handle Period objects
+        if isinstance(other, Period) or isinstance(other, PeriodVar):
+            if isinstance(other, Period):
                 result = DateVar(
                     f"{self.name}_plus_{other.years}y_{other.months}m_{other.days}d"
                 )

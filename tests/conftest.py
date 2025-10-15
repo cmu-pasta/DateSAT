@@ -6,7 +6,7 @@ from datetime import date, timedelta
 
 import pytest
 
-from datesmt_int.core import Date, Period
+from datesmt.core import Date, Period
 
 # --------------------------------------------------------------------
 # Date fixtures

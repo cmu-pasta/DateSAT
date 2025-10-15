@@ -17,12 +17,14 @@ from datetime import date, timedelta
 from typing import Union
 
 from z3 import (
+    UGE,
+    ULT,
     And,
+    BitVec,
+    BitVecVal,
     BoolRef,
     CheckSatResult,
     If,
-    Int,
-    IntVal,
     ModelRef,
     Not,
     Or,
@@ -31,7 +33,7 @@ from z3 import (
     unsat,
 )
 
-from .core import Date, Period
+from ..core import Date, Period
 
 
 def from_days_since_epoch(days: int) -> Date:
@@ -39,6 +41,11 @@ def from_days_since_epoch(days: int) -> Date:
     # March 1, 2000 is day 0
     # Convert our epoch to Python date
     epoch_python = date(2000, 3, 1)
+
+    # Handle bitvector values that might be interpreted as unsigned
+    # Convert to signed 32-bit value if necessary
+    if days > 2**31 - 1:  # If it's larger than max signed 32-bit int
+        days = days - 2**32  # Convert to signed value
 
     # Add the days
     result_python = epoch_python + timedelta(days=days)
@@ -73,17 +80,55 @@ def days_in_month(y, m):
     """Z3-pure days in month calculation."""
     return If(
         m == 2,
-        If(is_leap_year(y), IntVal(29), IntVal(28)),
-        If(Or(m == 4, m == 6, m == 9, m == 11), IntVal(30), IntVal(31)),
+        If(is_leap_year(y), BitVecVal(29, 32), BitVecVal(28, 32)),
+        If(Or(m == 4, m == 6, m == 9, m == 11), BitVecVal(30, 32), BitVecVal(31, 32)),
     )
 
 
 def normalize_month(y, m):
-    """Z3-pure month normalization (1..12)."""
-    t = m - IntVal(1)
-    q = t / IntVal(12)  # Z3 integer division
-    r = t % IntVal(12)  # Z3 modulo
-    return y + q, r + IntVal(1)
+    """Z3-pure month normalization (1..12) with proper handling of negative values."""
+    # Check if m is negative (>= 2^31) when interpreted as signed
+    is_negative = UGE(m, BitVecVal(2**31, 32))
+
+    # Convert to signed value if negative
+    signed_m = If(is_negative, m - BitVecVal(2**32, 32), m)
+
+    # Normalize using signed arithmetic with floor division
+    t = signed_m - BitVecVal(1, 32)
+
+    # Implement floor division: if t < 0 and t % 12 != 0, subtract 1 from quotient
+    q_trunc = t / BitVecVal(12, 32)  # Truncating division
+    r = t % BitVecVal(12, 32)  # Modulo
+    is_negative_and_has_remainder = And(
+        UGE(t, BitVecVal(2**31, 32)), r != BitVecVal(0, 32)
+    )
+    q = If(is_negative_and_has_remainder, q_trunc - BitVecVal(1, 32), q_trunc)
+
+    return y + q, r + BitVecVal(1, 32)
+
+
+def normalize_month_signed(y, m):
+    """
+    Normalize month handling negative values correctly for bitvectors.
+    """
+    # Check if m is negative (>= 2^31)
+    is_negative = UGE(m, BitVecVal(2**31, 32))
+
+    # Convert to signed value
+    signed_m = If(is_negative, m - BitVecVal(2**32, 32), m)
+
+    # Normalize using signed arithmetic with floor division
+    t = signed_m - BitVecVal(1, 32)
+
+    # Implement floor division: if t < 0 and t % 12 != 0, subtract 1 from quotient
+    q_trunc = t / BitVecVal(12, 32)  # Truncating division
+    r = t % BitVecVal(12, 32)  # Modulo
+    is_negative_and_has_remainder = And(
+        UGE(t, BitVecVal(2**31, 32)), r != BitVecVal(0, 32)
+    )
+    q = If(is_negative_and_has_remainder, q_trunc - BitVecVal(1, 32), q_trunc)
+
+    return y + q, r + BitVecVal(1, 32)
 
 
 # -------------------------------
@@ -95,58 +140,74 @@ _LEAP_PREFIX = [0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335]
 
 def _dbm_index(y, idx):
     """Helper for days before month calculation."""
-    non = IntVal(_NONLEAP_PREFIX[idx - 1])
-    lep = IntVal(_LEAP_PREFIX[idx - 1])
+    non = BitVecVal(_NONLEAP_PREFIX[idx - 1], 32)
+    lep = BitVecVal(_LEAP_PREFIX[idx - 1], 32)
     return If(is_leap_year(y), lep, non)
 
 
 def days_before_year(y):
     """Z3-pure days before year calculation."""
-    y1 = y - IntVal(1)
-    return IntVal(365) * y1 + y1 / IntVal(4) - y1 / IntVal(100) + y1 / IntVal(400)
+    y1 = y - BitVecVal(1, 32)
+    return (
+        BitVecVal(365, 32) * y1
+        + y1 / BitVecVal(4, 32)
+        - y1 / BitVecVal(100, 32)
+        + y1 / BitVecVal(400, 32)
+    )
 
 
 def days_before_month(y, m):
     """Z3-pure days before month calculation."""
-    expr = IntVal(0)
+    expr = BitVecVal(0, 32)
     for i in range(1, 13):
-        expr = If(m == IntVal(i), _dbm_index(y, i), expr)
+        expr = If(m == BitVecVal(i, 32), _dbm_index(y, i), expr)
     return expr
 
 
 def to_ordinal(y, m, d):
     """Z3-pure ordinal conversion (day 0 = 0001-01-01)."""
-    return days_before_year(y) + days_before_month(y, m) + (d - IntVal(1))
+    return days_before_year(y) + days_before_month(y, m) + (d - BitVecVal(1, 32))
 
 
 def from_ordinal(n):
     """Z3-pure ordinal to date conversion using 400/100/4/1 year block decomposition."""
     # 400/100/4/1 year block decomposition
-    D400, D100, D4, D1 = IntVal(146097), IntVal(36524), IntVal(1461), IntVal(365)
+    D400, D100, D4, D1 = (
+        BitVecVal(146097, 32),
+        BitVecVal(36524, 32),
+        BitVecVal(1461, 32),
+        BitVecVal(365, 32),
+    )
     q400, r400 = n / D400, n % D400
 
     q100_raw = r400 / D100
-    q100 = If(q100_raw >= IntVal(4), IntVal(3), q100_raw)  # clamp 0..3
+    q100 = If(q100_raw >= BitVecVal(4, 32), BitVecVal(3, 32), q100_raw)  # clamp 0..3
     r100 = r400 - q100 * D100
 
     q4, r4 = r100 / D4, r100 % D4
 
     q1_raw = r4 / D1
-    q1 = If(q1_raw >= IntVal(4), IntVal(3), q1_raw)  # clamp 0..3
+    q1 = If(q1_raw >= BitVecVal(4, 32), BitVecVal(3, 32), q1_raw)  # clamp 0..3
     r1 = r4 - q1 * D1  # day-of-year (0..365)
 
-    year = q400 * IntVal(400) + q100 * IntVal(100) + q4 * IntVal(4) + q1 + IntVal(1)
+    year = (
+        q400 * BitVecVal(400, 32)
+        + q100 * BitVecVal(100, 32)
+        + q4 * BitVecVal(4, 32)
+        + q1
+        + BitVecVal(1, 32)
+    )
 
     # month = max i with r1 >= DBM(year, i)
     dbm = [_dbm_index(year, i) for i in range(1, 13)]
-    month = IntVal(1)
+    month = BitVecVal(1, 32)
     for i in range(2, 13):
-        month = If(r1 >= dbm[i - 1], IntVal(i), month)
+        month = If(r1 >= dbm[i - 1], BitVecVal(i, 32), month)
 
     # day = r1 - DBM(year, month) + 1
-    day_expr = r1 - dbm[0] + IntVal(1)
+    day_expr = r1 - dbm[0] + BitVecVal(1, 32)
     for i in range(2, 13):
-        day_expr = If(r1 >= dbm[i - 1], r1 - dbm[i - 1] + IntVal(1), day_expr)
+        day_expr = If(r1 >= dbm[i - 1], r1 - dbm[i - 1] + BitVecVal(1, 32), day_expr)
 
     return year, month, day_expr
 
@@ -154,8 +215,8 @@ def from_ordinal(n):
 # -------------------------------
 # Epoch binding: 2000-03-01
 # -------------------------------
-# _ORD_EPOCH = to_ordinal(IntVal(2000), IntVal(3), IntVal(1))  # original ground Z3 term
-_ORD_EPOCH = IntVal(730179)  # precomputed ordinal of 2000-03-01 (0001-01-01 = 0)
+# _ORD_EPOCH = to_ordinal(BitVecVal(2000, 32), BitVecVal(3, 32), BitVecVal(1, 32))  # original ground Z3 term
+_ORD_EPOCH = BitVecVal(730179, 32)  # precomputed ordinal of 2000-03-01 (0001-01-01 = 0)
 
 
 def ymd_from_days_since_epoch(days_term):
@@ -172,10 +233,10 @@ def days_since_epoch_from_ymd(y, m, d):
 def EOMClamp(y, m, d):
     """Z3-pure end-of-month clamping."""
     maxd = days_in_month(y, m)
-    return If(d < IntVal(1), IntVal(1), If(d > maxd, maxd, d))
+    return If(d < BitVecVal(1, 32), BitVecVal(1, 32), If(d > maxd, maxd, d))
 
 
-FOUR_HUNDRED_YEARS = IntVal(146097)  # 400*365 + 97 leap days
+FOUR_HUNDRED_YEARS = BitVecVal(146097, 32)  # 400*365 + 97 leap days
 
 
 def add_days_ordinal(y, m, d, delta_days):
@@ -190,7 +251,7 @@ def add_days_ordinal(y, m, d, delta_days):
     d0 = EOMClamp(y, m, d)
 
     # Fast path: no day shift → avoid any ordinal math.
-    no_shift = delta_days == IntVal(0)
+    no_shift = delta_days == BitVecVal(0, 32)
 
     # Single-step ordinal addition
     z = days_since_epoch_from_ymd(y, m, d0)
@@ -210,7 +271,7 @@ class DateVar:
         self.ctx = ctx
         self.name = name
         # Primary epoch representation
-        self.epoch_var = Int(f"{name}_epoch")
+        self.epoch_var = BitVec(f"{name}_epoch", 32)
         # Lazy YMD vars
         self._ymd_exists = False
         self._year_var = None
@@ -252,9 +313,9 @@ class DateVar:
     def _ensure_ymd(self):
         if self._ymd_exists:
             return
-        self._year_var = Int(f"{self.name}_year")
-        self._month_var = Int(f"{self.name}_month")
-        self._day_var = Int(f"{self.name}_day")
+        self._year_var = BitVec(f"{self.name}_year", 32)
+        self._month_var = BitVec(f"{self.name}_month", 32)
+        self._day_var = BitVec(f"{self.name}_day", 32)
         self._ymd_exists = True
         # Add validity constraints
         self.ctx._add_date_constraints(self)
@@ -283,19 +344,27 @@ class DateVar:
 
     def __ge__(self, other):
         """Support x >= date comparison."""
-        if isinstance(other, Date):
-            return self.epoch_var >= to_days_since_epoch(other)
-        elif isinstance(other, DateVar):
-            return self.epoch_var >= other.epoch_var
+        if isinstance(other, Date) or isinstance(other, DateVar):
+            # Convert Date to epoch days if needed
+            if isinstance(other, Date):
+                other_epoch = to_days_since_epoch(other)
+            else:  # isinstance(other, DateVar)
+                other_epoch = other.epoch_var
+
+            return self.epoch_var >= other_epoch
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
     def __le__(self, other):
         """Support x <= date comparison."""
-        if isinstance(other, Date):
-            return self.epoch_var <= to_days_since_epoch(other)
-        elif isinstance(other, DateVar):
-            return self.epoch_var <= other.epoch_var
+        if isinstance(other, Date) or isinstance(other, DateVar):
+            # Convert Date to epoch days if needed
+            if isinstance(other, Date):
+                other_epoch = to_days_since_epoch(other)
+            else:  # isinstance(other, DateVar)
+                other_epoch = other.epoch_var
+
+            return self.epoch_var <= other_epoch
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
@@ -315,10 +384,14 @@ class DateVar:
 
     def __eq__(self, other):
         """Support x == date comparison."""
-        if isinstance(other, Date):
-            return self.epoch_var == to_days_since_epoch(other)
-        elif isinstance(other, DateVar):
-            return self.epoch_var == other.epoch_var
+        if isinstance(other, Date) or isinstance(other, DateVar):
+            # Convert Date to epoch days if needed
+            if isinstance(other, Date):
+                other_epoch = to_days_since_epoch(other)
+            else:  # isinstance(other, DateVar)
+                other_epoch = other.epoch_var
+
+            return self.epoch_var == other_epoch
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
@@ -340,12 +413,18 @@ class DateVar:
 
         # Concrete Period fast-path for days-only
         if isinstance(other, Period) and other.years == 0 and other.months == 0:
-            self.ctx.solver.add(result.epoch_var == self.epoch_var + IntVal(other.days))
+            self.ctx.solver.add(
+                result.epoch_var == self.epoch_var + BitVecVal(other.days, 32)
+            )
             return result
 
         # Extract period components as Z3 terms
         if isinstance(other, Period):
-            oy, om, od = IntVal(other.years), IntVal(other.months), IntVal(other.days)
+            oy, om, od = (
+                BitVecVal(other.years, 32),
+                BitVecVal(other.months, 32),
+                BitVecVal(other.days, 32),
+            )
         else:
             oy, om, od = other.years, other.months, other.days
 
@@ -356,9 +435,9 @@ class DateVar:
         else:
             y0, m0, d0 = ymd_from_days_since_epoch(self.epoch_var)
         # Step 1: combine years/months with AMI normalization
-        period_total_months = oy * IntVal(12) + om
+        period_total_months = oy * BitVecVal(12, 32) + om
         total_months = m0 + period_total_months
-        year_carry, m1 = normalize_month(IntVal(0), total_months)
+        year_carry, m1 = normalize_month(BitVecVal(0, 32), total_months)
         y1 = y0 + year_carry
         # Step 2: EOM clamp
         d1 = EOMClamp(y1, m1, d0)
@@ -396,9 +475,9 @@ class PeriodVar:
 
     def __init__(self, name: str, years=0, months=0, days=0):
         self.name = name
-        self.years = Int(f"{name}_years")
-        self.months = Int(f"{name}_months")
-        self.days = Int(f"{name}_days")
+        self.years = BitVec(f"{name}_years", 32)
+        self.months = BitVec(f"{name}_months", 32)
+        self.days = BitVec(f"{name}_days", 32)
 
     def __str__(self):
         return f"PeriodVar({self.name})"
@@ -425,9 +504,9 @@ class PeriodVar:
                     f"{self.name}_plus_{other.years}y_{other.months}m_{other.days}d"
                 )
                 oy, om, od = (
-                    IntVal(other.years),
-                    IntVal(other.months),
-                    IntVal(other.days),
+                    BitVecVal(other.years, 32),
+                    BitVecVal(other.months, 32),
+                    BitVecVal(other.days, 32),
                 )
                 result.years = self.years + oy
                 result.months = self.months + om
@@ -448,9 +527,9 @@ class PeriodVar:
                     f"{self.name}_minus_{other.years}y_{other.months}m_{other.days}d"
                 )
                 oy, om, od = (
-                    IntVal(other.years),
-                    IntVal(other.months),
-                    IntVal(other.days),
+                    BitVecVal(other.years, 32),
+                    BitVecVal(other.months, 32),
+                    BitVecVal(other.days, 32),
                 )
                 result.years = self.years - oy
                 result.months = self.months - om
@@ -494,8 +573,8 @@ class HybridSolver:
         self.date_vars[name] = dv
 
         # Basic epoch range constraints [1900-03-01 .. 2100-02-28]
-        self.solver.add(dv.epoch_var >= -36525)
-        self.solver.add(dv.epoch_var <= 36523)
+        self.solver.add(dv.epoch_var >= BitVecVal(-36525, 32))
+        self.solver.add(dv.epoch_var <= BitVecVal(36523, 32))
         return dv
 
     def _add_date_constraints(self, dv: DateVar):
@@ -506,11 +585,11 @@ class HybridSolver:
         Y_MIN, Y_MAX = 1900, 2100
         self.solver.add(
             And(
-                Y >= Y_MIN,
-                Y <= Y_MAX,
-                M >= 1,
-                M <= 12,
-                D >= 1,
+                Y >= BitVecVal(Y_MIN, 32),
+                Y <= BitVecVal(Y_MAX, 32),
+                M >= BitVecVal(1, 32),
+                M <= BitVecVal(12, 32),
+                D >= BitVecVal(1, 32),
                 D <= days_in_month(Y, M),
             )
         )

@@ -30,7 +30,7 @@ from z3 import (
     unsat,
 )
 
-from .core import Date, Period
+from ..core import Date, Period
 
 # Epoch constants as Python ints for table construction and concrete decoding
 EPOCH_YEAR = 2000

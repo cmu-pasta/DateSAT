@@ -2,12 +2,12 @@ import operator
 
 import pytest
 
-from datesmt_int.core import Date
-from datesmt_int.symbolic_alpha_beta import AlphaBetaSolver
-from datesmt_int.symbolic_alpha_beta_table import AlphaBetaTableSolver
-from datesmt_int.symbolic_baseline import BaselineSolver
-from datesmt_int.symbolic_epoch_days import EpochDaysSolver
-from datesmt_int.symbolic_hybrid import HybridSolver
+from datesmt.core import Date
+from datesmt.symbolic_int.alpha_beta_int import AlphaBetaSolver
+from datesmt.symbolic_int.alpha_beta_table_int import AlphaBetaTableSolver
+from datesmt.symbolic_int.baseline_int import BaselineSolver
+from datesmt.symbolic_int.epoch_days_int import EpochDaysSolver
+from datesmt.symbolic_int.hybrid_int import HybridSolver
 
 # We cover equality, less/greater, boundary conditions, leap cases, and month ends.
 CASES = [
