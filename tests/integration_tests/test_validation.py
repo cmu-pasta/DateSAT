@@ -4,7 +4,7 @@ Test concrete validation functionality.
 
 import pytest
 
-from datesmt.concrete import BaselineConcreteSolver, ConcreteDateVar
+from datesmt.concrete import ConcreteSolver, ConcreteDateVar
 from datesmt.core import Date, Period
 from tests.integration_tests.validation import (
     parse_date_string,
@@ -118,7 +118,7 @@ class TestConcreteValidation:
 
     def test_concrete_solver_basic_operations(self):
         """Test basic operations with concrete solver."""
-        solver = BaselineConcreteSolver()
+        solver = ConcreteSolver()
 
         # Add date variable
         date_var = solver.add_date_var("d1", 2020, 3, 15)
@@ -138,7 +138,7 @@ class TestConcreteValidation:
 
     def test_concrete_date_comparison(self):
         """Test concrete date comparison."""
-        solver = BaselineConcreteSolver()
+        solver = ConcreteSolver()
         date1 = solver.add_date_var("d1", 2020, 3, 15)
         date2 = solver.add_date_var("d2", 2020, 3, 16)
 
