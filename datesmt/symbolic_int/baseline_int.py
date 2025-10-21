@@ -7,7 +7,6 @@ component-wise with proper normalization.
 """
 
 from typing import Union
-
 from z3 import (
     And,
     BoolRef,
@@ -19,18 +18,14 @@ from z3 import (
     Not,
     Or,
     Solver,
-    is_expr,
     sat,
-    unsat,
 )
-
 from ..core import Date, Period
 
 
 def is_leap(year):
     """Check if a year is a leap year."""
     return Or(And(year % 4 == 0, year % 100 != 0), year % 400 == 0)
-
 
 def days_in_month(year, month):
     """Get the number of days in a month, accounting for leap years."""

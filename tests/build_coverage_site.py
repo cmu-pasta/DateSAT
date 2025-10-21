@@ -19,7 +19,12 @@ INDEX_HTML = DOCS_DIR / "index.html"
 BADGE_SVG = DOCS_DIR / "badge.svg"
 
 
+# ============================================================================
+# PUBLIC API FUNCTIONS
+# ============================================================================
+
 def run_tests_with_coverage() -> None:
+    """Run pytest with coverage reporting and generate XML and HTML reports."""
     DOCS_DIR.mkdir(parents=True, exist_ok=True)
     HTML_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -46,15 +51,21 @@ def run_tests_with_coverage() -> None:
     if result.returncode != 0:
         print("Tests failed. Coverage site will still be generated if XML exists.")
 
-
-def _safe_float(value: str, default: float = 0.0) -> float:
-    try:
-        return float(value)
-    except Exception:
-        return default
-
-
 def parse_cobertura(xml_path: Path):
+    """
+    Parse a Cobertura XML coverage report and extract coverage statistics.
+
+    Args:
+        xml_path: Path to the Cobertura XML coverage file
+
+    Returns:
+        Tuple of (totals_dict, rows_list) where:
+        - totals_dict: Global coverage statistics
+        - rows_list: Per-module coverage statistics
+
+    Raises:
+        FileNotFoundError: If the XML file doesn't exist
+    """
     if not xml_path.exists():
         raise FileNotFoundError(f"Coverage XML not found at {xml_path}")
 
@@ -166,12 +177,18 @@ def parse_cobertura(xml_path: Path):
 
     return totals, rows
 
-
 def fmt_pct(x: float) -> str:
+    """Format a decimal as a percentage string."""
     return f"{x*100:.0f}%" if x is not None else "-"
 
-
 def build_index_html(totals, rows) -> None:
+    """
+    Build the main index.html file with an embedded iframe view of the coverage report.
+
+    Args:
+        totals: Global coverage statistics dictionary
+        rows: Per-module coverage statistics list
+    """
     # Serve an embedded view of the detailed report without redirecting.
     html = []
     html.append("<!doctype html>")
@@ -199,39 +216,13 @@ def build_index_html(totals, rows) -> None:
     INDEX_HTML.write_text("\n".join(html), encoding="utf-8")
     print(f"Wrote {INDEX_HTML}")
 
-
-def _extract_percent_from_html(html_index: Path):
-    """
-    Parse the numeric percent from coverage.py's HTML index header so the badge
-    matches the displayed value exactly. Returns an int percent or None.
-    """
-    # Wait briefly for file to appear in case filesystem lags
-    import time
-
-    for _ in range(10):
-        if html_index.exists():
-            break
-        time.sleep(0.2)
-    try:
-        text = html_index.read_text(encoding="utf-8", errors="ignore")
-    except Exception:
-        return None
-    import re
-
-    # Matches "Coverage Report:61.5%" or "Coverage Report: 61.5%"
-    m = re.search(r"Coverage Report\s*:\s*([0-9]+(?:\.[0-9]+)?)%", text)
-    if not m:
-        return None
-    try:
-        return int(round(float(m.group(1))))
-    except Exception:
-        return None
-
-
 def build_badge_svg(totals) -> None:
     """
     Create a simple Shields-style SVG badge summarizing total statement coverage.
     The badge is written to BADGE_SVG and published with the site.
+
+    Args:
+        totals: Global coverage statistics dictionary
     """
     # Prefer the exact headline value from the HTML report header.
     pct_from_html = _extract_percent_from_html(HTML_DIR / "index.html")
@@ -297,6 +288,12 @@ def build_badge_svg(totals) -> None:
 
 
 def main() -> int:
+    """
+    Main entry point for the coverage site builder.
+
+    Returns:
+        Exit code (0 for success, 1 for failure)
+    """
     run_tests_with_coverage()
     try:
         totals, rows = parse_cobertura(XML_PATH)
@@ -306,6 +303,45 @@ def main() -> int:
     build_index_html(totals, rows)
     build_badge_svg(totals)
     return 0
+
+
+# ============================================================================
+# PRIVATE HELPER FUNCTIONS
+# ============================================================================
+
+def _safe_float(value: str, default: float = 0.0) -> float:
+    """Safely convert a string to float, returning default on any error."""
+    try:
+        return float(value)
+    except Exception:
+        return default
+
+def _extract_percent_from_html(html_index: Path):
+    """
+    Parse the numeric percent from coverage.py's HTML index header so the badge
+    matches the displayed value exactly. Returns an int percent or None.
+    """
+    # Wait briefly for file to appear in case filesystem lags
+    import time
+
+    for _ in range(10):
+        if html_index.exists():
+            break
+        time.sleep(0.2)
+    try:
+        text = html_index.read_text(encoding="utf-8", errors="ignore")
+    except Exception:
+        return None
+    import re
+
+    # Matches "Coverage Report:61.5%" or "Coverage Report: 61.5%"
+    m = re.search(r"Coverage Report\s*:\s*([0-9]+(?:\.[0-9]+)?)%", text)
+    if not m:
+        return None
+    try:
+        return int(round(float(m.group(1))))
+    except Exception:
+        return None
 
 
 if __name__ == "__main__":
