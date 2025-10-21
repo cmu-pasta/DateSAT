@@ -81,24 +81,19 @@ class ConcreteDateVar:
 
     def __add__(self, other):
         """ConcreteDateVar + Period using Python datetime."""
-        if isinstance(other, Period) or isinstance(other, ConcretePeriodVar):
-            if isinstance(other, Period):
-                period = other
-            else:  # isinstance(other, ConcretePeriodVar)
-                period = other._value
-
+        if isinstance(other, Period):
             # Convert to Python date
             py_date = self._value.to_python_date()
 
             # Use relativedelta for years/months and timedelta for days
             py_date = py_date + relativedelta(
-                years=period.years, months=period.months, days=period.days
+                years=other.years, months=other.months, days=other.days
             )
 
             # Convert back to Date
             result_date = Date.from_python_date(py_date)
             result = ConcreteDateVar(
-                f"{self.name}_plus_{period.years}y_{period.months}m_{period.days}d",
+                f"{self.name}_plus_{other.years}y_{other.months}m_{other.days}d",
                 result_date.year,
                 result_date.month,
                 result_date.day,
@@ -109,111 +104,18 @@ class ConcreteDateVar:
 
     def __radd__(self, other):
         """Support period + date addition."""
-        if isinstance(other, Period) or isinstance(other, ConcretePeriodVar):
+        if isinstance(other, Period):
             return self.__add__(other)
         else:
             raise TypeError(f"Cannot add {type(other)} to ConcreteDateVar")
 
     def __sub__(self, other):
         """ConcreteDateVar - Period using Python datetime."""
-        if isinstance(other, Period) or isinstance(other, ConcretePeriodVar):
-            period = other if isinstance(other, Period) else other._value
-            neg_period = Period(-period.years, -period.months, -period.days)
+        if isinstance(other, Period):
+            neg_period = Period(-other.years, -other.months, -other.days)
             return self.__add__(neg_period)
         else:
             raise TypeError(f"Cannot subtract {type(other)} from ConcreteDateVar")
-
-
-class ConcretePeriodVar:
-    """Concrete period variable that mimics the symbolic PeriodVar API."""
-
-    def __init__(self, name: str, years: int = 0, months: int = 0, days: int = 0):
-        """Create a concrete period variable with given values."""
-        self.name = name
-        self.years = years
-        self.months = months
-        self.days = days
-        self._value = Period(years, months, days)
-
-    def __str__(self):
-        return f"ConcretePeriodVar({self.name})"
-
-    def __repr__(self):
-        return self.__str__()
-
-    def to_concrete_period(self) -> Period:
-        """Get the concrete Period."""
-        return self._value
-
-    def __eq__(self, other):
-        raise TypeError("Cannot compare ConcretePeriodVar.")
-
-    def __ne__(self, other):
-        raise TypeError("Cannot compare ConcretePeriodVar.")
-
-    def __add__(self, other):
-        """Support Period + Period addition."""
-        if isinstance(other, Period) or isinstance(other, ConcretePeriodVar):
-            other_period = other if isinstance(other, Period) else other._value
-            new_period = Period(
-                self._value.years + other_period.years,
-                self._value.months + other_period.months,
-                self._value.days + other_period.days,
-            )
-            result = ConcretePeriodVar(
-                f"{self.name}_plus_{other_period.years}y_{other_period.months}m_{other_period.days}d"
-            )
-            result._value = new_period
-            result.years = new_period.years
-            result.months = new_period.months
-            result.days = new_period.days
-            return result
-        else:
-            raise TypeError(f"Cannot add {type(other)} to ConcretePeriodVar")
-
-    def __sub__(self, other):
-        """Support Period - Period subtraction."""
-        if isinstance(other, Period) or isinstance(other, ConcretePeriodVar):
-            other_period = other if isinstance(other, Period) else other._value
-            new_period = Period(
-                self._value.years - other_period.years,
-                self._value.months - other_period.months,
-                self._value.days - other_period.days,
-            )
-            result = ConcretePeriodVar(
-                f"{self.name}_minus_{other_period.years}y_{other_period.months}m_{other_period.days}d"
-            )
-            result._value = new_period
-            result.years = new_period.years
-            result.months = new_period.months
-            result.days = new_period.days
-            return result
-        else:
-            raise TypeError(f"Cannot subtract {type(other)} from ConcretePeriodVar")
-
-    def __mul__(self, other):
-        """Support Period × Int multiplication."""
-        if isinstance(other, int):
-            new_period = Period(
-                self._value.years * other,
-                self._value.months * other,
-                self._value.days * other,
-            )
-            result = ConcretePeriodVar(f"{self.name}_times_{other}")
-            result._value = new_period
-            result.years = new_period.years
-            result.months = new_period.months
-            result.days = new_period.days
-            return result
-        else:
-            raise TypeError(f"Cannot multiply ConcretePeriodVar with {type(other)}")
-
-    def __rmul__(self, other):
-        """Support Int × Period multiplication."""
-        if isinstance(other, int):
-            return self.__mul__(other)
-        else:
-            raise TypeError(f"Cannot multiply ConcretePeriodVar with {type(other)}")
 
 
 class BaselineConcreteSolver:
@@ -227,7 +129,6 @@ class BaselineConcreteSolver:
     ):
         """Initialize the solver."""
         self.date_vars: Dict[str, ConcreteDateVar] = {}
-        self.period_vars: Dict[str, ConcretePeriodVar] = {}
         self.constraints: list = []
 
     def add_date_var(
@@ -246,13 +147,6 @@ class BaselineConcreteSolver:
             self.date_vars[name] = date_var
             return date_var
 
-    def add_period_var(
-        self, name: str, years: int = 0, months: int = 0, days: int = 0
-    ) -> ConcretePeriodVar:
-        """Add a concrete period variable with given values."""
-        period_var = ConcretePeriodVar(name, years, months, days)
-        self.period_vars[name] = period_var
-        return period_var
 
     def add_constraint(self, constraint: Any, description: str = ""):
         """Add a constraint (stored but not evaluated)."""
@@ -268,27 +162,18 @@ class BaselineConcreteSolver:
             'dates': {
                 name: var.to_concrete_date() for name, var in self.date_vars.items()
             },
-            'periods': {
-                name: var.to_concrete_period() for name, var in self.period_vars.items()
-            },
         }
 
     def get_concrete_dates(self) -> Dict[str, Date]:
         """Get concrete dates from the solver."""
         return {name: var.to_concrete_date() for name, var in self.date_vars.items()}
 
-    def get_concrete_periods(self) -> Dict[str, Period]:
-        """Get concrete periods from the solver."""
-        return {
-            name: var.to_concrete_period() for name, var in self.period_vars.items()
-        }
 
     def solve(self) -> Dict[str, Any]:
         """Return current variable values."""
         return {
             'status': 'sat',
             'dates': self.get_concrete_dates(),
-            'periods': self.get_concrete_periods(),
         }
 
     def to_smt2(self) -> str:

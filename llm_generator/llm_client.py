@@ -39,20 +39,18 @@ LIBRARY SEMANTICS (AVAILABLE IN THE TEST HARNESS)
 - Constructors: Date(y, m, d), Period(years, months, days)
 - Builder: DateSMTBuilder(approach?)  # approach will be injected by harness
 - Variables:
-  • You MAY use predeclared names x, y, z (dates) and p, q, r (periods) directly, or create fresh via builder.add_*_var.
+  • You MAY use predeclared names x, y, z (dates) directly, or create fresh via builder.add_date_var.
   • Valid ranges: 1900-03-01 <= Date <= 2100-02-28.
 SUPPORTED OPERATIONS (engine-compatible):
-  • Date + Period → Date (concrete Period(...))
-  • Date + PeriodVar → Date (now supported)
+  • Date + Period → Date (concrete Period(...) only)
   • Period + Period → Period (use chained concrete Period(...) arithmetic only)
   • Date ▷◁ Date where ▷◁ ∈ {==, !=, <, <=, >, >=}
   • DO NOT: compare Period ▷◁ Period (unsupported)
   • DO NOT: compare Period ▷◁ Period (unsupported)
-  • DO NOT: multiply Period or PeriodVar (currently unsupported)
+  • DO NOT: use PeriodVar (not supported - use concrete Period only)
 - Builder API (always use via a local variable named builder):
   • builder = DateSMTBuilder("epoch_days" or "baseline")  # already provided in harness
   • builder.add_date_var(name: str) -> Date-like symbolic var
-  • builder.add_period_var(name: str) -> Period-like symbolic var (avoid adding to Date)
   • builder.add_constraint(z3_bool_expr, description: str = "")
   • result = builder  # end your snippet with this
 - Tips for robust code snippets inside JSON strings:
@@ -80,7 +78,6 @@ Each element must be an object:
   "description": "brief human explanation",
   "constraints": ["x >= Date(2000,2,28)", "x <= Date(2000,3,1)", "x != Date(2000,2,28)", "x != Date(2000,3,1)"],
   "date_variables": ["x"],
-  "period_variables": [],
   "coverage_tags": ["leap_boundary","eom","year_vs_days","month_vs_days","chain_add","ineq_window","multi_var"]
 }
 
@@ -116,7 +113,6 @@ def _basic_schema_ok(items: Any) -> bool:
         "description",
         "constraints",
         "date_variables",
-        "period_variables",
         "coverage_tags",
     }
     for it in items:
@@ -131,8 +127,6 @@ def _basic_schema_ok(items: Any) -> bool:
         if not isinstance(it["constraints"], list):
             return False
         if not isinstance(it["date_variables"], list):
-            return False
-        if not isinstance(it["period_variables"], list):
             return False
         if not isinstance(it["coverage_tags"], list):
             return False

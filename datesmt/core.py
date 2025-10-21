@@ -145,3 +145,43 @@ class Period:
             and self.months == other.months
             and self.days == other.days
         )
+
+    def __mul__(self, other):
+        """Support Period * Int multiplication."""
+        if isinstance(other, int):
+            return Period(
+                self.years * other,
+                self.months * other,
+                self.days * other
+            )
+        else:
+            raise TypeError(f"Cannot multiply Period with {type(other)}")
+
+    def __rmul__(self, other):
+        """Support Int * Period multiplication."""
+        if isinstance(other, int):
+            return self.__mul__(other)
+        else:
+            raise TypeError(f"Cannot multiply Period with {type(other)}")
+
+    def __add__(self, other):
+        """Support Period + Period addition."""
+        if isinstance(other, Period):
+            return Period(
+                self.years + other.years,
+                self.months + other.months,
+                self.days + other.days
+            )
+        else:
+            raise TypeError(f"Cannot add {type(other)} to Period")
+
+    def __sub__(self, other):
+        """Support Period - Period subtraction."""
+        if isinstance(other, Period):
+            return Period(
+                self.years - other.years,
+                self.months - other.months,
+                self.days - other.days
+            )
+        else:
+            raise TypeError(f"Cannot subtract {type(other)} from Period")
