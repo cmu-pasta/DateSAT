@@ -7,17 +7,15 @@ as the symbolic implementations but with concrete values.
 """
 
 from datetime import date, timedelta
-from typing import Any, Dict, Optional, Union
-
 from dateutil.relativedelta import relativedelta
-
+from typing import Any, Dict, Optional, Union
 from .core import Date, Period
 
 
 class ConcreteDateVar:
     """Concrete date variable that mimics the symbolic DateVar API."""
 
-    def __init__(self, name: str, year: int, month: int, day: int):
+    def __init__(self, name: str, year: int, month: int, day: int) -> None:
         """Create a concrete date variable with given values."""
         self.name = name
         self.year = year
@@ -25,17 +23,15 @@ class ConcreteDateVar:
         self.day = day
         self._value = Date(year, month, day)
 
-    def __str__(self):
+    def __str__(self) -> str:
+        """Return a string representation of the ConcreteDateVar."""
         return f"ConcreteDateVar({self.name})"
 
-    def __repr__(self):
-        return self.__str__()
-
     def to_concrete_date(self) -> Date:
-        """Get the concrete Date."""
+        """Get the concrete Date value."""
         return self._value
 
-    def __ge__(self, other):
+    def __ge__(self, other: Union[Date, "ConcreteDateVar"]) -> bool:
         """Support x >= date comparison."""
         if isinstance(other, Date) or isinstance(other, ConcreteDateVar):
             other_date = other if isinstance(other, Date) else other._value
@@ -43,7 +39,7 @@ class ConcreteDateVar:
         else:
             raise TypeError(f"Cannot compare ConcreteDateVar with {type(other)}")
 
-    def __le__(self, other):
+    def __le__(self, other: Union[Date, "ConcreteDateVar"]) -> bool:
         """Support x <= date comparison."""
         if isinstance(other, Date) or isinstance(other, ConcreteDateVar):
             other_date = other if isinstance(other, Date) else other._value
@@ -51,7 +47,7 @@ class ConcreteDateVar:
         else:
             raise TypeError(f"Cannot compare ConcreteDateVar with {type(other)}")
 
-    def __lt__(self, other):
+    def __lt__(self, other: Union[Date, "ConcreteDateVar"]) -> bool:
         """Support x < date comparison."""
         if isinstance(other, Date) or isinstance(other, ConcreteDateVar):
             other_date = other if isinstance(other, Date) else other._value
@@ -59,7 +55,7 @@ class ConcreteDateVar:
         else:
             raise TypeError(f"Cannot compare ConcreteDateVar with {type(other)}")
 
-    def __gt__(self, other):
+    def __gt__(self, other: Union[Date, "ConcreteDateVar"]) -> bool:
         """Support x > date comparison."""
         if isinstance(other, Date) or isinstance(other, ConcreteDateVar):
             other_date = other if isinstance(other, Date) else other._value
@@ -67,7 +63,7 @@ class ConcreteDateVar:
         else:
             raise TypeError(f"Cannot compare ConcreteDateVar with {type(other)}")
 
-    def __eq__(self, other):
+    def __eq__(self, other: Union[Date, "ConcreteDateVar"]) -> bool:
         """Support x == date comparison."""
         if isinstance(other, Date) or isinstance(other, ConcreteDateVar):
             other_date = other if isinstance(other, Date) else other._value
@@ -75,11 +71,11 @@ class ConcreteDateVar:
         else:
             raise TypeError(f"Cannot compare ConcreteDateVar with {type(other)}")
 
-    def __ne__(self, other):
+    def __ne__(self, other: Union[Date, "ConcreteDateVar"]) -> bool:
         """Support x != date comparison."""
         return not self.__eq__(other)
 
-    def __add__(self, other):
+    def __add__(self, other: Period) -> "ConcreteDateVar":
         """ConcreteDateVar + Period using Python datetime."""
         if isinstance(other, Period):
             # Convert to Python date
@@ -102,14 +98,14 @@ class ConcreteDateVar:
         else:
             raise TypeError(f"Cannot add {type(other)} to ConcreteDateVar")
 
-    def __radd__(self, other):
+    def __radd__(self, other: Period) -> "ConcreteDateVar":
         """Support period + date addition."""
         if isinstance(other, Period):
             return self.__add__(other)
         else:
             raise TypeError(f"Cannot add {type(other)} to ConcreteDateVar")
 
-    def __sub__(self, other):
+    def __sub__(self, other: Period) -> "ConcreteDateVar":
         """ConcreteDateVar - Period using Python datetime."""
         if isinstance(other, Period):
             neg_period = Period(-other.years, -other.months, -other.days)
@@ -118,7 +114,7 @@ class ConcreteDateVar:
             raise TypeError(f"Cannot subtract {type(other)} from ConcreteDateVar")
 
 
-class BaselineConcreteSolver:
+class ConcreteSolver:
     """Concrete solver that mimics the symbolic solver API for validation."""
 
     def __init__(
@@ -126,7 +122,7 @@ class BaselineConcreteSolver:
         min_year: Optional[int] = None,
         max_year: Optional[int] = None,
         timeout_ms: int = 60000,
-    ):
+    ) -> None:
         """Initialize the solver."""
         self.date_vars: Dict[str, ConcreteDateVar] = {}
         self.constraints: list = []
@@ -147,8 +143,7 @@ class BaselineConcreteSolver:
             self.date_vars[name] = date_var
             return date_var
 
-
-    def add_constraint(self, constraint: Any, description: str = ""):
+    def add_constraint(self, constraint: Any, description: str = "") -> None:
         """Add a constraint (stored but not evaluated)."""
         self.constraints.append(constraint)
 
@@ -167,7 +162,6 @@ class BaselineConcreteSolver:
     def get_concrete_dates(self) -> Dict[str, Date]:
         """Get concrete dates from the solver."""
         return {name: var.to_concrete_date() for name, var in self.date_vars.items()}
-
 
     def solve(self) -> Dict[str, Any]:
         """Return current variable values."""

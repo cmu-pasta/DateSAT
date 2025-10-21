@@ -1,14 +1,12 @@
 """
-Unified API for DATE-SMT constraint solving.
+Unified API for DATE-SMT.
 
 This module provides a unified interface for both bitvector and integer
 approaches to DATE-SMT constraint solving.
 """
 
 from typing import Any, Dict, List, Union
-
 from z3 import BoolRef
-
 from .core import Date, Period
 
 
@@ -20,7 +18,7 @@ class DateSMTBuilder:
         approach: str = "epoch_days",
         implementation: str = "int",
         timeout_ms: int = 60000,
-    ):
+    ) -> None:
         """Initialize the builder with the specified approach, implementation, and timeout.
 
         Args:
@@ -69,11 +67,11 @@ class DateSMTBuilder:
         self.constraints = []
         self._print_smt_on_solve = True
 
-    def add_date_var(self, name: str):
+    def add_date_var(self, name: str) -> "DateVar":
         """Add a symbolic date variable."""
         return self.solver.add_date_var(name)
 
-    def add_constraint(self, constraint: BoolRef, description: str = ""):
+    def add_constraint(self, constraint: BoolRef, description: str = "") -> None:
         """Add a constraint to the solver."""
         if description:
             print(f"Added constraint: {description}")
@@ -92,43 +90,17 @@ class DateSMTBuilder:
             print(self.to_smt2())
         result = self.solver.solve()
         if result['status'] == 'sat':
-            print(f"✅ Solution found:")
+            print(f"✅ SATISFIABLE:")
             for name, date in result['dates'].items():
                 print(f"  {name} = {date}")
-            if result.get('periods'):
-                for name, period in result['periods'].items():
-                    print(f"  {name} = {period}")
         else:
-            print("❌ No solution found")
+            print("❌ UNSATISFIABLE")
         return result
 
     def get_constraints(self) -> List[BoolRef]:
         """Get all constraints."""
         return self.constraints
 
-    def enable_smtlib_print(self, enabled: bool = True):
+    def enable_smtlib_print(self, enabled: bool = True) -> None:
         """Enable or disable printing SMT-LIB when solving."""
         self._print_smt_on_solve = enabled
-
-    def to_smt2(self) -> str:
-        """Return the current solver state as SMT-LIB v2 string."""
-        return self.solver.to_smt2()
-
-
-# Convenience functions for common use cases
-def create_int_solver(
-    approach: str = "epoch_days", timeout_ms: int = 60000
-) -> DateSMTBuilder:
-    """Create a solver using integer implementation."""
-    return DateSMTBuilder(
-        approach=approach, implementation="int", timeout_ms=timeout_ms
-    )
-
-
-def create_bitvector_solver(
-    approach: str = "epoch_days", timeout_ms: int = 60000
-) -> DateSMTBuilder:
-    """Create a solver using bitvector implementation."""
-    return DateSMTBuilder(
-        approach=approach, implementation="bitvector", timeout_ms=timeout_ms
-    )

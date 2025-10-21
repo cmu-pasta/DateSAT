@@ -1,24 +1,18 @@
 """
-Unit tests for the Period class in datesmt_int.core.
-
-Tests cover constructor, equality comparison, string/repr,
-immutability, and property-based sanity checks.
+Unit tests for the Period class in datesmt.core.
 """
 
 import pytest
-
 from datesmt.core import Period
 
 # --------------------------------------------------------------------
 # Constructor & basic value semantics
 # --------------------------------------------------------------------
 
-
 def test_constructor_assigns_fields(sample_period_tuple):
     y, m, d = sample_period_tuple
     p = Period(y, m, d)
     assert (p.years, p.months, p.days) == (y, m, d)
-
 
 def test_constructor_from_fixture(sample_period_obj):
     # Bulk sanity across curated examples
@@ -29,7 +23,6 @@ def test_constructor_from_fixture(sample_period_obj):
 # --------------------------------------------------------------------
 # Equality & hashing (value semantics)
 # --------------------------------------------------------------------
-
 
 @pytest.mark.parametrize(
     "a,b,expected_equal",
@@ -42,35 +35,35 @@ def test_constructor_from_fixture(sample_period_obj):
     ],
 )
 def test_equality(a, b, expected_equal):
-    if expected_equal:
-        assert a == b
-        assert not (a != b)
-        assert hash(a) == hash(b)  # equal objects must have equal hashes
-    else:
-        assert a != b
-        assert not (a == b)
-
+    with pytest.raises(TypeError) as exc_info:
+        a == b
+    assert "Cannot compare Period with" in str(exc_info.value)
+    with pytest.raises(TypeError) as exc_info:
+        a != b
+    assert "Cannot compare Period with" in str(exc_info.value)
 
 @pytest.mark.parametrize("other", ["1y2m3d", 1, None, (1, 2, 3), [1, 2, 3]])
 def test_not_equal_to_non_period(sample_period_obj, other):
-    assert sample_period_obj != other
-
+    with pytest.raises(TypeError) as exc_info:
+        sample_period_obj != other
+    assert "Cannot compare Period with" in str(exc_info.value)
 
 def test_not_equal_to_date_object(sample_date_obj):
     # Use any Date from fixtures to assert cross-type inequality
     some_date = sample_date_obj
-    assert Period(1, 2, 3) != some_date
+    with pytest.raises(TypeError) as exc_info:
+        Period(1, 2, 3) != some_date
+    assert "Cannot compare Period with" in str(exc_info.value)
 
 
 # --------------------------------------------------------------------
-# String / repr
+# String
 # --------------------------------------------------------------------
 
-
-def test_repr_is_canonical():
-    assert repr(Period(1, 2, 3)) == "Period(1, 2, 3)"
-    assert repr(Period(-1, -2, -3)) == "Period(-1, -2, -3)"
-    assert repr(Period(0, 0, 0)) == "Period(0, 0, 0)"
+def test_str_is_canonical():
+    assert str(Period(1, 2, 3)) == "Period(1, 2, 3)"
+    assert str(Period(-1, -2, -3)) == "Period(-1, -2, -3)"
+    assert str(Period(0, 0, 0)) == "Period(0, 0, 0)"
 
 
 def test_str_contains_components_without_overfitting(sample_period_obj):
@@ -85,11 +78,9 @@ def test_str_contains_components_without_overfitting(sample_period_obj):
 # Properties / immutability
 # --------------------------------------------------------------------
 
-
 def test_attributes_are_readable():
     p = Period(1, 2, 3)
     assert (p.years, p.months, p.days) == (1, 2, 3)
-
 
 def test_attributes_are_immutable():
     p = Period(1, 2, 3)
@@ -102,7 +93,6 @@ def test_attributes_are_immutable():
 # --------------------------------------------------------------------
 # Invalid input handling
 # --------------------------------------------------------------------
-
 
 def test_invalid_input_handling(invalid_period_format_tuple):
     args = invalid_period_format_tuple

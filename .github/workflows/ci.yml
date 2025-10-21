@@ -31,16 +31,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements/dev.txt
 
-      - name: Restore pytest cache
-        uses: actions/cache@v4
-        id: pytest-cache
-        with:
-          path: .pytest_cache
-          key: ${{ runner.os }}-pytest-${{ hashFiles('requirements/**/*.txt') }}-${{ github.ref_name }}
-          restore-keys: |
-            ${{ runner.os }}-pytest-${{ hashFiles('requirements/**/*.txt') }}-
-            ${{ runner.os }}-pytest-
-
       - name: Build coverage site (unit tests only)
         env:
           PYTEST_WORKERS: auto
@@ -48,13 +38,6 @@ jobs:
           rm -rf public
           mkdir -p public
           COVERAGE_SITE_DIR=$(pwd)/public python tests/build_coverage_site.py
-
-      - name: Save pytest cache
-        if: always()
-        uses: actions/cache/save@v4
-        with:
-          path: .pytest_cache
-          key: ${{ steps.pytest-cache.outputs.cache-primary-key }}
 
       - name: Upload coverage site artifact
         uses: actions/upload-artifact@v4

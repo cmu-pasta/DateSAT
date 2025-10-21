@@ -52,7 +52,20 @@ Evaluation
 General
 [X] Organize repo (Angel)
 [ ] Clean up existing code
+    [ ] datesmt/
+        [X] __init__.py
+        [X] api.py
+        [-] concrete.py
+        [-] core.py
+        [ ] constraint_parser.py
+        [ ] symbolic_int/
+        [ ] symbolic_bitvector/
+    [ ] tests/
+        [-] core_data_structures/
+            [-] test_date.py
+            [-] test_period.py
 [ ] Make helper functions' names begin with _
-[ ] Clean up existing doc
+[X] Clean up existing doc
+[ ] Add READMEs
 [ ] Add documentation for each method
-[ ] Flatten integration_tests and llm_constraints_generator
+[ ] Flatten data from llm_constraints_generator?

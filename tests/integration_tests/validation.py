@@ -10,7 +10,7 @@ import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-from datesmt.concrete import BaselineConcreteSolver, ConcreteDateVar
+from datesmt.concrete import ConcreteSolver, ConcreteDateVar
 from datesmt.constraint_parser import ConstraintParser
 from datesmt.core import Date, Period
 
@@ -67,10 +67,10 @@ def execute_constraint_code(
     try:
         # Import the symbolic solver to generate SMT-LIB constraints
         from datesmt.api import DateSMTBuilder
-        
+
         # Create a symbolic solver to generate SMT-LIB constraints
         symbolic_solver = DateSMTBuilder(approach="baseline", implementation="int")
-        
+
         # Prepare execution context with symbolic solver
         exec_globals = {
             'Date': Date,
@@ -97,8 +97,8 @@ def execute_constraint_code(
 
         # For concrete validation, we need to check if the solution satisfies the constraints
         # We'll do this by creating a concrete solver and checking the constraints
-        concrete_solver = BaselineConcreteSolver()
-        
+        concrete_solver = ConcreteSolver()
+
         # Parse and create concrete variables
         for var_name, var_value in solution.items():
             var_value = var_value.strip()
@@ -185,7 +185,7 @@ def validate_solution_with_concrete(
         approach = "concrete"  # Since we're using concrete validation
         smt2_file = save_dir / f"{constraint_id}_{approach}_constraints.smt2"
         smt2_file.parent.mkdir(parents=True, exist_ok=True)
-        
+
         try:
             with smt2_file.open("w", encoding="utf-8") as f:
                 f.write(smtlib_constraints)
