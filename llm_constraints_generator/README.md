@@ -54,5 +54,5 @@ export OPENAI_API_KEY="your-openai-key-here"
 ### 2. Generate Constraints
 
 ```bash
-python llm_generator/llm_client.py --num NUMBER --output tests/integration_tests/data/FILE_NAME.json
+python llm_constraints_generator/llm_client.py --num NUMBER --output tests/integration_tests/data/FILE_NAME.json
 ```
