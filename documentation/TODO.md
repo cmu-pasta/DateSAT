@@ -28,7 +28,7 @@ Integration test
 [X] Fix integration test check result so that it uses python library to check for ground truth
 
 LLM test generation
-[ ] Make llm_generator better in generating integration tests that cover more cases
+[ ] Make llm_constraints_generator better in generating integration tests that cover more cases
 [X] Make constraint_code just a list of strings of constraints, write the constraints parser
 
 Debugging
