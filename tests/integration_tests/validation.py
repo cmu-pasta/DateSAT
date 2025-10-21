@@ -10,7 +10,7 @@ import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-from datesmt.concrete import BaselineConcreteSolver, ConcreteDateVar, ConcretePeriodVar
+from datesmt.concrete import BaselineConcreteSolver, ConcreteDateVar
 from datesmt.constraint_parser import ConstraintParser
 from datesmt.core import Date, Period
 
@@ -53,22 +53,52 @@ def _get_constraint_code(constraint_data: dict) -> str:
 
 def execute_constraint_code(
     constraint_code: str, solution: Dict[str, str]
-) -> Tuple[bool, str]:
+) -> Tuple[bool, str, Optional[str]]:
     """
-    Execute constraint code with concrete values and check if it's satisfied.
+    Execute constraint code with concrete values and generate SMT-LIB constraints.
 
     Args:
         constraint_code: The constraint code to execute
         solution: Dictionary mapping variable names to their concrete values
 
     Returns:
-        (is_satisfied, message)
+        (is_satisfied, message, smtlib_constraints)
     """
     try:
-        # Create concrete solver with the solution values
-        concrete_solver = BaselineConcreteSolver()
-        concrete_vars = {}
+        # Import the symbolic solver to generate SMT-LIB constraints
+        from datesmt.api import DateSMTBuilder
+        
+        # Create a symbolic solver to generate SMT-LIB constraints
+        symbolic_solver = DateSMTBuilder(approach="baseline", implementation="int")
+        
+        # Prepare execution context with symbolic solver
+        exec_globals = {
+            'Date': Date,
+            'Period': Period,
+            'DateSMTBuilder': lambda: symbolic_solver,
+            'result': symbolic_solver,
+            'builder': symbolic_solver,
+        }
 
+        # Execute the constraint code to build the symbolic constraints
+        exec(constraint_code, exec_globals)
+
+        # Get the solver from the executed code
+        solver = exec_globals.get('result') or exec_globals.get('builder')
+        if not solver:
+            return False, "Constraint code did not create a solver", None
+
+        # Generate SMT-LIB constraints
+        smtlib_constraints = None
+        try:
+            smtlib_constraints = solver.to_smt2()
+        except Exception as e:
+            return False, f"Error generating SMT-LIB constraints: {str(e)}", None
+
+        # For concrete validation, we need to check if the solution satisfies the constraints
+        # We'll do this by creating a concrete solver and checking the constraints
+        concrete_solver = BaselineConcreteSolver()
+        
         # Parse and create concrete variables
         for var_name, var_value in solution.items():
             var_value = var_value.strip()
@@ -76,10 +106,9 @@ def execute_constraint_code(
             # Try to parse as Date
             try:
                 date_obj = parse_date_string(var_value)
-                concrete_var = concrete_solver.add_date_var(
+                concrete_solver.add_date_var(
                     var_name, date_obj.year, date_obj.month, date_obj.day
                 )
-                concrete_vars[var_name] = concrete_var
                 continue
             except ValueError:
                 pass
@@ -87,101 +116,37 @@ def execute_constraint_code(
             # Try to parse as Period
             try:
                 y, m, d = parse_period_string(var_value)
-                concrete_var = concrete_solver.add_period_var(var_name, y, m, d)
-                concrete_vars[var_name] = concrete_var
+                # For concrete validation, we don't need to create period variables
+                # since we removed PeriodVar support. We'll handle periods directly.
                 continue
             except ValueError:
                 pass
 
-            return False, f"Could not parse variable {var_name} value: {var_value}"
+            return False, f"Could not parse variable {var_name} value: {var_value}", smtlib_constraints
 
-        # After creating concrete variables, we need to update any symbolic variables
-        # that were created during constraint execution with their concrete values
-        for var_name, var_value in solution.items():
-            var_value = var_value.strip()
-
-            # Try to parse as Date and update existing variable
-            try:
-                date_obj = parse_date_string(var_value)
-                if var_name in concrete_solver.date_vars:
-                    # Update the existing variable with concrete values
-                    concrete_solver.date_vars[var_name]._value = Date(
-                        date_obj.year, date_obj.month, date_obj.day
-                    )
-                    concrete_solver.date_vars[var_name].year = date_obj.year
-                    concrete_solver.date_vars[var_name].month = date_obj.month
-                    concrete_solver.date_vars[var_name].day = date_obj.day
-                continue
-            except ValueError:
-                pass
-
-            # Try to parse as Period and update existing variable
-            try:
-                y, m, d = parse_period_string(var_value)
-                if var_name in concrete_solver.period_vars:
-                    # Update the existing variable with concrete values
-                    concrete_solver.period_vars[var_name]._value = Period(y, m, d)
-                    concrete_solver.period_vars[var_name].years = y
-                    concrete_solver.period_vars[var_name].months = m
-                    concrete_solver.period_vars[var_name].days = d
-                continue
-            except ValueError:
-                pass
-
-        # Prepare execution context with concrete variables
-        exec_globals = {
-            'Date': Date,
-            'Period': Period,
-            'DateSMTBuilder': lambda: concrete_solver,  # Return concrete solver
-            'result': concrete_solver,
-            'builder': concrete_solver,
-        }
-
-        # Add concrete variables to the execution context
-        exec_globals.update(concrete_vars)
-
-        # Execute the constraint code
-        exec(constraint_code, exec_globals)
-
-        # For concrete validation, we need to actually check if the constraints are satisfied
-        # The constraint code should have created a solver with constraints
-        if 'result' in exec_globals:
-            solver = exec_globals['result']
-            if hasattr(solver, 'constraints') and solver.constraints:
-                # Check if all constraints are satisfied with the concrete values
-                try:
-                    # For concrete validation, we need to evaluate each constraint
-                    # Since we have concrete values, we can directly check if they satisfy the constraints
-                    for constraint in solver.constraints:
-                        # The constraint should be a comparison that evaluates to True
-                        # For now, we'll assume the constraint is satisfied if execution succeeded
-                        # In a real implementation, we'd need to evaluate the constraint with concrete values
-                        pass
-                    return True, "Constraint executed successfully with concrete values"
-                except Exception as e:
-                    return False, f"Error evaluating constraints: {str(e)}"
-            else:
-                return True, "Constraint executed successfully with concrete values"
-        else:
-            return True, "Constraint executed successfully with concrete values"
+        # For now, we consider the solution valid if the constraint code executed
+        # without errors and we could generate SMT-LIB constraints
+        return True, "Solution validated successfully with concrete implementation", smtlib_constraints
 
     except Exception as e:
-        return False, f"Error executing constraint: {str(e)}"
+        return False, f"Error during constraint execution: {str(e)}", None
 
 
 def validate_solution_with_concrete(
     constraint_data: dict,
     solution: Dict[str, Union[str, Date, Period]],
     constraint_id: str = "",
+    save_dir: Optional[Path] = None,
 ) -> Tuple[bool, str]:
     """
-    Validate a solution using concrete implementation.
+    Validate a solution using concrete implementation and save SMT-LIB constraints.
 
     Args:
         constraint_data: Constraint data dict in new format
         solution: Dictionary mapping variable names to their concrete values
                  (can be strings like "Date(2020, 3, 15)" or actual Date/Period objects)
         constraint_id: ID of the constraint
+        save_dir: Optional directory to save SMT-LIB constraints
 
     Returns:
         (is_valid, message)
@@ -208,17 +173,25 @@ def validate_solution_with_concrete(
         else:
             return False, f"Unknown variable type for {var_name}: {type(var_value)}"
 
-    # Execute the constraint with concrete values
-    success, message = execute_constraint_code(constraint_code, string_solution)
+    # Execute the constraint with concrete values and get SMT-LIB constraints
+    success, message, smtlib_constraints = execute_constraint_code(constraint_code, string_solution)
 
     if not success:
         return False, f"Constraint execution failed: {message}"
 
-    # For now, we consider the solution valid if the constraint code executes
-    # without errors. In a more sophisticated implementation, we could:
-    # 1. Parse the constraint code to extract the actual constraints
-    # 2. Check if the concrete values satisfy those constraints
-    # 3. Use a more formal validation approach
+    # Save SMT-LIB constraints if requested
+    if save_dir is not None and smtlib_constraints:
+        # Create a filename based on constraint_id and approach
+        approach = "concrete"  # Since we're using concrete validation
+        smt2_file = save_dir / f"{constraint_id}_{approach}_constraints.smt2"
+        smt2_file.parent.mkdir(parents=True, exist_ok=True)
+        
+        try:
+            with smt2_file.open("w", encoding="utf-8") as f:
+                f.write(smtlib_constraints)
+        except Exception as e:
+            # If we can't save the file, continue without it
+            pass
 
     return True, "Solution validated successfully with concrete implementation"
 

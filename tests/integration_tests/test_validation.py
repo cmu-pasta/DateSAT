@@ -4,7 +4,7 @@ Test concrete validation functionality.
 
 import pytest
 
-from datesmt.concrete import BaselineConcreteSolver, ConcreteDateVar, ConcretePeriodVar
+from datesmt.concrete import BaselineConcreteSolver, ConcreteDateVar
 from datesmt.core import Date, Period
 from tests.integration_tests.validation import (
     parse_date_string,
@@ -67,16 +67,15 @@ class TestConcreteValidation:
         # The concrete validation currently just checks if the code executes
 
     def test_validate_with_periods(self):
-        """Test validating constraints with periods."""
+        """Test validating constraints with concrete periods."""
         constraint_data = {
             "id": "test_periods",
-            "description": "Constraint with periods test",
-            "constraints": ["d1 + p1 >= Date(2020, 6, 1)"],
+            "description": "Constraint with concrete periods test",
+            "constraints": ["d1 + Period(0, 2, 15) >= Date(2020, 6, 1)"],
             "date_variables": ["d1"],
-            "period_variables": ["p1"],
         }
 
-        solution = {"d1": "Date(2020, 3, 15)", "p1": "Period(0, 2, 15)"}
+        solution = {"d1": "Date(2020, 3, 15)"}
         is_valid, message = validate_solution_with_concrete(
             constraint_data, solution, {}
         )
@@ -128,15 +127,9 @@ class TestConcreteValidation:
         assert date_var.month == 3
         assert date_var.day == 15
 
-        # Add period variable
-        period_var = solver.add_period_var("p1", 1, 2, 3)
-        assert isinstance(period_var, ConcretePeriodVar)
-        assert period_var.years == 1
-        assert period_var.months == 2
-        assert period_var.days == 3
-
-        # Test date arithmetic
-        result = date_var + period_var
+        # Test date arithmetic with core Period
+        period = Period(1, 2, 3)
+        result = date_var + period
         assert isinstance(result, ConcreteDateVar)
         # The result should be 2020-03-15 + 1 year, 2 months, 3 days = 2021-05-18
         assert result.year == 2021

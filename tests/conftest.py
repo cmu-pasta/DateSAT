@@ -2,9 +2,16 @@
 Pytest configuration and shared fixtures for DATE-SMT tests.
 """
 
+import os
+import sys
 from datetime import date, timedelta
 
 import pytest
+
+# Ensure repository root is on sys.path so `import datesmt` works
+REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if REPO_ROOT not in sys.path:
+    sys.path.insert(0, REPO_ROOT)
 
 from datesmt.core import Date, Period
 
