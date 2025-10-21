@@ -259,18 +259,15 @@ class DateVar:
 
     def __add__(self, other):
         """
-        DateVar + Period/PeriodVar following baseline semantics:
+        DateVar + Period following baseline semantics:
         1) Combine Y and M (normalize months into 1..12 with year carry)
         2) Apply EOM clamp: day := min(original_day, days_in_month(new_year,new_month))
         3) Add D days in ordinal space (exact day arithmetic)
         """
-        if isinstance(other, Period) or isinstance(other, PeriodVar):
-            if isinstance(other, Period):
-                result = DateVar(
-                    f"{self.name}_plus_{other.years}y_{other.months}m_{other.days}d"
-                )
-            else:
-                result = DateVar(f"{self.name}_plus_{other.name}")
+        if isinstance(other, Period):
+            result = DateVar(
+                f"{self.name}_plus_{other.years}y_{other.months}m_{other.days}d"
+            )
 
             # Extract period components
             period_years = other.years
@@ -298,107 +295,18 @@ class DateVar:
 
     def __radd__(self, other):
         """Support period + date addition."""
-        if isinstance(other, Period) or isinstance(other, PeriodVar):
+        if isinstance(other, Period):
             return self.__add__(other)
         else:
             raise TypeError(f"Cannot add {type(other)} to DateVar")
 
     def __sub__(self, other):
         """DateVar - Period implemented as DateVar + (-Period)."""
-        if isinstance(other, Period) or isinstance(other, PeriodVar):
-            if isinstance(other, Period):
-                neg = Period(-other.years, -other.months, -other.days)
-            else:
-                neg = PeriodVar(
-                    years=-other.years,
-                    months=-other.months,
-                    days=-other.days,
-                    name=f"neg_{other.name}",
-                )
+        if isinstance(other, Period):
+            neg = Period(-other.years, -other.months, -other.days)
             return self.__add__(neg)
         else:
             raise TypeError(f"Cannot subtract {type(other)} from DateVar")
-
-
-class PeriodVar:
-    """Symbolic period variable for baseline implementation."""
-
-    def __init__(self, name: str, years=0, months=0, days=0):
-        """Create a symbolic period variable with optional initial values."""
-        self.name = name
-        # Create separate Z3 integer variables for years, months, days
-        self.years = Int(f"{name}_years")
-        self.months = Int(f"{name}_months")
-        self.days = Int(f"{name}_days")
-
-    def __str__(self):
-        return f"PeriodVar({self.name})"
-
-    def __repr__(self):
-        return self.__str__()
-
-    def to_concrete_period(self, model: ModelRef) -> Period:
-        """Convert Z3 model to concrete Period."""
-        years = model.evaluate(self.years, model_completion=True).as_long()
-        months = model.evaluate(self.months, model_completion=True).as_long()
-        days = model.evaluate(self.days, model_completion=True).as_long()
-        return Period(years, months, days)
-
-    def __eq__(self, other):
-        raise TypeError(f"Cannot compare PeriodVar.")
-
-    def __ne__(self, other):
-        raise TypeError(f"Cannot compare PeriodVar.")
-
-    def __add__(self, other):
-        """Support Period + Period addition."""
-        if isinstance(other, Period) or isinstance(other, PeriodVar):
-            if isinstance(other, Period):
-                result = PeriodVar(
-                    f"{self.name}_plus_{other.years}y_{other.months}m_{other.days}d"
-                )
-            else:
-                result = PeriodVar(f"{self.name}_plus_{other.name}")
-            result.years = self.years + other.years
-            result.months = self.months + other.months
-            result.days = self.days + other.days
-            return result
-        else:
-            raise TypeError(f"Cannot add {type(other)} to PeriodVar")
-
-    def __sub__(self, other):
-        """Support Period - Period subtraction."""
-        if isinstance(other, Period) or isinstance(other, PeriodVar):
-            if isinstance(other, Period):
-                result = PeriodVar(
-                    f"{self.name}_minus_{other.years}y_{other.months}m_{other.days}d"
-                )
-            else:
-                result = PeriodVar(f"{self.name}_minus_{other.name}")
-            result.years = self.years - other.years
-            result.months = self.months - other.months
-            result.days = self.days - other.days
-            return result
-        else:
-            raise TypeError(f"Cannot subtract {type(other)} from PeriodVar")
-
-    def __mul__(self, other):
-        """Support Period × Int multiplication."""
-        if isinstance(other, int):
-            result = PeriodVar(f"{self.name}_times_{other}")
-            result.years = self.years * other
-            result.months = self.months * other
-            result.days = self.days * other
-            return result
-        else:
-            raise TypeError(f"Cannot multiply PeriodVar with {type(other)}")
-
-    def __rmul__(self, other):
-        """Support Int × Period multiplication."""
-        if isinstance(other, int):
-            return self.__mul__(other)
-        else:
-            raise TypeError(f"Cannot multiply PeriodVar with {type(other)}")
 
 
 class BaselineSolver:
@@ -415,7 +323,6 @@ class BaselineSolver:
         self.solver = Solver()
         self.solver.set("timeout", timeout_ms)
         self.date_vars = {}
-        self.period_vars = {}
         self.constraints = []
         self.min_year = min_year
         self.max_year = max_year
@@ -460,13 +367,6 @@ class BaselineSolver:
 
         return date_var
 
-    def add_period_var(self, name: str) -> PeriodVar:
-        """Add a symbolic period variable."""
-        period_var = PeriodVar(name)
-        self.period_vars[name] = period_var
-        # No hard bounds - let Z3 handle arbitrary periods
-        return period_var
-
     def add_constraint(self, constraint: BoolRef):
         """Add a constraint to the solver."""
         self.constraints.append(constraint)
@@ -486,13 +386,6 @@ class BaselineSolver:
             name: var.to_concrete_date(model) for name, var in self.date_vars.items()
         }
 
-    def get_concrete_periods(self, model: ModelRef) -> dict:
-        """Get concrete periods from the model."""
-        return {
-            name: var.to_concrete_period(model)
-            for name, var in self.period_vars.items()
-        }
-
     def solve(self) -> Union[bool, dict]:
         """Solve the constraints."""
         result = self.check()
@@ -501,11 +394,10 @@ class BaselineSolver:
             return {
                 'status': 'sat',
                 'dates': self.get_concrete_dates(model),
-                'periods': self.get_concrete_periods(model),
             }
         else:
 
-            return {'status': 'unsat', 'dates': {}, 'periods': {}}
+            return {'status': 'unsat', 'dates': {}}
 
     def to_smt2(self) -> str:
         """Return the current problem in SMT-LIB v2 format."""

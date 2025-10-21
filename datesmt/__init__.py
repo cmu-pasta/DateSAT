@@ -6,7 +6,7 @@ expressing and solving date/time constraints using Z3.
 """
 
 from .api import DateSMTBuilder, create_bitvector_solver, create_int_solver
-from .concrete import BaselineConcreteSolver, ConcreteDateVar, ConcretePeriodVar
+from .concrete import BaselineConcreteSolver, ConcreteDateVar
 from .core import Date, Period
 from .symbolic_bitvector.alpha_beta_bv import (
     AlphaBetaSolver as BitVectorAlphaBetaSolver,
@@ -41,7 +41,6 @@ __all__ = [
     # Concrete implementation
     "BaselineConcreteSolver",
     "ConcreteDateVar",
-    "ConcretePeriodVar",
     # Bitvector implementations
     "BitVectorBaselineSolver",
     "BitVectorEpochDaysSolver",

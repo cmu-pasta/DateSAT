@@ -73,10 +73,6 @@ class DateSMTBuilder:
         """Add a symbolic date variable."""
         return self.solver.add_date_var(name)
 
-    def add_period_var(self, name: str):
-        """Add a symbolic period variable."""
-        return self.solver.add_period_var(name)
-
     def add_constraint(self, constraint: BoolRef, description: str = ""):
         """Add a constraint to the solver."""
         if description:

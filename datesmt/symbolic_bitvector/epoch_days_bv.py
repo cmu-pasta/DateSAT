@@ -323,10 +323,10 @@ class DateVar:
         return Not(self.__eq__(other))
 
     def __add__(self, other):
-        """DateVar + Period/PeriodVar following baseline semantics.
+        """DateVar + Period following baseline semantics.
         Steps: normalize Y/M, EOM clamp, then add D days in ordinal space.
         """
-        if isinstance(other, Period) or isinstance(other, PeriodVar):
+        if isinstance(other, Period):
             if isinstance(other, Period):
                 result = DateVar(
                     f"{self.name}_plus_{other.years}y_{other.months}m_{other.days}d"
@@ -367,98 +367,18 @@ class DateVar:
             raise TypeError(f"Cannot add {type(other)} to DateVar")
 
     def __radd__(self, other):
-        if isinstance(other, Period) or isinstance(other, PeriodVar):
+        if isinstance(other, Period):
             return self.__add__(other)
         else:
             raise TypeError(f"Cannot add {type(other)} to DateVar")
 
     def __sub__(self, other):
         """DateVar - Period implemented as DateVar + (-Period). Date difference returns Int."""
-        if isinstance(other, Period) or isinstance(other, PeriodVar):
-            if isinstance(other, Period):
-                neg = Period(-other.years, -other.months, -other.days)
-            else:
-                neg = PeriodVar(f"neg_{other.name}")
-                neg.years = -other.years
-                neg.months = -other.months
-                neg.days = -other.days
+        if isinstance(other, Period):
+            neg = Period(-other.years, -other.months, -other.days)
             return self.__add__(neg)
         else:
             raise TypeError(f"Cannot subtract {type(other)} from DateVar")
-
-
-class PeriodVar:
-    """Symbolic period variable using separate Y/M/D components (baseline-compatible)."""
-
-    def __init__(self, name: str, years=0, months=0, days=0):
-        self.name = name
-        self.years = BitVec(f"{name}_years", 32)
-        self.months = BitVec(f"{name}_months", 32)
-        self.days = BitVec(f"{name}_days", 32)
-
-    def __str__(self):
-        return f"PeriodVar({self.name})"
-
-    def __repr__(self):
-        return self.__str__()
-
-    def to_concrete_period(self, model: ModelRef) -> Period:
-        years = model.evaluate(self.years, model_completion=True).as_long()
-        months = model.evaluate(self.months, model_completion=True).as_long()
-        days = model.evaluate(self.days, model_completion=True).as_long()
-        return Period(years, months, days)
-
-    def __eq__(self, other):
-        raise TypeError(f"Cannot compare PeriodVar.")
-
-    def __ne__(self, other):
-        raise TypeError(f"Cannot compare PeriodVar.")
-
-    def __add__(self, other):
-        if isinstance(other, Period) or isinstance(other, PeriodVar):
-            if isinstance(other, Period):
-                result = PeriodVar(
-                    f"{self.name}_plus_{other.years}y_{other.months}m_{other.days}d"
-                )
-                oy, om, od = (
-                    BitVecVal(other.years, 32),
-                    BitVecVal(other.months, 32),
-                    BitVecVal(other.days, 32),
-                )
-                result.years = self.years + oy
-                result.months = self.months + om
-                result.days = self.days + od
-            else:
-                result = PeriodVar(f"{self.name}_plus_{other.name}")
-                result.years = self.years + other.years
-                result.months = self.months + other.months
-                result.days = self.days + other.days
-            return result
-        else:
-            raise TypeError(f"Cannot add {type(other)} to PeriodVar")
-
-    def __sub__(self, other):
-        if isinstance(other, Period) or isinstance(other, PeriodVar):
-            if isinstance(other, Period):
-                result = PeriodVar(
-                    f"{self.name}_minus_{other.years}y_{other.months}m_{other.days}d"
-                )
-                oy, om, od = (
-                    BitVecVal(other.years, 32),
-                    BitVecVal(other.months, 32),
-                    BitVecVal(other.days, 32),
-                )
-                result.years = self.years - oy
-                result.months = self.months - om
-                result.days = self.days - od
-            else:
-                result = PeriodVar(f"{self.name}_minus_{other.name}")
-                result.years = self.years - other.years
-                result.months = self.months - other.months
-                result.days = self.days - other.days
-            return result
-        else:
-            raise TypeError(f"Cannot subtract {type(other)} from PeriodVar")
 
 
 class EpochDaysSolver:
@@ -473,7 +393,6 @@ class EpochDaysSolver:
         self.solver = Solver()
         self.solver.set("timeout", timeout_ms)
         self.date_vars = {}
-        self.period_vars = {}
         self.constraints = []
         self.timeout_ms = timeout_ms
 
@@ -490,12 +409,6 @@ class EpochDaysSolver:
         self.solver.add(date_var.days_var <= BitVecVal(36523, 32))  # 2100-02-28
 
         return date_var
-
-    def add_period_var(self, name: str) -> PeriodVar:
-        """Add a symbolic period variable."""
-        period_var = PeriodVar(name)
-        self.period_vars[name] = period_var
-        return period_var
 
     def add_constraint(self, constraint: BoolRef):
         """Add a constraint to the solver."""
@@ -516,13 +429,6 @@ class EpochDaysSolver:
             name: var.to_concrete_date(model) for name, var in self.date_vars.items()
         }
 
-    def get_concrete_periods(self, model: ModelRef) -> dict:
-        """Get concrete periods from the model."""
-        return {
-            name: var.to_concrete_period(model)
-            for name, var in self.period_vars.items()
-        }
-
     def solve(self) -> Union[bool, dict]:
         """Solve the constraints."""
         result = self.check()
@@ -531,10 +437,9 @@ class EpochDaysSolver:
             return {
                 'status': 'sat',
                 'dates': self.get_concrete_dates(model),
-                'periods': self.get_concrete_periods(model),
             }
         else:
-            return {'status': 'unsat', 'dates': {}, 'periods': {}}
+            return {'status': 'unsat', 'dates': {}}
 
     def to_smt2(self) -> str:
         """Return the current problem in SMT-LIB v2 format."""

@@ -35,7 +35,7 @@ Debugging
 [X] Figure out 1758090062-13 for baseline - See nothing wrong after updating the implementation -> ?
 [ ] Figure out the "error" cases in the results
     [X]1758086606-5: Date - Date
-    [ ]1758086606-8: PeriodVar should not be supported - add check & remove period_variables in tests
+    [X]1758086606-8: PeriodVar should not be supported - add check & remove period_variables in tests
     [ ]1758090062-4
     [ ]1758090062-5
     [ ]1758090062-9
