@@ -173,7 +173,8 @@ class Period:
                 self.days + other.days
             )
         else:
-            raise TypeError(f"Cannot add {type(other)} to Period")
+            # Delegate to the right operand's __radd__ method
+            return NotImplemented
 
     def __sub__(self, other):
         """Support Period - Period subtraction."""
@@ -184,4 +185,4 @@ class Period:
                 self.days - other.days
             )
         else:
-            raise TypeError(f"Cannot subtract {type(other)} from Period")
+            return NotImplemented
