@@ -10,6 +10,7 @@ DateSMT
 [ ] Think about hybrid method: do we need lazy approach?
 [X] Use bit vector? - Added
 [ ] Further reduce bit width?
+[ ] Think about cases where bitvector is slower? (div/mod)
 
 Unit test
 [X] Add unit test coverage (Angel)
@@ -33,15 +34,15 @@ LLM test generation
 
 Debugging
 [X] Figure out 1758090062-13 for baseline - See nothing wrong after updating the implementation -> ?
-[ ] Figure out the "error" cases in the results
+[X] Figure out the "error" cases in the results
     [X]1758086606-5: Date - Date
     [X]1758086606-8: PeriodVar should not be supported - add check & remove period_variables in tests
-    [ ]1758090062-4
-    [ ]1758090062-5
-    [ ]1758090062-9
+    [X]1758090062-4: Same as 1758086606-8
+    [X]1758090062-5: Date - Date
+    [X]1758090062-9: Same as 1758086606-8
 [X] Figure out the "timeout" cases in the results
     [X]1758090062-12
-[X] Figure out the "wrong" cases in the results
+[X] Figure out the "wrong" cases in the results - NO WRONG CASES
     [X]1758090062-11
     [X]1758090062-13
 
@@ -54,3 +55,4 @@ General
 [ ] Make helper functions' names begin with _
 [ ] Clean up existing doc
 [ ] Add documentation for each method
+[ ] Flatten integration_tests and llm_constraints_generator
