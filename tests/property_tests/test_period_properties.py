@@ -38,7 +38,7 @@ class TestPeriodProperties:
         """String representation should be consistent."""
         p = Period(y, m, d)
         # The string representation should contain the values
-        repr_str = repr(p)
-        assert str(y) in repr_str
-        assert str(m) in repr_str
-        assert str(d) in repr_str
+        str_repr = str(p)
+        assert str(y) in str_repr
+        assert str(m) in str_repr
+        assert str(d) in str_repr

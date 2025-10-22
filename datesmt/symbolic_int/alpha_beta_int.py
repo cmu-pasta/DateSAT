@@ -186,13 +186,6 @@ class DateVar:
         else:
             raise TypeError(f"Cannot add {type(other)} to DateVar")
 
-    def __radd__(self, other) -> 'DateVar':
-        """Support period + date addition."""
-        if isinstance(other, Period):
-            return self.__add__(other)
-        else:
-            raise TypeError(f"Cannot add {type(other)} to DateVar")
-
     def __sub__(self, other) -> 'DateVar':
         """DateVar - Period implemented as DateVar + (-Period)."""
         if isinstance(other, Period):

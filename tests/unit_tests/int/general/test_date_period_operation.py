@@ -161,16 +161,6 @@ def _solve_single_add(solver_cls, base: Date, per: Period) -> dict:
 
     return s.solve()
 
-
-def _solve_single_radd(solver_cls, base: Date, per: Period) -> dict:
-    s = solver_cls()
-    x = s.add_date_var("x")
-    y = s.add_date_var("y")
-    s.add_constraint(x == base)
-    s.add_constraint(y == per + x)
-    return s.solve()
-
-
 def _solve_single_sub(solver_cls, base: Date, per: Period) -> dict:
     s = solver_cls()
     x = s.add_date_var("x")
@@ -277,89 +267,6 @@ def test_alpha_beta_table_equals_ground_truth(base: Date, per: Period, expect: D
     ), f"alpha_beta_table: {base} + {per} -> {got_a}, expected {expect}"
 
 
-# radd: Period + Date
-@pytest.mark.parametrize(
-    "base,per,expect",
-    [
-        pytest.param(base, per, expect, id=f"radd_{base}+{per}={expect}")
-        for base, per, expect in get_period_arithmetic_test_cases()
-    ],
-)
-@pytest.mark.baseline
-@pytest.mark.integer
-def test_baseline_radd_equals_ground_truth(base: Date, per: Period, expect: Date):
-    model = _solve_single_radd(BaselineSolver, base, per)
-    assert model["status"] == "sat"
-    got = model["dates"]["y"]
-    assert got == expect, f"Baseline radd: {per} + {base} -> {got}, expected {expect}"
-
-
-@pytest.mark.parametrize(
-    "base,per,expect",
-    [
-        pytest.param(base, per, expect, id=f"radd_{base}+{per}={expect}")
-        for base, per, expect in get_period_arithmetic_test_cases()
-    ],
-)
-@pytest.mark.epoch_days
-@pytest.mark.integer
-def test_epoch_days_radd_equals_ground_truth(base: Date, per: Period, expect: Date):
-    model = _solve_single_radd(EpochDaysSolver, base, per)
-    assert model["status"] == "sat"
-    got = model["dates"]["y"]
-    assert got == expect, f"EpochDays radd: {per} + {base} -> {got}, expected {expect}"
-
-
-@pytest.mark.parametrize(
-    "base,per,expect",
-    [
-        pytest.param(base, per, expect, id=f"radd_{base}+{per}={expect}")
-        for base, per, expect in get_period_arithmetic_test_cases()
-    ],
-)
-@pytest.mark.hybrid
-@pytest.mark.integer
-def test_hybrid_radd_equals_ground_truth(base: Date, per: Period, expect: Date):
-    model = _solve_single_radd(HybridSolver, base, per)
-    assert model["status"] == "sat"
-    got = model["dates"]["y"]
-    assert got == expect, f"Hybrid radd: {per} + {base} -> {got}, expected {expect}"
-
-
-@pytest.mark.parametrize(
-    "base,per,expect",
-    [
-        pytest.param(base, per, expect, id=f"radd_{base}+{per}={expect}")
-        for base, per, expect in get_period_arithmetic_test_cases()
-    ],
-)
-@pytest.mark.alpha_beta
-@pytest.mark.integer
-def test_alpha_beta_radd_equals_ground_truth(base: Date, per: Period, expect: Date):
-    model = _solve_single_radd(AlphaBetaSolver, base, per)
-    assert model["status"] == "sat"
-    got = model["dates"]["y"]
-    assert got == expect, f"AlphaBeta radd: {per} + {base} -> {got}, expected {expect}"
-
-
-@pytest.mark.parametrize(
-    "base,per,expect",
-    [
-        pytest.param(base, per, expect, id=f"radd_{base}+{per}={expect}")
-        for base, per, expect in get_period_arithmetic_test_cases()
-    ],
-)
-@pytest.mark.alpha_beta_table
-@pytest.mark.integer
-def test_alpha_beta_table_radd_equals_ground_truth(
-    base: Date, per: Period, expect: Date
-):
-    model = _solve_single_radd(AlphaBetaTableSolver, base, per)
-    assert model["status"] == "sat"
-    got = model["dates"]["y"]
-    assert (
-        got == expect
-    ), f"AlphaBetaTable radd: {per} + {base} -> {got}, expected {expect}"
 
 
 # sub: Date - Period (equivalent to add negative period). If ground truth is out of domain, expect UNSAT.
