@@ -6,13 +6,14 @@ as separate year, month, and day variables, and period arithmetic is done
 component-wise with proper normalization.
 """
 
-from typing import Union
-
+from typing import Union, Tuple, List
 from z3 import (
     UGE,
     ULT,
     And,
+    ArithRef,
     BitVec,
+    BitVecRef,
     BitVecVal,
     BoolRef,
     CheckSatResult,
@@ -21,15 +22,19 @@ from z3 import (
     Not,
     Or,
     Solver,
-    is_expr,
-    sat,
-    unsat,
+    sat
 )
-
 from ..core import Date, Period
 
+_NONLEAP_PREFIX = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334]
+_LEAP_PREFIX = [0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335]
+# -------------------------------
+# Epoch binding: 2000-03-01
+# -------------------------------
+# _ORD_EPOCH = to_ordinal(BitVecVal(2000, 32), BitVecVal(3, 32), BitVecVal(1, 32))  # original ground Z3 term
+_ORD_EPOCH = BitVecVal(730179, 32)  # precomputed ordinal of 2000-03-01 (0001-01-01 = 0)
 
-def is_leap(year):
+def is_leap(year) -> BoolRef:
     """Check if a year is a leap year."""
     return Or(
         And(
@@ -39,8 +44,7 @@ def is_leap(year):
         year % BitVecVal(400, 32) == BitVecVal(0, 32),
     )
 
-
-def days_in_month(year, month):
+def days_in_month(year, month) -> ArithRef:
     """Get the number of days in a month, accounting for leap years."""
     return If(
         month == BitVecVal(2, 32),
@@ -57,29 +61,10 @@ def days_in_month(year, month):
         ),
     )
 
-
-def normalize_month(y, m):
+def normalize_month(y, m) -> Tuple[BitVecRef, BitVecRef]:
     """
     NormMonth(y,m) = (y + ((m-1) div 12), ((m-1) mod 12) + 1)
     Works for concrete and symbolic inputs.
-    """
-    # Check if m is negative (>= 2^31) when interpreted as signed
-    is_negative = UGE(m, BitVecVal(2**31, 32))
-
-    # Convert to signed value if negative
-    signed_m = If(is_negative, m - BitVecVal(2**32, 32), m)
-
-    # Normalize using signed arithmetic
-    t = signed_m - BitVecVal(1, 32)
-    q = t / BitVecVal(12, 32)  # Z3 integer division
-    r = t % BitVecVal(12, 32)  # Z3 modulo
-    return y + q, r + BitVecVal(1, 32)
-
-
-def normalize_month_signed(y, m):
-    """
-    Normalize month handling negative values correctly for bitvectors.
-    Uses floor division to match Python's behavior.
     """
     # Check if m is negative (>= 2^31)
     is_negative = UGE(m, BitVecVal(2**31, 32))
@@ -100,8 +85,7 @@ def normalize_month_signed(y, m):
 
     return y + q, r + BitVecVal(1, 32)
 
-
-def days_before_year(y):
+def days_before_year(y) -> ArithRef:
     """
     Days from 0001-01-01 to Jan 1 of year y (0-based), Gregorian rules.
     """
@@ -113,32 +97,18 @@ def days_before_year(y):
         + y1 / BitVecVal(400, 32)
     )
 
-
-_NONLEAP_PREFIX = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334]
-_LEAP_PREFIX = [0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335]
-
-
-def _dbm_index(y, idx):
-    """days_before_month for fixed idx∈{1..12} as a Z3 term."""
-    non = BitVecVal(_NONLEAP_PREFIX[idx - 1], 32)
-    lep = BitVecVal(_LEAP_PREFIX[idx - 1], 32)
-    return If(is_leap(y), lep, non)
-
-
-def days_before_month(y, m):
+def days_before_month(y, m) -> BitVecRef:
     """Z3 piecewise selection (no Python control over symbolic m)."""
     expr = BitVecVal(0, 32)
     for i in range(1, 13):
         expr = If(m == BitVecVal(i, 32), _dbm_index(y, i), expr)
     return expr
 
-
-def to_ordinal(y, m, d):
+def to_ordinal(y, m, d) -> ArithRef:
     """Z3-pure ordinal conversion (day 0 = 0001-01-01)."""
     return days_before_year(y) + days_before_month(y, m) + (d - BitVecVal(1, 32))
 
-
-def from_ordinal(n):
+def from_ordinal(n) -> Tuple[BitVecRef, BitVecRef, BitVecRef]:
     """Z3-pure ordinal to date conversion using 400/100/4/1 year block decomposition."""
     # 400/100/4/1 year block decomposition
     D400, D100, D4, D1 = (
@@ -180,36 +150,22 @@ def from_ordinal(n):
 
     return year, month, day_expr
 
-
-def ymd_from_days_since_epoch(days_term):
+def ymd_from_days_since_epoch(days_term) -> Tuple[BitVec, BitVec, BitVec]:
     """Decode (y,m,d) from a Z3 Int 'days since 2000-03-01'."""
     return from_ordinal(days_term + _ORD_EPOCH)
 
-
-def days_since_epoch_from_ymd(y, m, d):
+def days_since_epoch_from_ymd(y, m, d) -> ArithRef:
     """Encode (y,m,d) to Z3 Int 'days since 2000-03-01'."""
     return to_ordinal(y, m, d) - _ORD_EPOCH
 
-
-# -------------------------------
-# Epoch binding: 2000-03-01
-# -------------------------------
-# _ORD_EPOCH = to_ordinal(BitVecVal(2000, 32), BitVecVal(3, 32), BitVecVal(1, 32))  # original ground Z3 term
-_ORD_EPOCH = BitVecVal(730179, 32)  # precomputed ordinal of 2000-03-01 (0001-01-01 = 0)
-
-
-def EOMClamp(year, month, day):
+def eom_clamp(year, month, day) -> BitVecRef:
     """
     End-of-month clamp: ensure day is valid for the given year/month.
     """
     max_day = days_in_month(year, month)
     return If(day < BitVecVal(1, 32), BitVecVal(1, 32), If(day > max_day, max_day, day))
 
-
-FOUR_HUNDRED_YEARS = BitVecVal(146097, 32)  # 400*365 + 97 leap days
-
-
-def add_days_ordinal(y, m, d, delta_days):
+def add_days_ordinal(y, m, d, delta_days) -> Tuple[BitVec, BitVec, BitVec]:
     """
     Exact ordinal-based addition via a single ordinal add.
     Steps:
@@ -217,8 +173,7 @@ def add_days_ordinal(y, m, d, delta_days):
       - If delta_days == 0 → return (y,m,d).
       - Add delta_days in days-since-epoch space and decode.
     """
-
-    d0 = EOMClamp(y, m, d)
+    d0 = eom_clamp(y, m, d)
 
     # Fast path: no day shift → avoid any ordinal math.
     no_shift = delta_days == BitVecVal(0, 32)
@@ -234,6 +189,13 @@ def add_days_ordinal(y, m, d, delta_days):
     return out_y, out_m, out_d
 
 
+def _dbm_index(y, idx) -> BitVecRef:
+    """days_before_month for fixed idx∈{1..12} as a Z3 term."""
+    non = BitVecVal(_NONLEAP_PREFIX[idx - 1], 32)
+    lep = BitVecVal(_LEAP_PREFIX[idx - 1], 32)
+    return If(is_leap(y), lep, non)
+
+
 class DateVar:
     """Symbolic date variable for baseline implementation."""
 
@@ -245,11 +207,8 @@ class DateVar:
         self.month = BitVec(f"{name}_month", 32)
         self.day = BitVec(f"{name}_day", 32)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"DateVar({self.name})"
-
-    def __repr__(self):
-        return self.__str__()
 
     def to_concrete_date(self, model: ModelRef) -> Date:
         """Convert Z3 model to concrete Date."""
@@ -258,8 +217,8 @@ class DateVar:
         day = model.evaluate(self.day, model_completion=True).as_long()
         return Date(year, month, day)
 
-    def __ge__(self, other):
-        """Support x >= date comparison using lexicographic ordering."""
+    def __ge__(self, other) -> BoolRef:
+        """Support x >= date comparison."""
         if isinstance(other, Date) or isinstance(other, DateVar):
             # Convert Date to bitvector values if needed
             if isinstance(other, Date):
@@ -284,8 +243,8 @@ class DateVar:
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
-    def __le__(self, other):
-        """Support x <= date comparison using lexicographic ordering."""
+    def __le__(self, other) -> BoolRef:
+        """Support x <= date comparison."""
         if isinstance(other, Date) or isinstance(other, DateVar):
             # Convert Date to bitvector values if needed
             if isinstance(other, Date):
@@ -310,22 +269,22 @@ class DateVar:
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
-    def __lt__(self, other):
-        """Support x < date comparison using lexicographic ordering."""
+    def __lt__(self, other) -> BoolRef:
+        """Support x < date comparison."""
         if isinstance(other, Date) or isinstance(other, DateVar):
             return Not(self.__ge__(other))
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
-    def __gt__(self, other):
-        """Support x > date comparison using lexicographic ordering."""
+    def __gt__(self, other) -> BoolRef:
+        """Support x > date comparison."""
         if isinstance(other, Date) or isinstance(other, DateVar):
             return Not(self.__le__(other))
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
-    def __eq__(self, other):
-        """Support x == date comparison using lexicographic ordering."""
+    def __eq__(self, other) -> BoolRef:
+        """Support x == date comparison."""
         if isinstance(other, Date) or isinstance(other, DateVar):
             # Convert Date to bitvector values if needed
             if isinstance(other, Date):
@@ -345,14 +304,14 @@ class DateVar:
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
-    def __ne__(self, other):
+    def __ne__(self, other) -> BoolRef:
         """Support x != date comparison using ordinal arithmetic."""
         if isinstance(other, Date) or isinstance(other, DateVar):
             return Not(self.__eq__(other))
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
-    def __add__(self, other):
+    def __add__(self, other) -> 'DateVar':
         """
         DateVar + Period following baseline semantics:
         1) Combine Y and M (normalize months into 1..12 with year carry)
@@ -377,11 +336,11 @@ class DateVar:
             period_total_months = period_years * BitVecVal(12, 32) + period_months
             # Add to current month and normalize
             total_months = self.month + period_total_months
-            year_carry, m1 = normalize_month_signed(self.year, total_months)
+            year_carry, m1 = normalize_month(self.year, total_months)
             y1 = year_carry
 
             # Step 2: Apply EOM clamp: day := min(original_day, days_in_month(new_year,new_month))
-            d1 = EOMClamp(y1, m1, self.day)
+            d1 = eom_clamp(y1, m1, self.day)
 
             # Step 3: Add D days in ordinal space (exact day arithmetic)
             y2, m2, d2 = add_days_ordinal(y1, m1, d1, period_days)
@@ -391,14 +350,14 @@ class DateVar:
         else:
             raise TypeError(f"Cannot add {type(other)} to DateVar")
 
-    def __radd__(self, other):
+    def __radd__(self, other) -> 'DateVar':
         """Support period + date addition."""
         if isinstance(other, Period):
             return self.__add__(other)
         else:
             raise TypeError(f"Cannot add {type(other)} to DateVar")
 
-    def __sub__(self, other):
+    def __sub__(self, other) -> 'DateVar':
         """DateVar - Period implemented as DateVar + (-Period)."""
         if isinstance(other, Period):
             neg = Period(-other.years, -other.months, -other.days)
@@ -410,20 +369,16 @@ class DateVar:
 class BaselineSolver:
     """Baseline date constraint solver using component-based representation."""
 
-    def __init__(self, min_year=None, max_year=None, timeout_ms=60000):
+    def __init__(self, timeout_ms=60000):
         """Initialize the solver with optional year bounds and timeout.
 
         Args:
-            min_year: Minimum year constraint
-            max_year: Maximum year constraint
             timeout_ms: Timeout in milliseconds (default: 60 seconds)
         """
         self.solver = Solver()
         self.solver.set("timeout", timeout_ms)
         self.date_vars = {}
         self.constraints = []
-        self.min_year = min_year
-        self.max_year = max_year
         self.timeout_ms = timeout_ms
 
     def add_date_var(self, name: str) -> DateVar:
@@ -465,12 +420,12 @@ class BaselineSolver:
 
         return date_var
 
-    def add_constraint(self, constraint: BoolRef):
+    def add_constraint(self, constraint: BoolRef) -> None:
         """Add a constraint to the solver."""
         self.constraints.append(constraint)
         self.solver.add(constraint)
 
-    def check(self) -> CheckSatResult:
+    def check(self) -> bool:
         """Check if constraints are satisfiable."""
         return self.solver.check()
 
@@ -501,6 +456,6 @@ class BaselineSolver:
         """Return the current problem in SMT-LIB v2 format."""
         return self.solver.to_smt2()
 
-    def get_assertions(self):
+    def get_assertions(self) -> List[BoolRef]:
         """Return the list of current Z3 assertions (BoolRef)."""
         return list(self.solver.assertions())

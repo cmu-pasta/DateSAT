@@ -7,9 +7,10 @@ DateSMT
 [X] Library behavior when an input is an invalid day/out of range?
 [X] Clean up symbolic_alpha_beta_table
 [X] Check if we can specify temp var (var that we don't need result for) - still need to solve but can not return the result -> don't matter in terms of performance?
-[ ] Think about hybrid method: do we need lazy approach?
 [X] Use bit vector? - Added
-[ ] Further reduce bit width?
+[ ] Further reduce bit width
+[ ] BitVector/Int hybrid approach
+[ ] Think about hybrid method: do we need lazy approach?
 [ ] Think about cases where bitvector is slower? (div/mod)
 
 Unit test
@@ -55,17 +56,26 @@ General
     [ ] datesmt/
         [X] __init__.py
         [X] api.py
-        [-] concrete.py
-        [-] core.py
+        [X] concrete.py
+        [X] core.py
         [X] constraint_parser.py
         [ ] symbolic_int/
-        [ ] symbolic_bitvector/
+            [X] baseline
+            [X] epoch_days
+            [X] hybrid
+            [X] alpha_beta
+            [ ] alpha_beta_table
+        [X] symbolic_bitvector/
+            [X] baseline
+            [X] epoch_days
+            [X] hybrid
+            [X] alpha_beta
+            [ ] alpha_beta_table
     [ ] tests/
-        [-] core_data_structures/
-            [-] test_date.py
-            [-] test_period.py
+        [X] core_data_structures/
+            [X] test_date.py
+            [X] test_period.py
         [X] test_constraint_parser.py
-[ ] Make helper functions' names begin with _
 [X] Clean up existing doc
 [ ] Add READMEs
 [ ] Add documentation for each method

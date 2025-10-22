@@ -119,8 +119,6 @@ class ConcreteSolver:
 
     def __init__(
         self,
-        min_year: Optional[int] = None,
-        max_year: Optional[int] = None,
         timeout_ms: int = 60000,
     ):
         """Initialize the solver."""

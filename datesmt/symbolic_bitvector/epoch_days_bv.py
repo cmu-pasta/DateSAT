@@ -6,255 +6,52 @@ as days since an epoch, and period arithmetic is done using approximate
 day conversions.
 """
 
+from typing import Union, Tuple, List
 from datetime import date, timedelta
-from typing import Union
-
 from z3 import (
     UGE,
     ULT,
     And,
-    BitVec,
-    BitVecVal,
+    ArithRef,
     BoolRef,
     CheckSatResult,
     If,
+    BitVec,
+    BitVecVal,
     ModelRef,
     Not,
     Or,
     Solver,
-    sat,
-    unsat,
+    sat
+)
+from ..core import Date, Period
+from .baseline_bv import (
+    is_leap,
+    days_in_month,
+    normalize_month,
+    days_before_year,
+    days_before_month,
+    to_ordinal,
+    from_ordinal,
+    ymd_from_days_since_epoch,
+    days_since_epoch_from_ymd, 
+    eom_clamp, 
+    add_days_ordinal,
+    _dbm_index,
 )
 
-from ..core import Date, Period
+_EPOCH = date(2000, 3, 1)
 
 
 def from_days_since_epoch(days: int) -> Date:
-    """Convert days since epoch to a Date using a more robust approach."""
-    # March 1, 2000 is day 0
-    # Convert our epoch to Python date
-    epoch_python = date(2000, 3, 1)
-
-    # Add the days
-    result_python = epoch_python + timedelta(days=days)
-
-    # Convert back to our Date class
-    return Date(result_python.year, result_python.month, result_python.day)
-
+    """Convert days since epoch to a Date."""
+    result_date = _EPOCH + timedelta(days=days)
+    return Date(result_date.year, result_date.month, result_date.day)
 
 def to_days_since_epoch(date_obj: Date) -> int:
-    """Convert a Date to days since epoch (March 1, 2000) using a more robust approach."""
-    # March 1, 2000 is day 0
-    # Convert to Python dates
-    epoch_python = date(2000, 3, 1)
+    """Convert a Date to days since epoch (March 1, 2000)."""
     target_python = date(date_obj.year, date_obj.month, date_obj.day)
-
-    # Calculate the difference
-    delta = target_python - epoch_python
-    return delta.days
-
-
-# -------------------------------
-# Z3-pure calendar helpers
-# -------------------------------
-
-
-def is_leap_year(y):
-    """Z3-pure leap year check."""
-    return Or(And(y % 4 == 0, y % 100 != 0), y % 400 == 0)
-
-
-def days_in_month(y, m):
-    """Z3-pure days in month calculation."""
-    return If(
-        m == 2,
-        If(is_leap_year(y), BitVecVal(29, 32), BitVecVal(28, 32)),
-        If(Or(m == 4, m == 6, m == 9, m == 11), BitVecVal(30, 32), BitVecVal(31, 32)),
-    )
-
-
-def normalize_month(y, m):
-    """Z3-pure month normalization (1..12)."""
-    # Check if m is negative (>= 2^31) when interpreted as signed
-    is_negative = UGE(m, BitVecVal(2**31, 32))
-
-    # Convert to signed value if negative
-    signed_m = If(is_negative, m - BitVecVal(2**32, 32), m)
-
-    # Normalize using signed arithmetic with floor division
-    t = signed_m - BitVecVal(1, 32)
-
-    # Implement floor division: if t < 0 and t % 12 != 0, subtract 1 from quotient
-    q_trunc = t / BitVecVal(12, 32)  # Truncating division
-    r = t % BitVecVal(12, 32)  # Modulo
-    is_negative_and_has_remainder = And(
-        UGE(t, BitVecVal(2**31, 32)), r != BitVecVal(0, 32)
-    )
-    q = If(is_negative_and_has_remainder, q_trunc - BitVecVal(1, 32), q_trunc)
-
-    return y + q, r + BitVecVal(1, 32)
-
-
-# -------------------------------
-# Ordinal (0001-01-01 is day 0)
-# -------------------------------
-_NONLEAP_PREFIX = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334]
-_LEAP_PREFIX = [0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335]
-
-
-def _dbm_index(y, idx):
-    """Helper for days before month calculation."""
-    non = BitVecVal(_NONLEAP_PREFIX[idx - 1], 32)
-    lep = BitVecVal(_LEAP_PREFIX[idx - 1], 32)
-    return If(is_leap_year(y), lep, non)
-
-
-def days_before_year(y):
-    """Z3-pure days before year calculation."""
-    y1 = y - BitVecVal(1, 32)
-    return (
-        BitVecVal(365, 32) * y1
-        + y1 / BitVecVal(4, 32)
-        - y1 / BitVecVal(100, 32)
-        + y1 / BitVecVal(400, 32)
-    )
-
-
-def days_before_month(y, m):
-    """Z3-pure days before month calculation."""
-    expr = BitVecVal(0, 32)
-    for i in range(1, 13):
-        expr = If(m == BitVecVal(i, 32), _dbm_index(y, i), expr)
-    return expr
-
-
-def to_ordinal(y, m, d):
-    """Z3-pure ordinal conversion (day 0 = 0001-01-01)."""
-    return days_before_year(y) + days_before_month(y, m) + (d - BitVecVal(1, 32))
-
-
-def from_ordinal(n):
-    """Z3-pure ordinal to date conversion using 400/100/4/1 year block decomposition."""
-    # 400/100/4/1 year block decomposition
-    D400, D100, D4, D1 = (
-        BitVecVal(146097, 32),
-        BitVecVal(36524, 32),
-        BitVecVal(1461, 32),
-        BitVecVal(365, 32),
-    )
-    q400, r400 = n / D400, n % D400
-
-    q100_raw = r400 / D100
-    q100 = If(q100_raw >= BitVecVal(4, 32), BitVecVal(3, 32), q100_raw)  # clamp 0..3
-    r100 = r400 - q100 * D100
-
-    q4, r4 = r100 / D4, r100 % D4
-
-    q1_raw = r4 / D1
-    q1 = If(q1_raw >= BitVecVal(4, 32), BitVecVal(3, 32), q1_raw)  # clamp 0..3
-    r1 = r4 - q1 * D1  # day-of-year (0..365)
-
-    year = (
-        q400 * BitVecVal(400, 32)
-        + q100 * BitVecVal(100, 32)
-        + q4 * BitVecVal(4, 32)
-        + q1
-        + BitVecVal(1, 32)
-    )
-
-    # month = max i with r1 >= DBM(year, i)
-    dbm = [_dbm_index(year, i) for i in range(1, 13)]
-    month = BitVecVal(1, 32)
-    for i in range(2, 13):
-        month = If(r1 >= dbm[i - 1], BitVecVal(i, 32), month)
-
-    # day = r1 - DBM(year, month) + 1
-    day_expr = r1 - dbm[0] + BitVecVal(1, 32)
-    for i in range(2, 13):
-        day_expr = If(r1 >= dbm[i - 1], r1 - dbm[i - 1] + BitVecVal(1, 32), day_expr)
-
-    return year, month, day_expr
-
-
-# -------------------------------
-# Epoch binding: 2000-03-01
-# -------------------------------
-# _ORD_EPOCH = to_ordinal(BitVecVal(2000, 32), BitVecVal(3, 32), BitVecVal(1, 32))  # original ground Z3 term
-_ORD_EPOCH = BitVecVal(730179, 32)  # precomputed ordinal of 2000-03-01 (0001-01-01 = 0)
-
-
-def ymd_from_days_since_epoch(days_term):
-    """Decode (y,m,d) from a Z3 Int 'days since 2000-03-01'."""
-    return from_ordinal(days_term + _ORD_EPOCH)
-
-
-def days_since_epoch_from_ymd(y, m, d):
-    """Encode (y,m,d) to Z3 Int 'days since 2000-03-01'."""
-    return to_ordinal(y, m, d) - _ORD_EPOCH
-
-
-# Baseline-compatible helper alias
-def EOMClamp(y, m, d):
-    """Z3-pure end-of-month clamping."""
-    maxd = days_in_month(y, m)
-    return If(d < BitVecVal(1, 32), BitVecVal(1, 32), If(d > maxd, maxd, d))
-
-
-FOUR_HUNDRED_YEARS = BitVecVal(146097, 32)  # 400*365 + 97 leap days
-
-
-# Original implementation with 400-year cycle reduction (commented out):
-'''
-def add_days_ordinal(y, m, d, delta_days):
-    d0 = EOMClamp(y, m, d)
-
-    # Fast path: no day shift → avoid any ordinal math.
-    no_shift = (delta_days == BitVecVal(0, 32))
-    y_ns, m_ns, d_ns = y, m, d0
-
-    # Reduce by 400-year eras to keep terms small
-    q = delta_days / FOUR_HUNDRED_YEARS
-    r = delta_days % FOUR_HUNDRED_YEARS
-
-    # Shift whole eras in the year; month/day unchanged for this step
-    y_era = y + q * BitVecVal(400, 32)
-
-    # Now add the small remainder r via ordinal conversion
-    z   = days_since_epoch_from_ymd(y_era, m, d0)
-    z2  = z + r
-    y2, m2, d2 = ymd_from_days_since_epoch(z2)
-
-    # If delta_days == 0, return (y,m,d0); else the computed (y2,m2,d2)
-    out_y = If(no_shift, y_ns, y2)
-    out_m = If(no_shift, m_ns, m2)
-    out_d = If(no_shift, d_ns, d2)
-    return out_y, out_m, out_d
-'''
-
-
-def add_days_ordinal(y, m, d, delta_days):
-    """
-    Exact ordinal-based addition via a single ordinal add.
-    Steps:
-      - EOM clamp input day (baseline 'round down' policy).
-      - If delta_days == 0 → return (y,m,d).
-      - Add delta_days in days-since-epoch space and decode.
-    """
-
-    d0 = EOMClamp(y, m, d)
-
-    # Fast path: no day shift → avoid any ordinal math.
-    no_shift = delta_days == BitVecVal(0, 32)
-
-    # Single-step ordinal addition
-    z = days_since_epoch_from_ymd(y, m, d0)
-    y2, m2, d2 = ymd_from_days_since_epoch(z + delta_days)
-
-    # If delta_days == 0, return (y,m,d0); else the computed (y2,m2,d2)
-    out_y = If(no_shift, y, y2)
-    out_m = If(no_shift, m, m2)
-    out_d = If(no_shift, d0, d2)
-    return out_y, out_m, out_d
+    return (target_python - _EPOCH).days
 
 
 class DateVar:
@@ -266,18 +63,15 @@ class DateVar:
         # Use a single Z3 bitvector variable for days since epoch
         self.days_var = BitVec(f"{name}_days", 32)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"DateVar({self.name})"
-
-    def __repr__(self):
-        return self.__str__()
 
     def to_concrete_date(self, model: ModelRef) -> Date:
         """Convert Z3 model to concrete Date."""
         days = model.evaluate(self.days_var, model_completion=True).as_signed_long()
         return from_days_since_epoch(days)
 
-    def __ge__(self, other):
+    def __ge__(self, other) -> BoolRef:
         """Support x >= date comparison."""
         if isinstance(other, Date):
             return self.days_var >= to_days_since_epoch(other)
@@ -286,7 +80,7 @@ class DateVar:
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
-    def __le__(self, other):
+    def __le__(self, other) -> BoolRef:
         """Support x <= date comparison."""
         if isinstance(other, Date):
             return self.days_var <= to_days_since_epoch(other)
@@ -295,21 +89,21 @@ class DateVar:
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
-    def __lt__(self, other):
+    def __lt__(self, other) -> BoolRef:
         """Support x < date comparison."""
         if isinstance(other, Date) or isinstance(other, DateVar):
             return Not(self.__ge__(other))
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
-    def __gt__(self, other):
+    def __gt__(self, other) -> BoolRef:
         """Support x > date comparison."""
         if isinstance(other, Date) or isinstance(other, DateVar):
             return Not(self.__le__(other))
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> BoolRef:
         """Support x == date comparison."""
         if isinstance(other, Date):
             return self.days_var == to_days_since_epoch(other)
@@ -318,27 +112,24 @@ class DateVar:
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
-    def __ne__(self, other):
+    def __ne__(self, other) -> BoolRef:
         """Support x != date comparison."""
         return Not(self.__eq__(other))
 
-    def __add__(self, other):
-        """DateVar + Period following baseline semantics.
+    def __add__(self, other) -> 'DateVar':
+        """
+        DateVar + Period following baseline semantics.
         Steps: normalize Y/M, EOM clamp, then add D days in ordinal space.
         """
         if isinstance(other, Period):
-            if isinstance(other, Period):
-                result = DateVar(
-                    f"{self.name}_plus_{other.years}y_{other.months}m_{other.days}d"
-                )
-                oy, om, od = (
-                    BitVecVal(other.years, 32),
-                    BitVecVal(other.months, 32),
-                    BitVecVal(other.days, 32),
-                )
-            else:
-                result = DateVar(f"{self.name}_plus_{other.name}")
-                oy, om, od = other.years, other.months, other.days
+            result = DateVar(
+                f"{self.name}_plus_{other.years}y_{other.months}m_{other.days}d"
+            )
+            oy, om, od = (
+                BitVecVal(other.years, 32),
+                BitVecVal(other.months, 32),
+                BitVecVal(other.days, 32),
+            )
 
             # Fast-path: only days component
             if oy == 0 and om == 0:
@@ -355,7 +146,7 @@ class DateVar:
             y1 = y0 + year_carry
 
             # Step 2: EOM clamp
-            d1 = EOMClamp(y1, m1, d0)
+            d1 = eom_clamp(y1, m1, d0)
 
             # Step 3: add D days in ordinal space
             y2, m2, d2 = add_days_ordinal(y1, m1, d1, od)
@@ -366,14 +157,15 @@ class DateVar:
         else:
             raise TypeError(f"Cannot add {type(other)} to DateVar")
 
-    def __radd__(self, other):
+    def __radd__(self, other) -> 'DateVar':
+        """Support period + date addition."""
         if isinstance(other, Period):
             return self.__add__(other)
         else:
             raise TypeError(f"Cannot add {type(other)} to DateVar")
 
-    def __sub__(self, other):
-        """DateVar - Period implemented as DateVar + (-Period). Date difference returns Int."""
+    def __sub__(self, other) -> 'DateVar':
+        """DateVar - Period implemented as DateVar + (-Period)."""
         if isinstance(other, Period):
             neg = Period(-other.years, -other.months, -other.days)
             return self.__add__(neg)
@@ -410,7 +202,7 @@ class EpochDaysSolver:
 
         return date_var
 
-    def add_constraint(self, constraint: BoolRef):
+    def add_constraint(self, constraint: BoolRef) -> None:
         """Add a constraint to the solver."""
         self.constraints.append(constraint)
         self.solver.add(constraint)
@@ -445,6 +237,6 @@ class EpochDaysSolver:
         """Return the current problem in SMT-LIB v2 format."""
         return self.solver.to_smt2()
 
-    def get_assertions(self):
+    def get_assertions(self) -> List[BoolRef]:
         """Return the list of current Z3 assertions (BoolRef)."""
         return list(self.solver.assertions())
