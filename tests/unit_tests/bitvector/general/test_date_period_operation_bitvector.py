@@ -266,7 +266,7 @@ def test_alpha_beta_equals_ground_truth(base: Date, per: Period, expect: Date):
         for base, per, expect in get_period_arithmetic_test_cases()
     ],
 )
-@pytest.mark.alpha_beta
+@pytest.mark.alpha_beta_table
 @pytest.mark.bitvector
 def test_alpha_beta_table_equals_ground_truth(base: Date, per: Period, expect: Date):
     ra = _solve_single_add(AlphaBetaTableSolver, base, per)
@@ -349,7 +349,7 @@ def test_alpha_beta_radd_equals_ground_truth(base: Date, per: Period, expect: Da
         for base, per, expect in get_period_arithmetic_test_cases()
     ],
 )
-@pytest.mark.alpha_beta
+@pytest.mark.alpha_beta_table
 @pytest.mark.bitvector
 def test_alpha_beta_table_radd_equals_ground_truth(
     base: Date, per: Period, expect: Date
@@ -454,7 +454,7 @@ def test_alpha_beta_subtract_matches_python(base: Date, per: Period):
         for base, per, _ in get_period_arithmetic_test_cases()
     ],
 )
-@pytest.mark.alpha_beta
+@pytest.mark.alpha_beta_table
 @pytest.mark.bitvector
 def test_alpha_beta_table_subtract_matches_python(base: Date, per: Period):
     model = _solve_single_sub(AlphaBetaTableSolver, base, per)
