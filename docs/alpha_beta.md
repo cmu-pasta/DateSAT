@@ -18,6 +18,10 @@ The alpha beta method represents dates as (months, days) since an epoch month.
 - `months_var` (alpha) - Months since epoch month (March 2000 = 0)
 - `beta_var` (beta) - Extra days within that month (0-based, so day = 1 + beta)
 
+**Epoch Constants**:
+- `_EPOCH_YEAR = 2000`, `_EPOCH_MONTH = 3`
+- `_EPOCH_LINEAR = 12 * 2000 + 3 = 24003` (linearized epoch month)
+
 **Constraints**: Range validation for alpha and beta within supported date range
 
 ## Supported Operations

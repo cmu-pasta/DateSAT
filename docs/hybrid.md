@@ -62,5 +62,8 @@ From core.py
 ### Implementation Classes
 
 - `DateVar` - Symbolic date variable with dual representation
+  - **Constructor**: `DateVar(ctx, name: str)` - Requires solver context and name
+  - **Context Integration**: All operations require solver context for constraint management
+  - **Lazy Y/M/D**: Y/M/D components created on-demand with forward linking
 - `HybridSolver` - Constraint solver with epoch range validation
 - Helper functions: `from_days_since_epoch()` (reused from epoch_days), `to_days_since_epoch()` (reused from epoch_days), `is_leap()` (reused from baseline), `days_in_month()` (reused from baseline), `normalize_month()` (reused from baseline), `days_before_year()` (reused from baseline), `days_before_month()` (reused from baseline), `to_ordinal()` (reused from baseline), `from_ordinal()` (reused from baseline), `ymd_from_days_since_epoch()` (reused from baseline), `days_since_epoch_from_ymd()` (reused from baseline), `eom_clamp()` (reused from baseline), `add_days_ordinal()` (reused from baseline)

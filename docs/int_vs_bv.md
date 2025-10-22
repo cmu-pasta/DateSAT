@@ -46,12 +46,18 @@ The differences are **consistent across all methods** (baseline, epoch_days, hyb
 | Logic | Simple integer division/modulo | Complex signed arithmetic with floor division |
 | Overflow | Assumes infinite precision | Handles 32-bit overflow explicitly |
 | Negative Months | Natural handling | Explicit signed conversion and clamping |
+| Floor Division | Natural `//` operator | Custom `_floor_div_12()` function |
+| Signed Conversion | Not needed | `If(is_negative, x - BitVecVal(2**32, 32), x)` |
+| Remainder Check | Simple `r != 0` | `And(UGE(signed_x, BitVecVal(2**31, 32)), r != BitVecVal(0, 32))` |
 
 ## Method-Specific Examples
 
 ### Baseline Method
 - **Integer**: `normalize_month(y, m)` uses simple `(m-1) // 12` and `(m-1) % 12`
 - **Bitvector**: Complex signed arithmetic with `UGE` checks and floor division
+  - Checks for negative values: `UGE(m, BitVecVal(2**31, 32))`
+  - Converts to signed: `If(is_negative, m - BitVecVal(2**32, 32), m)`
+  - Implements floor division manually with remainder checks
 
 ### Epoch Days Method
 - **Integer**: `days_var = Int("days")` with `IntVal(36525)` for range constraints
