@@ -35,8 +35,6 @@ _EPOCH_MONTH = 3
 _EPOCH_LINEAR = IntVal(_EPOCH_YEAR * 12 + _EPOCH_MONTH)
 _FOUR_YEAR_MONTHS = 48
 _FOUR_YEAR_DAYS = 1461
-_T1900_FEB = IntVal(1900 * 12 + 2)
-_T1900_MAR = IntVal(1900 * 12 + 3)
 _T2100_FEB = IntVal(2100 * 12 + 2)
 _T2100_MAR = IntVal(2100 * 12 + 3)
 
@@ -96,15 +94,11 @@ def months_since_epoch_from_ym(y, m):
     return (y * IntVal(12) + m) - _EPOCH_LINEAR
 
 def _century_correction(abs_month):
-    # +1 if before 1900-03, -1 if at/after 2100-03, else 0
-    return If(
-        abs_month < _T1900_MAR,
-        IntVal(1),
-        If(abs_month >= _T2100_MAR, IntVal(-1), IntVal(0)),
-    )
+    # -1 if at/after 2100-03, else 0
+    return If(abs_month >= _T2100_MAR, IntVal(-1), IntVal(0))
 
 def _override_dim_for_century_feb(abs_month, dim):
-    return If(Or(abs_month == _T1900_FEB, abs_month == _T2100_FEB), IntVal(28), dim)
+    return If(abs_month == _T2100_FEB, IntVal(28), dim)
 
 class DateVar:
     """Symbolic date variable using alpha-beta representation.
@@ -261,13 +255,6 @@ class DateVar:
         result.months_var = alpha1 + q0 * IntVal(_FOUR_YEAR_MONTHS) + diff2 + carry
         result.beta_var = If(carry == IntVal(1), beta2 - dim2, beta2)
         return result
-
-    def __radd__(self, other) -> 'DateVar':
-        """Support period + date addition."""
-        if isinstance(other, Period):
-            return self.__add__(other)
-        else:
-            raise TypeError(f"Cannot add {type(other)} to DateVar")
 
     def __sub__(self, other) -> 'DateVar':
         """DateVar - Period implemented as DateVar + (-Period)."""

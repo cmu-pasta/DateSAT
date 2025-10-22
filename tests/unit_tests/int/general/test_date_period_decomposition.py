@@ -203,20 +203,6 @@ def _solve_decomposed_with_solver(solver_cls, base: Date, seq: list[Period]):
     return s.solve()
 
 
-def _solve_decomposed_with_solver_radd(solver_cls, base: Date, seq: list[Period]):
-    s = solver_cls()
-    x = s.add_date_var("x")
-    s.add_constraint(x == base)
-    cur = x
-    for i, p in enumerate(seq):
-        t = s.add_date_var(f"t{i}")
-        s.add_constraint(t == p + cur)
-        cur = t
-    y = s.add_date_var("y")
-    s.add_constraint(y == cur)
-    return s.solve()
-
-
 def _solve_decomposed_with_solver_sub(solver_cls, base: Date, seq: list[Period]):
     s = solver_cls()
     x = s.add_date_var("x")
@@ -337,112 +323,6 @@ def test_alpha_beta_table_matches_java_decomposed(
     ), f"alpha_beta_table order {label}: {base} + {per} -> {got}, expected {expect}"
 
 
-# radd decomposed: Period + Date for each step
-@pytest.mark.parametrize(
-    "base,per,label,seq",
-    [
-        pytest.param(base, per, label, seq, id=f"baseline_radd_{base}+{per}_{label}")
-        for base, per, label, seq in all_decomposed_cases()
-    ],
-)
-@pytest.mark.baseline
-@pytest.mark.integer
-def test_baseline_radd_matches_java_decomposed(
-    base: Date, per: Period, label: str, seq: list[Period]
-):
-    expect = python_date_plus_sequence(base, seq, label)
-    model = _solve_decomposed_with_solver_radd(BaselineSolver, base, seq)
-    assert model["status"] == "sat"
-    got = model["dates"]["y"]
-    assert (
-        got == expect
-    ), f"Baseline radd {label}: {base} + {per} -> {got}, expected {expect}"
-
-
-@pytest.mark.parametrize(
-    "base,per,label,seq",
-    [
-        pytest.param(base, per, label, seq, id=f"epoch_days_radd_{base}+{per}_{label}")
-        for base, per, label, seq in all_decomposed_cases()
-    ],
-)
-@pytest.mark.epoch_days
-@pytest.mark.integer
-def test_epoch_days_radd_matches_java_decomposed(
-    base: Date, per: Period, label: str, seq: list[Period]
-):
-    expect = python_date_plus_sequence(base, seq, label)
-    model = _solve_decomposed_with_solver_radd(EpochDaysSolver, base, seq)
-    assert model["status"] == "sat"
-    got = model["dates"]["y"]
-    assert (
-        got == expect
-    ), f"Epoch_days radd {label}: {base} + {per} -> {got}, expected {expect}"
-
-
-@pytest.mark.parametrize(
-    "base,per,label,seq",
-    [
-        pytest.param(base, per, label, seq, id=f"hybrid_radd_{base}+{per}_{label}")
-        for base, per, label, seq in all_decomposed_cases()
-    ],
-)
-@pytest.mark.hybrid
-@pytest.mark.integer
-def test_hybrid_radd_matches_java_decomposed(
-    base: Date, per: Period, label: str, seq: list[Period]
-):
-    expect = python_date_plus_sequence(base, seq, label)
-    model = _solve_decomposed_with_solver_radd(HybridSolver, base, seq)
-    assert model["status"] == "sat"
-    got = model["dates"]["y"]
-    assert (
-        got == expect
-    ), f"Hybrid radd {label}: {base} + {per} -> {got}, expected {expect}"
-
-
-@pytest.mark.parametrize(
-    "base,per,label,seq",
-    [
-        pytest.param(base, per, label, seq, id=f"ab_radd_{base}+{per}_{label}")
-        for base, per, label, seq in all_decomposed_cases()
-    ],
-)
-@pytest.mark.alpha_beta
-@pytest.mark.integer
-def test_alpha_beta_radd_matches_java_decomposed(
-    base: Date, per: Period, label: str, seq: list[Period]
-):
-    expect = python_date_plus_sequence(base, seq, label)
-    model = _solve_decomposed_with_solver_radd(AlphaBetaSolver, base, seq)
-    assert model["status"] == "sat"
-    got = model["dates"]["y"]
-    assert (
-        got == expect
-    ), f"Alpha_beta radd {label}: {base} + {per} -> {got}, expected {expect}"
-
-
-@pytest.mark.parametrize(
-    "base,per,label,seq",
-    [
-        pytest.param(
-            base, per, label, seq, id=f"alpha_beta_table_radd_{base}+{per}_{label}"
-        )
-        for base, per, label, seq in all_decomposed_cases()
-    ],
-)
-@pytest.mark.alpha_beta_table
-@pytest.mark.integer
-def test_alpha_beta_table_radd_matches_java_decomposed(
-    base: Date, per: Period, label: str, seq: list[Period]
-):
-    expect = python_date_plus_sequence(base, seq, label)
-    model = _solve_decomposed_with_solver_radd(AlphaBetaTableSolver, base, seq)
-    assert model["status"] == "sat"
-    got = model["dates"]["y"]
-    assert (
-        got == expect
-    ), f"alpha_beta_table radd {label}: {base} + {per} -> {got}, expected {expect}"
 
 
 # sub decomposed: implement each addition via subtracting the negated period.

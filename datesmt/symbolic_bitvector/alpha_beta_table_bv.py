@@ -37,8 +37,6 @@ _EPOCH_MONTH = 3
 _EPOCH_LINEAR = BitVecVal(_EPOCH_YEAR * 12 + _EPOCH_MONTH, 32)
 _FOUR_YEAR_MONTHS = 48
 _FOUR_YEAR_DAYS = 1461
-_T1900_FEB = BitVecVal(1900 * 12 + 2, 32)
-_T1900_MAR = BitVecVal(1900 * 12 + 3, 32)
 _T2100_FEB = BitVecVal(2100 * 12 + 2, 32)
 _T2100_MAR = BitVecVal(2100 * 12 + 3, 32)
 _DIM48_LIST_PY, _DBM48_LIST_PY = build_dim_dbm_48_from_epoch()
@@ -90,17 +88,11 @@ def eom_clamp(dim, beta) -> BitVecRef:
     )
 
 def _century_correction(abs_month) -> BitVecRef:
-    # +1 if before 1900-03, -1 if at/after 2100-03, else 0
-    return If(
-        abs_month < _T1900_MAR,
-        BitVecVal(1, 32),
-        If(abs_month >= _T2100_MAR, BitVecVal(-1, 32), BitVecVal(0, 32)),
-    )
+    # -1 if at/after 2100-03, else 0
+    return If(abs_month >= _T2100_MAR, BitVecVal(-1, 32), BitVecVal(0, 32))
 
 def _override_dim_for_century_feb(abs_month, dim) -> BitVecRef:
-    return If(
-        Or(abs_month == _T1900_FEB, abs_month == _T2100_FEB), BitVecVal(28, 32), dim
-    )
+    return If(abs_month == _T2100_FEB, BitVecVal(28, 32), dim)
 
 
 class DateVar:
@@ -248,12 +240,6 @@ class DateVar:
         result.months_var = alpha1 + q0 * BitVecVal(_FOUR_YEAR_MONTHS, 32) + diff2 + carry
         result.beta_var = If(carry == BitVecVal(1, 32), beta2 - dim2, beta2)
         return result
-
-    def __radd__(self, other) -> 'DateVar':
-        if isinstance(other, Period):
-            return self.__add__(other)
-        else:
-            raise TypeError(f"Cannot add {type(other)} to DateVar")
 
     def __sub__(self, other) -> 'DateVar':
         """DateVar - Period implemented as DateVar + (-Period). Date difference returns Int."""

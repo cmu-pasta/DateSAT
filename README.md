@@ -3,11 +3,11 @@
 [![CI Badge](https://github.com/cmu-pasta/Date-SMT/actions/workflows/ci.yml/badge.svg)](https://github.com/cmu-pasta/Date-SMT/actions/workflows/ci.yml)
 [![Coverage Badge](https://pastalab.org/Date-SMT/badge.svg)](https://pastalab.org/Date-SMT/)
 
-A Python library for symbolic analysis of date-based computations using Z3.
+A Python library for symbolic analysis of date computations using Z3.
 
 ## Overview
 
-DATE-SMT provides both baseline and epoch_days implementations for expressing and solving date/time constraints using Z3. It converts DATE-SMT expressions into Z3 integer-only constraints for efficient symbolic analysis.
+DATE-SMT provides multiple implementations for expressing and solving date constraints using Z3. It converts DATE-SMT expressions into Z3 constraints (expressed through integer or bitvector) for efficient symbolic analysis.
 
 ## Installation
 
@@ -26,24 +26,24 @@ pip install -r requirements/llm_pipeline.txt
 export PYTHONPATH=$PYTHONPATH:$(pwd)
 ```
 
-## Core Components
+## Repository Structure
 
-### Date/Period Classes (`datesmt_TYPE/core.py`)
-- **Unified**: Single Date/Period class with year/month/day representation
-- **Epoch Support**: Built-in epoch conversion methods for efficient constraint solving
+- `datesmt/` - Core library with data types and symbolic backends
+  - `core.py` - Date and Period data structures
+  - `symbolic_int/` - Integer-based symbolic backends (baseline, epoch_days, hybrid, alpha_beta, alpha_beta_table)
+  - `symbolic_bitvector/` - Bitvector-based symbolic backends (baseline, epoch_days, hybrid, alpha_beta, alpha_beta_table)
+- `tests/` - Test suite (see `tests/README.md` for details)
+- `docs/` - Technical documentation (methods, implementations)
+- `requirements/` - Python dependencies
 
-### Symbolic Constraint Solving (`datesmt_TYPE/`)
-- **DateVar**: Symbolic date variables
-- **PeriodVar**: Symbolic period variables
-- **Z3 Integration**: Direct constraint translation to Z3
+## Testing
 
-## CI/CD and Coverage
+Run all tests:
+```bash
+pytest tests/
+```
 
-- **CI/CD**: On each push to `dev`, CI builds the coverage site and commits it to `docs/`, which GitHub Pages serves.
-- **Coverage measurement**: We collect branch and line coverage for the `datesmt` package using `coverage.py` via `pytest-cov`.
-
-### Run tests and build the coverage site locally
-
+Run tests and build the coverage site locally:
 ```bash
 # from repo root
 python tests/build_coverage_site.py
@@ -52,11 +52,17 @@ python tests/build_coverage_site.py
 COVERAGE_SITE_DIR=docs python tests/build_coverage_site.py
 open docs/index.html  # macOS
 ```
-
 The coverage site root serves the detailed coverage report.
 
-### Configure GitHub Pages (one-time)
+For detailed testing information including method-specific tests, see `tests/README.md`.
 
-- Repo → Settings → Pages
-- Source: Deploy from a branch
-- Branch: dev, Folder: /docs
+## Development
+
+### Pre-commit Hooks
+This project uses pre-commit hooks to ensure code quality. Install and set up.
+
+### CI/CD Pipeline
+- **Trigger**: On each push to `dev` branch
+- **Coverage**: Automatically builds coverage site and commits to `docs/` directory
+- **GitHub Pages**: Serves coverage reports from `docs/` folder
+- **Coverage Collection**: Uses `coverage.py` via `pytest-cov` for branch and line coverage

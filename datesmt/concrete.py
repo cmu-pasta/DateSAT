@@ -98,13 +98,6 @@ class ConcreteDateVar:
         else:
             raise TypeError(f"Cannot add {type(other)} to ConcreteDateVar")
 
-    def __radd__(self, other: Period) -> "ConcreteDateVar":
-        """Support period + date addition."""
-        if isinstance(other, Period):
-            return self.__add__(other)
-        else:
-            raise TypeError(f"Cannot add {type(other)} to ConcreteDateVar")
-
     def __sub__(self, other: Period) -> "ConcreteDateVar":
         """ConcreteDateVar - Period using Python datetime."""
         if isinstance(other, Period):

@@ -1,124 +1,62 @@
 # DATE-SMT Test Suite
 
-This directory contains comprehensive tests for the DATE-SMT library, organized by test type and functional categories.
+This directory contains unit, property-based, and integration tests for the DATE-SMT library.
 
-## Test Organization
+## Layout
 
-### Unit Tests (tests/unit_tests/)
-Traditional unit tests that test individual functions and methods with specific inputs:
-- core_data_structures/ - Tests for Date and Period classes
-- date_validation/ - Tests for leap year and days-in-month validation
-- algorithm_specific/ - Tests for baseline vs epoch_days algorithm implementations
+- `unit_tests/`
+  - `core_data_structures/`: Tests for core `Date` and `Period`
+  - `int/`: Integer backend tests
+  - `bitvector/`: Bitvector backend tests 
+- `property_tests/`
+  - Hypothesis-based property tests for dates, periods, epoch conversions, and cross-language equivalence
+- `integration_tests/`
+  - End-to-end runner and validation utilities
+  - Dataset in `integration_tests/data/`
 
-### Property-Based Tests (tests/property_tests/)
-Tests that verify mathematical properties and invariants using generated test data with Hypothesis:
-- test_date_properties.py - Property tests for Date class
-- test_period_properties.py - Property tests for Period class
-- test_epoch_properties.py - Property tests for epoch conversion functions
+## Running tests
 
-### Integration Tests (tests/integration_tests/)
-End-to-end tests using real-world constraint datasets:
-- test_constraint_datasets.py - Tests using LLM-generated constraint datasets
-- data/ - Test datasets (constraints1.json, constraints2.json)
-
-## Running Tests
-
-### Run All Tests
+### All tests
 ```bash
 pytest tests/
-# or
-python tests/run_tests.py --category all
 ```
 
-### Run by Test Type
+### By group
 ```bash
-# Unit tests only
-python tests/run_tests.py --category unit
+# Unit tests
+pytest tests/unit_tests
 
-# Property-based tests only
-python tests/run_tests.py --category property
+# Property-based tests
+pytest tests/property_tests
 
-# Integration tests only
-python tests/run_tests.py --category integration
+# Integration tests (runner + validation)
+pytest tests/integration_tests
 ```
 
-### Run by Functional Category
+### Integration test specific
 ```bash
-# Core data structures only
-python tests/run_tests.py --category core
+# Execute a dataset with execution (run toward datesmt and get the result) + analysis (analyze results' correctness)
+python tests/integration_tests/run_tests.py tests/integration_tests/data/constraints1.json --output-dir tests/integration_tests/results/constraints1
 
-# Date validation only
-python tests/run_tests.py --category validation
-
-# Algorithm-specific tests only
-python tests/run_tests.py --category algorithm
+# Skip analysis
+python tests/integration_tests/run_tests.py tests/integration_tests/data/constraints1.json --output-dir tests/integration_tests/results/constraints1 --no-analysis
 ```
 
-### Epoch_days Options
+### Testing specific methods
+Use pytest markers to test specific symbolic backends:
+
 ```bash
-# Run with verbose output
-python tests/run_tests.py --category all --verbose
+# Test specific backends
+pytest tests/ -m baseline
+pytest tests/ -m epoch_days
+pytest tests/ -m hybrid
+pytest tests/ -m alpha_beta
+pytest tests/ -m alpha_beta_table
 
-# Run with coverage reporting
-python tests/run_tests.py --category all --coverage
+# Test specific implementations
+pytest tests/ -m int
+pytest tests/ -m bitvector
 
-# Run tests in parallel
-python tests/run_tests.py --category all --parallel
-```
-
-## Java-backed LocalDate ground-truth tests
-
-We use Java's `java.time.LocalDate.plus(Period)` as an external ground truth for date+period semantics.
-
-- Helper program: `tests/unit_tests/general/java/LocalDateGroundTruth.java`
-  - CLI: `java -cp tests/unit_tests/general/java LocalDateGroundTruth <year> <month> <day> <perYears> <perMonths> <perDays>`
-  - Output: `YYYY-MM-DD`
-
-- Test files:
-  - `tests/unit_tests/general/test_date_period_operation_java.py`
-    - Compares Java output to canonical ground truth test cases
-    - Verifies each solver (baseline/epoch_days/hybrid) matches that ground truth
-  - `tests/unit_tests/general/test_date_period_decomposition_java.py`
-    - Tests decomposed additions in different orders (Y→M→D, M→Y→D, D→M→Y, D→Y→M)
-    - Uses Java results for each decomposed order as ground truth
-    - Verifies each solver matches Java for each order
-
-- Requirements: Java toolchain on PATH
-```bash
-java -version
-javac -version
-# If missing (macOS/Homebrew):
-brew install openjdk
-# Then ensure PATH includes the Java bin directory
-export JAVA_HOME=$(/usr/libexec/java_home)  # or /opt/homebrew/opt/openjdk
-export PATH="$JAVA_HOME/bin:$PATH"
-```
-
-- Running only the Java-backed operation tests:
-```bash
-pytest -q tests/unit_tests/general/test_date_period_operation_java.py
-```
-
-- Running only Java-vs-ground-truth assertions in that file:
-```bash
-pytest -q tests/unit_tests/general/test_date_period_operation_java.py -k java_output_equals_ground_truth
-```
-
-- Selecting solvers via markers (works in both Java-backed test files):
-```bash
-# Baseline only
-pytest -q tests/unit_tests/general/test_date_period_operation_java.py -m baseline
-
-# Epoch_days only
-pytest -q tests/unit_tests/general/test_date_period_operation_java.py -m epoch_days
-
-# Hybrid only
-pytest -q tests/unit_tests/general/test_date_period_operation_java.py -m hybrid
-```
-
-- Running the decomposed-order tests:
-```bash
-pytest -q tests/unit_tests/general/test_date_period_decomposition_java.py
-# or select a solver subset
-pytest -q tests/unit_tests/general/test_date_period_decomposition_java.py -m baseline
+# Test specific backend with specific method
+pytest tests/unit_tests/int -m baseline
 ```
