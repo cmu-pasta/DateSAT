@@ -18,7 +18,7 @@ class DateSMTBuilder:
         approach: str = "epoch_days",
         implementation: str = "int",
         timeout_ms: int = 60000,
-    ) -> None:
+    ):
         """Initialize the builder with the specified approach, implementation, and timeout.
 
         Args:
@@ -100,6 +100,10 @@ class DateSMTBuilder:
     def get_constraints(self) -> List[BoolRef]:
         """Get all constraints."""
         return self.constraints
+
+    def to_smt2(self) -> str:
+        """Return the current problem in SMT-LIB v2 format."""
+        return self.solver.to_smt2()
 
     def enable_smtlib_print(self, enabled: bool = True) -> None:
         """Enable or disable printing SMT-LIB when solving."""

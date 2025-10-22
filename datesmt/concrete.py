@@ -15,7 +15,7 @@ from .core import Date, Period
 class ConcreteDateVar:
     """Concrete date variable that mimics the symbolic DateVar API."""
 
-    def __init__(self, name: str, year: int, month: int, day: int) -> None:
+    def __init__(self, name: str, year: int, month: int, day: int):
         """Create a concrete date variable with given values."""
         self.name = name
         self.year = year
@@ -122,7 +122,7 @@ class ConcreteSolver:
         min_year: Optional[int] = None,
         max_year: Optional[int] = None,
         timeout_ms: int = 60000,
-    ) -> None:
+    ):
         """Initialize the solver."""
         self.date_vars: Dict[str, ConcreteDateVar] = {}
         self.constraints: list = []

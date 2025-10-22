@@ -77,7 +77,6 @@ Each element must be an object:
   "id": "string-unique",
   "description": "brief human explanation",
   "constraints": ["x >= Date(2000,2,28)", "x <= Date(2000,3,1)", "x != Date(2000,2,28)", "x != Date(2000,3,1)"],
-  "date_variables": ["x"],
   "coverage_tags": ["leap_boundary","eom","year_vs_days","month_vs_days","chain_add","ineq_window","multi_var"]
 }
 
@@ -112,7 +111,6 @@ def _basic_schema_ok(items: Any) -> bool:
         "id",
         "description",
         "constraints",
-        "date_variables",
         "coverage_tags",
     }
     for it in items:
@@ -125,8 +123,6 @@ def _basic_schema_ok(items: Any) -> bool:
         if not isinstance(it["description"], str):
             return False
         if not isinstance(it["constraints"], list):
-            return False
-        if not isinstance(it["date_variables"], list):
             return False
         if not isinstance(it["coverage_tags"], list):
             return False

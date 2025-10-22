@@ -46,8 +46,6 @@ class TestConcreteValidation:
             "id": "test_simple",
             "description": "Simple constraint test",
             "constraints": ["d1 >= Date(2020, 1, 1)"],
-            "date_variables": ["d1"],
-            "period_variables": [],
         }
 
         # Valid solution
@@ -72,7 +70,6 @@ class TestConcreteValidation:
             "id": "test_periods",
             "description": "Constraint with concrete periods test",
             "constraints": ["d1 + Period(0, 2, 15) >= Date(2020, 6, 1)"],
-            "date_variables": ["d1"],
         }
 
         solution = {"d1": "Date(2020, 3, 15)"}
@@ -88,8 +85,6 @@ class TestConcreteValidation:
             "id": "test_invalid",
             "description": "Invalid solution format test",
             "constraints": ["d1 >= Date(2020, 1, 1)"],
-            "date_variables": ["d1"],
-            "period_variables": [],
         }
 
         # Invalid variable value
@@ -106,8 +101,6 @@ class TestConcreteValidation:
             "id": "test_empty",
             "description": "Empty constraint test",
             "constraints": [],
-            "date_variables": [],
-            "period_variables": [],
         }
         solution = {"d1": "Date(2020, 3, 15)"}
         is_valid, message = validate_solution_with_concrete(

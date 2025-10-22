@@ -64,11 +64,6 @@ def run_constraint_with_approach(
     # Get constraint code from new format
     constraint_code = _get_constraint_code(constraint_data)
 
-    # Extract variables from new format
-    variables = constraint_data.get("date_variables", []) + constraint_data.get(
-        "period_variables", []
-    )
-
     print(
         f"\n=== Running {constraint_id} ({approach.upper()}, {implementation.upper()}) ==="
     )
@@ -81,13 +76,10 @@ def run_constraint_with_approach(
         "id": constraint_id,
         "description": description,
         "constraints": constraint_data.get("constraints", []),
-        "date_variables": constraint_data.get("date_variables", []),
-        "period_variables": constraint_data.get("period_variables", []),
         "coverage_tags": coverage_tags,
         # Old format fields (for backward compatibility)
         "constraint_id": constraint_id,
         "constraint_code": constraint_code,
-        "variables": variables,
         # Execution metadata
         "approach": approach,
         "implementation": implementation,
@@ -329,8 +321,6 @@ def validate_sat_record(
     # Construct constraint data from new format fields for validation
     constraint_data = {
         "constraints": rec.get("constraints", []),
-        "date_variables": rec.get("date_variables", []),
-        "period_variables": rec.get("period_variables", []),
         "coverage_tags": rec.get("coverage_tags", []),
     }
 
