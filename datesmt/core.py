@@ -13,7 +13,7 @@ from z3 import *
 class Date:
     """Date class with year/month/day representation."""
 
-    def __init__(self, year: int, month: int, day: int) -> None:
+    def __init__(self, year: int, month: int, day: int):
         """Initialize a Date with year, month, day components."""
         self._year = year
         self._month = month
@@ -100,7 +100,7 @@ class Date:
 class Period:
     """Period class for representing time periods."""
 
-    def __init__(self, years: int, months: int, days: int) -> None:
+    def __init__(self, years: int, months: int, days: int):
         """Initialize a Period with years, months, days components."""
         # Validate input format: exactly three integer components (no bools allowed)
         period_components = (years, months, days)

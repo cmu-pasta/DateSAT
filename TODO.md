@@ -57,13 +57,14 @@ General
         [X] api.py
         [-] concrete.py
         [-] core.py
-        [ ] constraint_parser.py
+        [X] constraint_parser.py
         [ ] symbolic_int/
         [ ] symbolic_bitvector/
     [ ] tests/
         [-] core_data_structures/
             [-] test_date.py
             [-] test_period.py
+        [X] test_constraint_parser.py
 [ ] Make helper functions' names begin with _
 [X] Clean up existing doc
 [ ] Add READMEs

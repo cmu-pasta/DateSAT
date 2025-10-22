@@ -10,11 +10,7 @@
       "x <= Date(2000, 3, 1)",
       "x != Date(2000, 2, 28)",
       "x != Date(2000, 3, 1)"
-    ],
-    "date_variables": [
-      "x"
-    ],
-    "period_variables": []
+    ]
   },
   {
     "id": "1758086606-2",
@@ -27,11 +23,7 @@
       "x >= Date(2023, 1, 1)",
       "x <= Date(2023, 1, 31)",
       "(x + Period(0, 1, 0)) != (x + Period(0, 0, 30))"
-    ],
-    "date_variables": [
-      "x"
-    ],
-    "period_variables": []
+    ]
   },
   {
     "id": "1758086606-3",
@@ -44,11 +36,7 @@
       "x >= Date(2019, 12, 1)",
       "x <= Date(2020, 2, 29)",
       "(x + Period(1, 0, 0)) != (x + Period(0, 0, 366))"
-    ],
-    "date_variables": [
-      "x"
-    ],
-    "period_variables": []
+    ]
   },
   {
     "id": "1758086606-4",
@@ -60,12 +48,7 @@
       "x == Date(2022, 1, 15)",
       "y == x + Period(0, 13, 40)",
       "y != Date(2023, 2, 24)"
-    ],
-    "date_variables": [
-      "x",
-      "y"
-    ],
-    "period_variables": []
+    ]
   },
   {
     "id": "1758086606-5",
@@ -80,13 +63,7 @@
       "y == x + Period(0, 1, 0)",
       "z == y + Period(0, 1, 0)",
       "z - x == Period(0, 2, 0)"
-    ],
-    "date_variables": [
-      "x",
-      "y",
-      "z"
-    ],
-    "period_variables": []
+    ]
   },
   {
     "id": "1758086606-6",
@@ -98,12 +75,7 @@
       "x == Date(2023, 1, 31)",
       "y == x + Period(0, 3, 0)",
       "y == Date(2023, 4, 30)"
-    ],
-    "date_variables": [
-      "x",
-      "y"
-    ],
-    "period_variables": []
+    ]
   },
   {
     "id": "1758086606-7",
@@ -114,11 +86,7 @@
     "constraints": [
       "x > Date(2022, 2, 28)",
       "x < Date(2022, 3, 1)"
-    ],
-    "date_variables": [
-      "x"
-    ],
-    "period_variables": []
+    ]
   },
   {
     "id": "1758086606-8",
@@ -133,14 +101,6 @@
       "q == Period(0, 1, 20)",
       "y == x + p + q - Period(0, 0, 5)",
       "y == Date(2020, 5, 30)"
-    ],
-    "date_variables": [
-      "x",
-      "y"
-    ],
-    "period_variables": [
-      "p",
-      "q"
     ]
   },
   {
@@ -154,12 +114,7 @@
       "x == Date(2020, 2, 29)",
       "y == x + Period(1, 0, 0)",
       "y != Date(2021, 2, 28)"
-    ],
-    "date_variables": [
-      "x",
-      "y"
-    ],
-    "period_variables": []
+    ]
   },
   {
     "id": "1758086606-10",
@@ -172,10 +127,6 @@
       "x >= Date(2023, 1, 1)",
       "x <= Date(2023, 12, 31)",
       "(x + Period(0, 2, 0)) == (x + Period(0, 0, 61))"
-    ],
-    "date_variables": [
-      "x"
-    ],
-    "period_variables": []
+    ]
   }
 ]
