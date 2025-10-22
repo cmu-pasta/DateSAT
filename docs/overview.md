@@ -52,6 +52,11 @@ Every method must implement a solver class with:
 - `model()` - Get the Z3 model if satisfiable
 - `solve()` - Solve and return results dictionary
 
+**Additional Methods:**
+- `get_concrete_dates(model)` - Extract concrete dates from Z3 model
+- `to_smt2()` - Return current problem in SMT-LIB v2 format
+- `get_assertions()` - Return list of current Z3 assertions
+
 **Result Format:**
 ```python
 {
@@ -97,11 +102,25 @@ All methods must enforce the valid date range:
 - **Minimum**: 1900-03-01
 - **Maximum**: 2100-02-28
 
+**Range Validation Details**:
+- **1900-03-01 to 1900-12-31**: Special handling for first year
+- **1901-01-01 to 2099-12-31**: Standard full-year validation
+- **2100-01-01 to 2100-02-28**: Special handling for last year (2100 not a leap year)
+
 ### Error Handling
 
 - **TypeError**: For unsupported operand types
 - **ValueError**: For invalid date ranges or components
+  - Invalid date format: "year, month, and day must be integers"
+  - Invalid date: "Invalid date: YYYY-MM-DD"
+  - Date outside allowed range: "Date outside allowed range: YYYY-MM-DD (allowed [1900-03-01..2100-02-28])"
 - **Z3 exceptions**: For solver-specific errors
+
+### Input Validation
+
+- **Type Checking**: All date components must be integers (booleans explicitly rejected)
+- **Range Validation**: Comprehensive validation for supported date range
+- **Calendar Correctness**: Uses Python's `date()` constructor for validation
 
 ### Z3 Integration
 

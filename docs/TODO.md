@@ -53,7 +53,7 @@ Evaluation
 General
 [X] Organize repo (Angel)
 [ ] Clean up existing code
-    [ ] datesmt/
+    [X] datesmt/
         [X] __init__.py
         [X] api.py
         [X] concrete.py
@@ -77,6 +77,6 @@ General
             [X] test_period.py
         [X] test_constraint_parser.py
 [X] Clean up existing doc
-[ ] Add READMEs
-[ ] Add documentation for each method
+[X] Add READMEs
+[X] Add documentation for each method
 [ ] Flatten data from llm_constraints_generator?

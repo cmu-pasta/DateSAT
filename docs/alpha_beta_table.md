@@ -56,8 +56,8 @@ From core.py
 
 3. **Add Days**: Use pre-computed 48-month tables to add days without converting to ordinal days
    - Calculate total days using `base48 + century_correction + days_delta`
-   - Use 4-year cycle arithmetic with table lookups for month boundaries
-   - Handle end-of-month overflow with month carry
+   - Uses floor division by 12 and 1461 (4-year days) for proper month/year handling
+   - `If(carry == 1, beta2 - dim2, beta2)` for end-of-month overflow
 
 ### DateVar Comparisons
 
