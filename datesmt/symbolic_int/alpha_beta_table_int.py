@@ -1,18 +1,17 @@
 """
-Alpha-beta-table DATE-SMT using a 4-year (48-month) table with century corrections.
+Alpha-beta-table DATE-SMT using a 4-year (48-month) table.
 
 Representation:
 - alpha (months_var): months since epoch month 2000-03 (March 2000 = 0)
 - beta  (beta_var):  0-based day index within that month (DOM = beta + 1)
 
-We avoid full ordinal decode by using a 48-month DIM/DBM table, plus
-step-function corrections for the non-leap centuries (1900-02, 2100-02).
+We avoid full ordinal decode by using a 48-month DIM/DBM table.
 """
 
-from typing import Union
-
+from typing import Union, Tuple, List
 from z3 import (
     And,
+    ArithRef,
     BoolRef,
     CheckSatResult,
     If,
@@ -26,30 +25,29 @@ from z3 import (
     Select,
     Solver,
     Store,
-    sat,
-    unsat,
+    sat
 )
-
 from ..core import Date, Period
-
-# Epoch constants as Python ints for table construction and concrete decoding
-EPOCH_YEAR = 2000
-EPOCH_MONTH = 3
+from .baseline_int import days_in_month, add_days_ordinal
+_EPOCH_YEAR = 2000
+_EPOCH_MONTH = 3
 # Linearized epoch month as a Z3 Int numeral
-_EPOCH_LINEAR = IntVal(EPOCH_YEAR * 12 + EPOCH_MONTH)
+_EPOCH_LINEAR = IntVal(_EPOCH_YEAR * 12 + _EPOCH_MONTH)
+_FOUR_YEAR_MONTHS = 48
+_FOUR_YEAR_DAYS = 1461
+_T1900_FEB = IntVal(1900 * 12 + 2)
+_T1900_MAR = IntVal(1900 * 12 + 3)
+_T2100_FEB = IntVal(2100 * 12 + 2)
+_T2100_MAR = IntVal(2100 * 12 + 3)
 
-FOUR_YEAR_MONTHS = 48
-FOUR_YEAR_DAYS = 1461
 
-T1900_FEB = IntVal(1900 * 12 + 2)
-T1900_MAR = IntVal(1900 * 12 + 3)
-T2100_FEB = IntVal(2100 * 12 + 2)
-T2100_MAR = IntVal(2100 * 12 + 3)
-
+def eom_clamp(dim, beta) -> ArithRef:
+    return If(
+        beta < IntVal(0), IntVal(0), If(beta > dim - IntVal(1), dim - IntVal(1), beta)
+    )
 
 def _is_leap_py(y: int) -> bool:
     return (y % 4 == 0 and y % 100 != 0) or (y % 400 == 0)
-
 
 def _days_in_month_py(y: int, m: int) -> int:
     if m == 2:
@@ -58,73 +56,55 @@ def _days_in_month_py(y: int, m: int) -> int:
         return 30
     return 31
 
-
 def _add_months(y: int, m: int, delta: int) -> tuple[int, int]:
     total = (y * 12 + m) + delta
     y2 = (total - 1) // 12
     m2 = total - y2 * 12
     return y2, m2
 
-
-def _build_dim_dbm_48_from_epoch() -> tuple[list[int], list[int]]:
-    dim: list[int] = [0] * FOUR_YEAR_MONTHS
-    dbm: list[int] = [0] * FOUR_YEAR_MONTHS
-    y, m = EPOCH_YEAR, EPOCH_MONTH
+def build_dim_dbm_48_from_epoch() -> tuple[list[int], list[int]]:
+    dim: list[int] = [0] * _FOUR_YEAR_MONTHS
+    dbm: list[int] = [0] * _FOUR_YEAR_MONTHS
+    y, m = _EPOCH_YEAR, _EPOCH_MONTH
     cum = 0
-    for i in range(FOUR_YEAR_MONTHS):
+    for i in range(_FOUR_YEAR_MONTHS):
         dbm[i] = cum
         d = _days_in_month_py(y, m)
         dim[i] = d
         cum += d
         y, m = _add_months(y, m, 1)
-    assert cum == FOUR_YEAR_DAYS
+    assert cum == _FOUR_YEAR_DAYS
     return dim, dbm
 
-
-_DIM48_LIST, _DBM48_LIST = _build_dim_dbm_48_from_epoch()
-
-
-def _const_array(values: list[int]):
+def const_array(values: list[int]):
     a = K(IntSort(), IntVal(0))
     for i, v in enumerate(values):
         a = Store(a, IntVal(i), IntVal(v))
     return a
 
+_DIM48_LIST_PY, _DBM48_LIST_PY = build_dim_dbm_48_from_epoch()
+_DIM48_LIST = const_array(_DIM48_LIST_PY)
+_DBM48_LIST = const_array(_DBM48_LIST_PY)
 
-DIM48_ARR = _const_array(_DIM48_LIST)
-DBM48_ARR = _const_array(_DBM48_LIST)
+def mod48(x):
+    return x % IntVal(_FOUR_YEAR_MONTHS)
 
-
-def _mod48(x):
-    return x % IntVal(FOUR_YEAR_MONTHS)
-
-
-def _alpha_to_abs_month(alpha):
+def alpha_to_abs_month(alpha):
     return alpha + _EPOCH_LINEAR
 
-
-def _months_since_epoch_from_ym(y, m):
+def months_since_epoch_from_ym(y, m):
     return (y * IntVal(12) + m) - _EPOCH_LINEAR
-
 
 def _century_correction(abs_month):
     # +1 if before 1900-03, -1 if at/after 2100-03, else 0
     return If(
-        abs_month < T1900_MAR,
+        abs_month < _T1900_MAR,
         IntVal(1),
-        If(abs_month >= T2100_MAR, IntVal(-1), IntVal(0)),
+        If(abs_month >= _T2100_MAR, IntVal(-1), IntVal(0)),
     )
-
 
 def _override_dim_for_century_feb(abs_month, dim):
-    return If(Or(abs_month == T1900_FEB, abs_month == T2100_FEB), IntVal(28), dim)
-
-
-def _eom_clamp(dim, beta):
-    return If(
-        beta < IntVal(0), IntVal(0), If(beta > dim - IntVal(1), dim - IntVal(1), beta)
-    )
-
+    return If(Or(abs_month == _T1900_FEB, abs_month == _T2100_FEB), IntVal(28), dim)
 
 class DateVar:
     """Symbolic date variable using alpha-beta representation.
@@ -141,101 +121,95 @@ class DateVar:
         # Beta: Z3 integer variable for extra days (0-based) within month
         self.beta_var = Int(f"{name}_beta")
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"DateVar({self.name})"
-
-    def __repr__(self):
-        return self.__str__()
 
     def to_concrete_date(self, model: ModelRef) -> Date:
         """Convert Z3 model to concrete Date using (alpha, beta)."""
         alpha_val = model.evaluate(self.months_var, model_completion=True).as_long()
         beta_val = model.evaluate(self.beta_var, model_completion=True).as_long()
-        k = alpha_val + (EPOCH_YEAR * 12 + EPOCH_MONTH)
+        k = alpha_val + (_EPOCH_YEAR * 12 + _EPOCH_MONTH)
         year = (k - 1) // 12
         month = k - year * 12
         day = beta_val + 1
         return Date(year, month, day)
 
-    def __ge__(self, other):
+    def __ge__(self, other) -> BoolRef:
         """Support x >= date comparison."""
-        if isinstance(other, Date) or isinstance(other, DateVar):
-            # Convert Date to integer values if needed
-            if isinstance(other, Date):
-                alpha_o = _months_since_epoch_from_ym(
-                    IntVal(other.year), IntVal(other.month)
-                )
-                beta_o = IntVal(other.day - 1)
-            else:  # isinstance(other, DateVar)
-                alpha_o = other.months_var
-                beta_o = other.beta_var
+        if isinstance(other, Date):
+            alpha_o = months_since_epoch_from_ym(
+                IntVal(other.year), IntVal(other.month)
+            )
+            beta_o = IntVal(other.day - 1)
 
             return Or(
                 self.months_var > alpha_o,
                 And(self.months_var == alpha_o, self.beta_var >= beta_o),
             )
+        elif isinstance(other, DateVar):
+            return Or(
+                self.months_var > other.months_var,
+                And(self.months_var == other.months_var, self.beta_var >= other.beta_var),
+            )
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
-    def __le__(self, other):
+    def __le__(self, other) -> BoolRef:
         """Support x <= date comparison."""
-        if isinstance(other, Date) or isinstance(other, DateVar):
-            # Convert Date to integer values if needed
-            if isinstance(other, Date):
-                alpha_o = _months_since_epoch_from_ym(
-                    IntVal(other.year), IntVal(other.month)
-                )
-                beta_o = IntVal(other.day - 1)
-            else:  # isinstance(other, DateVar)
-                alpha_o = other.months_var
-                beta_o = other.beta_var
+        if isinstance(other, Date):
+            alpha_o = months_since_epoch_from_ym(
+                IntVal(other.year), IntVal(other.month)
+            )
+            beta_o = IntVal(other.day - 1)
 
             return Or(
                 self.months_var < alpha_o,
                 And(self.months_var == alpha_o, self.beta_var <= beta_o),
             )
+        elif isinstance(other, DateVar):
+            return Or(
+                self.months_var < other.months_var,
+                And(self.months_var == other.months_var, self.beta_var <= other.beta_var),
+            )
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
-    def __lt__(self, other):
+    def __lt__(self, other) -> BoolRef:
         """Support x < date comparison."""
         if isinstance(other, Date) or isinstance(other, DateVar):
             return Not(self.__ge__(other))
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
-    def __gt__(self, other):
+    def __gt__(self, other) -> BoolRef:
         """Support x > date comparison."""
         if isinstance(other, Date) or isinstance(other, DateVar):
             return Not(self.__le__(other))
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> BoolRef:
         """Support x == date comparison."""
-        if isinstance(other, Date) or isinstance(other, DateVar):
-            # Convert Date to integer values if needed
-            if isinstance(other, Date):
-                alpha_o = _months_since_epoch_from_ym(
-                    IntVal(other.year), IntVal(other.month)
-                )
-                beta_o = IntVal(other.day - 1)
-            else:  # isinstance(other, DateVar)
-                alpha_o = other.months_var
-                beta_o = other.beta_var
+        if isinstance(other, Date):
+            alpha_o = months_since_epoch_from_ym(
+                IntVal(other.year), IntVal(other.month)
+            )
+            beta_o = IntVal(other.day - 1)
 
             return And(self.months_var == alpha_o, self.beta_var == beta_o)
+        elif isinstance(other, DateVar):
+            return And(self.months_var == other.months_var, self.beta_var == other.beta_var)
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
-    def __ne__(self, other):
-        """Support x != date comparison."""
-        return Not(self.__eq__(other))
+    def __ne__(self, other) -> BoolRef:
+        """Support x != date comparison using ordinal arithmetic."""
+        if isinstance(other, Date) or isinstance(other, DateVar):
+            return Not(self.__eq__(other))
+        else:
+            raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
-    def __add__(self, other):
-        if not isinstance(other, Period):
-            raise TypeError(f"Cannot add {type(other)} to DateVar")
-
+    def __add__(self, other) -> 'DateVar':
         result = DateVar(f"{self.name}_plus")
 
         if isinstance(other, Period):
@@ -246,56 +220,57 @@ class DateVar:
             days_delta = other.days
 
         alpha1 = self.months_var + months_delta
-        idx1 = _mod48(alpha1)
-        abs1 = _alpha_to_abs_month(alpha1)
-        dim1 = _override_dim_for_century_feb(abs1, Select(DIM48_ARR, idx1))
-        beta1 = _eom_clamp(dim1, self.beta_var)
+        idx1 = mod48(alpha1)
+        abs1 = alpha_to_abs_month(alpha1)
+        dim1 = _override_dim_for_century_feb(abs1, Select(_DIM48_LIST, idx1))
+        beta1 = eom_clamp(dim1, self.beta_var)
 
-        base48 = Select(DBM48_ARR, idx1) + beta1
+        base48 = Select(_DBM48_LIST, idx1) + beta1
         corr1 = _century_correction(abs1)
         total = base48 + corr1 + days_delta
 
-        q0 = total / IntVal(FOUR_YEAR_DAYS)
-        r0 = total % IntVal(FOUR_YEAR_DAYS)
+        q0 = total / IntVal(_FOUR_YEAR_DAYS)
+        r0 = total % IntVal(_FOUR_YEAR_DAYS)
 
         def scan_idx(r_expr):
             i = IntVal(0)
-            for k in range(1, FOUR_YEAR_MONTHS):
+            for k in range(1, _FOUR_YEAR_MONTHS):
                 i = If(r_expr >= IntVal(_DBM48_LIST[k]), IntVal(k), i)
             return i
 
         # Compute idx2 by scanning all 48 months with century correction at target
         best = IntVal(0)
-        for i in range(1, FOUR_YEAR_MONTHS):
+        for i in range(1, _FOUR_YEAR_MONTHS):
             diff_i = IntVal(i) - idx1
-            abs_i = _alpha_to_abs_month(alpha1 + q0 * IntVal(FOUR_YEAR_MONTHS) + diff_i)
+            abs_i = alpha_to_abs_month(alpha1 + q0 * IntVal(_FOUR_YEAR_MONTHS) + diff_i)
             corr_i = _century_correction(abs_i)
-            dbm_i_corr = Select(DBM48_ARR, IntVal(i)) + corr_i
+            dbm_i_corr = Select(_DBM48_LIST, IntVal(i)) + corr_i
             best = If(r0 >= dbm_i_corr, IntVal(i), best)
 
         idx2 = best
         diff2 = idx2 - idx1
-        abs2 = _alpha_to_abs_month(alpha1 + q0 * IntVal(FOUR_YEAR_MONTHS) + diff2)
+        abs2 = alpha_to_abs_month(alpha1 + q0 * IntVal(_FOUR_YEAR_MONTHS) + diff2)
         corr2 = _century_correction(abs2)
-        beta2 = r0 - (Select(DBM48_ARR, idx2) + corr2)
+        beta2 = r0 - (Select(_DBM48_LIST, idx2) + corr2)
 
         # End-of-month overflow carry: if beta2 equals/exceeds the (possibly overridden)
         # month length, advance one month and wrap beta into the next month.
-        dim2 = _override_dim_for_century_feb(abs2, Select(DIM48_ARR, idx2))
+        dim2 = _override_dim_for_century_feb(abs2, Select(_DIM48_LIST, idx2))
         carry = If(beta2 >= dim2, IntVal(1), IntVal(0))
 
-        result.months_var = alpha1 + q0 * IntVal(FOUR_YEAR_MONTHS) + diff2 + carry
+        result.months_var = alpha1 + q0 * IntVal(_FOUR_YEAR_MONTHS) + diff2 + carry
         result.beta_var = If(carry == IntVal(1), beta2 - dim2, beta2)
         return result
 
-    def __radd__(self, other):
+    def __radd__(self, other) -> 'DateVar':
+        """Support period + date addition."""
         if isinstance(other, Period):
             return self.__add__(other)
         else:
             raise TypeError(f"Cannot add {type(other)} to DateVar")
 
-    def __sub__(self, other):
-        """DateVar - Period implemented as DateVar + (-Period). Date difference returns Int."""
+    def __sub__(self, other) -> 'DateVar':
+        """DateVar - Period implemented as DateVar + (-Period)."""
         if isinstance(other, Period):
             neg = Period(-other.years, -other.months, -other.days)
             return self.__add__(neg)
@@ -327,20 +302,20 @@ class AlphaBetaTableSolver:
         # 1900-03 => (1900-2000)*12 + (3-3)
         # 2100-02 => (2100-2000)*12 + (2-3)
         self.solver.add(
-            date_var.months_var >= IntVal((1900 - EPOCH_YEAR) * 12 + (3 - EPOCH_MONTH))
+            date_var.months_var >= IntVal((1900 - _EPOCH_YEAR) * 12 + (3 - _EPOCH_MONTH))
         )
         self.solver.add(
-            date_var.months_var <= IntVal((2100 - EPOCH_YEAR) * 12 + (2 - EPOCH_MONTH))
+            date_var.months_var <= IntVal((2100 - _EPOCH_YEAR) * 12 + (2 - _EPOCH_MONTH))
         )
 
         # Beta bounds: 0 <= beta < DIM (with century Feb override)
-        idx = _mod48(date_var.months_var)
-        absm = _alpha_to_abs_month(date_var.months_var)
-        dim = _override_dim_for_century_feb(absm, Select(DIM48_ARR, idx))
+        idx = mod48(date_var.months_var)
+        absm = alpha_to_abs_month(date_var.months_var)
+        dim = _override_dim_for_century_feb(absm, Select(_DIM48_LIST, idx))
         self.solver.add(And(date_var.beta_var >= IntVal(0), date_var.beta_var < dim))
         return date_var
 
-    def add_constraint(self, constraint: BoolRef):
+    def add_constraint(self, constraint: BoolRef) -> None:
         """Add a constraint to the solver."""
         self.constraints.append(constraint)
         self.solver.add(constraint)
@@ -375,6 +350,6 @@ class AlphaBetaTableSolver:
         """Return the current problem in SMT-LIB v2 format."""
         return self.solver.to_smt2()
 
-    def get_assertions(self):
+    def get_assertions(self) -> List[BoolRef]:
         """Return the list of current Z3 assertions (BoolRef)."""
         return list(self.solver.assertions())
