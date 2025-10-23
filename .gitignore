@@ -208,6 +208,9 @@ __marimo__/
 
 Miniforge3-MacOSX-arm64.sh
 
-tests/
-test_results/
-*.json
+.DS_Store
+
+# Java
+*.class
+
+local/

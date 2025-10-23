@@ -1,10 +1,13 @@
 # DATE-SMT
 
-A Python library for symbolic analysis of date-based computations using Z3.
+[![CI Badge](https://github.com/cmu-pasta/Date-SMT/actions/workflows/ci.yml/badge.svg)](https://github.com/cmu-pasta/Date-SMT/actions/workflows/ci.yml)
+[![Coverage Badge](https://pastalab.org/Date-SMT/badge.svg)](https://pastalab.org/Date-SMT/)
+
+A Python library for symbolic analysis of date computations using Z3.
 
 ## Overview
 
-DATE-SMT provides both baseline and advanced implementations for expressing and solving date/time constraints using Z3. It converts DATE-SMT expressions into Z3 integer-only constraints for efficient symbolic analysis.
+DATE-SMT provides multiple implementations for expressing and solving date constraints using Z3. It converts DATE-SMT expressions into Z3 constraints (expressed through integer or bitvector) for efficient symbolic analysis.
 
 ## Installation
 
@@ -15,130 +18,51 @@ conda activate datesmt
 
 # 2. Install dependencies
 pip install -r requirements/core.txt
+# Optionally install the dev dependencies and the llm constraints generation pipeline dependencies
+pip install -r requirements/dev.txt
+pip install -r requirements/llm_pipeline.txt
 
 # 3. Set PYTHONPATH
 export PYTHONPATH=$PYTHONPATH:$(pwd)
 ```
 
-## Quick Start
+## Repository Structure
 
-```python
-from datesmt.symbolic_api import solve_motivating_example
-
-# Solve a date constraint problem
-result = solve_motivating_example("advanced")
-print(f"Status: {result['status']}")
-if result['status'] == 'sat':
-    print(f"Solution: {result['dates']}")
-```
-
-## Core Components
-
-### Date/Period Classes (`datesmt/core.py`)
-- **Unified**: Single Date/Period class with year/month/day representation
-- **Epoch Support**: Built-in epoch conversion methods for efficient constraint solving
-- **Focus**: Constraint translation, not arithmetic operations
-
-### Symbolic Constraint Solving (`datesmt/`)
-- **DateVar**: Symbolic date variables
-- **PeriodVar**: Symbolic period variables
-- **Z3 Integration**: Direct constraint translation to Z3
-
-### Arithmetic Operations (`arithmetic/`)
-- **Concrete Operations**: Date arithmetic, comparison, period operations
-- **Purpose**: Testing and development, not core DATE-SMT functionality
-- **Separate Module**: Keeps core library focused on constraint solving
+- `datesmt/` - Core library with data types and symbolic backends
+  - `core.py` - Date and Period data structures
+  - `symbolic_int/` - Integer-based symbolic backends (baseline, epoch_days, hybrid, alpha_beta, alpha_beta_table)
+  - `symbolic_bitvector/` - Bitvector-based symbolic backends (baseline, epoch_days, hybrid, alpha_beta, alpha_beta_table)
+- `tests/` - Test suite (see `tests/README.md` for details)
+- `docs/` - Technical documentation (methods, implementations)
+- `requirements/` - Python dependencies
 
 ## Testing
 
-The project includes a comprehensive test suite to validate both baseline and advanced implementations:
-
-### Running Tests
-
+Run all tests:
 ```bash
-# Run all tests
-python tests/test_runner.py
-
-# Run specific test categories
-python tests/test_epoch_conversion.py    # Epoch conversion tests
-python tests/test_symbolic_api.py       # Symbolic API tests
-python tests/comparison.py              # Comparison tests
-
-# Run examples and demonstrations
-python tests/run_all_examples.py        # Examples without formal tests
+pytest tests/
 ```
 
-### Available Tests
-
-1. **Epoch Conversion Tests** (`test_epoch_conversion.py`)
-   - Tests bidirectional conversion between dates and epoch days
-   - Validates leap year handling and edge cases
-   - Ensures round-trip conversion accuracy
-
-2. **Symbolic API Tests** (`test_symbolic_api.py`)
-   - Tests the unified DateSMTBuilder API
-   - Validates constraint solving for both approaches
-   - Tests motivating example and constraint examples
-   - Verifies approach comparison functionality
-
-3. **Comparison Tests** (`comparison.py`)
-   - Performance comparison between baseline and advanced approaches
-   - Semantic equivalence validation
-   - Comprehensive test suite for Date/Period classes
-
-4. **Examples and Demonstrations** (`run_all_examples.py`)
-   - Demonstrates core functionality without formal testing
-   - Shows motivating example solutions
-   - Illustrates epoch conversion capabilities
-
-### Test Structure
-
+Run tests and build the coverage site locally:
+```bash
+# from repo root
+python tests/build_coverage_site.py
+# output will be under documentation/coverage by default
+# to match Pages layout locally, write directly into docs/
+COVERAGE_SITE_DIR=docs python tests/build_coverage_site.py
+open docs/index.html  # macOS
 ```
-tests/
-├── test_runner.py           # Main test runner
-├── test_epoch_conversion.py # Epoch conversion tests
-├── test_symbolic_api.py     # Symbolic API tests
-├── comparison.py            # Comparison framework
-├── run_all_examples.py      # Examples and demonstrations
-└── test_epoch_conversion.py # Epoch conversion validation
-```
+The coverage site root serves the detailed coverage report.
 
-## Research Context
+For detailed testing information including method-specific tests, see `tests/README.md`.
 
-This library implements the DATE-SMT framework from the research proposal for efficient symbolic analysis of date-based computations, addressing the constraint explosion problem in program analysis tools.
+## Development
 
-## Project Structure
+### Pre-commit Hooks
+This project uses pre-commit hooks to ensure code quality. Install and set up.
 
-```
-Date-SMT/
-├── datesmt/                    # Core DATE-SMT library
-│   ├── __init__.py            # Package initialization
-│   ├── core.py                 # Unified Date/Period classes
-│   ├── core.py                 # Unified Date/Period classes
-│   ├── core.py                 # Unified Date/Period classes
-│   ├── symbolic_baseline.py   # Baseline Z3 constraint translation
-│   ├── symbolic_advanced.py   # Advanced Z3 constraint translation
-│   ├── symbolic_api.py        # Unified API
-│   └── semantic_comparison.py # Result comparison utilities
-├── arithmetic/                 # Arithmetic operations (testing/development)
-│   ├── __init__.py
-│   ├── baseline_arithmetic.py # Baseline arithmetic operations
-│   └── advanced_arithmetic.py # Advanced arithmetic operations
-├── tests/                      # Test suite
-│   ├── test_runner.py         # Main test runner
-│   ├── test_epoch_conversion.py # Epoch conversion tests
-│   ├── test_symbolic_api.py   # Symbolic API tests
-│   ├── comparison.py          # Comparison framework
-│   └── run_all_examples.py    # Examples and demonstrations
-└── requirements/               # Dependencies
-    ├── core.txt               # Core dependencies
-    └── dev.txt                # Development dependencies
-```
-
-## Key Design Principles
-
-1. **Separation of Concerns**: Core constraint solving vs. arithmetic operations
-2. **Dual Approaches**: Baseline and advanced implementations for validation
-3. **Z3 Integration**: Direct translation to integer constraints
-4. **Clean API**: Easy-to-use interface for constraint expression
-5. **Research Focus**: Addresses constraint explosion in program analysis
+### CI/CD Pipeline
+- **Trigger**: On each push to `dev` branch
+- **Coverage**: Automatically builds coverage site and commits to `docs/` directory
+- **GitHub Pages**: Serves coverage reports from `docs/` folder
+- **Coverage Collection**: Uses `coverage.py` via `pytest-cov` for branch and line coverage

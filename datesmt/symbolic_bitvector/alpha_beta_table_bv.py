@@ -1,0 +1,337 @@
+"""
+Alpha-beta-table DATE-SMT using a 4-year (48-month) table.
+
+Representation:
+- alpha (months_var): months since epoch month 2000-03 (March 2000 = 0)
+- beta  (beta_var):  0-based day index within that month (DOM = beta + 1)
+
+We avoid full ordinal decode by using a 48-month DIM/DBM table.
+"""
+
+from typing import Union, Tuple, List
+from z3 import (
+    UGE,
+    And,
+    BitVec,
+    BitVecRef,
+    BitVecSort,
+    BitVecVal,
+    BoolRef,
+    CheckSatResult,
+    If,
+    K,
+    ModelRef,
+    Not,
+    Or,
+    Select,
+    Solver,
+    Store,
+    sat,
+)
+from ..symbolic_int.alpha_beta_table_int import build_dim_dbm_48_from_epoch
+from ..core import Date, Period
+from .bitwidths import LEGACY_BITS
+# Epoch constants as Python ints for table construction and concrete decoding
+_EPOCH_YEAR = 2000
+_EPOCH_MONTH = 3
+# Linearized epoch month as a Z3 BitVec numeral
+_EPOCH_LINEAR = BitVecVal(_EPOCH_YEAR * 12 + _EPOCH_MONTH, LEGACY_BITS)
+_FOUR_YEAR_MONTHS = 48
+_FOUR_YEAR_DAYS = 1461
+_T2100_FEB = BitVecVal(2100 * 12 + 2, LEGACY_BITS)
+_T2100_MAR = BitVecVal(2100 * 12 + 3, LEGACY_BITS)
+_DIM48_LIST_PY, _DBM48_LIST_PY = build_dim_dbm_48_from_epoch()
+
+
+def const_array(values: list[int]) -> BitVecRef:
+    a = K(BitVecSort(LEGACY_BITS), BitVecVal(0, LEGACY_BITS))
+    for i, v in enumerate(values):
+        a = Store(a, BitVecVal(i, LEGACY_BITS), BitVecVal(v, LEGACY_BITS))
+    return a
+
+_DIM48_LIST = const_array(_DIM48_LIST_PY)
+_DBM48_LIST = const_array(_DBM48_LIST_PY)
+
+def mod48(x) -> BitVecRef:
+    return x % BitVecVal(_FOUR_YEAR_MONTHS, LEGACY_BITS)
+
+def _floor_div_12(x) -> BitVecRef:
+    """Implement floor division by 12 for bitvectors to match Python's // behavior."""
+    is_negative = UGE(x, BitVecVal(2**31, LEGACY_BITS))
+    signed_x = If(is_negative, x - BitVecVal(2**LEGACY_BITS, LEGACY_BITS), x)
+    q_trunc = signed_x / BitVecVal(12, LEGACY_BITS)
+    r = signed_x % BitVecVal(12, LEGACY_BITS)
+    is_negative_and_has_remainder = And(UGE(signed_x, BitVecVal(2**31, LEGACY_BITS)), r != BitVecVal(0, LEGACY_BITS))
+    q = If(is_negative_and_has_remainder, q_trunc - BitVecVal(1, LEGACY_BITS), q_trunc)
+    return q
+
+def _floor_div_four_year_days(x) -> BitVecRef:
+    """Implement floor division by FOUR_YEAR_DAYS for bitvectors to match Python's // behavior."""
+    is_negative = UGE(x, BitVecVal(2**31, LEGACY_BITS))
+    signed_x = If(is_negative, x - BitVecVal(2**LEGACY_BITS, LEGACY_BITS), x)
+    q_trunc = signed_x / BitVecVal(_FOUR_YEAR_DAYS, LEGACY_BITS)
+    r = signed_x % BitVecVal(_FOUR_YEAR_DAYS, LEGACY_BITS)
+    is_negative_and_has_remainder = And(UGE(signed_x, BitVecVal(2**31, LEGACY_BITS)), r != BitVecVal(0, LEGACY_BITS))
+    q = If(is_negative_and_has_remainder, q_trunc - BitVecVal(1, LEGACY_BITS), q_trunc)
+    return q
+
+def months_since_epoch_from_ym(y, m) -> BitVecRef:
+    return (y * BitVecVal(12, LEGACY_BITS) + m) - _EPOCH_LINEAR
+
+def alpha_to_abs_month(alpha) -> BitVecRef:
+    return alpha + _EPOCH_LINEAR
+
+def eom_clamp(dim, beta) -> BitVecRef:
+    return If(
+        beta < BitVecVal(0, LEGACY_BITS),
+        BitVecVal(0, LEGACY_BITS),
+        If(beta > dim - BitVecVal(1, LEGACY_BITS), dim - BitVecVal(1, LEGACY_BITS), beta),
+    )
+
+def _century_correction(abs_month) -> BitVecRef:
+    # -1 if at/after 2100-03, else 0
+    return If(abs_month >= _T2100_MAR, BitVecVal(-1, LEGACY_BITS), BitVecVal(0, LEGACY_BITS))
+
+def _override_dim_for_century_feb(abs_month, dim) -> BitVecRef:
+    return If(abs_month == _T2100_FEB, BitVecVal(28, LEGACY_BITS), dim)
+
+
+class DateVar:
+    """Symbolic date variable using alpha-beta representation.
+
+    alpha (months_var): months since epoch month 2000-03 (March 2000 = 0)
+    beta  (beta_var):   extra days within that month (0-based), so DOM = 1+beta
+    """
+
+    def __init__(self, name: str):
+        """Create a symbolic date variable."""
+        self.name = name
+        # Alpha: Z3 bitvector variable for months since epoch-month
+        self.months_var = BitVec(f"{name}_months", LEGACY_BITS)
+        # Beta: Z3 bitvector variable for extra days (0-based) within month
+        self.beta_var = BitVec(f"{name}_beta", LEGACY_BITS)
+
+    def __str__(self) -> str:
+        return f"DateVar({self.name})"
+
+    def to_concrete_date(self, model: ModelRef) -> Date:
+        """Convert Z3 model to concrete Date using (alpha, beta)."""
+        alpha_val = model.evaluate(self.months_var, model_completion=True).as_signed_long()
+        beta_val = model.evaluate(self.beta_var, model_completion=True).as_signed_long()
+        k = alpha_val + (_EPOCH_YEAR * 12 + _EPOCH_MONTH)
+        year = (k - 1) // 12
+        month = k - year * 12
+        day = beta_val + 1
+        
+        return Date(year, month, day)
+
+    def __ge__(self, other) -> BoolRef:
+        """Support x >= date comparison."""
+        if isinstance(other, Date):
+            alpha_o = months_since_epoch_from_ym(
+                BitVecVal(other.year, LEGACY_BITS), BitVecVal(other.month, LEGACY_BITS)
+            )
+            beta_o = BitVecVal(other.day - 1, LEGACY_BITS)
+            return Or(
+                self.months_var > alpha_o,
+                And(self.months_var == alpha_o, self.beta_var >= beta_o),
+            )
+        elif isinstance(other, DateVar):
+            return Or(
+                self.months_var > other.months_var,
+                And(self.months_var == other.months_var, self.beta_var >= other.beta_var),
+            )
+        else:
+            raise TypeError(f"Cannot compare DateVar with {type(other)}")
+
+    def __le__(self, other) -> BoolRef:
+        """Support x <= date comparison."""
+        if isinstance(other, Date):
+            alpha_o = months_since_epoch_from_ym(
+                BitVecVal(other.year, LEGACY_BITS), BitVecVal(other.month, LEGACY_BITS)
+            )
+            beta_o = BitVecVal(other.day - 1, LEGACY_BITS)
+            return Or(
+                self.months_var < alpha_o,
+                And(self.months_var == alpha_o, self.beta_var <= beta_o),
+            )
+        elif isinstance(other, DateVar):
+            return Or(
+                self.months_var < other.months_var,
+                And(self.months_var == other.months_var, self.beta_var <= other.beta_var),
+            )
+        else:
+            raise TypeError(f"Cannot compare DateVar with {type(other)}")
+
+    def __lt__(self, other) -> BoolRef:
+        """Support x < date comparison."""
+        if isinstance(other, Date) or isinstance(other, DateVar):
+            return Not(self.__ge__(other))
+        else:
+            raise TypeError(f"Cannot compare DateVar with {type(other)}")
+
+    def __gt__(self, other) -> BoolRef:
+        """Support x > date comparison."""
+        if isinstance(other, Date) or isinstance(other, DateVar):
+            return Not(self.__le__(other))
+        else:
+            raise TypeError(f"Cannot compare DateVar with {type(other)}")
+
+    def __eq__(self, other) -> BoolRef:
+        """Support x == date comparison."""
+        if isinstance(other, Date):
+            alpha_o = months_since_epoch_from_ym(
+                BitVecVal(other.year, LEGACY_BITS), BitVecVal(other.month, LEGACY_BITS)
+            )
+            beta_o = BitVecVal(other.day - 1, LEGACY_BITS)
+            return And(self.months_var == alpha_o, self.beta_var == beta_o)
+        elif isinstance(other, DateVar):
+            return And(self.months_var == other.months_var, self.beta_var == other.beta_var)
+        else:
+            raise TypeError(f"Cannot compare DateVar with {type(other)}")
+
+    def __ne__(self, other) -> BoolRef:
+        """Support x != date comparison."""
+        return Not(self.__eq__(other))
+
+    def __add__(self, other) -> 'DateVar':
+        result = DateVar(f"{self.name}_plus")
+
+        # Period fields are BitVec terms in our API
+        months_delta = other.years * BitVecVal(12, LEGACY_BITS) + other.months
+        days_delta = other.days
+
+        alpha1 = self.months_var + months_delta
+        idx1 = mod48(alpha1)
+        abs1 = alpha_to_abs_month(alpha1)
+        dim1 = _override_dim_for_century_feb(abs1, Select(_DIM48_LIST, idx1))
+        beta1 = eom_clamp(dim1, self.beta_var)
+
+        base48 = Select(_DBM48_LIST, idx1) + beta1
+        corr1 = _century_correction(abs1)
+        total = base48 + corr1 + days_delta
+
+        q0 = _floor_div_four_year_days(total)
+        r0 = total % BitVecVal(_FOUR_YEAR_DAYS, LEGACY_BITS)
+
+        # Compute idx2 by scanning all 48 months with century correction at target
+        best = BitVecVal(0, LEGACY_BITS)
+        for i in range(1, _FOUR_YEAR_MONTHS):
+            diff_i = BitVecVal(i, LEGACY_BITS) - idx1
+            abs_i = alpha_to_abs_month(
+                alpha1 + q0 * BitVecVal(_FOUR_YEAR_MONTHS, LEGACY_BITS) + diff_i
+            )
+            corr_i = _century_correction(abs_i)
+            dbm_i_corr = Select(_DBM48_LIST, BitVecVal(i, LEGACY_BITS)) + corr_i
+            best = If(r0 >= dbm_i_corr, BitVecVal(i, LEGACY_BITS), best)
+
+        idx2 = best
+        diff2 = idx2 - idx1
+        abs2 = alpha_to_abs_month(
+            alpha1 + q0 * BitVecVal(_FOUR_YEAR_MONTHS, LEGACY_BITS) + diff2
+        )
+        corr2 = _century_correction(abs2)
+        beta2 = r0 - (Select(_DBM48_LIST, idx2) + corr2)
+
+        # End-of-month overflow carry: if beta2 equals/exceeds the month length, advance one month
+        # month length, advance one month and wrap beta into the next month.
+        dim2 = _override_dim_for_century_feb(abs2, Select(_DIM48_LIST, idx2))
+        carry = If(beta2 >= dim2, BitVecVal(1, LEGACY_BITS), BitVecVal(0, LEGACY_BITS))
+
+        result.months_var = alpha1 + q0 * BitVecVal(_FOUR_YEAR_MONTHS, LEGACY_BITS) + diff2 + carry
+        result.beta_var = If(carry == BitVecVal(1, LEGACY_BITS), beta2 - dim2, beta2)
+        return result
+
+    def __sub__(self, other) -> 'DateVar':
+        """DateVar - Period implemented as DateVar + (-Period). Date difference returns Int."""
+        if isinstance(other, Period):
+            neg = Period(-other.years, -other.months, -other.days)
+            return self.__add__(neg)
+        else:
+            raise TypeError(f"Cannot subtract {type(other)} from DateVar")
+
+
+class AlphaBetaTableSolver:
+    """Alpha-beta date constraint solver using epoch-based conversion."""
+
+    def __init__(self, timeout_ms=60000):
+        """Initialize the solver with timeout.
+
+        Args:
+            timeout_ms: Timeout in milliseconds (default: 60 seconds)
+        """
+        self.solver = Solver()
+        self.solver.set("timeout", timeout_ms)
+        self.date_vars = {}
+        self.constraints = []
+        self.timeout_ms = timeout_ms
+
+    def add_date_var(self, name: str) -> DateVar:
+        """Add a symbolic date variable with basic constraints."""
+        date_var = DateVar(name)
+        self.date_vars[name] = date_var
+
+        # Alpha bounds: months since 2000-03
+        # 1900-03 => (1900-2000)*12 + (3-3)
+        # 2100-02 => (2100-2000)*12 + (2-3)
+        self.solver.add(
+            date_var.months_var
+            >= BitVecVal((1900 - _EPOCH_YEAR) * 12 + (3 - _EPOCH_MONTH), LEGACY_BITS)
+        )
+        self.solver.add(
+            date_var.months_var
+            <= BitVecVal((2100 - _EPOCH_YEAR) * 12 + (2 - _EPOCH_MONTH), LEGACY_BITS)
+        )
+
+        # Beta bounds: 0 <= beta < DIM with 2100-02 (non-leap century) override
+        idx = mod48(date_var.months_var)
+        absm = alpha_to_abs_month(date_var.months_var)
+        # Convert idx to 32-bit for array access
+        idx_32 = If(idx >= BitVecVal(2**LEGACY_BITS, LEGACY_BITS),
+                    BitVecVal(0, LEGACY_BITS) + (idx - BitVecVal(2**LEGACY_BITS, LEGACY_BITS)),
+                    BitVecVal(0, LEGACY_BITS) + idx)
+        dim_raw = Select(_DIM48_LIST, idx_32)
+        dim = If(absm == _T2100_FEB, BitVecVal(28, LEGACY_BITS), dim_raw)
+        self.solver.add(
+            And(date_var.beta_var >= BitVecVal(0, LEGACY_BITS), date_var.beta_var < dim)
+        )
+        return date_var
+
+    def add_constraint(self, constraint: BoolRef) -> None:
+        """Add a constraint to the solver."""
+        self.constraints.append(constraint)
+        self.solver.add(constraint)
+
+    def check(self) -> CheckSatResult:
+        """Check if constraints are satisfiable."""
+        return self.solver.check()
+
+    def model(self) -> ModelRef:
+        """Get the model if satisfiable."""
+        return self.solver.model()
+
+    def get_concrete_dates(self, model: ModelRef) -> dict:
+        """Get concrete dates from the model."""
+        return {
+            name: var.to_concrete_date(model) for name, var in self.date_vars.items()
+        }
+
+    def solve(self) -> Union[bool, dict]:
+        """Solve the constraints."""
+        result = self.check()
+        if result == sat:
+            model = self.model()
+            return {
+                'status': 'sat',
+                'dates': self.get_concrete_dates(model),
+            }
+        else:
+            return {'status': 'unsat', 'dates': {}}
+
+    def to_smt2(self) -> str:
+        """Return the current problem in SMT-LIB v2 format."""
+        return self.solver.to_smt2()
+
+    def get_assertions(self) -> List[BoolRef]:
+        """Return the list of current Z3 assertions (BoolRef)."""
+        return list(self.solver.assertions())
