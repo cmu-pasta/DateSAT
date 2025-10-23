@@ -25,39 +25,40 @@ from z3 import (
     sat
 )
 from ..core import Date, Period
+from .bitwidths import LEGACY_BITS
 
 _NONLEAP_PREFIX = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334]
 _LEAP_PREFIX = [0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335]
 # -------------------------------
 # Epoch binding: 2000-03-01
 # -------------------------------
-# _ORD_EPOCH = to_ordinal(BitVecVal(2000, 32), BitVecVal(3, 32), BitVecVal(1, 32))  # original ground Z3 term
-_ORD_EPOCH = BitVecVal(730179, 32)  # precomputed ordinal of 2000-03-01 (0001-01-01 = 0)
+# _ORD_EPOCH = to_ordinal(BitVecVal(2000, LEGACY_BITS), BitVecVal(3, LEGACY_BITS), BitVecVal(1, LEGACY_BITS))  # original ground Z3 term
+_ORD_EPOCH = BitVecVal(730179, LEGACY_BITS)  # precomputed ordinal of 2000-03-01 (0001-01-01 = 0)
 
 def is_leap(year) -> BoolRef:
     """Check if a year is a leap year."""
     return Or(
         And(
-            year % BitVecVal(4, 32) == BitVecVal(0, 32),
-            year % BitVecVal(100, 32) != BitVecVal(0, 32),
+            year % BitVecVal(4, LEGACY_BITS) == BitVecVal(0, LEGACY_BITS),
+            year % BitVecVal(100, LEGACY_BITS) != BitVecVal(0, LEGACY_BITS),
         ),
-        year % BitVecVal(400, 32) == BitVecVal(0, 32),
+        year % BitVecVal(400, LEGACY_BITS) == BitVecVal(0, LEGACY_BITS),
     )
 
 def days_in_month(year, month) -> ArithRef:
     """Get the number of days in a month, accounting for leap years."""
     return If(
-        month == BitVecVal(2, 32),
-        If(is_leap(year), BitVecVal(29, 32), BitVecVal(28, 32)),
+        month == BitVecVal(2, LEGACY_BITS),
+        If(is_leap(year), BitVecVal(29, LEGACY_BITS), BitVecVal(28, LEGACY_BITS)),
         If(
             Or(
-                month == BitVecVal(4, 32),
-                month == BitVecVal(6, 32),
-                month == BitVecVal(9, 32),
-                month == BitVecVal(11, 32),
+                month == BitVecVal(4, LEGACY_BITS),
+                month == BitVecVal(6, LEGACY_BITS),
+                month == BitVecVal(9, LEGACY_BITS),
+                month == BitVecVal(11, LEGACY_BITS),
             ),
-            BitVecVal(30, 32),
-            BitVecVal(31, 32),
+            BitVecVal(30, LEGACY_BITS),
+            BitVecVal(31, LEGACY_BITS),
         ),
     )
 
@@ -67,86 +68,86 @@ def normalize_month(y, m) -> Tuple[BitVecRef, BitVecRef]:
     Works for concrete and symbolic inputs.
     """
     # Check if m is negative (>= 2^31)
-    is_negative = UGE(m, BitVecVal(2**31, 32))
+    is_negative = UGE(m, BitVecVal(2**31, LEGACY_BITS))
 
     # Convert to signed value
-    signed_m = If(is_negative, m - BitVecVal(2**32, 32), m)
+    signed_m = If(is_negative, m - BitVecVal(2**32, LEGACY_BITS), m)
 
     # Normalize using signed arithmetic with floor division
-    t = signed_m - BitVecVal(1, 32)
+    t = signed_m - BitVecVal(1, LEGACY_BITS)
 
     # Implement floor division: if t < 0 and t % 12 != 0, subtract 1 from quotient
-    q_trunc = t / BitVecVal(12, 32)  # Truncating division
-    r = t % BitVecVal(12, 32)  # Modulo
+    q_trunc = t / BitVecVal(12, LEGACY_BITS)  # Truncating division
+    r = t % BitVecVal(12, LEGACY_BITS)  # Modulo
     # Check if t is negative by checking if it's >= 2^31 (unsigned comparison)
-    is_negative_t = UGE(t, BitVecVal(2**31, 32))
-    is_negative_and_has_remainder = And(is_negative_t, r != BitVecVal(0, 32))
-    q = If(is_negative_and_has_remainder, q_trunc - BitVecVal(1, 32), q_trunc)
+    is_negative_t = UGE(t, BitVecVal(2**31, LEGACY_BITS))
+    is_negative_and_has_remainder = And(is_negative_t, r != BitVecVal(0, LEGACY_BITS))
+    q = If(is_negative_and_has_remainder, q_trunc - BitVecVal(1, LEGACY_BITS), q_trunc)
 
-    return y + q, r + BitVecVal(1, 32)
+    return y + q, r + BitVecVal(1, LEGACY_BITS)
 
 def days_before_year(y) -> ArithRef:
     """
     Days from 0001-01-01 to Jan 1 of year y (0-based), Gregorian rules.
     """
-    y1 = y - BitVecVal(1, 32)
+    y1 = y - BitVecVal(1, LEGACY_BITS)
     return (
-        BitVecVal(365, 32) * y1
-        + y1 / BitVecVal(4, 32)
-        - y1 / BitVecVal(100, 32)
-        + y1 / BitVecVal(400, 32)
+        BitVecVal(365, LEGACY_BITS) * y1
+        + y1 / BitVecVal(4, LEGACY_BITS)
+        - y1 / BitVecVal(100, LEGACY_BITS)
+        + y1 / BitVecVal(400, LEGACY_BITS)
     )
 
 def days_before_month(y, m) -> BitVecRef:
     """Z3 piecewise selection (no Python control over symbolic m)."""
-    expr = BitVecVal(0, 32)
+    expr = BitVecVal(0, LEGACY_BITS)
     for i in range(1, 13):
-        expr = If(m == BitVecVal(i, 32), _dbm_index(y, i), expr)
+        expr = If(m == BitVecVal(i, LEGACY_BITS), _dbm_index(y, i), expr)
     return expr
 
 def to_ordinal(y, m, d) -> ArithRef:
     """Z3-pure ordinal conversion (day 0 = 0001-01-01)."""
-    return days_before_year(y) + days_before_month(y, m) + (d - BitVecVal(1, 32))
+    return days_before_year(y) + days_before_month(y, m) + (d - BitVecVal(1, LEGACY_BITS))
 
 def from_ordinal(n) -> Tuple[BitVecRef, BitVecRef, BitVecRef]:
     """Z3-pure ordinal to date conversion using 400/100/4/1 year block decomposition."""
     # 400/100/4/1 year block decomposition
     D400, D100, D4, D1 = (
-        BitVecVal(146097, 32),
-        BitVecVal(36524, 32),
-        BitVecVal(1461, 32),
-        BitVecVal(365, 32),
+        BitVecVal(146097, LEGACY_BITS),
+        BitVecVal(36524, LEGACY_BITS),
+        BitVecVal(1461, LEGACY_BITS),
+        BitVecVal(365, LEGACY_BITS),
     )
     q400, r400 = n / D400, n % D400
 
     q100_raw = r400 / D100
-    q100 = If(q100_raw >= BitVecVal(4, 32), BitVecVal(3, 32), q100_raw)  # clamp 0..3
+    q100 = If(q100_raw >= BitVecVal(4, LEGACY_BITS), BitVecVal(3, LEGACY_BITS), q100_raw)  # clamp 0..3
     r100 = r400 - q100 * D100
 
     q4, r4 = r100 / D4, r100 % D4
 
     q1_raw = r4 / D1
-    q1 = If(q1_raw >= BitVecVal(4, 32), BitVecVal(3, 32), q1_raw)  # clamp 0..3
+    q1 = If(q1_raw >= BitVecVal(4, LEGACY_BITS), BitVecVal(3, LEGACY_BITS), q1_raw)  # clamp 0..3
     r1 = r4 - q1 * D1  # day-of-year (0..365)
 
     year = (
-        q400 * BitVecVal(400, 32)
-        + q100 * BitVecVal(100, 32)
-        + q4 * BitVecVal(4, 32)
+        q400 * BitVecVal(400, LEGACY_BITS)
+        + q100 * BitVecVal(100, LEGACY_BITS)
+        + q4 * BitVecVal(4, LEGACY_BITS)
         + q1
-        + BitVecVal(1, 32)
+        + BitVecVal(1, LEGACY_BITS)
     )
 
     # month = max i with r1 >= DBM(year, i)
     dbm = [_dbm_index(year, i) for i in range(1, 13)]
-    month = BitVecVal(1, 32)
+    month = BitVecVal(1, LEGACY_BITS)
     for i in range(2, 13):
-        month = If(r1 >= dbm[i - 1], BitVecVal(i, 32), month)
+        month = If(r1 >= dbm[i - 1], BitVecVal(i, LEGACY_BITS), month)
 
     # day = r1 - DBM(year, month) + 1
-    day_expr = r1 - dbm[0] + BitVecVal(1, 32)
+    day_expr = r1 - dbm[0] + BitVecVal(1, LEGACY_BITS)
     for i in range(2, 13):
-        day_expr = If(r1 >= dbm[i - 1], r1 - dbm[i - 1] + BitVecVal(1, 32), day_expr)
+        day_expr = If(r1 >= dbm[i - 1], r1 - dbm[i - 1] + BitVecVal(1, LEGACY_BITS), day_expr)
 
     return year, month, day_expr
 
@@ -163,7 +164,7 @@ def eom_clamp(year, month, day) -> BitVecRef:
     End-of-month clamp: ensure day is valid for the given year/month.
     """
     max_day = days_in_month(year, month)
-    return If(day < BitVecVal(1, 32), BitVecVal(1, 32), If(day > max_day, max_day, day))
+    return If(day < BitVecVal(1, LEGACY_BITS), BitVecVal(1, LEGACY_BITS), If(day > max_day, max_day, day))
 
 def add_days_ordinal(y, m, d, delta_days) -> Tuple[BitVec, BitVec, BitVec]:
     """
@@ -176,7 +177,7 @@ def add_days_ordinal(y, m, d, delta_days) -> Tuple[BitVec, BitVec, BitVec]:
     d0 = eom_clamp(y, m, d)
 
     # Fast path: no day shift → avoid any ordinal math.
-    no_shift = delta_days == BitVecVal(0, 32)
+    no_shift = delta_days == BitVecVal(0, LEGACY_BITS)
 
     # Single-step ordinal addition
     z = days_since_epoch_from_ymd(y, m, d0)
@@ -191,8 +192,8 @@ def add_days_ordinal(y, m, d, delta_days) -> Tuple[BitVec, BitVec, BitVec]:
 
 def _dbm_index(y, idx) -> BitVecRef:
     """days_before_month for fixed idx∈{1..12} as a Z3 term."""
-    non = BitVecVal(_NONLEAP_PREFIX[idx - 1], 32)
-    lep = BitVecVal(_LEAP_PREFIX[idx - 1], 32)
+    non = BitVecVal(_NONLEAP_PREFIX[idx - 1], LEGACY_BITS)
+    lep = BitVecVal(_LEAP_PREFIX[idx - 1], LEGACY_BITS)
     return If(is_leap(y), lep, non)
 
 
@@ -203,9 +204,9 @@ class DateVar:
         """Create a symbolic date variable."""
         self.name = name
         # Create separate Z3 bitvector variables for year, month, day
-        self.year = BitVec(f"{name}_year", 32)
-        self.month = BitVec(f"{name}_month", 32)
-        self.day = BitVec(f"{name}_day", 32)
+        self.year = BitVec(f"{name}_year", LEGACY_BITS)  # Use LEGACY_BITS for arithmetic compatibility
+        self.month = BitVec(f"{name}_month", LEGACY_BITS)  # Use LEGACY_BITS for arithmetic compatibility
+        self.day = BitVec(f"{name}_day", LEGACY_BITS)  # Use LEGACY_BITS for arithmetic compatibility
 
     def __str__(self) -> str:
         return f"DateVar({self.name})"
@@ -222,9 +223,9 @@ class DateVar:
         if isinstance(other, Date) or isinstance(other, DateVar):
             # Convert Date to bitvector values if needed
             if isinstance(other, Date):
-                other_year = BitVecVal(other.year, 32)
-                other_month = BitVecVal(other.month, 32)
-                other_day = BitVecVal(other.day, 32)
+                other_year = BitVecVal(other.year, LEGACY_BITS)
+                other_month = BitVecVal(other.month, LEGACY_BITS)
+                other_day = BitVecVal(other.day, LEGACY_BITS)
             else:  # isinstance(other, DateVar)
                 other_year = other.year
                 other_month = other.month
@@ -248,9 +249,9 @@ class DateVar:
         if isinstance(other, Date) or isinstance(other, DateVar):
             # Convert Date to bitvector values if needed
             if isinstance(other, Date):
-                other_year = BitVecVal(other.year, 32)
-                other_month = BitVecVal(other.month, 32)
-                other_day = BitVecVal(other.day, 32)
+                other_year = BitVecVal(other.year, LEGACY_BITS)
+                other_month = BitVecVal(other.month, LEGACY_BITS)
+                other_day = BitVecVal(other.day, LEGACY_BITS)
             else:  # isinstance(other, DateVar)
                 other_year = other.year
                 other_month = other.month
@@ -288,9 +289,9 @@ class DateVar:
         if isinstance(other, Date) or isinstance(other, DateVar):
             # Convert Date to bitvector values if needed
             if isinstance(other, Date):
-                other_year = BitVecVal(other.year, 32)
-                other_month = BitVecVal(other.month, 32)
-                other_day = BitVecVal(other.day, 32)
+                other_year = BitVecVal(other.year, LEGACY_BITS)
+                other_month = BitVecVal(other.month, LEGACY_BITS)
+                other_day = BitVecVal(other.day, LEGACY_BITS)
             else:  # isinstance(other, DateVar)
                 other_year = other.year
                 other_month = other.month
@@ -333,7 +334,7 @@ class DateVar:
 
             # Step 1: Combine Y and M (normalize months into 1..12 with year carry)
             # Convert period years to months and combine with period months
-            period_total_months = period_years * BitVecVal(12, 32) + period_months
+            period_total_months = period_years * BitVecVal(12, LEGACY_BITS) + period_months
             # Add to current month and normalize
             total_months = self.month + period_total_months
             year_carry, m1 = normalize_month(self.year, total_months)
@@ -385,27 +386,27 @@ class BaselineSolver:
             Or(
                 # 1900-03-01 to 1900-12-31
                 And(
-                    date_var.year == BitVecVal(1900, 32),
-                    date_var.month >= BitVecVal(3, 32),
-                    date_var.month <= BitVecVal(12, 32),
-                    date_var.day >= BitVecVal(1, 32),
+                    date_var.year == BitVecVal(1900, LEGACY_BITS),
+                    date_var.month >= BitVecVal(3, LEGACY_BITS),
+                    date_var.month <= BitVecVal(12, LEGACY_BITS),
+                    date_var.day >= BitVecVal(1, LEGACY_BITS),
                     date_var.day <= days_in_month(date_var.year, date_var.month),
                 ),
                 # 1901-01-01 to 2099-12-31
                 And(
-                    date_var.year >= BitVecVal(1901, 32),
-                    date_var.year <= BitVecVal(2099, 32),
-                    date_var.month >= BitVecVal(1, 32),
-                    date_var.month <= BitVecVal(12, 32),
-                    date_var.day >= BitVecVal(1, 32),
+                    date_var.year >= BitVecVal(1901, LEGACY_BITS),
+                    date_var.year <= BitVecVal(2099, LEGACY_BITS),
+                    date_var.month >= BitVecVal(1, LEGACY_BITS),
+                    date_var.month <= BitVecVal(12, LEGACY_BITS),
+                    date_var.day >= BitVecVal(1, LEGACY_BITS),
                     date_var.day <= days_in_month(date_var.year, date_var.month),
                 ),
                 # 2100-01-01 to 2100-02-28
                 And(
-                    date_var.year == BitVecVal(2100, 32),
-                    date_var.month >= BitVecVal(1, 32),
-                    date_var.month <= BitVecVal(2, 32),
-                    date_var.day >= BitVecVal(1, 32),
+                    date_var.year == BitVecVal(2100, LEGACY_BITS),
+                    date_var.month >= BitVecVal(1, LEGACY_BITS),
+                    date_var.month <= BitVecVal(2, LEGACY_BITS),
+                    date_var.day >= BitVecVal(1, LEGACY_BITS),
                     date_var.day <= days_in_month(date_var.year, date_var.month),
                 ),
             )

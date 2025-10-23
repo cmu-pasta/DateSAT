@@ -23,6 +23,7 @@ from z3 import (
 
 from ..core import Date, Period
 from .baseline_bv import eom_clamp, days_in_month, add_days_ordinal
+from .bitwidths import LEGACY_BITS
 # -------------------------------
 # Alpha (months-since-epoch) helpers
 # Epoch month: 2000-03 (alpha = 0)
@@ -40,13 +41,13 @@ _EPOCH_LINEAR = _EPOCH_YEAR * 12 + _EPOCH_MONTH  # 12*2000 + 3
 
 def months_since_epoch_from_ym(y, m) -> ArithRef:
     """Z3-pure: compute months-since-epoch (alpha) from year/month."""
-    return (y * 12 + m) - _EPOCH_LINEAR
+    return (y * BitVecVal(12, LEGACY_BITS) + m) - _EPOCH_LINEAR
 
 def ym_from_months_since_epoch(alpha) -> Tuple[ArithRef, ArithRef]:
     """Z3-pure inverse: decode (year, month) from alpha months-since-epoch."""
     k = alpha + _EPOCH_LINEAR
-    y = (k - BitVecVal(1, 32)) / 12
-    m = k - y * 12
+    y = (k - BitVecVal(1, LEGACY_BITS)) / BitVecVal(12, LEGACY_BITS)
+    m = k - y * BitVecVal(12, LEGACY_BITS)
     return y, m
 
 
@@ -61,9 +62,9 @@ class DateVar:
         """Create a symbolic date variable."""
         self.name = name
         # Alpha: Z3 bitvector variable for months since epoch-month
-        self.months_var = BitVec(f"{name}_months", 32)
+        self.months_var = BitVec(f"{name}_months", LEGACY_BITS)
         # Beta: Z3 bitvector variable for extra days (0-based) within month
-        self.beta_var = BitVec(f"{name}_beta", 32)
+        self.beta_var = BitVec(f"{name}_beta", LEGACY_BITS)
 
     def __str__(self) -> str:
         return f"DateVar({self.name})"
@@ -85,9 +86,9 @@ class DateVar:
         if isinstance(other, Date):
             # Convert Date to bitvector values if needed
             alpha_o = months_since_epoch_from_ym(
-                BitVecVal(other.year, 32), BitVecVal(other.month, 32)
+                BitVecVal(other.year, LEGACY_BITS), BitVecVal(other.month, LEGACY_BITS)
             )
-            beta_o = BitVecVal(other.day - 1, 32)
+            beta_o = BitVecVal(other.day - 1, LEGACY_BITS)
 
             return Or(
                 self.months_var > alpha_o,
@@ -105,9 +106,9 @@ class DateVar:
         """Support x <= date comparison."""
         if isinstance(other, Date):
             alpha_o = months_since_epoch_from_ym(
-                BitVecVal(other.year, 32), BitVecVal(other.month, 32)
+                BitVecVal(other.year, LEGACY_BITS), BitVecVal(other.month, LEGACY_BITS)
             )
-            beta_o = BitVecVal(other.day - 1, 32)
+            beta_o = BitVecVal(other.day - 1, LEGACY_BITS)
 
             return Or(
                 self.months_var < alpha_o,
@@ -139,9 +140,9 @@ class DateVar:
         """Support x == date comparison."""
         if isinstance(other, Date):
             alpha_o = months_since_epoch_from_ym(
-                BitVecVal(other.year, 32), BitVecVal(other.month, 32)
+                BitVecVal(other.year, LEGACY_BITS), BitVecVal(other.month, LEGACY_BITS)
             )
-            beta_o = BitVecVal(other.day - 1, 32)
+            beta_o = BitVecVal(other.day - 1, LEGACY_BITS)
 
             return And(self.months_var == alpha_o, self.beta_var == beta_o)
         elif isinstance(other, DateVar):
@@ -167,12 +168,12 @@ class DateVar:
             result = DateVar(
                 f"{self.name}_plus_{other.years}y_{other.months}m_{other.days}d"
             )
-            months_delta = BitVecVal(other.years * 12 + other.months, 32)
-            days_delta = BitVecVal(other.days, 32)
+            months_delta = BitVecVal(other.years * 12 + other.months, LEGACY_BITS)
+            days_delta = BitVecVal(other.days, LEGACY_BITS)
 
             # Decode current (y,m,d) from (alpha,beta)
             y0, m0 = ym_from_months_since_epoch(self.months_var)
-            d0 = self.beta_var + BitVecVal(1, 32)
+            d0 = self.beta_var + BitVecVal(1, LEGACY_BITS)
 
             # Step 1: shift alpha by months
             alpha1 = self.months_var + months_delta
@@ -185,7 +186,7 @@ class DateVar:
             y2, m2, d2 = add_days_ordinal(y1, m1, d1, days_delta)
 
             result.months_var = months_since_epoch_from_ym(y2, m2)
-            result.beta_var = d2 - BitVecVal(1, 32)
+            result.beta_var = d2 - BitVecVal(1, LEGACY_BITS)
             return result
         else:
             raise TypeError(f"Cannot add {type(other)} to DateVar")
@@ -224,16 +225,16 @@ class AlphaBetaSolver:
         # 2100-02 => (2100-2000)*12 + (2-3)
         self.solver.add(
             date_var.months_var
-            >= BitVecVal((1900 - _EPOCH_YEAR) * 12 + (3 - _EPOCH_MONTH), 32)
+            >= BitVecVal((1900 - _EPOCH_YEAR) * 12 + (3 - _EPOCH_MONTH), LEGACY_BITS)
         )
         self.solver.add(
             date_var.months_var
-            <= BitVecVal((2100 - _EPOCH_YEAR) * 12 + (2 - _EPOCH_MONTH), 32)
+            <= BitVecVal((2100 - _EPOCH_YEAR) * 12 + (2 - _EPOCH_MONTH), LEGACY_BITS)
         )
 
         # Beta bounds depend on month length: 0 <= beta < days_in_month(y,m)
         y, m = ym_from_months_since_epoch(date_var.months_var)
-        self.solver.add(date_var.beta_var >= BitVecVal(0, 32))
+        self.solver.add(date_var.beta_var >= BitVecVal(0, LEGACY_BITS))
         self.solver.add(date_var.beta_var < days_in_month(y, m))
 
         return date_var
