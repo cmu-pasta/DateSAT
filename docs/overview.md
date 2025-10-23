@@ -10,7 +10,6 @@ This document describes the common structure and requirements for implementing s
 
 ### Symbolic Types
 - **`DateVar`**: Symbolic date variable for constraint solving (implemented per method)
-- **`PeriodVar`**: Not supported - periods are always concrete
 
 ## Required Classes
 
@@ -121,45 +120,3 @@ All methods must enforce the valid date range:
 - **Type Checking**: All date components must be integers (booleans explicitly rejected)
 - **Range Validation**: Comprehensive validation for supported date range
 - **Calendar Correctness**: Uses Python's `date()` constructor for validation
-
-### Z3 Integration
-
-- Use Z3's `Int` sort for integer implementations
-- Use Z3's `BitVec` sort for bitvector implementations
-- All constraints must be Z3 `BoolRef` objects
-- Model evaluation must handle `model_completion=True`
-
-## Glossary
-
-### Technical Terms
-
-- **EOM Clamp**: When adding months to a date, if the original day doesn't exist in the target month (e.g., Jan 31 + 1 month = Feb 31), clamp the day to the last valid day of that month (Feb 28/29)
-
-- **Ordinal Day Arithmetic**: Convert dates to days since a fixed epoch (2000-03-01), perform exact integer arithmetic, then convert back to year/month/day
-
-- **Epoch Arithmetic**: Simple integer addition/subtraction on days since a fixed epoch date
-
-- **Alpha Representation**: Months since epoch month (March 2000 = 0) in alpha/beta methods
-
-- **Beta Representation**: Extra days within a month (0-based, so day = 1 + beta) in alpha/beta methods
-
-- **Lazy Y/M/D**: Y/M/D components are created only when needed for month/year arithmetic (hybrid method)
-
-- **Table-based Lookup**: Use pre-computed arrays instead of calculating days-in-month on-the-fly for performance
-
-- **Decode Epoch**: Convert days since epoch back to year/month/day components
-
-- **Encode to Epoch**: Convert year/month/day back to days since epoch
-
-## Method-Specific Documentation
-
-- [Baseline](baseline.md) - Direct year/month/day representation
-- [Epoch Days](epoch_days.md) - Days since epoch representation
-- [Hybrid](hybrid.md) - Dual epoch + Y/M/D representation
-- [Alpha Beta](alpha_beta.md) - Optimized months/days representation
-- [Alpha Beta Table](alpha_beta_table.md) - Table-optimized representation
-
-## Implementation Types
-
-- [Integer](implementations.md) - Z3 integer theory
-- [Bitvector](implementations.md) - Z3 bitvector theory
