@@ -8,8 +8,8 @@ DateSMT
 [X] Clean up symbolic_alpha_beta_table
 [X] Check if we can specify temp var (var that we don't need result for) - still need to solve but can not return the result -> don't matter in terms of performance?
 [X] Use bit vector? - Added
-[ ] Further reduce bit width
-[ ] BitVector/Int hybrid approach
+[ ] Further reduce bit width?
+[ ] BitVector/Int hybrid approach?
 [ ] Think about hybrid method: do we need lazy approach?
 [ ] Think about cases where bitvector is slower? (div/mod)
 

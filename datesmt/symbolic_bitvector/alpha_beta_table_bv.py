@@ -30,69 +30,70 @@ from z3 import (
 )
 from ..symbolic_int.alpha_beta_table_int import build_dim_dbm_48_from_epoch
 from ..core import Date, Period
+from .bitwidths import LEGACY_BITS
 # Epoch constants as Python ints for table construction and concrete decoding
 _EPOCH_YEAR = 2000
 _EPOCH_MONTH = 3
 # Linearized epoch month as a Z3 BitVec numeral
-_EPOCH_LINEAR = BitVecVal(_EPOCH_YEAR * 12 + _EPOCH_MONTH, 32)
+_EPOCH_LINEAR = BitVecVal(_EPOCH_YEAR * 12 + _EPOCH_MONTH, LEGACY_BITS)
 _FOUR_YEAR_MONTHS = 48
 _FOUR_YEAR_DAYS = 1461
-_T2100_FEB = BitVecVal(2100 * 12 + 2, 32)
-_T2100_MAR = BitVecVal(2100 * 12 + 3, 32)
+_T2100_FEB = BitVecVal(2100 * 12 + 2, LEGACY_BITS)
+_T2100_MAR = BitVecVal(2100 * 12 + 3, LEGACY_BITS)
 _DIM48_LIST_PY, _DBM48_LIST_PY = build_dim_dbm_48_from_epoch()
 
 
 def const_array(values: list[int]) -> BitVecRef:
-    a = K(BitVecSort(32), BitVecVal(0, 32))
+    a = K(BitVecSort(LEGACY_BITS), BitVecVal(0, LEGACY_BITS))
     for i, v in enumerate(values):
-        a = Store(a, BitVecVal(i, 32), BitVecVal(v, 32))
+        a = Store(a, BitVecVal(i, LEGACY_BITS), BitVecVal(v, LEGACY_BITS))
     return a
 
 _DIM48_LIST = const_array(_DIM48_LIST_PY)
 _DBM48_LIST = const_array(_DBM48_LIST_PY)
 
 def mod48(x) -> BitVecRef:
-    return x % BitVecVal(_FOUR_YEAR_MONTHS, 32)
+    return x % BitVecVal(_FOUR_YEAR_MONTHS, LEGACY_BITS)
 
 def _floor_div_12(x) -> BitVecRef:
     """Implement floor division by 12 for bitvectors to match Python's // behavior."""
-    is_negative = UGE(x, BitVecVal(2**31, 32))
-    signed_x = If(is_negative, x - BitVecVal(2**32, 32), x)
-    q_trunc = signed_x / BitVecVal(12, 32)
-    r = signed_x % BitVecVal(12, 32)
-    is_negative_and_has_remainder = And(UGE(signed_x, BitVecVal(2**31, 32)), r != BitVecVal(0, 32))
-    q = If(is_negative_and_has_remainder, q_trunc - BitVecVal(1, 32), q_trunc)
+    is_negative = UGE(x, BitVecVal(2**31, LEGACY_BITS))
+    signed_x = If(is_negative, x - BitVecVal(2**LEGACY_BITS, LEGACY_BITS), x)
+    q_trunc = signed_x / BitVecVal(12, LEGACY_BITS)
+    r = signed_x % BitVecVal(12, LEGACY_BITS)
+    is_negative_and_has_remainder = And(UGE(signed_x, BitVecVal(2**31, LEGACY_BITS)), r != BitVecVal(0, LEGACY_BITS))
+    q = If(is_negative_and_has_remainder, q_trunc - BitVecVal(1, LEGACY_BITS), q_trunc)
     return q
 
 def _floor_div_four_year_days(x) -> BitVecRef:
     """Implement floor division by FOUR_YEAR_DAYS for bitvectors to match Python's // behavior."""
-    is_negative = UGE(x, BitVecVal(2**31, 32))
-    signed_x = If(is_negative, x - BitVecVal(2**32, 32), x)
-    q_trunc = signed_x / BitVecVal(_FOUR_YEAR_DAYS, 32)
-    r = signed_x % BitVecVal(_FOUR_YEAR_DAYS, 32)
-    is_negative_and_has_remainder = And(UGE(signed_x, BitVecVal(2**31, 32)), r != BitVecVal(0, 32))
-    q = If(is_negative_and_has_remainder, q_trunc - BitVecVal(1, 32), q_trunc)
+    is_negative = UGE(x, BitVecVal(2**31, LEGACY_BITS))
+    signed_x = If(is_negative, x - BitVecVal(2**LEGACY_BITS, LEGACY_BITS), x)
+    q_trunc = signed_x / BitVecVal(_FOUR_YEAR_DAYS, LEGACY_BITS)
+    r = signed_x % BitVecVal(_FOUR_YEAR_DAYS, LEGACY_BITS)
+    is_negative_and_has_remainder = And(UGE(signed_x, BitVecVal(2**31, LEGACY_BITS)), r != BitVecVal(0, LEGACY_BITS))
+    q = If(is_negative_and_has_remainder, q_trunc - BitVecVal(1, LEGACY_BITS), q_trunc)
     return q
 
 def months_since_epoch_from_ym(y, m) -> BitVecRef:
-    return (y * BitVecVal(12, 32) + m) - _EPOCH_LINEAR
+    return (y * BitVecVal(12, LEGACY_BITS) + m) - _EPOCH_LINEAR
 
 def alpha_to_abs_month(alpha) -> BitVecRef:
     return alpha + _EPOCH_LINEAR
 
 def eom_clamp(dim, beta) -> BitVecRef:
     return If(
-        beta < BitVecVal(0, 32),
-        BitVecVal(0, 32),
-        If(beta > dim - BitVecVal(1, 32), dim - BitVecVal(1, 32), beta),
+        beta < BitVecVal(0, LEGACY_BITS),
+        BitVecVal(0, LEGACY_BITS),
+        If(beta > dim - BitVecVal(1, LEGACY_BITS), dim - BitVecVal(1, LEGACY_BITS), beta),
     )
 
 def _century_correction(abs_month) -> BitVecRef:
     # -1 if at/after 2100-03, else 0
-    return If(abs_month >= _T2100_MAR, BitVecVal(-1, 32), BitVecVal(0, 32))
+    return If(abs_month >= _T2100_MAR, BitVecVal(-1, LEGACY_BITS), BitVecVal(0, LEGACY_BITS))
 
 def _override_dim_for_century_feb(abs_month, dim) -> BitVecRef:
-    return If(abs_month == _T2100_FEB, BitVecVal(28, 32), dim)
+    return If(abs_month == _T2100_FEB, BitVecVal(28, LEGACY_BITS), dim)
 
 
 class DateVar:
@@ -106,9 +107,9 @@ class DateVar:
         """Create a symbolic date variable."""
         self.name = name
         # Alpha: Z3 bitvector variable for months since epoch-month
-        self.months_var = BitVec(f"{name}_months", 32)
+        self.months_var = BitVec(f"{name}_months", LEGACY_BITS)
         # Beta: Z3 bitvector variable for extra days (0-based) within month
-        self.beta_var = BitVec(f"{name}_beta", 32)
+        self.beta_var = BitVec(f"{name}_beta", LEGACY_BITS)
 
     def __str__(self) -> str:
         return f"DateVar({self.name})"
@@ -128,9 +129,9 @@ class DateVar:
         """Support x >= date comparison."""
         if isinstance(other, Date):
             alpha_o = months_since_epoch_from_ym(
-                BitVecVal(other.year, 32), BitVecVal(other.month, 32)
+                BitVecVal(other.year, LEGACY_BITS), BitVecVal(other.month, LEGACY_BITS)
             )
-            beta_o = BitVecVal(other.day - 1, 32)
+            beta_o = BitVecVal(other.day - 1, LEGACY_BITS)
             return Or(
                 self.months_var > alpha_o,
                 And(self.months_var == alpha_o, self.beta_var >= beta_o),
@@ -147,9 +148,9 @@ class DateVar:
         """Support x <= date comparison."""
         if isinstance(other, Date):
             alpha_o = months_since_epoch_from_ym(
-                BitVecVal(other.year, 32), BitVecVal(other.month, 32)
+                BitVecVal(other.year, LEGACY_BITS), BitVecVal(other.month, LEGACY_BITS)
             )
-            beta_o = BitVecVal(other.day - 1, 32)
+            beta_o = BitVecVal(other.day - 1, LEGACY_BITS)
             return Or(
                 self.months_var < alpha_o,
                 And(self.months_var == alpha_o, self.beta_var <= beta_o),
@@ -180,9 +181,9 @@ class DateVar:
         """Support x == date comparison."""
         if isinstance(other, Date):
             alpha_o = months_since_epoch_from_ym(
-                BitVecVal(other.year, 32), BitVecVal(other.month, 32)
+                BitVecVal(other.year, LEGACY_BITS), BitVecVal(other.month, LEGACY_BITS)
             )
-            beta_o = BitVecVal(other.day - 1, 32)
+            beta_o = BitVecVal(other.day - 1, LEGACY_BITS)
             return And(self.months_var == alpha_o, self.beta_var == beta_o)
         elif isinstance(other, DateVar):
             return And(self.months_var == other.months_var, self.beta_var == other.beta_var)
@@ -197,7 +198,7 @@ class DateVar:
         result = DateVar(f"{self.name}_plus")
 
         # Period fields are BitVec terms in our API
-        months_delta = other.years * BitVecVal(12, 32) + other.months
+        months_delta = other.years * BitVecVal(12, LEGACY_BITS) + other.months
         days_delta = other.days
 
         alpha1 = self.months_var + months_delta
@@ -211,23 +212,23 @@ class DateVar:
         total = base48 + corr1 + days_delta
 
         q0 = _floor_div_four_year_days(total)
-        r0 = total % BitVecVal(_FOUR_YEAR_DAYS, 32)
+        r0 = total % BitVecVal(_FOUR_YEAR_DAYS, LEGACY_BITS)
 
         # Compute idx2 by scanning all 48 months with century correction at target
-        best = BitVecVal(0, 32)
+        best = BitVecVal(0, LEGACY_BITS)
         for i in range(1, _FOUR_YEAR_MONTHS):
-            diff_i = BitVecVal(i, 32) - idx1
+            diff_i = BitVecVal(i, LEGACY_BITS) - idx1
             abs_i = alpha_to_abs_month(
-                alpha1 + q0 * BitVecVal(_FOUR_YEAR_MONTHS, 32) + diff_i
+                alpha1 + q0 * BitVecVal(_FOUR_YEAR_MONTHS, LEGACY_BITS) + diff_i
             )
             corr_i = _century_correction(abs_i)
-            dbm_i_corr = Select(_DBM48_LIST, BitVecVal(i, 32)) + corr_i
-            best = If(r0 >= dbm_i_corr, BitVecVal(i, 32), best)
+            dbm_i_corr = Select(_DBM48_LIST, BitVecVal(i, LEGACY_BITS)) + corr_i
+            best = If(r0 >= dbm_i_corr, BitVecVal(i, LEGACY_BITS), best)
 
         idx2 = best
         diff2 = idx2 - idx1
         abs2 = alpha_to_abs_month(
-            alpha1 + q0 * BitVecVal(_FOUR_YEAR_MONTHS, 32) + diff2
+            alpha1 + q0 * BitVecVal(_FOUR_YEAR_MONTHS, LEGACY_BITS) + diff2
         )
         corr2 = _century_correction(abs2)
         beta2 = r0 - (Select(_DBM48_LIST, idx2) + corr2)
@@ -235,10 +236,10 @@ class DateVar:
         # End-of-month overflow carry: if beta2 equals/exceeds the month length, advance one month
         # month length, advance one month and wrap beta into the next month.
         dim2 = _override_dim_for_century_feb(abs2, Select(_DIM48_LIST, idx2))
-        carry = If(beta2 >= dim2, BitVecVal(1, 32), BitVecVal(0, 32))
+        carry = If(beta2 >= dim2, BitVecVal(1, LEGACY_BITS), BitVecVal(0, LEGACY_BITS))
 
-        result.months_var = alpha1 + q0 * BitVecVal(_FOUR_YEAR_MONTHS, 32) + diff2 + carry
-        result.beta_var = If(carry == BitVecVal(1, 32), beta2 - dim2, beta2)
+        result.months_var = alpha1 + q0 * BitVecVal(_FOUR_YEAR_MONTHS, LEGACY_BITS) + diff2 + carry
+        result.beta_var = If(carry == BitVecVal(1, LEGACY_BITS), beta2 - dim2, beta2)
         return result
 
     def __sub__(self, other) -> 'DateVar':
@@ -275,20 +276,24 @@ class AlphaBetaTableSolver:
         # 2100-02 => (2100-2000)*12 + (2-3)
         self.solver.add(
             date_var.months_var
-            >= BitVecVal((1900 - _EPOCH_YEAR) * 12 + (3 - _EPOCH_MONTH), 32)
+            >= BitVecVal((1900 - _EPOCH_YEAR) * 12 + (3 - _EPOCH_MONTH), LEGACY_BITS)
         )
         self.solver.add(
             date_var.months_var
-            <= BitVecVal((2100 - _EPOCH_YEAR) * 12 + (2 - _EPOCH_MONTH), 32)
+            <= BitVecVal((2100 - _EPOCH_YEAR) * 12 + (2 - _EPOCH_MONTH), LEGACY_BITS)
         )
 
         # Beta bounds: 0 <= beta < DIM with 2100-02 (non-leap century) override
         idx = mod48(date_var.months_var)
         absm = alpha_to_abs_month(date_var.months_var)
-        dim_raw = Select(_DIM48_LIST, idx)
-        dim = If(absm == _T2100_FEB, BitVecVal(28, 32), dim_raw)
+        # Convert idx to 32-bit for array access
+        idx_32 = If(idx >= BitVecVal(2**LEGACY_BITS, LEGACY_BITS),
+                    BitVecVal(0, LEGACY_BITS) + (idx - BitVecVal(2**LEGACY_BITS, LEGACY_BITS)),
+                    BitVecVal(0, LEGACY_BITS) + idx)
+        dim_raw = Select(_DIM48_LIST, idx_32)
+        dim = If(absm == _T2100_FEB, BitVecVal(28, LEGACY_BITS), dim_raw)
         self.solver.add(
-            And(date_var.beta_var >= BitVecVal(0, 32), date_var.beta_var < dim)
+            And(date_var.beta_var >= BitVecVal(0, LEGACY_BITS), date_var.beta_var < dim)
         )
         return date_var
 

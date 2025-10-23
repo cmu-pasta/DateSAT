@@ -25,6 +25,7 @@ from z3 import (
     sat
 )
 from ..core import Date, Period
+from .bitwidths import LEGACY_BITS
 from .baseline_bv import (
     is_leap,
     days_in_month,
@@ -61,7 +62,7 @@ class DateVar:
         """Create a symbolic date variable."""
         self.name = name
         # Use a single Z3 bitvector variable for days since epoch
-        self.days_var = BitVec(f"{name}_days", 32)
+        self.days_var = BitVec(f"{name}_days", LEGACY_BITS)
 
     def __str__(self) -> str:
         return f"DateVar({self.name})"
@@ -126,23 +127,23 @@ class DateVar:
                 f"{self.name}_plus_{other.years}y_{other.months}m_{other.days}d"
             )
             oy, om, od = (
-                BitVecVal(other.years, 32),
-                BitVecVal(other.months, 32),
-                BitVecVal(other.days, 32),
+                BitVecVal(other.years, LEGACY_BITS),
+                BitVecVal(other.months, LEGACY_BITS),
+                BitVecVal(other.days, LEGACY_BITS),
             )
 
             # Fast-path: only days component
             if oy == 0 and om == 0:
-                result.days_var = self.days_var + BitVecVal(od, 32)
+                result.days_var = self.days_var + BitVecVal(od, LEGACY_BITS)
                 return result
 
             # Decode current date to Y/M/D
             y0, m0, d0 = ymd_from_days_since_epoch(self.days_var)
 
             # Step 1: Combine Y and M with normalization (carry years)
-            period_total_months = oy * BitVecVal(12, 32) + om
+            period_total_months = oy * BitVecVal(12, LEGACY_BITS) + om
             total_months = m0 + period_total_months
-            year_carry, m1 = normalize_month(BitVecVal(0, 32), total_months)
+            year_carry, m1 = normalize_month(BitVecVal(0, LEGACY_BITS), total_months)
             y1 = y0 + year_carry
 
             # Step 2: EOM clamp
@@ -190,8 +191,8 @@ class EpochDaysSolver:
         # Epoch is March 1, 2000
         # 1900-03-01 to 2000-03-01
         # 2000-03-01 to 2100-02-28
-        self.solver.add(date_var.days_var >= BitVecVal(-36525, 32))  # 1900-03-01
-        self.solver.add(date_var.days_var <= BitVecVal(36523, 32))  # 2100-02-28
+        self.solver.add(date_var.days_var >= BitVecVal(-36525, LEGACY_BITS))  # 1900-03-01
+        self.solver.add(date_var.days_var <= BitVecVal(36523, LEGACY_BITS))  # 2100-02-28
 
         return date_var
 

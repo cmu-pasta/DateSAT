@@ -33,6 +33,7 @@ from z3 import (
     sat
 )
 from ..core import Date, Period
+from .bitwidths import LEGACY_BITS
 from .baseline_bv import (
     is_leap,
     days_in_month,
@@ -57,7 +58,7 @@ class DateVar:
         self.ctx = ctx
         self.name = name
         # Primary epoch representation
-        self.epoch_var = BitVec(f"{name}_epoch", 32)
+        self.epoch_var = BitVec(f"{name}_epoch", LEGACY_BITS)
         # Lazy YMD vars
         self._ymd_exists = False
         self._year_var = None
@@ -96,9 +97,9 @@ class DateVar:
     def _ensure_ymd(self) -> None:
         if self._ymd_exists:
             return
-        self._year_var = BitVec(f"{self.name}_year", 32)
-        self._month_var = BitVec(f"{self.name}_month", 32)
-        self._day_var = BitVec(f"{self.name}_day", 32)
+        self._year_var = BitVec(f"{self.name}_year", LEGACY_BITS)
+        self._month_var = BitVec(f"{self.name}_month", LEGACY_BITS)
+        self._day_var = BitVec(f"{self.name}_day", LEGACY_BITS)
         self._ymd_exists = True
         # Add validity constraints
         self.ctx._add_date_constraints(self)
@@ -185,16 +186,16 @@ class DateVar:
         # Concrete Period fast-path for days-only
         if isinstance(other, Period) and other.years == 0 and other.months == 0:
             self.ctx.solver.add(
-                result.epoch_var == self.epoch_var + BitVecVal(other.days, 32)
+                result.epoch_var == self.epoch_var + BitVecVal(other.days, LEGACY_BITS)
             )
             return result
 
         # Extract period components as Z3 terms
         if isinstance(other, Period):
             oy, om, od = (
-                BitVecVal(other.years, 32),
-                BitVecVal(other.months, 32),
-                BitVecVal(other.days, 32),
+                BitVecVal(other.years, LEGACY_BITS),
+                BitVecVal(other.months, LEGACY_BITS),
+                BitVecVal(other.days, LEGACY_BITS),
             )
         else:
             oy, om, od = other.years, other.months, other.days
@@ -206,9 +207,9 @@ class DateVar:
         else:
             y0, m0, d0 = ymd_from_days_since_epoch(self.epoch_var)
         # Step 1: combine years/months with AMI normalization
-        period_total_months = oy * BitVecVal(12, 32) + om
+        period_total_months = oy * BitVecVal(12, LEGACY_BITS) + om
         total_months = m0 + period_total_months
-        year_carry, m1 = normalize_month(BitVecVal(0, 32), total_months)
+        year_carry, m1 = normalize_month(BitVecVal(0, LEGACY_BITS), total_months)
         y1 = y0 + year_carry
         # Step 2: EOM clamp
         d1 = eom_clamp(y1, m1, d0)
@@ -257,8 +258,8 @@ class HybridSolver:
         self.date_vars[name] = dv
 
         # Basic epoch range constraints [1900-03-01 .. 2100-02-28]
-        self.solver.add(dv.epoch_var >= BitVecVal(-36525, 32))
-        self.solver.add(dv.epoch_var <= BitVecVal(36523, 32))
+        self.solver.add(dv.epoch_var >= BitVecVal(-36525, LEGACY_BITS))
+        self.solver.add(dv.epoch_var <= BitVecVal(36523, LEGACY_BITS))
         return dv
 
     def _add_date_constraints(self, dv: DateVar) -> None:
@@ -269,11 +270,11 @@ class HybridSolver:
         Y_MIN, Y_MAX = 1900, 2100
         self.solver.add(
             And(
-                Y >= BitVecVal(Y_MIN, 32),
-                Y <= BitVecVal(Y_MAX, 32),
-                M >= BitVecVal(1, 32),
-                M <= BitVecVal(12, 32),
-                D >= BitVecVal(1, 32),
+                Y >= BitVecVal(Y_MIN, LEGACY_BITS),
+                Y <= BitVecVal(Y_MAX, LEGACY_BITS),
+                M >= BitVecVal(1, LEGACY_BITS),
+                M <= BitVecVal(12, LEGACY_BITS),
+                D >= BitVecVal(1, LEGACY_BITS),
                 D <= days_in_month(Y, M),
             )
         )
