@@ -1,0 +1,570 @@
+ID,repository,directory,solution,language,name,description,runtime,testing,tests,is_aws,is_azure,is_gcp,provider_set
+388542571/examples/basic_subnets/Pulumi.yaml,388542571,388542571/examples/basic_subnets,Pulumi,python,basic-subnets,GCP network basic subnets demo project,python,,,0,0,1,gcp
+388542571/examples/basic_firewall_rules/Pulumi.yaml,388542571,388542571/examples/basic_firewall_rules,Pulumi,python,basic-firewall-rules,GCP network basic firewall rules demo project,python,,,0,0,1,gcp
+388542571/examples/basic_network/Pulumi.yaml,388542571,388542571/examples/basic_network,Pulumi,python,basic-network,GCP network basic network demo project,python,,,0,0,1,gcp
+388542571/examples/basic_vpc/Pulumi.yaml,388542571,388542571/examples/basic_vpc,Pulumi,python,basic-vpc,GCP network basic vpc demo project,python,,,0,0,1,gcp
+388542571/examples/basic_routes/Pulumi.yaml,388542571,388542571/examples/basic_routes,Pulumi,python,basic-routes,GCP network basic routes demo project,python,,,0,0,1,gcp
+419834241/Pulumi.yaml,419834241,419834241,Pulumi,python,quickstart,A minimal Google Cloud Python Pulumi program,python,,,0,0,1,gcp
+402879279/example-project/pulumi/old/Pulumi.yaml,402879279,402879279/example-project/pulumi/old,Pulumi,typescript,vendure-pulumi,Deployment for an example Vendure project using Pulumi and GCP (with Docker),nodejs,,,0,0,1,gcp
+477771435/gcp/cdktf.json,477771435,477771435/gcp,CDKTF,python,,,python,,,0,0,1,gcp
+185512695/src/chap12-Kubernetes/pulumi_gke/Pulumi.yaml,185512695,185512695/src/chap12-Kubernetes/pulumi_gke,Pulumi,python,pythonfordevops-gke-pulumi,A minimal Google Cloud Python Pulumi program,python,,,0,0,1,gcp
+389288120/gke/Pulumi.yaml,389288120,389288120/gke,Pulumi,python,gke,Google Kubernetes Engine,python,,,0,0,1,gcp
+481998124/labs/infra/google-cloudrun/cdktf.json,481998124,481998124/labs/infra/google-cloudrun,CDKTF,typescript,,,typescript,,,0,0,1,gcp
+507430899/Pulumi.yaml,507430899,507430899,Pulumi,typescript,pulumi-gcp,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+513876836/applications/pulumi-examples/gcp-go-webserver/Pulumi.yaml,513876836,513876836/applications/pulumi-examples/gcp-go-webserver,Pulumi,go,webserver-gcp,Basic example of an Google Cloud web server accessible over HTTP,go,,,0,0,1,gcp
+513876836/applications/pulumi-examples/gcp-cs-gke/Pulumi.yaml,513876836,513876836/applications/pulumi-examples/gcp-cs-gke,Pulumi,csharp,gcp-cs-gke,A GCP C# Pulumi program with Kubernetes,dotnet,,,0,0,1,gcp
+513876836/applications/pulumi-examples/gcp-py-functions/Pulumi.yaml,513876836,513876836/applications/pulumi-examples/gcp-py-functions,Pulumi,python,gcp-py-functions,A minimal Python Pulumi program using Google Cloud Functions.,python,,,0,0,1,gcp
+513876836/applications/pulumi-examples/gcp-py-instance-nginx/Pulumi.yaml,513876836,513876836/applications/pulumi-examples/gcp-py-instance-nginx,Pulumi,python,gcp-instance-nginx,Deploy a Nginx Server in a GCP instance,python,,,0,0,1,gcp
+513876836/applications/pulumi-examples/gcp-go-gke/Pulumi.yaml,513876836,513876836/applications/pulumi-examples/gcp-go-gke,Pulumi,go,gcp-go-gke,A GCP Go Pulumi program with Kubernetes,go,,,0,0,1,gcp
+513876836/applications/pulumi-examples/gcp-cs-functions/Pulumi.yaml,513876836,513876836/applications/pulumi-examples/gcp-cs-functions,Pulumi,csharp,gcp-py-functions,A minimal C# Pulumi program using Google Cloud Functions.,dotnet,,,0,0,1,gcp
+513876836/applications/pulumi-examples/gcp-js-webserver/Pulumi.yaml,513876836,513876836/applications/pulumi-examples/gcp-js-webserver,Pulumi,typescript,webserver-gcp,Basic example of an Google Cloud web server accessible over HTTP,nodejs,,,0,0,1,gcp
+513876836/applications/pulumi-examples/gcp-ts-slackbot/Pulumi.yaml,513876836,513876836/applications/pulumi-examples/gcp-ts-slackbot,Pulumi,typescript,gcp-ts-slack,Basic example of creating a slackbot,nodejs,,,0,0,1,gcp
+513876836/applications/pulumi-examples/gcp-ts-docker-gcr-cloudrun/cloud-run-deploy/Pulumi.yaml,513876836,513876836/applications/pulumi-examples/gcp-ts-docker-gcr-cloudrun/cloud-run-deploy,Pulumi,typescript,cloud-run-deploy,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+513876836/applications/pulumi-examples/gcp-ts-docker-gcr-cloudrun/docker-build-push-gcr/Pulumi.yaml,513876836,513876836/applications/pulumi-examples/gcp-ts-docker-gcr-cloudrun/docker-build-push-gcr,Pulumi,typescript,gcr-build-image,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+513876836/applications/pulumi-examples/gcp-ts-serverless-raw/Pulumi.yaml,513876836,513876836/applications/pulumi-examples/gcp-ts-serverless-raw,Pulumi,typescript,serverless,Basic example of a serverless GCP functions in Python and Go,nodejs,,,0,0,1,gcp
+513876836/applications/pulumi-examples/gcp-go-functions-raw/Pulumi.yaml,513876836,513876836/applications/pulumi-examples/gcp-go-functions-raw,Pulumi,go,gcp-go-functions-raw,A minimal Go Pulumi program using Google Cloud Functions.,go,,,0,0,1,gcp
+513876836/applications/pulumi-examples/gcp-ts-cloudrun/Pulumi.yaml,513876836,513876836/applications/pulumi-examples/gcp-ts-cloudrun,Pulumi,typescript,gcp-cloudrun,Google Cloud Run example,nodejs,,,0,0,1,gcp
+513876836/applications/pulumi-examples/gcp-py-serverless-raw/Pulumi.yaml,513876836,513876836/applications/pulumi-examples/gcp-py-serverless-raw,Pulumi,python,serverless-py,Basic example of a serverless Python and Go GCP functions (in Python),python,,,0,0,1,gcp
+513876836/applications/pulumi-examples/gcp-ts-functions/Pulumi.yaml,513876836,513876836/applications/pulumi-examples/gcp-ts-functions,Pulumi,typescript,gcp-functions,GCP Functions example,nodejs,,,0,0,1,gcp
+513876836/applications/pulumi-examples/gcp-ts-gke-serviceaccount/Pulumi.yaml,513876836,513876836/applications/pulumi-examples/gcp-ts-gke-serviceaccount,Pulumi,typescript,gcp-ts-gke-serviceaccount,A Google Kubernetes Engine (GKE) + Service account example,nodejs,,,0,0,1,gcp
+513876836/applications/pulumi-examples/gcp-ts-gke-hello-world/Pulumi.yaml,513876836,513876836/applications/pulumi-examples/gcp-ts-gke-hello-world,Pulumi,typescript,gcp-ts-gke-hello-world,A Google Kubernetes Engine (GKE) + Kubernetes Hello World example,nodejs,,,0,0,1,gcp
+513876836/applications/pulumi-examples/gcp-go-functions/Pulumi.yaml,513876836,513876836/applications/pulumi-examples/gcp-go-functions,Pulumi,go,gcp-go-functions,A minimal Go Pulumi program using Google Cloud Functions.,go,,,0,0,1,gcp
+513876836/applications/pulumi-examples/gcp-py-webserver/Pulumi.yaml,513876836,513876836/applications/pulumi-examples/gcp-py-webserver,Pulumi,python,gcp-py-webserver,Basic example of a Google Cloud web server accessible over HTTP,python,,,0,0,1,gcp
+513876836/applications/pulumi-examples/gcp-ts-k8s-ruby-on-rails-postgresql/infra/Pulumi.yaml,513876836,513876836/applications/pulumi-examples/gcp-ts-k8s-ruby-on-rails-postgresql/infra,Pulumi,typescript,gcp-rails,A containerized Ruby on Rails app using managed Kubernetes and PostgreSQL,nodejs,,,0,0,1,gcp
+513876836/applications/pulumi-examples/gcp-py-cloudrun-cloudsql/Pulumi.yaml,513876836,513876836/applications/pulumi-examples/gcp-py-cloudrun-cloudsql,Pulumi,python,gcp-py-cloudrun-cloudsql,Basic example of a Google Cloud Run and Google Cloud SQL deployment,python,,,0,0,1,gcp
+513876836/applications/pulumi-examples/gcp-py-gke/Pulumi.yaml,513876836,513876836/applications/pulumi-examples/gcp-py-gke,Pulumi,python,gcp-py-gke,"A Google Kubernetes Engine (GKE) cluster, with canary deployment",python,,,0,0,1,gcp
+513876836/applications/pulumi-examples/gcp-go-instance/Pulumi.yaml,513876836,513876836/applications/pulumi-examples/gcp-go-instance,Pulumi,go,gcp-go-instance,A GCP Go Pulumi to create an instance,go,,,0,0,1,gcp
+513876836/applications/pulumi-examples/gcp-ts-gke/Pulumi.yaml,513876836,513876836/applications/pulumi-examples/gcp-ts-gke,Pulumi,typescript,gcp-ts-gke,"A Google Kubernetes Engine (GKE) cluster, with canary deployment",nodejs,,,0,0,1,gcp
+513876836/applications/pulumi-examples/gcp-py-network-component/Pulumi.yaml,513876836,513876836/applications/pulumi-examples/gcp-py-network-component,Pulumi,python,gcp-py-network-component,A Google Cloud Python Pulumi program using ComponentResource,python,,,0,0,1,gcp
+153369729/infra/Pulumi.yaml,153369729,153369729/infra,Pulumi,typescript,project-cloudysky,An awesome Ruby on Rails app in Google Cloud,nodejs,,,0,0,1,gcp
+397883979/terraform-cdk/examples/typescript/google-cloudrun/cdktf.json,397883979,397883979/terraform-cdk/examples/typescript/google-cloudrun,CDKTF,typescript,,,typescript,,,0,0,1,gcp
+397883979/terraform-cdk/examples/typescript/google/cdktf.json,397883979,397883979/terraform-cdk/examples/typescript/google,CDKTF,typescript,,,typescript,,,0,0,1,gcp
+397883979/terraform-cdk/examples/csharp/google/cdktf.json,397883979,397883979/terraform-cdk/examples/csharp/google,CDKTF,csharp,,,csharp,,,0,0,1,gcp
+397883979/terraform-cdk/examples/python/google/cloud-function/cdktf.json,397883979,397883979/terraform-cdk/examples/python/google/cloud-function,CDKTF,python,,,python,,,0,0,1,gcp
+397883979/terraform-cdk/examples/go/google/cdktf.json,397883979,397883979/terraform-cdk/examples/go/google,CDKTF,go,,,go,,,0,0,1,gcp
+397883979/terraform-cdk/examples/java/google/cdktf.json,397883979,397883979/terraform-cdk/examples/java/google,CDKTF,java,,,java,,,0,0,1,gcp
+218798638/cluster/pulumi/gcp/infra/Pulumi.yaml,218798638,218798638/cluster/pulumi/gcp/infra,Pulumi,typescript,gcp-infra,Deploy infra to support GKE deployments,nodejs,,,0,0,1,gcp
+218798638/cluster/pulumi/gcp/gke/Pulumi.yaml,218798638,218798638/cluster/pulumi/gcp/gke,Pulumi,typescript,gke,Deploy GKE clusters in GCP,nodejs,,,0,0,1,gcp
+326183231/tests/simple-project/Pulumi.yaml,326183231,326183231/tests/simple-project,Pulumi,typescript,simple-project,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+469482256/Pulumi.yaml,469482256,469482256/Infra/PulumiInfra,Pulumi,csharp,google-cloud-run-microservices,An example of calling one Google Cloud Run service from another.,dotnet,,,0,0,1,gcp
+326566148/templates/gcp-yaml/Pulumi.yaml,326566148,326566148/templates/gcp-yaml,Pulumi,yaml,${PROJECT},${DESCRIPTION},yaml,,,0,0,1,gcp
+326566148/templates/google-native-yaml/Pulumi.yaml,326566148,326566148/templates/google-native-yaml,Pulumi,yaml,${PROJECT},${DESCRIPTION},yaml,,,0,0,1,gcp
+240668054/gcpGSuiteSAMLAuthentication/src/iac/Pulumi.yaml,240668054,240668054/gcpGSuiteSAMLAuthentication/src/iac,Pulumi,python,gcpAccountSAMLAuthentication,Enabling SAML based Authentication SSO system for GCP accounts using Okta as IdP,python,,,0,0,1,gcp
+284101170/Pulumi.yaml,284101170,284101170,Pulumi,python,gcp-py-gke,"A Google Kubernetes Engine (GKE) cluster, with canary deployment",python,,,0,0,1,gcp
+463591772/Pulumi.yaml,463591772,463591772,Pulumi,typescript,nextjs-gcp-storage,Example Next.js app to upload images to a GCP storage bucket.,nodejs,,,0,0,1,gcp
+342928014/Pulumi.yaml,342928014,342928014,Pulumi,typescript,gabriel-pulumi-demo,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+423528270/infra/deploy-app/Pulumi.yaml,423528270,423528270/infra/deploy-app,Pulumi,typescript,weather-api-dev-deploy-app,Deploy image from GCR to GCP Cloud Run,nodejs,,,0,0,1,gcp
+326759047/Pulumi.yaml,326759047,326759047,Pulumi,csharp,gcp.iamCustomRole,Create gcp.iamCustomRoles with project or organizational scope.,dotnet,,,0,0,1,gcp
+223804186/function/Pulumi.yaml,223804186,223804186/function,Pulumi,csharp,function,GCP example that uses a scheduler to trigger a cloud function,dotnet,,,0,0,1,gcp
+223804186/first-project/Pulumi.yaml,223804186,223804186/first-project,Pulumi,csharp,pulumi-gcp,A minimal GCP C# Pulumi program,dotnet,,,0,0,1,gcp
+373801220/4.Pulumi/demos/Pulumi.yaml,373801220,373801220/4.Pulumi/demos,Pulumi,csharp,testbkr,A minimal GCP C# Pulumi program,dotnet,,,0,0,1,gcp
+366716983/infra/Pulumi.yaml,366716983,366716983/infra,Pulumi,typescript,dashy,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+501081121/Pulumi.yaml,501081121,501081121,Pulumi,go,sigstore-in-the-cloud,A minimal Google Cloud Go Pulumi program,go,,,0,0,1,gcp
+515074724/Pulumi.yaml,515074724,515074724,Pulumi,typescript,xingedin,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+297005363/Pulumi.yaml,297005363,297005363,Pulumi,go,stock-pulumi,Google Cloud Stock Infrastructure as Code,go,,,0,0,1,gcp
+441419788/Pulumi/casestudy-gke/Pulumi.yaml,441419788,441419788/Pulumi/casestudy-gke,Pulumi,typescript,casestudy-gke,Casestudy for gcp's GKE,nodejs,,,0,0,1,gcp
+489054298/quickstart/Pulumi.yaml,489054298,489054298/quickstart,Pulumi,typescript,quickstart,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+449067892/src/chap12-Kubernetes/pulumi_gke/Pulumi.yaml,449067892,449067892/src/chap12-Kubernetes/pulumi_gke,Pulumi,python,pythonfordevops-gke-pulumi,A minimal Google Cloud Python Pulumi program,python,,,0,0,1,gcp
+454501044/apps/pulumi-func/Pulumi.yaml,454501044,454501044/apps/pulumi-func,Pulumi,typescript,pulumi-functions,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+420617519/test-01-basic-pulumi-tutorial/Pulumi.yaml,420617519,420617519/test-01-basic-pulumi-tutorial,Pulumi,typescript,test-01-basic-pulumi-tutorial,A minimal Google Cloud JavaScript Pulumi program,nodejs,,,0,0,1,gcp
+480962028/systems/infrastructure/Pulumi.yaml,480962028,480962028/systems/infrastructure,Pulumi,typescript,pomodoro-timer,Setup GCP for pomodoro timer,nodejs,"['pulumi_unit', 'pulumi_unit_mocking']","['480962028/systems/infrastructure/src/gcp/artifact-registry/get-registry-url.spec.ts', '480962028/systems/infrastructure/src/gcp/cloud-run/get-cloud-run-url.spec.ts', '480962028/systems/infrastructure/src/gcp/get-resource-name-prefix.spec.ts']",0,0,1,gcp
+429921964/infra/cloudrun/Pulumi.yaml,429921964,429921964/infra/cloudrun,Pulumi,python,circleci-pulumi,A sample Falcon API running with CircleCi and Pulumi on GCP,python,,,0,0,1,gcp
+434620612/infra/Pulumi.yaml,434620612,434620612/infra,Pulumi,typescript,android-gcp-pulumi,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+254155269/typescript/gcp/cloudrun/Pulumi.yaml,254155269,254155269/typescript/gcp/cloudrun,Pulumi,typescript,gcp-typescript-cloudrun,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+254155269/typescript/gcp/gke/Pulumi.yaml,254155269,254155269/typescript/gcp/gke,Pulumi,typescript,gke,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+254155269/typescript/gcp/static_site/Pulumi.yaml,254155269,254155269/typescript/gcp/static_site,Pulumi,typescript,static_site,A minimal TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+254155269/python/gcp/compute/Pulumi.yaml,254155269,254155269/python/gcp/compute,Pulumi,python,gcp-compute-example,Create a set of instances with gcloud,python,,,0,0,1,gcp
+254155269/python/gcp/bucket/Pulumi.yaml,254155269,254155269/python/gcp/bucket,Pulumi,python,encrypted-bucket-object,Create an S3 bucket,python,,,0,0,1,gcp
+476894296/Pulumi.yaml,476894296,476894296,Pulumi,typescript,pulumi-gcp-cloud-run,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+519273443/Pulumi.yaml,519273443,519273443,Pulumi,python,spot-mig,A minimal Google Cloud Python Pulumi program,python,,,0,0,1,gcp
+348787118/setup/Pulumi.yaml,348787118,348787118/setup,Pulumi,typescript,streamprocessor-setup,setup streamprocessor on GCP,nodejs,,,0,0,1,gcp
+348787118/com.google.analytics.v1/Pulumi.yaml,348787118,348787118/com.google.analytics.v1,Pulumi,typescript,com-google-analytics-v1,StreamProcessor for google analytics v1 data streams,nodejs,,,0,0,1,gcp
+384868066/stage-4/pulumi/Pulumi.yaml,384868066,384868066/stage-4/pulumi,Pulumi,python,pulum,A minimal Google Cloud Python Pulumi program,python,,,0,0,1,gcp
+501082911/Pulumi.yaml,501082911,501082911,Pulumi,go,deploy-sigstore,A minimal Google Cloud Go Pulumi program,go,,,0,0,1,gcp
+475025089/gcp-go-webserver/Pulumi.yaml,475025089,475025089/gcp-go-webserver,Pulumi,go,webserver-gcp,Basic example of an Google Cloud web server accessible over HTTP,go,,,0,0,1,gcp
+475025089/gcp-cs-gke/Pulumi.yaml,475025089,475025089/gcp-cs-gke,Pulumi,csharp,gcp-cs-gke,A GCP C# Pulumi program with Kubernetes,dotnet,,,0,0,1,gcp
+475025089/gcp-py-functions/Pulumi.yaml,475025089,475025089/gcp-py-functions,Pulumi,python,gcp-py-functions,A minimal Python Pulumi program using Google Cloud Functions.,python,,,0,0,1,gcp
+475025089/gcp-py-instance-nginx/Pulumi.yaml,475025089,475025089/gcp-py-instance-nginx,Pulumi,python,gcp-instance-nginx,Deploy a Nginx Server in a GCP instance,python,,,0,0,1,gcp
+475025089/gcp-go-gke/Pulumi.yaml,475025089,475025089/gcp-go-gke,Pulumi,go,gcp-go-gke,A GCP Go Pulumi program with Kubernetes,go,,,0,0,1,gcp
+475025089/gcp-cs-functions/Pulumi.yaml,475025089,475025089/gcp-cs-functions,Pulumi,csharp,gcp-py-functions,A minimal C# Pulumi program using Google Cloud Functions.,dotnet,,,0,0,1,gcp
+475025089/gcp-js-webserver/Pulumi.yaml,475025089,475025089/gcp-js-webserver,Pulumi,typescript,webserver-gcp,Basic example of an Google Cloud web server accessible over HTTP,nodejs,,,0,0,1,gcp
+475025089/gcp-ts-slackbot/Pulumi.yaml,475025089,475025089/gcp-ts-slackbot,Pulumi,typescript,gcp-ts-slack,Basic example of creating a slackbot,nodejs,,,0,0,1,gcp
+475025089/gcp-ts-docker-gcr-cloudrun/cloud-run-deploy/Pulumi.yaml,475025089,475025089/gcp-ts-docker-gcr-cloudrun/cloud-run-deploy,Pulumi,typescript,cloud-run-deploy,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+475025089/gcp-ts-docker-gcr-cloudrun/docker-build-push-gcr/Pulumi.yaml,475025089,475025089/gcp-ts-docker-gcr-cloudrun/docker-build-push-gcr,Pulumi,typescript,gcr-build-image,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+475025089/gcp-ts-serverless-raw/Pulumi.yaml,475025089,475025089/gcp-ts-serverless-raw,Pulumi,typescript,serverless,Basic example of a serverless GCP functions in Python and Go,nodejs,,,0,0,1,gcp
+475025089/google-native-ts-functions/Pulumi.yaml,475025089,475025089/google-native-ts-functions,Pulumi,typescript,google-cloud-ts-functions,Google Cloud Functions example,nodejs,,,0,0,1,gcp
+475025089/gcp-go-functions-raw/Pulumi.yaml,475025089,475025089/gcp-go-functions-raw,Pulumi,go,gcp-go-functions-raw,A minimal Go Pulumi program using Google Cloud Functions.,go,,,0,0,1,gcp
+475025089/gcp-ts-cloudrun/Pulumi.yaml,475025089,475025089/gcp-ts-cloudrun,Pulumi,typescript,gcp-cloudrun,Google Cloud Run example,nodejs,,,0,0,1,gcp
+475025089/gcp-py-serverless-raw/Pulumi.yaml,475025089,475025089/gcp-py-serverless-raw,Pulumi,python,serverless-py,Basic example of a serverless Python and Go GCP functions (in Python),python,,,0,0,1,gcp
+475025089/gcp-ts-functions/Pulumi.yaml,475025089,475025089/gcp-ts-functions,Pulumi,typescript,gcp-functions,GCP Functions example,nodejs,,,0,0,1,gcp
+475025089/gcp-ts-gke-serviceaccount/Pulumi.yaml,475025089,475025089/gcp-ts-gke-serviceaccount,Pulumi,typescript,gcp-ts-gke-serviceaccount,A Google Kubernetes Engine (GKE) + Service account example,nodejs,,,0,0,1,gcp
+475025089/gcp-ts-gke-hello-world/Pulumi.yaml,475025089,475025089/gcp-ts-gke-hello-world,Pulumi,typescript,gcp-ts-gke-hello-world,A Google Kubernetes Engine (GKE) + Kubernetes Hello World example,nodejs,,,0,0,1,gcp
+475025089/gcp-go-functions/Pulumi.yaml,475025089,475025089/gcp-go-functions,Pulumi,go,gcp-go-functions,A minimal Go Pulumi program using Google Cloud Functions.,go,,,0,0,1,gcp
+475025089/gcp-py-webserver/Pulumi.yaml,475025089,475025089/gcp-py-webserver,Pulumi,python,gcp-py-webserver,Basic example of a Google Cloud web server accessible over HTTP,python,,,0,0,1,gcp
+475025089/gcp-ts-k8s-ruby-on-rails-postgresql/infra/Pulumi.yaml,475025089,475025089/gcp-ts-k8s-ruby-on-rails-postgresql/infra,Pulumi,typescript,gcp-rails,A containerized Ruby on Rails app using managed Kubernetes and PostgreSQL,nodejs,,,0,0,1,gcp
+475025089/gcp-py-cloudrun-cloudsql/Pulumi.yaml,475025089,475025089/gcp-py-cloudrun-cloudsql,Pulumi,python,gcp-py-cloudrun-cloudsql,Basic example of a Google Cloud Run and Google Cloud SQL deployment,python,,,0,0,1,gcp
+475025089/gcp-py-gke/Pulumi.yaml,475025089,475025089/gcp-py-gke,Pulumi,python,gcp-py-gke,"A Google Kubernetes Engine (GKE) cluster, with canary deployment",python,,,0,0,1,gcp
+475025089/gcp-go-instance/Pulumi.yaml,475025089,475025089/gcp-go-instance,Pulumi,go,gcp-go-instance,A GCP Go Pulumi to create an instance,go,,,0,0,1,gcp
+475025089/google-native-ts-gke-config-connector/Pulumi.yaml,475025089,475025089/google-native-ts-gke-config-connector,Pulumi,typescript,gke-config-connector,GKE config-connector example,nodejs,,,0,0,1,gcp
+475025089/gcp-ts-gke/Pulumi.yaml,475025089,475025089/gcp-ts-gke,Pulumi,typescript,gcp-ts-gke,"A Google Kubernetes Engine (GKE) cluster, with canary deployment",nodejs,,,0,0,1,gcp
+475025089/gcp-py-network-component/Pulumi.yaml,475025089,475025089/gcp-py-network-component,Pulumi,python,gcp-py-network-component,A Google Cloud Python Pulumi program using ComponentResource,python,,,0,0,1,gcp
+475025089/google-native-ts-k8s-ruby-on-rails-postgresql/infra/Pulumi.yaml,475025089,475025089/google-native-ts-k8s-ruby-on-rails-postgresql/infra,Pulumi,typescript,google-rails,A containerized Ruby on Rails app using managed Kubernetes and PostgreSQL,nodejs,,,0,0,1,gcp
+344307583/Pulumi.yaml,344307583,344307583,Pulumi,go,gke,Google Kubernetes Engine,go,,,0,0,1,gcp
+366707770/Pulumi.yaml,366707770,366707770,Pulumi,python,gcp-py-functions,A minimal Python Pulumi program using Google Cloud Functions.,python,,,0,0,1,gcp
+288800160/iac_trade/pulumi/Pulumi.yaml,288800160,288800160/iac_trade/pulumi,Pulumi,typescript,msat-trade,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+397242021/function/Pulumi.yaml,397242021,397242021/function,Pulumi,typescript,cloud-function-pulumi,A minimal Google Cloud JavaScript Pulumi program,nodejs,,,0,0,1,gcp
+397242021/quickstart/Pulumi.yaml,397242021,397242021/quickstart,Pulumi,typescript,quickstart-gcp-js,A minimal Google Cloud JavaScript Pulumi program,nodejs,,,0,0,1,gcp
+378284744/Pulumi.yaml,378284744,378284744,Pulumi,go,gcp-go-nickens,A GCP Go Pulumi program with Kubernetes,go,,,0,0,1,gcp
+402224124/examples/gcp-py-compute-command/Pulumi.yaml,402224124,402224124/examples/gcp-py-compute-command,Pulumi,python,hack-pulumi-command-examples,A minimal Python Pulumi program,python,,,0,0,1,gcp
+288684540/Pulumi.yaml,288684540,288684540,Pulumi,typescript,pulumi-external-dns,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+370653568/Pulumi.yaml,370653568,370653568,Pulumi,go,gcp-go,A minimal Google Cloud Go Pulumi program,go,,,0,0,1,gcp
+446348090/applications/pulumi-examples/gcp-go-webserver/Pulumi.yaml,446348090,446348090/applications/pulumi-examples/gcp-go-webserver,Pulumi,go,webserver-gcp,Basic example of an Google Cloud web server accessible over HTTP,go,,,0,0,1,gcp
+446348090/applications/pulumi-examples/gcp-cs-gke/Pulumi.yaml,446348090,446348090/applications/pulumi-examples/gcp-cs-gke,Pulumi,csharp,gcp-cs-gke,A GCP C# Pulumi program with Kubernetes,dotnet,,,0,0,1,gcp
+446348090/applications/pulumi-examples/gcp-py-functions/Pulumi.yaml,446348090,446348090/applications/pulumi-examples/gcp-py-functions,Pulumi,python,gcp-py-functions,A minimal Python Pulumi program using Google Cloud Functions.,python,,,0,0,1,gcp
+446348090/applications/pulumi-examples/gcp-py-instance-nginx/Pulumi.yaml,446348090,446348090/applications/pulumi-examples/gcp-py-instance-nginx,Pulumi,python,gcp-instance-nginx,Deploy a Nginx Server in a GCP instance,python,,,0,0,1,gcp
+446348090/applications/pulumi-examples/gcp-go-gke/Pulumi.yaml,446348090,446348090/applications/pulumi-examples/gcp-go-gke,Pulumi,go,gcp-go-gke,A GCP Go Pulumi program with Kubernetes,go,,,0,0,1,gcp
+446348090/applications/pulumi-examples/gcp-cs-functions/Pulumi.yaml,446348090,446348090/applications/pulumi-examples/gcp-cs-functions,Pulumi,csharp,gcp-py-functions,A minimal C# Pulumi program using Google Cloud Functions.,dotnet,,,0,0,1,gcp
+446348090/applications/pulumi-examples/gcp-js-webserver/Pulumi.yaml,446348090,446348090/applications/pulumi-examples/gcp-js-webserver,Pulumi,typescript,webserver-gcp,Basic example of an Google Cloud web server accessible over HTTP,nodejs,,,0,0,1,gcp
+446348090/applications/pulumi-examples/gcp-ts-slackbot/Pulumi.yaml,446348090,446348090/applications/pulumi-examples/gcp-ts-slackbot,Pulumi,typescript,gcp-ts-slack,Basic example of creating a slackbot,nodejs,,,0,0,1,gcp
+446348090/applications/pulumi-examples/gcp-ts-docker-gcr-cloudrun/cloud-run-deploy/Pulumi.yaml,446348090,446348090/applications/pulumi-examples/gcp-ts-docker-gcr-cloudrun/cloud-run-deploy,Pulumi,typescript,cloud-run-deploy,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+446348090/applications/pulumi-examples/gcp-ts-docker-gcr-cloudrun/docker-build-push-gcr/Pulumi.yaml,446348090,446348090/applications/pulumi-examples/gcp-ts-docker-gcr-cloudrun/docker-build-push-gcr,Pulumi,typescript,gcr-build-image,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+446348090/applications/pulumi-examples/gcp-ts-serverless-raw/Pulumi.yaml,446348090,446348090/applications/pulumi-examples/gcp-ts-serverless-raw,Pulumi,typescript,serverless,Basic example of a serverless GCP functions in Python and Go,nodejs,,,0,0,1,gcp
+446348090/applications/pulumi-examples/gcp-go-functions-raw/Pulumi.yaml,446348090,446348090/applications/pulumi-examples/gcp-go-functions-raw,Pulumi,go,gcp-go-functions-raw,A minimal Go Pulumi program using Google Cloud Functions.,go,,,0,0,1,gcp
+446348090/applications/pulumi-examples/gcp-ts-cloudrun/Pulumi.yaml,446348090,446348090/applications/pulumi-examples/gcp-ts-cloudrun,Pulumi,typescript,gcp-cloudrun,Google Cloud Run example,nodejs,,,0,0,1,gcp
+446348090/applications/pulumi-examples/gcp-py-serverless-raw/Pulumi.yaml,446348090,446348090/applications/pulumi-examples/gcp-py-serverless-raw,Pulumi,python,serverless-py,Basic example of a serverless Python and Go GCP functions (in Python),python,,,0,0,1,gcp
+446348090/applications/pulumi-examples/gcp-ts-functions/Pulumi.yaml,446348090,446348090/applications/pulumi-examples/gcp-ts-functions,Pulumi,typescript,gcp-functions,GCP Functions example,nodejs,,,0,0,1,gcp
+446348090/applications/pulumi-examples/gcp-ts-gke-serviceaccount/Pulumi.yaml,446348090,446348090/applications/pulumi-examples/gcp-ts-gke-serviceaccount,Pulumi,typescript,gcp-ts-gke-serviceaccount,A Google Kubernetes Engine (GKE) + Service account example,nodejs,,,0,0,1,gcp
+446348090/applications/pulumi-examples/gcp-ts-gke-hello-world/Pulumi.yaml,446348090,446348090/applications/pulumi-examples/gcp-ts-gke-hello-world,Pulumi,typescript,gcp-ts-gke-hello-world,A Google Kubernetes Engine (GKE) + Kubernetes Hello World example,nodejs,,,0,0,1,gcp
+446348090/applications/pulumi-examples/gcp-go-functions/Pulumi.yaml,446348090,446348090/applications/pulumi-examples/gcp-go-functions,Pulumi,go,gcp-go-functions,A minimal Go Pulumi program using Google Cloud Functions.,go,,,0,0,1,gcp
+446348090/applications/pulumi-examples/gcp-py-webserver/Pulumi.yaml,446348090,446348090/applications/pulumi-examples/gcp-py-webserver,Pulumi,python,gcp-py-webserver,Basic example of a Google Cloud web server accessible over HTTP,python,,,0,0,1,gcp
+446348090/applications/pulumi-examples/gcp-ts-k8s-ruby-on-rails-postgresql/infra/Pulumi.yaml,446348090,446348090/applications/pulumi-examples/gcp-ts-k8s-ruby-on-rails-postgresql/infra,Pulumi,typescript,gcp-rails,A containerized Ruby on Rails app using managed Kubernetes and PostgreSQL,nodejs,,,0,0,1,gcp
+446348090/applications/pulumi-examples/gcp-py-cloudrun-cloudsql/Pulumi.yaml,446348090,446348090/applications/pulumi-examples/gcp-py-cloudrun-cloudsql,Pulumi,python,gcp-py-cloudrun-cloudsql,Basic example of a Google Cloud Run and Google Cloud SQL deployment,python,,,0,0,1,gcp
+446348090/applications/pulumi-examples/gcp-py-gke/Pulumi.yaml,446348090,446348090/applications/pulumi-examples/gcp-py-gke,Pulumi,python,gcp-py-gke,"A Google Kubernetes Engine (GKE) cluster, with canary deployment",python,,,0,0,1,gcp
+446348090/applications/pulumi-examples/gcp-go-instance/Pulumi.yaml,446348090,446348090/applications/pulumi-examples/gcp-go-instance,Pulumi,go,gcp-go-instance,A GCP Go Pulumi to create an instance,go,,,0,0,1,gcp
+446348090/applications/pulumi-examples/gcp-ts-gke/Pulumi.yaml,446348090,446348090/applications/pulumi-examples/gcp-ts-gke,Pulumi,typescript,gcp-ts-gke,"A Google Kubernetes Engine (GKE) cluster, with canary deployment",nodejs,,,0,0,1,gcp
+446348090/applications/pulumi-examples/gcp-py-network-component/Pulumi.yaml,446348090,446348090/applications/pulumi-examples/gcp-py-network-component,Pulumi,python,gcp-py-network-component,A Google Cloud Python Pulumi program using ComponentResource,python,,,0,0,1,gcp
+495099624/Pulumi.yaml,495099624,495099624/infra,Pulumi,typescript,nodejs-cloud-run,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+295442659/cluster/pulumi/gcp/infra/Pulumi.yaml,295442659,295442659/cluster/pulumi/gcp/infra,Pulumi,typescript,gcp-infra,Deploy infra to support GKE deployments,nodejs,,,0,0,1,gcp
+295442659/cluster/pulumi/gcp/gke/Pulumi.yaml,295442659,295442659/cluster/pulumi/gcp/gke,Pulumi,typescript,gke,Deploy GKE clusters in GCP,nodejs,,,0,0,1,gcp
+233000592/systems/infrastructure/Pulumi.yaml,233000592,233000592/systems/infrastructure,Pulumi,python,infrastructure,Deploy Spotify Music Player to GCP,python,"['pulumi_unit', 'pulumi_unit_mocking']","['233000592/systems/infrastructure/gcp/test_cloud_run.py', '233000592/systems/infrastructure/gcp/test_cloud_storage.py', '233000592/systems/infrastructure/gcp/test_container_registry.py']",0,0,1,gcp
+285778764/03-otto-neil/google-cloudrun/cdktf.json,285778764,285778764/03-otto-neil/google-cloudrun,CDKTF,typescript,,,typescript,,,0,0,1,gcp
+348731341/python_devops_book-master/src/chap12-Kubernetes/pulumi_gke/Pulumi.yaml,348731341,348731341/python_devops_book-master/src/chap12-Kubernetes/pulumi_gke,Pulumi,python,pythonfordevops-gke-pulumi,A minimal Google Cloud Python Pulumi program,python,,,0,0,1,gcp
+521477262/stack/Pulumi.yaml,521477262,521477262/stack,Pulumi,python,datasets,A hierarchy of GCP buckets for genomic data.,python,,,0,0,1,gcp
+377731844/gcp-devel/Pulumi.yaml,377731844,377731844/gcp-devel,Pulumi,go,gcp-devel,GCP/GKE development environment,go,,,0,0,1,gcp
+525572205/examples/google-cloud/yaml/Pulumi.yaml,525572205,525572205/examples/google-cloud/yaml,Pulumi,yaml,synced-folder-examples-google-cloud-yaml,An example of using the synced-folder component in YAML.,yaml,,,0,0,1,gcp
+431573762/Pulumi.yaml,431573762,431573762,Pulumi,python,tchelinux-2021,TcheLinux presentation about Pulumi using Python on Google Cloud Platform,python,,,0,0,1,gcp
+240810647/infra/wrangler/Pulumi.yaml,240810647,240810647/infra/wrangler,Pulumi,typescript,wrangler,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+218668699/cluster/pulumi/gcp/infra/Pulumi.yaml,218668699,218668699/cluster/pulumi/gcp/infra,Pulumi,typescript,gcp-infra,Deploy infra to support GKE deployments,nodejs,,,0,0,1,gcp
+218668699/cluster/pulumi/gcp/gke/Pulumi.yaml,218668699,218668699/cluster/pulumi/gcp/gke,Pulumi,typescript,gke,Deploy GKE clusters in GCP,nodejs,,,0,0,1,gcp
+288243833/examples/typescript/google-cloudrun/cdktf.json,288243833,288243833/examples/typescript/google-cloudrun,CDKTF,typescript,,,typescript,,,0,0,1,gcp
+288243833/examples/typescript/google/cdktf.json,288243833,288243833/examples/typescript/google,CDKTF,typescript,,,typescript,,,0,0,1,gcp
+334327457/infrastructure/gcp/Pulumi.yaml,334327457,334327457/infrastructure/gcp,Pulumi,typescript,stellaris,A Google Kubernetes Engine (GKE) cluster,nodejs,,,0,0,1,gcp
+275543259/cluster/pulumi/gcp/infra/Pulumi.yaml,275543259,275543259/cluster/pulumi/gcp/infra,Pulumi,typescript,gcp-infra,Deploy infra to support GKE deployments,nodejs,,,0,0,1,gcp
+275543259/cluster/pulumi/gcp/gke/Pulumi.yaml,275543259,275543259/cluster/pulumi/gcp/gke,Pulumi,typescript,gke,Deploy GKE clusters in GCP,nodejs,,,0,0,1,gcp
+309297242/Pulumi.yaml,309297242,309297242,Pulumi,typescript,m3o,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+159397206/pulumi/static-web/Pulumi.yaml,159397206,159397206/pulumi/static-web,Pulumi,csharp,static-web,A minimal GCP C# Pulumi program,dotnet,,,0,0,1,gcp
+490458843/src/pulumi/Pulumi.yaml,490458843,490458843/src/pulumi,Pulumi,python,gke-pulumi-demo,A minimal Google Cloud Python Pulumi program,python,,,0,0,1,gcp
+360159096/google-v2/cdktf.json,360159096,360159096/google-v2,CDKTF,typescript,,,typescript,,,0,0,1,gcp
+221931376/pulumi/Pulumi.yaml,221931376,221931376/pulumi,Pulumi,typescript,harness-multicloud,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+391581748/deploy/pulumi/gcp/Pulumi.yaml,391581748,391581748/deploy/pulumi/gcp,Pulumi,typescript,benchmark-rest-frameworks,Fun project on Drag racing restful frameworks,nodejs,,,0,0,1,gcp
+124577647/gcp-python/Pulumi.yaml,124577647,124577647/gcp-python,Pulumi,python,${PROJECT},${DESCRIPTION},python,,,0,0,1,gcp
+124577647/gcp-javascript/Pulumi.yaml,124577647,124577647/gcp-javascript,Pulumi,javascript,${PROJECT},${DESCRIPTION},javascript,,,0,0,1,gcp
+124577647/gcp-fsharp/Pulumi.yaml,124577647,124577647/gcp-fsharp,Pulumi,csharp,${PROJECT},${DESCRIPTION},dotnet,,,0,0,1,gcp
+124577647/gcp-java/Pulumi.yaml,124577647,124577647/gcp-java,Pulumi,java,${PROJECT},${DESCRIPTION},java,,,0,0,1,gcp
+124577647/google-native-go/Pulumi.yaml,124577647,124577647/google-native-go,Pulumi,go,${PROJECT},${DESCRIPTION},go,,,0,0,1,gcp
+124577647/gcp-go/Pulumi.yaml,124577647,124577647/gcp-go,Pulumi,go,${PROJECT},${DESCRIPTION},go,,,0,0,1,gcp
+124577647/google-native-csharp/Pulumi.yaml,124577647,124577647/google-native-csharp,Pulumi,csharp,${PROJECT},${DESCRIPTION},dotnet,,,0,0,1,gcp
+124577647/gcp-csharp/Pulumi.yaml,124577647,124577647/gcp-csharp,Pulumi,csharp,${PROJECT},${DESCRIPTION},dotnet,,,0,0,1,gcp
+124577647/google-native-python/Pulumi.yaml,124577647,124577647/google-native-python,Pulumi,python,${PROJECT},${DESCRIPTION},python,,,0,0,1,gcp
+124577647/gcp-yaml/Pulumi.yaml,124577647,124577647/gcp-yaml,Pulumi,yaml,${PROJECT},${DESCRIPTION},yaml,,,0,0,1,gcp
+124577647/gcp-visualbasic/Pulumi.yaml,124577647,124577647/gcp-visualbasic,Pulumi,csharp,${PROJECT},${DESCRIPTION},dotnet,,,0,0,1,gcp
+124577647/gcp-typescript/Pulumi.yaml,124577647,124577647/gcp-typescript,Pulumi,typescript,${PROJECT},${DESCRIPTION},nodejs,,,0,0,1,gcp
+124577647/google-native-yaml/Pulumi.yaml,124577647,124577647/google-native-yaml,Pulumi,yaml,${PROJECT},${DESCRIPTION},yaml,,,0,0,1,gcp
+124577647/google-native-typescript/Pulumi.yaml,124577647,124577647/google-native-typescript,Pulumi,typescript,${PROJECT},${DESCRIPTION},nodejs,,,0,0,1,gcp
+296579113/cluster/pulumi-deprecated/gcp/infra/Pulumi.yaml,296579113,296579113/cluster/pulumi-deprecated/gcp/infra,Pulumi,typescript,gcp-infra,Deploy infra to support GKE deployments,nodejs,,,0,0,1,gcp
+296579113/cluster/pulumi-deprecated/gcp/gke/Pulumi.yaml,296579113,296579113/cluster/pulumi-deprecated/gcp/gke,Pulumi,typescript,gke,Deploy GKE clusters in GCP,nodejs,,,0,0,1,gcp
+249803656/cluster/pulumi/gcp/infra/Pulumi.yaml,249803656,249803656/cluster/pulumi/gcp/infra,Pulumi,typescript,gcp-infra,Deploy infra to support GKE deployments,nodejs,,,0,0,1,gcp
+249803656/cluster/pulumi/gcp/gke/Pulumi.yaml,249803656,249803656/cluster/pulumi/gcp/gke,Pulumi,typescript,gke,Deploy GKE clusters in GCP,nodejs,,,0,0,1,gcp
+329792178/stack/Pulumi.yaml,329792178,329792178/stack,Pulumi,python,datasets,A hierarchy of GCP buckets for genomic data.,python,,,0,0,1,gcp
+462683315/Pulumi.yaml,462683315,462683315,Pulumi,python,pulumi-space-python,A minimal Google Cloud Python Pulumi program,python,,,0,0,1,gcp
+340803583/gcloud/Pulumi.yaml,340803583,340803583/gcloud,Pulumi,typescript,hu-tao-supremacy,A Google Kubernetes Engine (GKE) cluster,nodejs,,,0,0,1,gcp
+511173394/infra/Pulumi.yaml,511173394,511173394/infra,Pulumi,typescript,pokemon-api,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+453705242/python_devops/python_devops_book-master/src/chap12-Kubernetes/pulumi_gke/Pulumi.yaml,453705242,453705242/python_devops/python_devops_book-master/src/chap12-Kubernetes/pulumi_gke,Pulumi,python,pythonfordevops-gke-pulumi,A minimal Google Cloud Python Pulumi program,python,,,0,0,1,gcp
+298603000/Pulumi.yaml,298603000,298603000,Pulumi,typescript,pulumi-lab2-webserver,A minimal Google Cloud JavaScript Pulumi program,nodejs,,,0,0,1,gcp
+99650099/pulumi/gcp/Pulumi.yaml,99650099,99650099/pulumi/gcp,Pulumi,typescript,tweek,Tweek deployment for GCP,nodejs,,,0,0,1,gcp
+479385643/pulumi/gcp_ts_vm_provision/Pulumi.yaml,479385643,479385643/pulumi/gcp_ts_vm_provision,Pulumi,typescript,gcp_ts_ec2_provision,provision gcp instance with typescript,nodejs,,,0,0,1,gcp
+453958004/Pulumi.yaml,453958004,453958004,Pulumi,typescript,pulumistart1,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+263439056/IAC/PULUMI/python/template_gcp_gke_rancher/pulumi_gke_py/Pulumi.yaml,263439056,263439056/IAC/PULUMI/python/template_gcp_gke_rancher/pulumi_gke_py,Pulumi,python,pulumi_gke_py,Pulumi GKE Python,python,,,0,0,1,gcp
+263439056/IAC/PULUMI/python/template_gcp_gke_rancher/pulumi_gcp_py/Pulumi.yaml,263439056,263439056/IAC/PULUMI/python/template_gcp_gke_rancher/pulumi_gcp_py,Pulumi,python,pulumi_gcp_py,Pulumi GCP Python,python,,,0,0,1,gcp
+496037594/Pulumi.yaml,496037594,496037594,Pulumi,typescript,test1-next,Example Next.js app to upload PDF to a GCP storage bucket.,nodejs,,,0,0,1,gcp
+460662076/examples/go/google-cloud-native-kms/Pulumi.yaml,460662076,460662076/examples/go/google-cloud-native-kms,Pulumi,go,native-kms,A minimal Google Cloud Go Pulumi program,go,,,0,0,1,gcp
+460662076/examples/go/google-cloud-native-bucket/Pulumi.yaml,460662076,460662076/examples/go/google-cloud-native-bucket,Pulumi,go,native-bucket-go,an example of how to create buckets with pulumi and the gcp native provider,go,,,0,0,1,gcp
+460662076/examples/go/google-cloud-native-gke-cluster/Pulumi.yaml,460662076,460662076/examples/go/google-cloud-native-gke-cluster,Pulumi,go,native-gke-cluster-go,an example of how to create gke clusters with pulumi and the gcp native provider,go,,,0,0,1,gcp
+460662076/examples/go/google-cloud-native-vms/Pulumi.yaml,460662076,460662076/examples/go/google-cloud-native-vms,Pulumi,go,native-vms-go,An example of how to create vms with pulumi and the gcp native provider,go,,,0,0,1,gcp
+519863565/python-dla-devops-naucz-sie-bezlitosnie-skutecznej-automatyzacji-noah-gift-kennedy-behrman-alfredo-deza-grig-ghe/src/roz12-Kubernetes/pulumi_gke/Pulumi.yaml,519863565,519863565/python-dla-devops-naucz-sie-bezlitosnie-skutecznej-automatyzacji-noah-gift-kennedy-behrman-alfredo-deza-grig-ghe/src/roz12-Kubernetes/pulumi_gke,Pulumi,python,pythonfordevops-gke-pulumi,A minimal Google Cloud Python Pulumi program,python,,,0,0,1,gcp
+387762088/getting-started-gcp/Pulumi.yaml,387762088,387762088/getting-started-gcp,Pulumi,typescript,try-pulumi,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+294699145/Pulumi.yaml,294699145,294699145,Pulumi,typescript,pulumi-issues,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+417586173/ts-stack-outputs_get-function/base_stack/Pulumi.yaml,417586173,417586173/ts-stack-outputs_get-function/base_stack,Pulumi,typescript,base_stack,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+417586173/ts-stack-outputs_get-function/other_stack/Pulumi.yaml,417586173,417586173/ts-stack-outputs_get-function/other_stack,Pulumi,typescript,other_stack,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+417586173/guestbook-various-languages-clouds/gke-base-infra-go/Pulumi.yaml,417586173,417586173/guestbook-various-languages-clouds/gke-base-infra-go,Pulumi,go,guestbook-base-gke-infra-go,A GCP Go Pulumi program with Kubernetes,go,,,0,0,1,gcp
+459032473/infra/Pulumi.yaml,459032473,459032473/infra,Pulumi,typescript,xpresso-gke-demo,A demo Xpresso app running on GCP with IaC using Pulumi,nodejs,,,0,0,1,gcp
+457723282/hello-gcr-quarkus/Pulumi.yaml,457723282,457723282/hello-gcr-quarkus,Pulumi,typescript,hello-gcr-quarkus,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+365074156/global/Pulumi.yaml,365074156,365074156/global,Pulumi,go,taehoio-iac,A minimal Google Cloud Go Pulumi program,go,,,0,0,1,gcp
+365074156/staging/Pulumi.yaml,365074156,365074156/staging,Pulumi,go,taehoio-iac,A minimal Google Cloud Go Pulumi program,go,,,0,0,1,gcp
+365074156/production/Pulumi.yaml,365074156,365074156/production,Pulumi,go,taehoio-iac,A minimal Google Cloud Go Pulumi program,go,,,0,0,1,gcp
+441572414/Pulumi.yaml,441572414,441572414,Pulumi,go,helloworldservice,A minimal Go Pulumi program using Google Cloud Functions.,go,,,0,0,1,gcp
+457305037/Pulumi.yaml,457305037,457305037,Pulumi,typescript,gcp-flask-sqlserver,A containerized Flask app using managed Kubernetes and SQL Server,nodejs,,,0,0,1,gcp
+204138879/pulumi-server/gcp-python/Pulumi.yaml,204138879,204138879/pulumi-server/gcp-python,Pulumi,python,gcp-python,A minimal Google Cloud Python Pulumi program,python,,,0,0,1,gcp
+332405411/gcp/cdktf.json,332405411,332405411/gcp,CDKTF,typescript,,,typescript,,,0,0,1,gcp
+516792513/Pulumi.yaml,516792513,516792513,Pulumi,python,pulumi-storage,A minimal Google Cloud Python Pulumi program,python,,,0,0,1,gcp
+229126844/gcp/Pulumi.yaml,229126844,229126844/gcp,Pulumi,typescript,pulumi-gcp,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+427937094/gcp-bucket/Pulumi.yaml,427937094,427937094/gcp-bucket,Pulumi,typescript,gcp-bucket,Test GCP bucket stack,nodejs,,,0,0,1,gcp
+375655572/python_devops_book-master/src/chap12-Kubernetes/pulumi_gke/Pulumi.yaml,375655572,375655572/python_devops_book-master/src/chap12-Kubernetes/pulumi_gke,Pulumi,python,pythonfordevops-gke-pulumi,A minimal Google Cloud Python Pulumi program,python,,,0,0,1,gcp
+445532665/Pulumi.yaml,445532665,445532665,Pulumi,typescript,pulumi-gcp,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+248899921/integration-testing/py-gke/Pulumi.yaml,248899921,248899921/integration-testing/py-gke,Pulumi,python,gcp-py-gke,"A Google Kubernetes Engine (GKE) cluster, with canary deployment",python,,,0,0,1,gcp
+248899921/modern-infrastructure-wednesday/2020-05-06/gcp-py-functions/Pulumi.yaml,248899921,248899921/modern-infrastructure-wednesday/2020-05-06/gcp-py-functions,Pulumi,python,gcp-py-functions,A minimal Python Pulumi program using Google Cloud Functions.,python,"['pulumi_unit', 'pulumi_unit_mocking']",['248899921/modern-infrastructure-wednesday/2020-05-06/gcp-py-functions/test_funcs.py'],0,0,1,gcp
+248899921/modern-infrastructure-wednesday/2021-11-10/blue-green-gcp-compute/Pulumi.yaml,248899921,248899921/modern-infrastructure-wednesday/2021-11-10/blue-green-gcp-compute,Pulumi,python,miw-32,A simple Python server running on Google Cloud Compute with Instance Groups to demo upgrades.,python,,,0,0,1,gcp
+415003079/libs/first-project/Pulumi.yaml,415003079,415003079/libs/first-project,Pulumi,typescript,first-project,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+483533707/Pulumi.yaml,483533707,483533707,Pulumi,typescript,gcp-pulumi-cloud-run,Deploy nodejs app to GCP Cloud run,nodejs,,,0,0,1,gcp
+304509919/infra/deploy-app/Pulumi.yaml,304509919,304509919/infra/deploy-app,Pulumi,typescript,weather-api-dev-deploy-app,Deploy image from GCR to GCP Cloud Run,nodejs,,,0,0,1,gcp
+218010040/cluster/pulumi/gcp/infra/Pulumi.yaml,218010040,218010040/cluster/pulumi/gcp/infra,Pulumi,typescript,gcp-infra,Deploy infra to support GKE deployments,nodejs,,,0,0,1,gcp
+218010040/cluster/pulumi/gcp/gke/Pulumi.yaml,218010040,218010040/cluster/pulumi/gcp/gke,Pulumi,typescript,gke,Deploy GKE clusters in GCP,nodejs,,,0,0,1,gcp
+485458029/Pulumi.yaml,485458029,485458029,Pulumi,typescript,nixos-play,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+435694305/Pulumi.yaml,435694305,435694305,Pulumi,python,id.meTSA,A minimal Google Cloud Python Pulumi program,python,,,0,0,1,gcp
+482190345/Pulumi.yaml,482190345,482190345/pulumi,Pulumi,go,k8sImageRegsitry,A private google container registry,go,,,0,0,1,gcp
+320930837/fullstack-javascript-architecture-master/gcp-ts-gke/Pulumi.yaml,320930837,320930837/fullstack-javascript-architecture-master/gcp-ts-gke,Pulumi,typescript,gcp-ts-gke,"A Google Kubernetes Engine (GKE) cluster, with canary deployment",nodejs,,,0,0,1,gcp
+339115858/Pulumi.yaml,339115858,339115858,Pulumi,go,cooking-app,A minimal Google Cloud Go Pulumi program,go,,,0,0,1,gcp
+97485806/examples/datasource-py/Pulumi.yaml,97485806,97485806/examples/datasource-py,Pulumi,python,bucket-py,Basic example of a GCP Storage Bucket (in Python!),python,,,0,0,1,gcp
+97485806/examples/webserver-py-old/Pulumi.yaml,97485806,97485806/examples/webserver-py-old,Pulumi,python,webserver-py-old,"Basic example of a web server on a compute instance running on Google Cloud Platform, specifying inputs with dicts",python,,,0,0,1,gcp
+97485806/examples/bucket-py/Pulumi.yaml,97485806,97485806/examples/bucket-py,Pulumi,python,bucket-py,Basic example of a GCP Storage Bucket (in Python!),python,,,0,0,1,gcp
+97485806/examples/loadbalancer/Pulumi.yaml,97485806,97485806/examples/loadbalancer,Pulumi,typescript,loadbalancer,Basic example of a Load Balancer accessible over HTTP running on Google Gloud Platform,nodejs,,,0,0,1,gcp
+97485806/examples/serverless-cs/Pulumi.yaml,97485806,97485806/examples/serverless-cs,Pulumi,csharp,serverless-cs,A minimal C# Pulumi program using Google Cloud Functions.,dotnet,,,0,0,1,gcp
+97485806/examples/webserver-py/Pulumi.yaml,97485806,97485806/examples/webserver-py,Pulumi,python,webserver-py,Basic example of a web server on a compute instance running on Google Cloud Platform,python,,,0,0,1,gcp
+97485806/examples/serverless/Pulumi.yaml,97485806,97485806/examples/serverless,Pulumi,typescript,serverless-gcp,Simple serverless examples,nodejs,,,0,0,1,gcp
+97485806/examples/webserver/Pulumi.yaml,97485806,97485806/examples/webserver,Pulumi,typescript,webserver,Basic example of a web server on a compute instance running on Google Cloud Platform,nodejs,,,0,0,1,gcp
+97485806/examples/minimal/Pulumi.yaml,97485806,97485806/examples/minimal,Pulumi,typescript,minimal-gcp,An empty Pulumi Google Cloud Test Script.,nodejs,,,0,0,1,gcp
+97485806/examples/minimal-py/Pulumi.yaml,97485806,97485806/examples/minimal-py,Pulumi,python,minimal-py,A minimal Google Cloud Python Pulumi program,python,,,0,0,1,gcp
+97485806/examples/bucket-go/Pulumi.yaml,97485806,97485806/examples/bucket-go,Pulumi,go,bucket-go,Basic example of a creating a google cloud storage bucket in Go.,go,,,0,0,1,gcp
+474223798/gcp/Pulumi.yaml,474223798,474223798/gcp,Pulumi,python,gcpImpl,Ejemplo de pulumi con python y gcp,python,,,0,0,1,gcp
+359587321/gcp/Pulumi.yaml,359587321,359587321/gcp,Pulumi,typescript,akka-cloud-platform-gcp-deploy,Akka Platform GCP Deployment,nodejs,,,0,0,1,gcp
+227271699/cluster/pulumi/gcp/infra/Pulumi.yaml,227271699,227271699/cluster/pulumi/gcp/infra,Pulumi,typescript,gcp-infra,Deploy infra to support GKE deployments,nodejs,,,0,0,1,gcp
+227271699/cluster/pulumi/gcp/gke/Pulumi.yaml,227271699,227271699/cluster/pulumi/gcp/gke,Pulumi,typescript,gke,Deploy GKE clusters in GCP,nodejs,,,0,0,1,gcp
+148803427/gcp/Pulumi.yaml,148803427,148803427/gcp,Pulumi,typescript,CloudbenchGCPLambda,Cloudbench GCP Lambda,nodejs,,,0,0,1,gcp
+290586638/gcp-bigtable-query-ts/Pulumi.yaml,290586638,290586638/gcp-bigtable-query-ts,Pulumi,typescript,gcp-bigtable-query-ts,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+290586638/gcp-project-py/Pulumi.yaml,290586638,290586638/gcp-project-py,Pulumi,python,gcp-project-py,A minimal Google Cloud Python Pulumi program,python,,,0,0,1,gcp
+290586638/gcp-postgres-py/Pulumi.yaml,290586638,290586638/gcp-postgres-py,Pulumi,python,gcp-postgres-py,A minimal Google Cloud Python Pulumi program,python,,,0,0,1,gcp
+290586638/kubernetes_examples/gcp-gke-cluster/Pulumi.yaml,290586638,290586638/kubernetes_examples/gcp-gke-cluster,Pulumi,typescript,gke-kubernetes-cluster-hello,A gke cluster using typescript,nodejs,,,0,0,1,gcp
+290586638/kubernetes_examples/gcp-mb-car/Pulumi.yaml,290586638,290586638/kubernetes_examples/gcp-mb-car,Pulumi,typescript,gcp-mb-car,A minimal Kubernetes TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+290586638/google-native-py-reference/Pulumi.yaml,290586638,290586638/google-native-py-reference,Pulumi,python,google-native-py-reference,A minimal Google Cloud Python Pulumi program,python,,,0,0,1,gcp
+290586638/gcp-managedinstance-group-go/Pulumi.yaml,290586638,290586638/gcp-managedinstance-group-go,Pulumi,go,gcp-managedinstance-group-go,A minimal Google Cloud Go Pulumi program,go,,,0,0,1,gcp
+290586638/gcp-ref-py/Pulumi.yaml,290586638,290586638/gcp-ref-py,Pulumi,python,gcp-ref-py,A minimal Google Cloud Python Pulumi program,python,,,0,0,1,gcp
+290586638/gcp-instance-ts/Pulumi.yaml,290586638,290586638/gcp-instance-ts,Pulumi,typescript,gcp-instance-ts,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+502424635/examples/simple/Pulumi.yaml,502424635,502424635/examples/simple,Pulumi,typescript,simple,A simple google-twingate example,nodejs,,,0,0,1,gcp
+344371230/Pulumi.yaml,344371230,344371230,Pulumi,typescript,google-demo,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+384399180/Pulumi.yaml,384399180,384399180,Pulumi,python,GMUE-498-Remove-Playground-Ressources,A minimal Google Cloud Python Pulumi program,python,,,0,0,1,gcp
+435479187/pulumi/Pulumi.yaml,435479187,435479187/pulumi,Pulumi,typescript,strapi-blog,Strapi Blog deployed to GCP using Pulumi,nodejs,,,0,0,1,gcp
+312006532/codefresh-k8s/Pulumi.yaml,312006532,312006532/codefresh-k8s,Pulumi,typescript,codefresh-k8s,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+294736276/pulumi-py/Pulumi.yaml,294736276,294736276/pulumi-py,Pulumi,python,gke-serverless,A Google Kubernetes Engine (GKE) cluster with Cloud Run and Knative,python,,,0,0,1,gcp
+477126181/Pulumi.yaml,477126181,477126181,Pulumi,typescript,pulumi-gcp-cloud-run,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+232603801/examples/typescript/google-cloudrun/cdktf.json,232603801,232603801/examples/typescript/google-cloudrun,CDKTF,typescript,,,typescript,,,0,0,1,gcp
+232603801/examples/typescript/google/cdktf.json,232603801,232603801/examples/typescript/google,CDKTF,typescript,,,typescript,,,0,0,1,gcp
+232603801/examples/csharp/google/cdktf.json,232603801,232603801/examples/csharp/google,CDKTF,csharp,,,csharp,,,0,0,1,gcp
+232603801/examples/python/google/cloud-function/cdktf.json,232603801,232603801/examples/python/google/cloud-function,CDKTF,python,,,python,,,0,0,1,gcp
+232603801/examples/go/google-cloudrun/cdktf.json,232603801,232603801/examples/go/google-cloudrun,CDKTF,go,,,go,"['cdktf', 'cdktf_tf']",['232603801/examples/go/google-cloudrun/main_test.go'],0,0,1,gcp
+232603801/examples/go/google/cdktf.json,232603801,232603801/examples/go/google,CDKTF,go,,,go,,,0,0,1,gcp
+232603801/examples/java/google/cdktf.json,232603801,232603801/examples/java/google,CDKTF,java,,,java,,,0,0,1,gcp
+300911521/projects/simple-gcp-project/Pulumi.yaml,300911521,300911521/projects/simple-gcp-project,Pulumi,typescript,simple-gcp-project,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+486126651/infra/Pulumi.yaml,486126651,486126651/infra,Pulumi,typescript,infra,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+458594935/Pulumi.yaml,458594935,458594935,Pulumi,typescript,gcloud,A minimal Google Cloud JavaScript Pulumi program,nodejs,,,0,0,1,gcp
+436747295/Pulumi.yaml,436747295,436747295,Pulumi,typescript,test,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+302174973/Pulumi.yaml,302174973,302174973,Pulumi,typescript,gcp-quick,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+384704021/quickdemo_pulumi/Pulumi.yaml,384704021,384704021/quickdemo_pulumi,Pulumi,typescript,pulumi2022,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+388644170/examples/simple_project/Pulumi.yaml,388644170,388644170/examples/simple_project,Pulumi,python,project_factory,Pulumi GCP project factory,python,,,0,0,1,gcp
+300454825/aggregate/Pulumi.yaml,300454825,300454825/aggregate,Pulumi,python,billing_aggregate,A Google Cloud Python Pulumi program to upload billing aggregation cloud functions,python,,,0,0,1,gcp
+378505141/gcp-gpu/Pulumi.yaml,378505141,378505141/gcp-gpu,Pulumi,typescript,gcp-gpu,training env,nodejs,,,0,0,1,gcp
+345534648/packages/infra/Pulumi.yml,345534648,345534648/packages/infra,Pulumi,typescript,nextjs-gcp-storage,Example Next.js app to upload images to a GCP storage bucket.,nodejs,,,0,0,1,gcp
+492110829/infra/Pulumi.yaml,492110829,492110829/infra,Pulumi,go,infra,A minimal Google Cloud Go Pulumi program,go,,,0,0,1,gcp
+318509775/code-examples/python_devops_book-master/src/chap12-Kubernetes/pulumi_gke/Pulumi.yaml,318509775,318509775/code-examples/python_devops_book-master/src/chap12-Kubernetes/pulumi_gke,Pulumi,python,pythonfordevops-gke-pulumi,A minimal Google Cloud Python Pulumi program,python,,,0,0,1,gcp
+365692843/02 - IaC Serverless GCP/Pulumi.yaml,365692843,365692843/02 - IaC Serverless GCP,Pulumi,typescript,02-IaCServerlssGCP,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+355460277/pulumi-gcp-service-account/Pulumi.yaml,355460277,355460277/pulumi-gcp-service-account,Pulumi,typescript,teleport-gcp-service-account,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+355460277/pulumi-gcp-ips/Pulumi.yaml,355460277,355460277/pulumi-gcp-ips,Pulumi,typescript,teleport-gcp-ips,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+355460277/pulumi-gcp-teleport/Pulumi.yaml,355460277,355460277/pulumi-gcp-teleport,Pulumi,typescript,teleport-gcp-teleport,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+355460277/pulumi-gcp-storage/Pulumi.yaml,355460277,355460277/pulumi-gcp-storage,Pulumi,typescript,teleport-gcp-resources,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+500661930/gcp-go-webserver/Pulumi.yaml,500661930,500661930/gcp-go-webserver,Pulumi,go,webserver-gcp,Basic example of an Google Cloud web server accessible over HTTP,go,,,0,0,1,gcp
+500661930/gcp-cs-gke/Pulumi.yaml,500661930,500661930/gcp-cs-gke,Pulumi,csharp,gcp-cs-gke,A GCP C# Pulumi program with Kubernetes,dotnet,,,0,0,1,gcp
+500661930/gcp-py-functions/Pulumi.yaml,500661930,500661930/gcp-py-functions,Pulumi,python,gcp-py-functions,A minimal Python Pulumi program using Google Cloud Functions.,python,,,0,0,1,gcp
+500661930/gcp-py-instance-nginx/Pulumi.yaml,500661930,500661930/gcp-py-instance-nginx,Pulumi,python,gcp-instance-nginx,Deploy a Nginx Server in a GCP instance,python,,,0,0,1,gcp
+500661930/gcp-go-gke/Pulumi.yaml,500661930,500661930/gcp-go-gke,Pulumi,go,gcp-go-gke,A GCP Go Pulumi program with Kubernetes,go,,,0,0,1,gcp
+500661930/gcp-cs-functions/Pulumi.yaml,500661930,500661930/gcp-cs-functions,Pulumi,csharp,gcp-py-functions,A minimal C# Pulumi program using Google Cloud Functions.,dotnet,,,0,0,1,gcp
+500661930/gcp-js-webserver/Pulumi.yaml,500661930,500661930/gcp-js-webserver,Pulumi,typescript,webserver-gcp,Basic example of an Google Cloud web server accessible over HTTP,nodejs,,,0,0,1,gcp
+500661930/gcp-ts-slackbot/Pulumi.yaml,500661930,500661930/gcp-ts-slackbot,Pulumi,typescript,gcp-ts-slack,Basic example of creating a slackbot,nodejs,,,0,0,1,gcp
+500661930/gcp-ts-docker-gcr-cloudrun/cloud-run-deploy/Pulumi.yaml,500661930,500661930/gcp-ts-docker-gcr-cloudrun/cloud-run-deploy,Pulumi,typescript,cloud-run-deploy,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+500661930/gcp-ts-docker-gcr-cloudrun/docker-build-push-gcr/Pulumi.yaml,500661930,500661930/gcp-ts-docker-gcr-cloudrun/docker-build-push-gcr,Pulumi,typescript,gcr-build-image,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+500661930/gcp-ts-serverless-raw/Pulumi.yaml,500661930,500661930/gcp-ts-serverless-raw,Pulumi,typescript,serverless,Basic example of a serverless GCP functions in Python and Go,nodejs,,,0,0,1,gcp
+500661930/google-native-ts-functions/Pulumi.yaml,500661930,500661930/google-native-ts-functions,Pulumi,typescript,google-cloud-ts-functions,Google Cloud Functions example,nodejs,,,0,0,1,gcp
+500661930/gcp-go-functions-raw/Pulumi.yaml,500661930,500661930/gcp-go-functions-raw,Pulumi,go,gcp-go-functions-raw,A minimal Go Pulumi program using Google Cloud Functions.,go,,,0,0,1,gcp
+500661930/gcp-ts-cloudrun/Pulumi.yaml,500661930,500661930/gcp-ts-cloudrun,Pulumi,typescript,gcp-cloudrun,Google Cloud Run example,nodejs,,,0,0,1,gcp
+500661930/gcp-py-serverless-raw/Pulumi.yaml,500661930,500661930/gcp-py-serverless-raw,Pulumi,python,serverless-py,Basic example of a serverless Python and Go GCP functions (in Python),python,,,0,0,1,gcp
+500661930/gcp-ts-functions/Pulumi.yaml,500661930,500661930/gcp-ts-functions,Pulumi,typescript,gcp-functions,GCP Functions example,nodejs,,,0,0,1,gcp
+500661930/gcp-ts-gke-serviceaccount/Pulumi.yaml,500661930,500661930/gcp-ts-gke-serviceaccount,Pulumi,typescript,gcp-ts-gke-serviceaccount,A Google Kubernetes Engine (GKE) + Service account example,nodejs,,,0,0,1,gcp
+500661930/gcp-ts-gke-hello-world/Pulumi.yaml,500661930,500661930/gcp-ts-gke-hello-world,Pulumi,typescript,gcp-ts-gke-hello-world,A Google Kubernetes Engine (GKE) + Kubernetes Hello World example,nodejs,,,0,0,1,gcp
+500661930/gcp-go-functions/Pulumi.yaml,500661930,500661930/gcp-go-functions,Pulumi,go,gcp-go-functions,A minimal Go Pulumi program using Google Cloud Functions.,go,,,0,0,1,gcp
+500661930/gcp-py-webserver/Pulumi.yaml,500661930,500661930/gcp-py-webserver,Pulumi,python,gcp-py-webserver,Basic example of a Google Cloud web server accessible over HTTP,python,,,0,0,1,gcp
+500661930/gcp-ts-k8s-ruby-on-rails-postgresql/infra/Pulumi.yaml,500661930,500661930/gcp-ts-k8s-ruby-on-rails-postgresql/infra,Pulumi,typescript,gcp-rails,A containerized Ruby on Rails app using managed Kubernetes and PostgreSQL,nodejs,,,0,0,1,gcp
+500661930/gcp-py-cloudrun-cloudsql/Pulumi.yaml,500661930,500661930/gcp-py-cloudrun-cloudsql,Pulumi,python,gcp-py-cloudrun-cloudsql,Basic example of a Google Cloud Run and Google Cloud SQL deployment,python,,,0,0,1,gcp
+500661930/gcp-py-gke/Pulumi.yaml,500661930,500661930/gcp-py-gke,Pulumi,python,gcp-py-gke,"A Google Kubernetes Engine (GKE) cluster, with canary deployment",python,,,0,0,1,gcp
+500661930/gcp-java-gke-hello-world/Pulumi.yaml,500661930,500661930/gcp-java-gke-hello-world,Pulumi,java,gcp-java-gke-hello-world,A Google Kubernetes Engine (GKE) + Kubernetes Hello World example,java,,,0,0,1,gcp
+500661930/gcp-go-instance/Pulumi.yaml,500661930,500661930/gcp-go-instance,Pulumi,go,gcp-go-instance,A GCP Go Pulumi to create an instance,go,,,0,0,1,gcp
+500661930/google-native-ts-gke-config-connector/Pulumi.yaml,500661930,500661930/google-native-ts-gke-config-connector,Pulumi,typescript,gke-config-connector,GKE config-connector example,nodejs,,,0,0,1,gcp
+500661930/google-native-ts-k8s-python-postgresql/infra/Pulumi.yaml,500661930,500661930/google-native-ts-k8s-python-postgresql/infra,Pulumi,typescript,xpresso-gke-demo,A demo Xpresso app running on GCP with IaC using Pulumi,nodejs,,,0,0,1,gcp
+500661930/gcp-ts-gke/Pulumi.yaml,500661930,500661930/gcp-ts-gke,Pulumi,typescript,gcp-ts-gke,"A Google Kubernetes Engine (GKE) cluster, with canary deployment",nodejs,,,0,0,1,gcp
+500661930/gcp-py-network-component/Pulumi.yaml,500661930,500661930/gcp-py-network-component,Pulumi,python,gcp-py-network-component,A Google Cloud Python Pulumi program using ComponentResource,python,,,0,0,1,gcp
+500661930/google-native-ts-k8s-ruby-on-rails-postgresql/infra/Pulumi.yaml,500661930,500661930/google-native-ts-k8s-ruby-on-rails-postgresql/infra,Pulumi,typescript,google-rails,A containerized Ruby on Rails app using managed Kubernetes and PostgreSQL,nodejs,,,0,0,1,gcp
+434120255/src/chap12-Kubernetes/pulumi_gke/Pulumi.yaml,434120255,434120255/src/chap12-Kubernetes/pulumi_gke,Pulumi,python,pythonfordevops-gke-pulumi,A minimal Google Cloud Python Pulumi program,python,,,0,0,1,gcp
+486639397/infra/pulumi/gcp/Pulumi.yaml,486639397,486639397/infra/pulumi/gcp,Pulumi,typescript,gcp,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+287218453/examples/typescript/google/cdktf.json,287218453,287218453/examples/typescript/google,CDKTF,typescript,,,typescript,,,0,0,1,gcp
+408803163/Pulumi.yaml,408803163,408803163,Pulumi,typescript,image-repository,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+300801920/task_01/pulumi_cluster_kuber/Pulumi.yaml,300801920,300801920/task_01/pulumi_cluster_kuber,Pulumi,python,challenge_everis01,A minimal Google Cloud Python Pulumi program,python,,,0,0,1,gcp
+218234412/cluster/pulumi/gcp/infra/Pulumi.yaml,218234412,218234412/cluster/pulumi/gcp/infra,Pulumi,typescript,gcp-infra,Deploy infra to support GKE deployments,nodejs,,,0,0,1,gcp
+218234412/cluster/pulumi/gcp/gke/Pulumi.yaml,218234412,218234412/cluster/pulumi/gcp/gke,Pulumi,typescript,gke,Deploy GKE clusters in GCP,nodejs,,,0,0,1,gcp
+322736230/Pulumi.yaml,322736230,322736230,Pulumi,typescript,pulumi-gcp-project-component,A Google Cloud TypeScript Pulumi program that creates a gcp project and bucket,nodejs,,,0,0,1,gcp
+322736230/test-project/Pulumi.yaml,322736230,322736230/test-project,Pulumi,typescript,test-project,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+360511081/terraform_cdk/GCP/typescript/cdktf.json,360511081,360511081/terraform_cdk/GCP/typescript,CDKTF,typescript,,,typescript,,,0,0,1,gcp
+360511081/terraform_cdk/GCP/python/cdktf.json,360511081,360511081/terraform_cdk/GCP/python,CDKTF,python,,,python,,,0,0,1,gcp
+436022751/Pulumi.yaml,436022751,436022751,Pulumi,python,things,A minimal Google Cloud Python Pulumi program,python,,,0,0,1,gcp
+186725339/Pulumi.yaml,186725339,186725339,Pulumi,typescript,tutorial-pulumi,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+348594088/loadbalancer/Pulumi.yaml,348594088,348594088/loadbalancer,Pulumi,python,loadbalancer,A example project to create a GCP load balancer and Nginx servers,python,['pulumi_unit'],"['348594088/loadbalancer/tests/test_backend_server.py', '348594088/loadbalancer/tests/test_firewall.py', '348594088/loadbalancer/tests/test_lb.py']",0,0,1,gcp
+348594088/minimal/Pulumi.yaml,348594088,348594088/minimal,Pulumi,python,minimal-py,A minimal Google Cloud Python Pulumi program,python,,,0,0,1,gcp
+284083579/Pulumi.yaml,284083579,284083579,Pulumi,python,pulumi-gke-test,"A Google Kubernetes Engine (GKE) cluster, with canary deployment",python,,,0,0,1,gcp
+504315617/Pulumi.yaml,504315617,504315617,Pulumi,typescript,gcp-plausible,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+334133472/Pulumi.yaml,334133472,334133472,Pulumi,go,demo-container-infr,A minimal Google Cloud Go Pulumi program,go,,,0,0,1,gcp
+362204130/infra/Pulumi.yaml,362204130,362204130/infra,Pulumi,go,swiftbeaver-infra,A minimal Google Cloud Go Pulumi program,go,,,0,0,1,gcp
+265785178/infra/v2/Pulumi.yaml,265785178,265785178/infra/v2,Pulumi,typescript,menugcp,A minimal Google Cloud JavaScript Pulumi program,nodejs,,,0,0,1,gcp
+346493989/pulumi/Pulumi.yaml,346493989,346493989/pulumi,Pulumi,go,gke,Google Kubernetes Engine,go,,,0,0,1,gcp
+393776774/Pulumi.yaml,393776774,393776774,Pulumi,typescript,pulumi-bugs,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+92832781/gcp/ts/gcp-ts-slackbot/Pulumi.yaml,92832781,92832781/gcp/ts/gcp-ts-slackbot,Pulumi,typescript,gcp-ts-slack,Basic example of creating a slackbot,nodejs,,,0,0,1,gcp
+92832781/gcp/ts/gcp-ts-serverless-raw/Pulumi.yaml,92832781,92832781/gcp/ts/gcp-ts-serverless-raw,Pulumi,typescript,serverless,Basic example of a serverless GCP functions in Python and Go,nodejs,,,0,0,1,gcp
+92832781/gcp/ts/gcp-ts-cloudrun/Pulumi.yaml,92832781,92832781/gcp/ts/gcp-ts-cloudrun,Pulumi,typescript,gcp-cloudrun,Google Cloud Run example,nodejs,,,0,0,1,gcp
+92832781/gcp/ts/gcp-ts-functions/Pulumi.yaml,92832781,92832781/gcp/ts/gcp-ts-functions,Pulumi,typescript,gcp-functions,GCP Functions example,nodejs,,,0,0,1,gcp
+92832781/gcp/ts/gcp-ts-gke-hello-world/Pulumi.yaml,92832781,92832781/gcp/ts/gcp-ts-gke-hello-world,Pulumi,typescript,gcp-ts-gke-hello-world,A Google Kubernetes Engine (GKE) + Kubernetes Hello World example,nodejs,,,0,0,1,gcp
+92832781/gcp/ts/gcp-ts-k8s-ruby-on-rails-postgresql/infra/Pulumi.yaml,92832781,92832781/gcp/ts/gcp-ts-k8s-ruby-on-rails-postgresql/infra,Pulumi,typescript,gcp-rails,A containerized Ruby on Rails app using managed Kubernetes and PostgreSQL,nodejs,,,0,0,1,gcp
+92832781/gcp/ts/gcp-ts-gke/Pulumi.yaml,92832781,92832781/gcp/ts/gcp-ts-gke,Pulumi,typescript,gcp-ts-gke,"A Google Kubernetes Engine (GKE) cluster, with canary deployment",nodejs,,,0,0,1,gcp
+92832781/gcp/cs/gcp-cs-gke/Pulumi.yaml,92832781,92832781/gcp/cs/gcp-cs-gke,Pulumi,csharp,gcp-cs-gke,A GCP C# Pulumi program with Kubernetes,dotnet,,,0,0,1,gcp
+92832781/gcp/cs/gcp-cs-functions/Pulumi.yaml,92832781,92832781/gcp/cs/gcp-cs-functions,Pulumi,csharp,gcp-py-functions,A minimal C# Pulumi program using Google Cloud Functions.,dotnet,,,0,0,1,gcp
+92832781/gcp/go/gcp-go-functions-raw/Pulumi.yaml,92832781,92832781/gcp/go/gcp-go-functions-raw,Pulumi,go,gcp-go-functions-raw,A minimal Go Pulumi program using Google Cloud Functions.,go,,,0,0,1,gcp
+92832781/gcp/go/gcp-go-functions/Pulumi.yaml,92832781,92832781/gcp/go/gcp-go-functions,Pulumi,go,gcp-go-functions,A minimal Go Pulumi program using Google Cloud Functions.,go,,,0,0,1,gcp
+92832781/gcp/js/gcp-js-webserver/Pulumi.yaml,92832781,92832781/gcp/js/gcp-js-webserver,Pulumi,typescript,webserver-gcp,Basic example of an Google Cloud web server accessible over HTTP,nodejs,,,0,0,1,gcp
+92832781/gcp/py/gcp-py-functions/Pulumi.yaml,92832781,92832781/gcp/py/gcp-py-functions,Pulumi,python,gcp-py-functions,A minimal Python Pulumi program using Google Cloud Functions.,python,,,0,0,1,gcp
+92832781/gcp/py/gcp-py-instance-nginx/Pulumi.yaml,92832781,92832781/gcp/py/gcp-py-instance-nginx,Pulumi,python,gcp-instance-nginx,Deploy a Nginx Server in a GCP instance,python,,,0,0,1,gcp
+92832781/gcp/py/gcp-py-serverless-raw/Pulumi.yaml,92832781,92832781/gcp/py/gcp-py-serverless-raw,Pulumi,python,serverless-py,Basic example of a serverless Python and Go GCP functions (in Python),python,,,0,0,1,gcp
+92832781/gcp/py/gcp-py-gke/Pulumi.yaml,92832781,92832781/gcp/py/gcp-py-gke,Pulumi,python,gcp-py-gke,"A Google Kubernetes Engine (GKE) cluster, with canary deployment",python,,,0,0,1,gcp
+92832781/gcp/py/gcp-py-network-component/Pulumi.yaml,92832781,92832781/gcp/py/gcp-py-network-component,Pulumi,python,gcp-py-network-component,A Google Cloud Python Pulumi program using ComponentResource,python,,,0,0,1,gcp
+490423226/pulumi/Pulumi.yaml,490423226,490423226/pulumi,Pulumi,typescript,expapp,A minimal Google Cloud JavaScript Pulumi program,nodejs,,,0,0,1,gcp
+314794439/production/infra/Pulumi.yaml,314794439,314794439/production/infra,Pulumi,typescript,che-realtime-data-streamer,GCP MySQL to Elastic real time data streaming service,nodejs,,,0,0,1,gcp
+421086485/infrastructure/Pulumi.yaml,421086485,421086485/infrastructure,Pulumi,typescript,cafe-baileys-gcr-builder,Google Container Registry for Google Cloud Platform,nodejs,,,0,0,1,gcp
+368908824/examples/ts/Pulumi.yaml,368908824,368908824/examples/ts,Pulumi,typescript,deployment-ts,A TypeScript deployment for GCP Global Cloud Run,nodejs,,,0,0,1,gcp
+368908824/examples/go/Pulumi.yaml,368908824,368908824/examples/go,Pulumi,go,deployment-go,A Go deployment for GCP Global Cloud Run,go,,,0,0,1,gcp
+368908824/examples/py/Pulumi.yaml,368908824,368908824/examples/py,Pulumi,python,deployment-py,A Python deployment for GCP Global Cloud Run,python,,,0,0,1,gcp
+525315633/java/gcp/gke/Pulumi.yaml,525315633,525315633/java/gcp/gke,Pulumi,java,gcp-java-gke-hello-world,A Google Kubernetes Engine (GKE) + Kubernetes Hello World example,java,,,0,0,1,gcp
+525315633/java/gcp/hw/Pulumi.yaml,525315633,525315633/java/gcp/hw,Pulumi,java,ramu,A minimal Google Cloud Java Pulumi program,java,,,0,0,1,gcp
+418135533/hadoop-hw/Pulumi.yaml,418135533,418135533/hadoop-hw,Pulumi,typescript,hadoop-hw,A hadoop infrastructure on GCP,nodejs,,,0,0,1,gcp
+474249481/Pulumi.yaml,474249481,474249481,Pulumi,typescript,pulumi-gcp-cloud-run,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+470110852/Pulumi.yaml,470110852,470110852,Pulumi,typescript,pulumi-repro,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+421123466/gcp/Pulumi.yaml,421123466,421123466/gcp,Pulumi,typescript,ephemeral-github-runner,A Pulumi program to manage ephemeral self-hosted GitHub runners on GCP,nodejs,,,0,0,1,gcp
+480728560/google-native/Pulumi.yaml,480728560,480728560/google-native,Pulumi,typescript,cloudbuild-demo,Example cloudbuild deployment,nodejs,,,0,0,1,gcp
+440741724/node/infra/src/stacks/gcp-project/Pulumi.yaml,440741724,440741724/node/infra/src/stacks/gcp-project,Pulumi,typescript,infra-gcp-project,,nodejs,,,0,0,1,gcp
+216529759/cluster/pulumi/gcp/infra/Pulumi.yaml,216529759,216529759/cluster/pulumi/gcp/infra,Pulumi,typescript,gcp-infra,Deploy infra to support GKE deployments,nodejs,,,0,0,1,gcp
+216529759/cluster/pulumi/gcp/gke/Pulumi.yaml,216529759,216529759/cluster/pulumi/gcp/gke,Pulumi,typescript,gke,Deploy GKE clusters in GCP,nodejs,,,0,0,1,gcp
+495947008/mongodb-atlas/cluster/Pulumi.yaml,495947008,495947008/mongodb-atlas/cluster,Pulumi,python,mdba-cluster,acutchin@bitpusher testing pulumi/python/gcp/mongodbatlas cluster/db creation,python,,,0,0,1,gcp
+495947008/mongodb-atlas/project/Pulumi.yaml,495947008,495947008/mongodb-atlas/project,Pulumi,python,mdba-project,acutchin@bitpusher testing pulumi/python/gcp/mongodbatlas project creation,python,,,0,0,1,gcp
+495947008/mongodb-atlas/all.the.things/Pulumi.yaml,495947008,495947008/mongodb-atlas/all.the.things,Pulumi,python,acbptest-atlas-project,ac bitpusher testing pulumi/python/gcp/mongodbatlas,python,,,0,0,1,gcp
+495947008/gcp-vpc-net/Pulumi.yaml,495947008,495947008/gcp-vpc-net,Pulumi,python,vpc-net,acutchin@bitpusher.com testing pulumi-driven vpc network,python,,,0,0,1,gcp
+306371252/MusicStore/Pulumi.yaml,306371252,306371252/MusicStore,Pulumi,typescript,gcp-typescript-pushtogcr,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+281126028/Pulumi.yaml,281126028,281126028,Pulumi,typescript,google-demo,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+522961440/Pulumi.yaml,522961440,522961440,Pulumi,go,static-site,A minimal Google Cloud Go Pulumi program,go,,,0,0,1,gcp
+480262078/Pulumi.yaml,480262078,480262078,Pulumi,typescript,pulumi-gke,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+306512181/gcp-typescript-gcrtogke/Pulumi.yaml,306512181,306512181/gcp-typescript-gcrtogke,Pulumi,typescript,GCP2GKE,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+356727502/Pulumi.yaml,356727502,356727502,Pulumi,python,gcp-py-webserver,Basic example of a Google Cloud web server accessible over HTTP,python,,,0,0,1,gcp
+330700742/terraform/gcp/cdktf.json,330700742,330700742/terraform/gcp,CDKTF,typescript,,,typescript,,,0,0,1,gcp
+527058139/static-website/dist/static-website-gcp-typescript/Pulumi.yaml,527058139,527058139/static-website/dist/static-website-gcp-typescript,Pulumi,typescript,${PROJECT},${DESCRIPTION},nodejs,,,0,0,1,gcp
+527058139/static-website/dist/static-website-gcp-python/Pulumi.yaml,527058139,527058139/static-website/dist/static-website-gcp-python,Pulumi,python,${PROJECT},${DESCRIPTION},python,,,0,0,1,gcp
+527058139/static-website/dist/static-website-gcp-csharp/Pulumi.yaml,527058139,527058139/static-website/dist/static-website-gcp-csharp,Pulumi,csharp,${PROJECT},${DESCRIPTION},dotnet,,,0,0,1,gcp
+527058139/static-website/dist/static-website-gcp-yaml/Pulumi.yaml,527058139,527058139/static-website/dist/static-website-gcp-yaml,Pulumi,yaml,${PROJECT},${DESCRIPTION},yaml,,,0,0,1,gcp
+527058139/static-website/dist/static-website-gcp-go/Pulumi.yaml,527058139,527058139/static-website/dist/static-website-gcp-go,Pulumi,go,${PROJECT},${DESCRIPTION},go,,,0,0,1,gcp
+369820532/hcs_2/hcs-sys-public-2/Pulumi.yaml,369820532,369820532/hcs_2/hcs-sys-public-2,Pulumi,go,hcs-sys-public-gcp,HCS-DIRECT-CONNECT Public Cloud System on GCP,go,,,0,0,1,gcp
+309431191/Pulumi.yaml,309431191,309431191,Pulumi,typescript,nextjs-gcp-storage,Example Next.js app to upload images to a GCP storage bucket.,nodejs,,,0,0,1,gcp
+360029639/Pulumi.yaml,360029639,360029639,Pulumi,typescript,pulumi_gcp_sync_bucket,deploy_description,nodejs,,,0,0,1,gcp
+483769321/examples/pulumi/gcp/Pulumi.yaml,483769321,483769321/examples/pulumi/gcp,Pulumi,go,gcp,Talos on GCP,go,,,0,0,1,gcp
+361231698/Pulumi.yaml,361231698,361231698,Pulumi,typescript,pulumi_gcp_deploy_sls_alb,Create base infrastructure,nodejs,,,0,0,1,gcp
+257481282/infra/Pulumi.yaml,257481282,257481282/infra,Pulumi,typescript,Homify,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+257481282/scraping/infra/Pulumi.yaml,257481282,257481282/scraping/infra,Pulumi,typescript,infra,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+333975934/pulumi/gcp/helloworld/Pulumi.yaml,333975934,333975934/pulumi/gcp/helloworld,Pulumi,go,helloworld,A minimal Google Cloud Go Pulumi program,go,,,0,0,1,gcp
+333975934/terraform/cdk/gcp/helloworld/cdktf.json,333975934,333975934/terraform/cdk/gcp/helloworld,CDKTF,typescript,,,typescript,,,0,0,1,gcp
+379017181/Backend/Pulumi.yaml,379017181,379017181/Backend,Pulumi,typescript,Weather-app,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+363914083/Pulumi.yaml,363914083,363914083,Pulumi,python,pulumi_quickstart,A minimal Google Cloud Python Pulumi program,python,"['pulumi_unit', 'pulumi_unit_mocking']",['363914083/test_gcp_storage.py'],0,0,1,gcp
+318160058/gcp-function/Pulumi.yaml,318160058,318160058/gcp-function,Pulumi,typescript,gcp-function,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+318160058/google-cloud-function/Pulumi.yaml,318160058,318160058/google-cloud-function,Pulumi,typescript,google-cloud-function,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+515896212/devops_automation/python_devops_book/src/chap12-Kubernetes/pulumi_gke/Pulumi.yaml,515896212,515896212/devops_automation/python_devops_book/src/chap12-Kubernetes/pulumi_gke,Pulumi,python,pythonfordevops-gke-pulumi,A minimal Google Cloud Python Pulumi program,python,,,0,0,1,gcp
+459121818/Pulumi.yaml,459121818,459121818,Pulumi,go,myapp,Example GCP Docker Konlet VM,go,,,0,0,1,gcp
+331836805/Pulumi.yaml,331836805,331836805,Pulumi,python,gcp-py-functions,A minimal Python Pulumi program using Google Cloud Functions.,python,,,0,0,1,gcp
+196380792/infra/Pulumi.yaml,196380792,196380792/infra,Pulumi,typescript,bbook-infra,An Example App on NodeJS app in Google Cloud,nodejs,,,0,0,1,gcp
+375002227/google-native-py-bigquerydatatransfer/Pulumi.yaml,375002227,375002227/google-native-py-bigquerydatatransfer,Pulumi,python,google-native-py-bigquerydatatransfer,A minimal Google Cloud Python Pulumi program,python,,,0,0,1,gcp
+375002227/google-native-py-network-postgres-function/Pulumi.yaml,375002227,375002227/google-native-py-network-postgres-function,Pulumi,python,google-native-py-network-postgres-function,A minimal Google Cloud Python Pulumi program,python,,,0,0,1,gcp
+276571802/stacks/eth/Pulumi.yaml,276571802,276571802/stacks/eth,Pulumi,typescript,pulumi,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+276571802/stacks/bitcoin-private/Pulumi.yaml,276571802,276571802/stacks/bitcoin-private,Pulumi,typescript,bitcoin-private,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+276571802/stacks/katara/Pulumi.yaml,276571802,276571802/stacks/katara,Pulumi,typescript,marlin-relay-network-gcp-pulumi-ansible,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+276571802/stacks/bsc/Pulumi.yaml,276571802,276571802/stacks/bsc,Pulumi,typescript,pulumi,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+276571802/stacks/benchmark/Pulumi.yaml,276571802,276571802/stacks/benchmark,Pulumi,typescript,benchmark,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+276571802/provisioning/instances/gcp/pulumi/Pulumi.yaml,276571802,276571802/provisioning/instances/gcp/pulumi,Pulumi,typescript,pulumi-gcp-instances,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+276571802/provisioning/katara/gcp/pulumi/Pulumi.yaml,276571802,276571802/provisioning/katara/gcp/pulumi,Pulumi,typescript,marlin-relay-network,Marlin relay network with beacons and connections set up as needed,nodejs,,,0,0,1,gcp
+276571802/provisioning/global-network/gcp/pulumi/Pulumi.yaml,276571802,276571802/provisioning/global-network/gcp/pulumi,Pulumi,typescript,global-network,Provision a global network on GCP,nodejs,,,0,0,1,gcp
+276571802/global-network/gcp/pulumi/Pulumi.yaml,276571802,276571802/global-network/gcp/pulumi,Pulumi,typescript,global-network,Provision a global network on GCP,nodejs,,,0,0,1,gcp
+284558637/bot-actions/Pulumi.yaml,284558637,284558637/bot-actions,Pulumi,typescript,bot-actions,A minimal Google Cloud JavaScript Pulumi program,nodejs,,,0,0,1,gcp
+160573791/orig/gcp/infrastructure/Pulumi.yaml,160573791,160573791/orig/gcp/infrastructure,Pulumi,typescript,infrastructure,"Infrastructure (compute, storage, networking) for production Kubernetes infrastructure",nodejs,,,0,0,1,gcp
+160573791/orig/gcp/identity/Pulumi.yaml,160573791,160573791/orig/gcp/identity,Pulumi,typescript,identity,Identity definitions for production Kubernetes infrastructure,nodejs,,,0,0,1,gcp
+160573791/gcp/01-identity/Pulumi.yaml,160573791,160573791/gcp/01-identity,Pulumi,typescript,k8s-gcp-identity,Creates an identity stack for an GKE cluster and its users.,nodejs,,,0,0,1,gcp
+160573791/gcp/02-managed-infra/Pulumi.yaml,160573791,160573791/gcp/02-managed-infra,Pulumi,typescript,k8s-gcp-infra,Creates an managed infrastructure stack for an GCP GKE cluster.,nodejs,,,0,0,1,gcp
+160573791/gcp/05-app-services/Pulumi.yaml,160573791,160573791/gcp/05-app-services,Pulumi,typescript,k8s-gke-apps-svcs,Deploys common GKE app services.,nodejs,,,0,0,1,gcp
+160573791/gcp/06-apps/build-deploy-container/Pulumi.yaml,160573791,160573791/gcp/06-apps/build-deploy-container,Pulumi,typescript,k8s-apps-deploy-container,Build and push image to private registry and create a Deployment from it.,nodejs,,,0,0,1,gcp
+160573791/gcp/03-cluster-configuration/Pulumi.yaml,160573791,160573791/gcp/03-cluster-configuration,Pulumi,typescript,k8s-gke-cluster,Creates a GKE cluster using best-practices.,nodejs,,,0,0,1,gcp
+435914567/Pulumi.yaml,435914567,435914567,Pulumi,python,gcp-py-cloudrun-cloudsql,Basic example of a Google Cloud Run and Google Cloud SQL deployment,python,,,0,0,1,gcp
+437593435/pulumi/examplegcp/Pulumi.yaml,437593435,437593435/pulumi/examplegcp,Pulumi,python,samplegcp,A minimal Google Cloud Python Pulumi program,python,,,0,0,1,gcp
+426970914/Pulumi.yaml,426970914,426970914,Pulumi,go,twitch-test,A minimal Google Cloud Go Pulumi program,go,['pulumi_integration'],['426970914/main_test.go'],0,0,1,gcp
+511096296/Pulumi.yaml,511096296,511096296,Pulumi,yaml,rahman,A minimal Google Cloud Pulumi YAML program,yaml,,,0,0,1,gcp
+420577666/src/chap12-Kubernetes/pulumi_gke/Pulumi.yaml,420577666,420577666/src/chap12-Kubernetes/pulumi_gke,Pulumi,python,pythonfordevops-gke-pulumi,A minimal Google Cloud Python Pulumi program,python,,,0,0,1,gcp
+388772992/src/chap12-Kubernetes/pulumi_gke/Pulumi.yaml,388772992,388772992/src/chap12-Kubernetes/pulumi_gke,Pulumi,python,pythonfordevops-gke-pulumi,A minimal Google Cloud Python Pulumi program,python,,,0,0,1,gcp
+487595361/experiments/pulumi-quickstart/Pulumi.yaml,487595361,487595361/experiments/pulumi-quickstart,Pulumi,typescript,pulumi-quickstart,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+477458228/Pulumi.yaml,477458228,477458228,Pulumi,typescript,pulumi-gcp-cloud-run,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+197214465/k8s-hard-way-gcp/Pulumi.yaml,197214465,197214465/k8s-hard-way-gcp,Pulumi,python,k8s-hard-way,.,python,,,0,0,1,gcp
+197214465/k8s-hard-way-gcp/apps/Pulumi.yaml,197214465,197214465/k8s-hard-way-gcp/apps,Pulumi,python,k8s-hard-way-apps,.,python,,,0,0,1,gcp
+212516387/cluster/pulumi/gke/cluster/Pulumi.yaml,212516387,212516387/cluster/pulumi/gke/cluster,Pulumi,typescript,gke-cluster,Deploy GKE clusters in GCP,nodejs,,,0,0,1,gcp
+141656477/examples/container-registries/gcp-k8s/csharp/Pulumi.yaml,141656477,141656477/examples/container-registries/gcp-k8s/csharp,Pulumi,csharp,cbp-gcp-k8s-csharp,An example of building/publishing a Docker container image to Google Cloud GCR,dotnet,,,0,0,1,gcp
+141656477/examples/container-registries/gcp-k8s/ts/Pulumi.yaml,141656477,141656477/examples/container-registries/gcp-k8s/ts,Pulumi,typescript,cbp-gcp-k8s-ts,An example of building/publishing a Docker container image to Google Cloud GCR,nodejs,,,0,0,1,gcp
+141656477/examples/container-registries/gcp-k8s/go/Pulumi.yaml,141656477,141656477/examples/container-registries/gcp-k8s/go,Pulumi,go,cbp-gcp-k8s-go,An example of building/publishing a Docker container image to Google Cloud GCR,go,,,0,0,1,gcp
+141656477/examples/container-registries/gcp-k8s/js/Pulumi.yaml,141656477,141656477/examples/container-registries/gcp-k8s/js,Pulumi,typescript,cbp-gcp-k8s-js,An example of building/publishing a Docker container image to Google Cloud GCP,nodejs,,,0,0,1,gcp
+141656477/examples/container-registries/gcp-k8s/py/Pulumi.yaml,141656477,141656477/examples/container-registries/gcp-k8s/py,Pulumi,python,cbp-gcp-k8s-py,An example of building/publishing a Docker container image to Google Cloud GCR,python,,,0,0,1,gcp
+141656477/examples/container-registries/gcp/csharp/Pulumi.yaml,141656477,141656477/examples/container-registries/gcp/csharp,Pulumi,csharp,cbp-gcp-csharp,An example of building/publishing a Docker container image to Google Cloud GCR,dotnet,,,0,0,1,gcp
+141656477/examples/container-registries/gcp/ts/Pulumi.yaml,141656477,141656477/examples/container-registries/gcp/ts,Pulumi,typescript,cbp-gcp-ts,An example of building/publishing a Docker container image to Google Cloud GCR,nodejs,,,0,0,1,gcp
+141656477/examples/container-registries/gcp/go/Pulumi.yaml,141656477,141656477/examples/container-registries/gcp/go,Pulumi,go,cbp-gcp-go,An example of building/publishing a Docker container image to Google Cloud GCR,go,,,0,0,1,gcp
+141656477/examples/container-registries/gcp/js/Pulumi.yaml,141656477,141656477/examples/container-registries/gcp/js,Pulumi,typescript,cbp-gcp-js,An example of building/publishing a Docker container image to Google Cloud GCP,nodejs,,,0,0,1,gcp
+141656477/examples/container-registries/gcp/py/Pulumi.yaml,141656477,141656477/examples/container-registries/gcp/py,Pulumi,python,cbp-gcp-py,An example of building/publishing a Docker container image to Google Cloud GCR,python,,,0,0,1,gcp
+339673440/review/Pulumi.yaml,339673440,339673440/review,Pulumi,typescript,review,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+511607772/Pulumi.yaml,511607772,511607772,Pulumi,typescript,pulumi_test,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+469578367/Pulumi.yaml,469578367,469578367,Pulumi,python,lebergarrett.com-backend,A minimal Google Cloud Python Pulumi program,python,,,0,0,1,gcp
+285602735/Pulumi.yaml,285602735,285602735,Pulumi,python,new-pulumi-demo,A minimal Google Cloud Python Pulumi program,python,,,0,0,1,gcp
+323680373/examples/functions-ts/Pulumi.yaml,323680373,323680373/examples/functions-ts,Pulumi,typescript,google-native-functions-ts,A simple example of Google Cloud Functions,nodejs,,,0,0,1,gcp
+323680373/examples/cloudrun-ts/step1/Pulumi.yaml,323680373,323680373/examples/cloudrun-ts/step1,Pulumi,typescript,google-native-cloudrun-ts,A simple example of Google Cloud Run,nodejs,,,0,0,1,gcp
+323680373/examples/gke-ts/step1/Pulumi.yaml,323680373,323680373/examples/gke-ts/step1,Pulumi,typescript,google-native-simple,A simple example,nodejs,,,0,0,1,gcp
+323680373/examples/iam-serviceaccount-ts/step1/Pulumi.yaml,323680373,323680373/examples/iam-serviceaccount-ts/step1,Pulumi,typescript,iam-ts,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+323680373/examples/pubsub-ts/Pulumi.yaml,323680373,323680373/examples/pubsub-ts,Pulumi,typescript,google-native-pubsub-ts,A simple example of Google Pubsub,nodejs,,,0,0,1,gcp
+323680373/examples/webserver-ts/Pulumi.yaml,323680373,323680373/examples/webserver-ts,Pulumi,typescript,webserver-ts,Basic example of an Google Cloud web server accessible over HTTP,nodejs,,,0,0,1,gcp
+323680373/examples/storage-cs/Pulumi.yaml,323680373,323680373/examples/storage-cs,Pulumi,csharp,storage-cs,A Google Cloud C# Pulumi program to provision storage,dotnet,,,0,0,1,gcp
+323680373/examples/storagetransfer-ts/Pulumi.yaml,323680373,323680373/examples/storagetransfer-ts,Pulumi,typescript,storagetransfer-ts,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+406701072/pulumi/gcp-python/gce-IsC/Pulumi.yaml,406701072,406701072/pulumi/gcp-python/gce-IsC,Pulumi,python,gcp-python,Infras As Code on GCE,python,,,0,0,1,gcp
+406701072/pulumi/gcp-python/gce-k8s/Pulumi.yaml,406701072,406701072/pulumi/gcp-python/gce-k8s,Pulumi,python,gcp-python,K8S Infras on GCE,python,,,0,0,1,gcp
+302607288/setup/Pulumi.yaml,302607288,302607288/setup,Pulumi,typescript,streamprocessor-setup,setup streamprocessor on GCP,nodejs,,,0,0,1,gcp
+302607288/pipelines/com.google.analytics.v1/Pulumi.yaml,302607288,302607288/pipelines/com.google.analytics.v1,Pulumi,typescript,pipelines-com-google-analytics-v1,StreamProcessor for google analytics v1 data streams,nodejs,,,0,0,1,gcp
+451942777/Pulumi.yaml,451942777,451942777,Pulumi,go,gcp-go-gke,A GCP Go Pulumi program with Kubernetes,go,,,0,0,1,gcp
+452459399/Pulumi.yaml,452459399,452459399,Pulumi,python,gcp-K8s-integration-demo,Snyk K8s integration demo using Pulumi,python,,,0,0,1,gcp
+511751802/pulumi/Pulumi.yaml,511751802,511751802/pulumi,Pulumi,typescript,my-awesome-function,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+382118159/infra/docker/Pulumi.yaml,382118159,382118159/infra/docker,Pulumi,typescript,sth5-ticket,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+382118159/infra/cloud run/Pulumi.yaml,382118159,382118159/infra/cloud run,Pulumi,typescript,sth5-ticket,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+384891299/Pulumi.yaml,384891299,384891299,Pulumi,typescript,nextjs-gcp-storage,Example Next.js app to upload images to a GCP storage bucket.,nodejs,,,0,0,1,gcp
+329578279/Pulumi.yaml,329578279,329578279,Pulumi,go,pulumi-test,A minimal Google Cloud Go Pulumi program,go,,,0,0,1,gcp
+140354089/tests/terraform/gcp/record_set/Pulumi.yaml,140354089,140354089/tests/terraform/gcp/record_set,Pulumi,typescript,asg,ASG Example,nodejs,,,0,0,1,gcp
+369165454/Pulumi.yaml,369165454,369165454,Pulumi,typescript,gcp-functions,GCP Functions example,nodejs,,,0,0,1,gcp
+282083829/gcp-go-webserver/Pulumi.yaml,282083829,282083829/gcp-go-webserver,Pulumi,go,webserver-gcp,Basic example of an Google Cloud web server accessible over HTTP,go,,,0,0,1,gcp
+282083829/gcp-cs-gke/Pulumi.yaml,282083829,282083829/gcp-cs-gke,Pulumi,csharp,gcp-cs-gke,A GCP C# Pulumi program with Kubernetes,dotnet,,,0,0,1,gcp
+282083829/gcp-py-functions/Pulumi.yaml,282083829,282083829/gcp-py-functions,Pulumi,python,gcp-py-functions,A minimal Python Pulumi program using Google Cloud Functions.,python,,,0,0,1,gcp
+282083829/gcp-py-instance-nginx/Pulumi.yaml,282083829,282083829/gcp-py-instance-nginx,Pulumi,python,gcp-instance-nginx,Deploy a Nginx Server in a GCP instance,python,,,0,0,1,gcp
+282083829/gcp-go-gke/Pulumi.yaml,282083829,282083829/gcp-go-gke,Pulumi,go,gcp-go-gke,A GCP Go Pulumi program with Kubernetes,go,,,0,0,1,gcp
+282083829/gcp-cs-functions/Pulumi.yaml,282083829,282083829/gcp-cs-functions,Pulumi,csharp,gcp-py-functions,A minimal C# Pulumi program using Google Cloud Functions.,dotnet,,,0,0,1,gcp
+282083829/gcp-js-webserver/Pulumi.yaml,282083829,282083829/gcp-js-webserver,Pulumi,typescript,webserver-gcp,Basic example of an Google Cloud web server accessible over HTTP,nodejs,,,0,0,1,gcp
+282083829/gcp-ts-slackbot/Pulumi.yaml,282083829,282083829/gcp-ts-slackbot,Pulumi,typescript,gcp-ts-slack,Basic example of creating a slackbot,nodejs,,,0,0,1,gcp
+282083829/gcp-ts-docker-gcr-cloudrun/cloud-run-deploy/Pulumi.yaml,282083829,282083829/gcp-ts-docker-gcr-cloudrun/cloud-run-deploy,Pulumi,typescript,cloud-run-deploy,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+282083829/gcp-ts-docker-gcr-cloudrun/docker-build-push-gcr/Pulumi.yaml,282083829,282083829/gcp-ts-docker-gcr-cloudrun/docker-build-push-gcr,Pulumi,typescript,gcr-build-image,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+282083829/gcp-ts-serverless-raw/Pulumi.yaml,282083829,282083829/gcp-ts-serverless-raw,Pulumi,typescript,serverless,Basic example of a serverless GCP functions in Python and Go,nodejs,,,0,0,1,gcp
+282083829/gcp-go-functions-raw/Pulumi.yaml,282083829,282083829/gcp-go-functions-raw,Pulumi,go,gcp-go-functions-raw,A minimal Go Pulumi program using Google Cloud Functions.,go,,,0,0,1,gcp
+282083829/gcp-ts-cloudrun/Pulumi.yaml,282083829,282083829/gcp-ts-cloudrun,Pulumi,typescript,gcp-cloudrun,Google Cloud Run example,nodejs,,,0,0,1,gcp
+282083829/gcp-py-serverless-raw/Pulumi.yaml,282083829,282083829/gcp-py-serverless-raw,Pulumi,python,serverless-py,Basic example of a serverless Python and Go GCP functions (in Python),python,,,0,0,1,gcp
+282083829/gcp-ts-functions/Pulumi.yaml,282083829,282083829/gcp-ts-functions,Pulumi,typescript,gcp-functions,GCP Functions example,nodejs,,,0,0,1,gcp
+282083829/gcp-ts-gke-hello-world/Pulumi.yaml,282083829,282083829/gcp-ts-gke-hello-world,Pulumi,typescript,gcp-ts-gke-hello-world,A Google Kubernetes Engine (GKE) + Kubernetes Hello World example,nodejs,,,0,0,1,gcp
+282083829/gcp-go-functions/Pulumi.yaml,282083829,282083829/gcp-go-functions,Pulumi,go,gcp-go-functions,A minimal Go Pulumi program using Google Cloud Functions.,go,,,0,0,1,gcp
+282083829/gcp-py-webserver/Pulumi.yaml,282083829,282083829/gcp-py-webserver,Pulumi,python,gcp-py-webserver,Basic example of a Google Cloud web server accessible over HTTP,python,,,0,0,1,gcp
+282083829/gcp-ts-k8s-ruby-on-rails-postgresql/infra/Pulumi.yaml,282083829,282083829/gcp-ts-k8s-ruby-on-rails-postgresql/infra,Pulumi,typescript,gcp-rails,A containerized Ruby on Rails app using managed Kubernetes and PostgreSQL,nodejs,,,0,0,1,gcp
+282083829/gcp-py-gke/Pulumi.yaml,282083829,282083829/gcp-py-gke,Pulumi,python,gcp-py-gke,"A Google Kubernetes Engine (GKE) cluster, with canary deployment",python,,,0,0,1,gcp
+282083829/gcp-go-instance/Pulumi.yaml,282083829,282083829/gcp-go-instance,Pulumi,go,gcp-go-instance,A GCP Go Pulumi to create an instance,go,,,0,0,1,gcp
+282083829/gcp-ts-gke/Pulumi.yaml,282083829,282083829/gcp-ts-gke,Pulumi,typescript,gcp-ts-gke,"A Google Kubernetes Engine (GKE) cluster, with canary deployment",nodejs,,,0,0,1,gcp
+282083829/gcp-py-network-component/Pulumi.yaml,282083829,282083829/gcp-py-network-component,Pulumi,python,gcp-py-network-component,A Google Cloud Python Pulumi program using ComponentResource,python,,,0,0,1,gcp
+471408654/Pulumi.yaml,471408654,471408654/pulumi-native,Pulumi,typescript,apigateway-config-example,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+206964907/Pulumi.yaml,206964907,206964907,Pulumi,typescript,pulumi-v,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+414965643/gcp/cloud-kms/pulumi/Pulumi.yaml,414965643,414965643/gcp/cloud-kms/pulumi,Pulumi,typescript,cloud-kms,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+347189842/Pulumi.yaml,347189842,347189842,Pulumi,python,Pulumi-Gcp,A minimal Python Pulumi program,python,,,0,0,1,gcp
+450935686/gcp/Pulumi.yaml,450935686,450935686/gcp,Pulumi,typescript,secure-cloud-access-gcp-ts,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+357456439/Pulumi.yaml,357456439,357456439,Pulumi,typescript,nextjs-gcp-storage,Example Next.js app to upload images to a GCP storage bucket.,nodejs,,,0,0,1,gcp
+279406893/gcp/Pulumi.yaml,279406893,279406893/gcp,Pulumi,typescript,kubeadm-infra,kubeadm gcp infrastructure that helps you build HA Kubernetes clusters,nodejs,,,0,0,1,gcp
+488124153/deploy/Pulumi.yaml,488124153,488124153/deploy,Pulumi,python,deploy,A minimal Google Cloud Python Pulumi program,python,,,0,0,1,gcp
+372963204/examples/simple-node/Pulumi.yaml,372963204,372963204/examples/simple-node,Pulumi,typescript,simple-node,A simple gcpwebapp example,nodejs,,,0,0,1,gcp
+404159470/apps/big-data/infrastructure/Pulumi.yaml,404159470,404159470/apps/big-data/infrastructure,Pulumi,typescript,big-data-infra,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+108589232/gcp-go-webserver/Pulumi.yaml,108589232,108589232/gcp-go-webserver,Pulumi,go,webserver-gcp,Basic example of an Google Cloud web server accessible over HTTP,go,,,0,0,1,gcp
+108589232/gcp-cs-gke/Pulumi.yaml,108589232,108589232/gcp-cs-gke,Pulumi,csharp,gcp-cs-gke,A GCP C# Pulumi program with Kubernetes,dotnet,,,0,0,1,gcp
+108589232/gcp-py-functions/Pulumi.yaml,108589232,108589232/gcp-py-functions,Pulumi,python,gcp-py-functions,A minimal Python Pulumi program using Google Cloud Functions.,python,,,0,0,1,gcp
+108589232/gcp-py-instance-nginx/Pulumi.yaml,108589232,108589232/gcp-py-instance-nginx,Pulumi,python,gcp-instance-nginx,Deploy a Nginx Server in a GCP instance,python,,,0,0,1,gcp
+108589232/gcp-go-gke/Pulumi.yaml,108589232,108589232/gcp-go-gke,Pulumi,go,gcp-go-gke,A GCP Go Pulumi program with Kubernetes,go,,,0,0,1,gcp
+108589232/gcp-cs-functions/Pulumi.yaml,108589232,108589232/gcp-cs-functions,Pulumi,csharp,gcp-py-functions,A minimal C# Pulumi program using Google Cloud Functions.,dotnet,,,0,0,1,gcp
+108589232/gcp-js-webserver/Pulumi.yaml,108589232,108589232/gcp-js-webserver,Pulumi,typescript,webserver-gcp,Basic example of an Google Cloud web server accessible over HTTP,nodejs,,,0,0,1,gcp
+108589232/gcp-ts-slackbot/Pulumi.yaml,108589232,108589232/gcp-ts-slackbot,Pulumi,typescript,gcp-ts-slack,Basic example of creating a slackbot,nodejs,,,0,0,1,gcp
+108589232/gcp-ts-docker-gcr-cloudrun/cloud-run-deploy/Pulumi.yaml,108589232,108589232/gcp-ts-docker-gcr-cloudrun/cloud-run-deploy,Pulumi,typescript,cloud-run-deploy,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+108589232/gcp-ts-docker-gcr-cloudrun/docker-build-push-gcr/Pulumi.yaml,108589232,108589232/gcp-ts-docker-gcr-cloudrun/docker-build-push-gcr,Pulumi,typescript,gcr-build-image,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+108589232/gcp-ts-serverless-raw/Pulumi.yaml,108589232,108589232/gcp-ts-serverless-raw,Pulumi,typescript,serverless,Basic example of a serverless GCP functions in Python and Go,nodejs,,,0,0,1,gcp
+108589232/google-native-ts-functions/Pulumi.yaml,108589232,108589232/google-native-ts-functions,Pulumi,typescript,google-cloud-ts-functions,Google Cloud Functions example,nodejs,,,0,0,1,gcp
+108589232/gcp-go-functions-raw/Pulumi.yaml,108589232,108589232/gcp-go-functions-raw,Pulumi,go,gcp-go-functions-raw,A minimal Go Pulumi program using Google Cloud Functions.,go,,,0,0,1,gcp
+108589232/gcp-ts-cloudrun/Pulumi.yaml,108589232,108589232/gcp-ts-cloudrun,Pulumi,typescript,gcp-cloudrun,Google Cloud Run example,nodejs,,,0,0,1,gcp
+108589232/gcp-py-serverless-raw/Pulumi.yaml,108589232,108589232/gcp-py-serverless-raw,Pulumi,python,serverless-py,Basic example of a serverless Python and Go GCP functions (in Python),python,,,0,0,1,gcp
+108589232/gcp-ts-functions/Pulumi.yaml,108589232,108589232/gcp-ts-functions,Pulumi,typescript,gcp-functions,GCP Functions example,nodejs,,,0,0,1,gcp
+108589232/gcp-ts-gke-serviceaccount/Pulumi.yaml,108589232,108589232/gcp-ts-gke-serviceaccount,Pulumi,typescript,gcp-ts-gke-serviceaccount,A Google Kubernetes Engine (GKE) + Service account example,nodejs,,,0,0,1,gcp
+108589232/gcp-ts-gke-hello-world/Pulumi.yaml,108589232,108589232/gcp-ts-gke-hello-world,Pulumi,typescript,gcp-ts-gke-hello-world,A Google Kubernetes Engine (GKE) + Kubernetes Hello World example,nodejs,,,0,0,1,gcp
+108589232/gcp-go-functions/Pulumi.yaml,108589232,108589232/gcp-go-functions,Pulumi,go,gcp-go-functions,A minimal Go Pulumi program using Google Cloud Functions.,go,,,0,0,1,gcp
+108589232/gcp-py-webserver/Pulumi.yaml,108589232,108589232/gcp-py-webserver,Pulumi,python,gcp-py-webserver,Basic example of a Google Cloud web server accessible over HTTP,python,,,0,0,1,gcp
+108589232/gcp-ts-k8s-ruby-on-rails-postgresql/infra/Pulumi.yaml,108589232,108589232/gcp-ts-k8s-ruby-on-rails-postgresql/infra,Pulumi,typescript,gcp-rails,A containerized Ruby on Rails app using managed Kubernetes and PostgreSQL,nodejs,,,0,0,1,gcp
+108589232/gcp-py-cloudrun-cloudsql/Pulumi.yaml,108589232,108589232/gcp-py-cloudrun-cloudsql,Pulumi,python,gcp-py-cloudrun-cloudsql,Basic example of a Google Cloud Run and Google Cloud SQL deployment,python,,,0,0,1,gcp
+108589232/gcp-py-gke/Pulumi.yaml,108589232,108589232/gcp-py-gke,Pulumi,python,gcp-py-gke,"A Google Kubernetes Engine (GKE) cluster, with canary deployment",python,,,0,0,1,gcp
+108589232/gcp-java-gke-hello-world/Pulumi.yaml,108589232,108589232/gcp-java-gke-hello-world,Pulumi,java,gcp-java-gke-hello-world,A Google Kubernetes Engine (GKE) + Kubernetes Hello World example,java,,,0,0,1,gcp
+108589232/gcp-go-instance/Pulumi.yaml,108589232,108589232/gcp-go-instance,Pulumi,go,gcp-go-instance,A GCP Go Pulumi to create an instance,go,,,0,0,1,gcp
+108589232/google-native-ts-gke-config-connector/Pulumi.yaml,108589232,108589232/google-native-ts-gke-config-connector,Pulumi,typescript,gke-config-connector,GKE config-connector example,nodejs,,,0,0,1,gcp
+108589232/google-native-ts-k8s-python-postgresql/infra/Pulumi.yaml,108589232,108589232/google-native-ts-k8s-python-postgresql/infra,Pulumi,typescript,xpresso-gke-demo,A demo Xpresso app running on GCP with IaC using Pulumi,nodejs,,,0,0,1,gcp
+108589232/gcp-ts-gke/Pulumi.yaml,108589232,108589232/gcp-ts-gke,Pulumi,typescript,gcp-ts-gke,"A Google Kubernetes Engine (GKE) cluster, with canary deployment",nodejs,,,0,0,1,gcp
+108589232/gcp-py-network-component/Pulumi.yaml,108589232,108589232/gcp-py-network-component,Pulumi,python,gcp-py-network-component,A Google Cloud Python Pulumi program using ComponentResource,python,,,0,0,1,gcp
+108589232/google-native-ts-k8s-ruby-on-rails-postgresql/infra/Pulumi.yaml,108589232,108589232/google-native-ts-k8s-ruby-on-rails-postgresql/infra,Pulumi,typescript,google-rails,A containerized Ruby on Rails app using managed Kubernetes and PostgreSQL,nodejs,,,0,0,1,gcp
+415341684/gcp/simple/Pulumi.yaml,415341684,415341684/gcp/simple,Pulumi,python,gcp,A minimal Google Cloud Python Pulumi program,python,,,0,0,1,gcp
+353381045/Pulumi.yaml,353381045,353381045,Pulumi,typescript,gcp_pulumi_1116,A minimal Google Cloud TypeScript Pulumi program,nodejs,['pulumi_unit'],['353381045/tests/tests.spec.ts'],0,0,1,gcp
+174706117/pulumi/gcp/gke/Pulumi.yaml,174706117,174706117/pulumi/gcp/gke,Pulumi,python,gke,Deploys App to Google Cloud Platform GKE service,python,,,0,0,1,gcp
+174706117/pulumi/gcp/compute/Pulumi.yaml,174706117,174706117/pulumi/gcp/compute,Pulumi,python,compute,Deploys App to Google Cloud Platform,python,,,0,0,1,gcp
+424866320/deploy/cloudrun/Pulumi.yaml,424866320,424866320/deploy/cloudrun,Pulumi,typescript,cloudrun,Eventuous sample application deployment to Google Cloud Run,nodejs,,,0,0,1,gcp
+301886600/Pulumi.yaml,301886600,301886600,Pulumi,python,gcp-py-webserver,Basic example of a Google Cloud web server accessible over HTTP,python,,,0,0,1,gcp
+303169233/Pulumi.yaml,303169233,303169233,Pulumi,typescript,moose-stack,The k8s stack to deploy moose app to GCP,nodejs,,,0,0,1,gcp
+356240913/Pulumi.yaml,356240913,356240913,Pulumi,typescript,nextjs-gcp-storage,Example Next.js app to upload images to a GCP storage bucket.,nodejs,,,0,0,1,gcp
+180241385/gcloud/kube-gcp/Pulumi.yaml,180241385,180241385/gcloud/kube-gcp,Pulumi,typescript,kube-gcp,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+260565529/Pulumi.yaml,260565529,260565529,Pulumi,python,escoti-scraper,A minimal Google Cloud Python Pulumi program,python,,,0,0,1,gcp
+310893171/Pulumi.yaml,310893171,310893171,Pulumi,python,gcp_static_web_w_pulumi,A minimal Google Cloud Python Pulumi program,python,,,0,0,1,gcp
+351625154/Pulumi.yaml,351625154,351625154,Pulumi,typescript,nextjs-gcp-storage,Example Next.js app to upload images to a GCP storage bucket.,nodejs,,,0,0,1,gcp
+484099597/provisioners/pulumi/Pulumi.yaml,484099597,484099597/provisioners/pulumi,Pulumi,python,gke-acm-bootstrap,GCP Pulumi program to bootstrap GKE clusters using ACM and Config Sync,python,,,0,0,1,gcp
+354814451/Pulumi.yaml,354814451,354814451,Pulumi,typescript,bjerk-core-infra,GCP bjerk-io,nodejs,,,0,0,1,gcp
+301744051/pulumi/gcp/orb-snyk/Pulumi.yaml,301744051,301744051/pulumi/gcp/orb-snyk,Pulumi,typescript,orb-snyk,Deploys App to Google Cloud Platform GKE service,nodejs,,,0,0,1,gcp
+301744051/pulumi/gcp/compute/Pulumi.yaml,301744051,301744051/pulumi/gcp/compute,Pulumi,typescript,compute,Deploys App to Google Cloud Platform,nodejs,,,0,0,1,gcp
+354792973/Pulumi.yaml,354792973,354792973,Pulumi,typescript,bjerk-io-infra,GCP bjerk-io,nodejs,,,0,0,1,gcp
+384892494/Pulumi.yaml,384892494,384892494,Pulumi,typescript,nextjs-gcp-storage,Example Next.js app to upload images to a GCP storage bucket.,nodejs,,,0,0,1,gcp
+231283657/Pulumi.yaml,231283657,231283657,Pulumi,typescript,vault-on-gke,HashiCorp Vault on Google Kubernetes Engine (GKE) with Pulumi,nodejs,,,0,0,1,gcp
+192942791/history-training/9-migrer-lapplication-hello-world-vers-les-frameworks-serverless-et-pulumi/pulumi/front/Pulumi.yaml,192942791,192942791/history-training/9-migrer-lapplication-hello-world-vers-les-frameworks-serverless-et-pulumi/pulumi/front,Pulumi,typescript,gcp-front,Frontend for the BoF Search App,nodejs,,,0,0,1,gcp
+192942791/history-training/9-migrer-lapplication-hello-world-vers-les-frameworks-serverless-et-pulumi/pulumi/back/Pulumi.yaml,192942791,192942791/history-training/9-migrer-lapplication-hello-world-vers-les-frameworks-serverless-et-pulumi/pulumi/back,Pulumi,typescript,gcp-functions,GCP Functions example,nodejs,,,0,0,1,gcp
+313014819/Pulumi.yaml,313014819,313014819,Pulumi,python,gcp_cloudflare_static_web,This project is used to construct the wholeinfra for the static web,python,,,0,0,1,gcp
+360490492/gcp-ts/Pulumi.yaml,360490492,360490492/gcp-ts,Pulumi,typescript,gcp-ts,A minimal Google Cloud TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+447940295/Pulumi.yaml,447940295,447940295,Pulumi,python,gcp-instance-nginx,Deploy a Nginx Server in a GCP instance,python,,,0,0,1,gcp
+332328070/Pulumi.yaml,332328070,332328070,Pulumi,python,pulumi_gcp_static_website,A minimal Google Cloud Python Pulumi program,python,,,0,0,1,gcp
+372786123/infrastructure/google/cdktf.json,372786123,372786123/infrastructure/google,CDKTF,typescript,,,typescript,,,0,0,1,gcp
+448213612/yeoman/generator-react/generators/pulumi/templates/pulumi-template-gcp/Pulumi.yaml,448213612,448213612/yeoman/generator-react/generators/pulumi/templates/pulumi-template-gcp,Pulumi,typescript,pulumi-template-gcp,gcp-template,nodejs,,,0,0,1,gcp
+132414624/pulumi/Pulumi.yaml,132414624,132414624/pulumi,Pulumi,typescript,swali-gcp,Swali infra for GCP,nodejs,,,0,0,1,gcp
+495578069/Pulumi.yaml,495578069,495578069,Pulumi,python,da_kh_example_dev,A minimal Google Cloud Python Pulumi program,python,,,0,0,1,gcp
+305579595/Pulumi.yaml,305579595,305579595,Pulumi,typescript,gcp-kubernetes-ts-projects,A minimal Google Cloud Kuberntes TypeScript Pulumi program,nodejs,,,0,0,1,gcp
+235943410/others/pulumi/Pulumi.yaml,235943410,235943410/others/pulumi/src,Pulumi,typescript,monorepo-devops-msa-k8s-example,A Google Kubernetes Engine (GKE) cluster,nodejs,,,0,0,1,gcp
+341941594/instance-with-nginx-container/Pulumi.yaml,341941594,341941594/instance-with-nginx-container,Pulumi,python,instance-with-nginx,A demo project to create a GCP instance and run a Nginx container,python,,,0,0,1,gcp
