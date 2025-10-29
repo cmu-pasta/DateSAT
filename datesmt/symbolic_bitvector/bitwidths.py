@@ -4,11 +4,12 @@ Bit width constants for date components in Z3 bitvector operations.
 This module defines the minimum bit widths needed for various date components
 to avoid unnecessary overhead while ensuring all valid values can be represented.
 """
+# TODO: Why 24 bits is not enough?
 LEGACY_BITS = 32
 
 # Date component bit widths
 YEAR_BITS = 12     # 4096 > 2100
-MONTH_BITS = 12    # Because in the implementation, we multiply YEAR by 12 and add to MONTH  
+MONTH_BITS = 12    # Because in the implementation, we multiply YEAR by 12 and add to MONTH
 DAY_BITS = 20      # Because we add Period.days to the date, and Period.days can be large
 
 # Epoch-based bit widths

@@ -49,6 +49,8 @@ Debugging
 
 Evaluation
 [ ] Dump smt to run on cvc 5 - better performance?
+[ ] Constrant generator? (Random Testing) - Ask Vasu
+[ ] LLM generated ones
 
 General
 [X] Organize repo (Angel)

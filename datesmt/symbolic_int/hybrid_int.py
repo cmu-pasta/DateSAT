@@ -39,8 +39,8 @@ from .baseline_int import (
     to_ordinal,
     from_ordinal,
     ymd_from_days_since_epoch,
-    days_since_epoch_from_ymd, 
-    eom_clamp, 
+    days_since_epoch_from_ymd,
+    eom_clamp,
     add_days_ordinal,
     _dbm_index,
 )
@@ -146,6 +146,7 @@ class DateVar:
         """Support x != date comparison."""
         return Not(self.__eq__(other))
 
+    # TODO: Confirm this is consistent with the doc.
     def __add__(self, other):
         """Hybrid date + Period: mirror epoch_days semantics, but avoid epoch encode unless days-only.
 
