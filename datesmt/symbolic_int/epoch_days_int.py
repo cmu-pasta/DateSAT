@@ -123,16 +123,16 @@ class DateVar:
             result = DateVar(
                 f"{self.name}_plus_{other.years}y_{other.months}m_{other.days}d"
             )
+            # Fast-path: only days component (check at Python level since Period components are concrete)
+            if other.years == 0 and other.months == 0:
+                result.days_var = self.days_var + IntVal(other.days)
+                return result
+
             oy, om, od = (
                 IntVal(other.years),
                 IntVal(other.months),
                 IntVal(other.days),
             )
-
-            # Fast-path: only days component
-            if oy == 0 and om == 0:
-                result.days_var = self.days_var + IntVal(od)
-                return result
 
             # Decode current date to Y/M/D
             y0, m0, d0 = ymd_from_days_since_epoch(self.days_var)

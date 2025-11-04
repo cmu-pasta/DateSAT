@@ -13,7 +13,7 @@ DateSMT
 [X] Think about hybrid method: do we need lazy approach?
 [X] Update hybrid method: lazy on both ymd and epoch
 [ ] Think about cases where bitvector is slower? (div/mod)
-[ ] Optimize add func for all methods (quick paths for adding days within a month?)
+[X] Optimize add func for all methods (fast paths for adding days within a month?)
 
 Unit test
 [X] Add unit test coverage (Angel)

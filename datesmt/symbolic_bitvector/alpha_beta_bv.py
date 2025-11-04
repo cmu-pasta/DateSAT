@@ -160,7 +160,7 @@ class DateVar:
     def __add__(self, other) -> 'DateVar':
         """DateVar + Period using alpha for Y/M and beta for D.
         Steps:
-          - If constant days-only period, shift beta only.
+          - Fast path: If days-only period, directly add to beta (within-month check handled by add_days_ordinal).
           - Otherwise add months to alpha, clamp EOM using current day,
             then add days in ordinal space and re-sync alpha/beta.
         """
@@ -171,7 +171,20 @@ class DateVar:
             months_delta = BitVecVal(other.years * 12 + other.months, LEGACY_BITS)
             days_delta = BitVecVal(other.days, LEGACY_BITS)
 
-            # Decode current (y,m,d) from (alpha,beta)
+            # Fast path: days-only period (skip month shift and EOM clamp)
+            if other.years == 0 and other.months == 0:
+                # Decode current (y,m,d) from (alpha,beta)
+                y0, m0 = ym_from_months_since_epoch(self.months_var)
+                d0 = self.beta_var + BitVecVal(1, LEGACY_BITS)
+                
+                # Add days (add_days_ordinal handles within-month fast path)
+                y2, m2, d2 = add_days_ordinal(y0, m0, d0, days_delta)
+                
+                result.months_var = months_since_epoch_from_ym(y2, m2)
+                result.beta_var = d2 - BitVecVal(1, LEGACY_BITS)
+                return result
+
+            # Full path: Decode current (y,m,d) from (alpha,beta)
             y0, m0 = ym_from_months_since_epoch(self.months_var)
             d0 = self.beta_var + BitVecVal(1, LEGACY_BITS)
 

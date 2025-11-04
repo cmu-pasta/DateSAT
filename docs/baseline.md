@@ -41,6 +41,12 @@ From core.py
 
 ### DateVar + Period
 
+**Optimizations:**
+- **Days-only fast path**: If period has only days (years=0, months=0), skip month normalization and EOM clamp, directly add days
+- **Within-month fast path**: When adding days, if the result stays within the same month, avoid ordinal conversion and use simple addition
+
+**Full Path (when months/years are present):**
+
 1. **Combine Y and M**: Convert period years to months and normalize
    - `total_months = current_month + (period_years * 12 + period_months)`
    - Normalize months to 1-12 range with year carry
@@ -49,7 +55,10 @@ From core.py
    - **EOM Clamp**: When adding months to a date, if the original day doesn't exist in the target month (e.g., Jan 31 + 1 month = Feb 31), clamp the day to the last valid day of that month (Feb 28/29)
    - `day = min(original_day, days_in_month(new_year, new_month))`
 
-3. **Add Days**: Convert dates to days since EPOCH (2000-03-01), perform exact integer arithmetic, then convert back to year/month/day
+3. **Add Days**: Uses `add_days_ordinal()` which:
+   - Fast path 1: If delta_days == 0, return unchanged date
+   - Fast path 2: If result stays within same month (1 ≤ day + delta_days ≤ days_in_month), use simple addition
+   - Otherwise: Convert dates to days since EPOCH (2000-03-01), perform exact integer arithmetic, then convert back to year/month/day
 
 ### DateVar Comparisons
 

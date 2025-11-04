@@ -43,13 +43,19 @@ From core.py
 
 ### DateVar + Period
 
-1. **Add Days Only**: If period has only days, add to the epoch expression in-place
+**Optimizations:**
+- **Days-only fast path**: If period has only days, add to epoch expression directly (avoids Y/M/D conversion)
+- **Within-month fast path**: When adding days via `add_days_ordinal()`, if result stays within same month, avoid ordinal conversion
+
+1. **Add Days Only**: If period has only days, add to the epoch expression in-place (fast path)
    - `result.epoch_var = epoch_expr(self) + period_days`
    - Marks result as epoch-consistent (Y/M/D remains lazy)
+   - Skips all month/year normalization and Y/M/D conversion
 
 2. **Add Months/Years**: Use Y/M/D terms; derive them on demand if needed
    - If Y/M/D is consistent, use them directly; else derive via `ymd_from_days_since_epoch(epoch_expr(self))`
    - Apply baseline semantics (reuse `normalize_month()`, `eom_clamp()`, `add_days_ordinal()`)
+   - `add_days_ordinal()` includes within-month fast path to avoid ordinal conversion when possible
    - Constrain only the result Y/M/D; mark result as Y/M/D-consistent (epoch remains lazy and is derived only if/when needed)
 
 ### DateVar Comparisons

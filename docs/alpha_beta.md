@@ -44,13 +44,22 @@ From core.py
 
 ### DateVar + Period
 
+**Optimizations:**
+- **Days-only fast path**: If period has only days (years=0, months=0), skip month shift and EOM clamp, directly add days
+- **Within-month fast path**: When adding days via `add_days_ordinal()`, if result stays within same month, avoid ordinal conversion
+
+**Full Path (when months/years are present):**
+
 1. Add period months to alpha
    - `period_alpha = period_years * 12 + period_months`
    - `new_alpha = current_alpha + period_alpha`
 
 2. **EOM Clamp**: When adding months to a date, if the original day doesn't exist in the target month (e.g., Jan 31 + 1 month = Feb 31), clamp the day to the last valid day of that month (Feb 28/29)
 
-3. **Add Days**: Convert dates to days since a fixed epoch (2000-03-01), perform exact integer arithmetic, then convert back to year/month/day
+3. **Add Days**: Uses `add_days_ordinal()` which:
+   - Fast path 1: If delta_days == 0, return unchanged date
+   - Fast path 2: If result stays within same month, use simple addition
+   - Otherwise: Convert dates to days since a fixed epoch (2000-03-01), perform exact integer arithmetic, then convert back to year/month/day
 
 
 ### DateVar Comparisons

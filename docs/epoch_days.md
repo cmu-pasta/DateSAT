@@ -40,12 +40,16 @@ From core.py
 
 ### DateVar + Period
 
-1. **Add Days Only**: If period has only days, add directly to days_var
+1. **Add Days Only**: If period has only days, add directly to days_var (fast path)
    - `result.days_var = self.days_var + period_days`
+   - Skips all month/year normalization and ordinal conversion
 
 2. **Add Months/Years**: Convert to ordinal days, add, convert back (similar to baseline)
    - Convert current date to year/month/day using `from_days_since_epoch()`
    - Add period months/years using component-wise arithmetic (reuses `normalize_month()` from baseline)
+   - Add days using `add_days_ordinal()` which includes:
+     - Fast path: If result stays within same month, use simple addition (avoids ordinal conversion)
+     - Otherwise: Convert to ordinal days, add, convert back to year/month/day
    - Convert year/month/day back to days since epoch using `to_days_since_epoch()`
 
 ### DateVar Comparisons

@@ -168,25 +168,40 @@ def eom_clamp(year, month, day) -> BitVecRef:
 
 def add_days_ordinal(y, m, d, delta_days) -> Tuple[BitVec, BitVec, BitVec]:
     """
-    Exact ordinal-based addition via a single ordinal add.
+    Exact ordinal-based addition via a single ordinal add with optimizations.
     Steps:
       - EOM clamp input day (baseline 'round down' policy).
-      - If delta_days == 0 → return (y,m,d).
-      - Add delta_days in days-since-epoch space and decode.
+      - Fast path 1: If delta_days == 0 → return (y,m,d).
+      - Fast path 2: If result stays within same month → simple addition without ordinal conversion.
+      - Otherwise: Add delta_days in days-since-epoch space and decode.
     """
     d0 = eom_clamp(y, m, d)
 
-    # Fast path: no day shift → avoid any ordinal math.
+    # Fast path 1: no day shift → avoid any ordinal math.
     no_shift = delta_days == BitVecVal(0, LEGACY_BITS)
 
-    # Single-step ordinal addition
-    z = days_since_epoch_from_ymd(y, m, d0)
-    y2, m2, d2 = ymd_from_days_since_epoch(z + delta_days)
+    # Fast path 2: within-month addition (handles both positive and negative)
+    # Check if result stays within the same month: 1 <= d0 + delta_days <= days_in_month(y, m)
+    new_day = d0 + delta_days
+    max_day = days_in_month(y, m)
+    stays_in_month = And(
+        new_day >= BitVecVal(1, LEGACY_BITS),
+        new_day <= max_day
+    )
 
-    # If delta_days == 0, return (y,m,d0); else the computed (y2,m2,d2)
-    out_y = If(no_shift, y, y2)
-    out_m = If(no_shift, m, m2)
-    out_d = If(no_shift, d0, d2)
+    # Within-month fast path: simple addition
+    y_within = y
+    m_within = m
+    d_within = new_day
+
+    # Single-step ordinal addition (fallback path)
+    z = days_since_epoch_from_ymd(y, m, d0)
+    y_ordinal, m_ordinal, d_ordinal = ymd_from_days_since_epoch(z + delta_days)
+
+    # Select result: no_shift > stays_in_month > ordinal path
+    out_y = If(no_shift, y, If(stays_in_month, y_within, y_ordinal))
+    out_m = If(no_shift, m, If(stays_in_month, m_within, m_ordinal))
+    out_d = If(no_shift, d0, If(stays_in_month, d_within, d_ordinal))
     return out_y, out_m, out_d
 
 
@@ -318,23 +333,33 @@ class DateVar:
         1) Combine Y and M (normalize months into 1..12 with year carry)
         2) Apply EOM clamp: day := min(original_day, days_in_month(new_year,new_month))
         3) Add D days in ordinal space (exact day arithmetic)
+        
+        Optimizations:
+        - Fast path: If period is days-only (years=0, months=0), skip month normalization
         """
         if isinstance(other, Period):
-            if isinstance(other, Period):
-                result = DateVar(
-                    f"{self.name}_plus_{other.years}y_{other.months}m_{other.days}d"
-                )
-            else:
-                result = DateVar(f"{self.name}_plus_{other.name}")
+            result = DateVar(
+                f"{self.name}_plus_{other.years}y_{other.months}m_{other.days}d"
+            )
 
             # Extract period components
             period_years = other.years
             period_months = other.months
             period_days = other.days
 
-            # Step 1: Combine Y and M (normalize months into 1..12 with year carry)
+            # Fast path: days-only period (skip month normalization and EOM clamp)
+            # Check at Python level since Period components are concrete integers
+            if period_years == 0 and period_months == 0:
+                # Days-only path: directly add days
+                y2, m2, d2 = add_days_ordinal(
+                    self.year, self.month, self.day, BitVecVal(period_days, LEGACY_BITS)
+                )
+                result.year, result.month, result.day = y2, m2, d2
+                return result
+
+            # Full path: Step 1: Combine Y and M (normalize months into 1..12 with year carry)
             # Convert period years to months and combine with period months
-            period_total_months = period_years * BitVecVal(12, LEGACY_BITS) + period_months
+            period_total_months = BitVecVal(period_years, LEGACY_BITS) * BitVecVal(12, LEGACY_BITS) + BitVecVal(period_months, LEGACY_BITS)
             # Add to current month and normalize
             total_months = self.month + period_total_months
             year_carry, m1 = normalize_month(self.year, total_months)
@@ -344,7 +369,7 @@ class DateVar:
             d1 = eom_clamp(y1, m1, self.day)
 
             # Step 3: Add D days in ordinal space (exact day arithmetic)
-            y2, m2, d2 = add_days_ordinal(y1, m1, d1, period_days)
+            y2, m2, d2 = add_days_ordinal(y1, m1, d1, BitVecVal(period_days, LEGACY_BITS))
 
             result.year, result.month, result.day = y2, m2, d2
             return result

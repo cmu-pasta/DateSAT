@@ -44,6 +44,12 @@ From core.py
 
 ### DateVar + Period
 
+**Optimizations:**
+- **Days-only fast path**: If period has only days (years=0, months=0), skip month shift and table lookup
+- **Within-month fast path**: When adding days, if result stays within same month (beta + days_delta < dim), skip table lookup and use simple addition
+
+**Full Path (when months/years are present):**
+
 1. Add period months to alpha
    - `period_alpha = period_years * 12 + period_months`
    - `new_alpha = current_alpha + period_alpha`
@@ -54,10 +60,12 @@ From core.py
    - `dim = Select(_DIM48_LIST, idx)` - Lookup days in month from table
    - Handle century February special case (2100 is not a leap year)
 
-3. **Add Days**: Use pre-computed 48-month tables to add days without converting to ordinal days
-   - Calculate total days using `base48 + century_correction + days_delta`
-   - Uses floor division by 12 and 1461 (4-year days) for proper month/year handling
-   - `If(carry == 1, beta2 - dim2, beta2)` for end-of-month overflow
+3. **Add Days**: 
+   - **Within-month fast path**: If `beta1 + days_delta` stays in `[0, dim1)`, use simple addition
+   - **Otherwise**: Use pre-computed 48-month tables to add days without converting to ordinal days
+     - Calculate total days using `base48 + century_correction + days_delta`
+     - Uses floor division by 12 and 1461 (4-year days) for proper month/year handling
+     - `If(carry == 1, beta2 - dim2, beta2)` for end-of-month overflow
 
 ### DateVar Comparisons
 
