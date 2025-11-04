@@ -121,25 +121,21 @@ def add_days_ordinal(y, m, d, delta_days) -> Tuple[ArithRef, ArithRef, ArithRef]
     """
     Exact ordinal-based addition via a single ordinal add.
     Steps:
-      - EOM clamp input day (baseline 'round down' policy).
       - If delta_days == 0 → return (y,m,d).
       - Add delta_days in days-since-epoch space and decode.
     """
-    # TODO: Can we remove this?
-    d0 = eom_clamp(y, m, d)
 
     # Fast path: no day shift → avoid any ordinal math.
     no_shift = delta_days == IntVal(0)
 
-    # TODO: Use since ordinal directly?
     # Single-step ordinal addition
-    z = days_since_epoch_from_ymd(y, m, d0)
+    z = days_since_epoch_from_ymd(y, m, d)
     y2, m2, d2 = ymd_from_days_since_epoch(z + delta_days)
 
     # If delta_days == 0, return (y,m,d0); else the computed (y2,m2,d2)
     out_y = If(no_shift, y, y2)
     out_m = If(no_shift, m, m2)
-    out_d = If(no_shift, d0, d2)
+    out_d = If(no_shift, d, d2)
     return out_y, out_m, out_d
 
 

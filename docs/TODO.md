@@ -10,15 +10,17 @@ DateSMT
 [X] Use bit vector? - Added
 [ ] Further reduce bit width?
 [ ] BitVector/Int hybrid approach?
-[ ] Think about hybrid method: do we need lazy approach?
+[X] Think about hybrid method: do we need lazy approach?
+[X] Update hybrid method: lazy on both ymd and epoch
 [ ] Think about cases where bitvector is slower? (div/mod)
+[ ] Optimize add func for all methods (quick paths for adding days within a month?)
 
 Unit test
 [X] Add unit test coverage (Angel)
 [X] Clean up core_data_structures, epoch_days_specific, baseline_specific (Angel)
 [X] Replace java with python? (Angel)
 [X] Update date constraints test
-[ ] Write up unit tests for all datesmt code
+[X] Write up unit tests
 
 Property test
 [X] Validate java vs python (Angel)
@@ -51,6 +53,8 @@ Evaluation
 [ ] Dump smt to run on cvc 5 - better performance?
 [ ] Constrant generator? (Random Testing) - Ask Vasu
 [ ] LLM generated ones
+[ ] Legal docs
+[ ] IAM Policies
 
 General
 [X] Organize repo (Angel)

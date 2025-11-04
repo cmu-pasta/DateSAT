@@ -1,6 +1,6 @@
 # Hybrid Method
 
-The hybrid method uses dual representation: epoch-primary with lazy Y/M/D derivation.
+The hybrid method uses a dual-lazy representation: both epoch and Y/M/D exist conceptually, and either side is derived lazily only when needed. Neither side is auto-linked to the other; instead, operations derive the required representation on demand.
 
 ## Data Types
 
@@ -14,16 +14,14 @@ The hybrid method uses dual representation: epoch-primary with lazy Y/M/D deriva
 
 ## DateVar Representation
 
-**Primary**: Epoch-based representation
-- `epoch_var` - Days since epoch (2000-03-01)
-- Range: -36525 to 36523 (covers 1900-03-01 to 2100-02-28)
-
-**Secondary**: Lazy Y/M/D components (created on demand)
-- `year_var` - Year component (derived from epoch)
-- `month_var` - Month component (derived from epoch)  
-- `day_var` - Day component (derived from epoch)
-
-**Constraints**: Forward link ensures `epoch_var == days_since_epoch_from_ymd(year, month, day)`
+- `epoch_var`: Days since epoch (2000-03-01); valid range [-36525, 36523]
+- `year_var`, `month_var`, `day_var`: Created lazily when needed
+- Consistency flags track which side currently reflects the date value:
+  - epoch-consistent: operations can use `epoch_var` directly
+  - ymd-consistent: operations can use `(Y, M, D)` directly
+- No automatic forward-link. When an operation requires the other side, it derives an expression on demand:
+  - epoch on demand: `days_since_epoch_from_ymd(Y, M, D)`
+  - Y/M/D on demand: `ymd_from_days_since_epoch(epoch)`
 
 ## Supported Operations
 
@@ -45,25 +43,27 @@ From core.py
 
 ### DateVar + Period
 
-1. **Add Days Only**: If period has only days, add directly to epoch_var
-   - `result.epoch_var = self.epoch_var + period_days`
+1. **Add Days Only**: If period has only days, add to the epoch expression in-place
+   - `result.epoch_var = epoch_expr(self) + period_days`
+   - Marks result as epoch-consistent (Y/M/D remains lazy)
 
-2. **Add Months/Years**: Use existing Y/M/D or decode epoch
-   - **Lazy Y/M/D**: Y/M/D components are created only when needed for month/year arithmetic
-   - If Y/M/D exists and consistent: use directly
-   - Otherwise: decode epoch to Y/M/D using `from_days_since_epoch()` (reused from epoch_days)
-   - Apply baseline semantics (reuses `normalize_month()`, `eom_clamp()`, `add_days_ordinal()` from baseline)
-   - Set result Y/M/D (epoch derived on demand)
+2. **Add Months/Years**: Use Y/M/D terms; derive them on demand if needed
+   - If Y/M/D is consistent, use them directly; else derive via `ymd_from_days_since_epoch(epoch_expr(self))`
+   - Apply baseline semantics (reuse `normalize_month()`, `eom_clamp()`, `add_days_ordinal()`)
+   - Constrain only the result Y/M/D; mark result as Y/M/D-consistent (epoch remains lazy and is derived only if/when needed)
 
 ### DateVar Comparisons
 
-- **Epoch-based**: Use primary epoch representation
+Comparisons choose the cheapest available consistent representation:
+- If both sides have consistent Y/M/D: compare lexicographically on `(Y, M, D)`
+- Else if both sides have consistent epoch: compare on `epoch_var`
+- Else: derive epoch expressions on demand for the inconsistent side(s) and compare on epoch
 
 ### Implementation Classes
 
-- `DateVar` - Symbolic date variable with dual representation
+- `DateVar` - Symbolic date variable with dual-lazy representation
   - **Constructor**: `DateVar(ctx, name: str)` - Requires solver context and name
   - **Context Integration**: All operations require solver context for constraint management
-  - **Lazy Y/M/D**: Y/M/D components created on-demand with forward linking
+  - **Lazy derivation**: Y/M/D and epoch are derived on-demand; no auto forward linking
 - `HybridSolver` - Constraint solver with epoch range validation
 - Helper functions: `from_days_since_epoch()` (reused from epoch_days), `to_days_since_epoch()` (reused from epoch_days), `is_leap()` (reused from baseline), `days_in_month()` (reused from baseline), `normalize_month()` (reused from baseline), `days_before_year()` (reused from baseline), `days_before_month()` (reused from baseline), `to_ordinal()` (reused from baseline), `from_ordinal()` (reused from baseline), `ymd_from_days_since_epoch()` (reused from baseline), `days_since_epoch_from_ymd()` (reused from baseline), `eom_clamp()` (reused from baseline), `add_days_ordinal()` (reused from baseline)

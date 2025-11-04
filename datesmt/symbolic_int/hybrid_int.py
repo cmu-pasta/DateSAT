@@ -1,16 +1,21 @@
 """
-Hybrid DATE-SMT implementation using dual representation.
+Hybrid DATE-SMT implementation using dual-lazy representation.
 
-This module implements the hybrid approach where dates are represented
-using dual representation: epoch-primary, YMD-derived. Each date has:
-- epoch_var: Z3 Int, days since 2000-03-01 (primary for comparisons/day ops)
-- year/month/day vars: created lazily when needed; with a forward link
-  epoch_var == days_since_epoch_from_ymd(year, month, day)
+This module implements a hybrid approach where dates can be represented by
+either epoch days or (Y, M, D), and each side is materialized and kept
+consistent lazily on demand:
+- epoch_var: Z3 Int, days since 2000-03-01
+- year/month/day vars: created lazily when needed
 
-Comparisons and day arithmetic use O(1) epoch operations; month/year
-arithmetic uses simple AMI on (Y,M,D) components without re-encoding to
-epoch unless needed. Period addition matches epoch_days semantics but avoids
-encoding back to epoch when not necessary.
+Rules:
+- We track which representation is currently consistent via flags.
+- No automatic forward-link is added when Y/M/D are materialized.
+- When an operation requires epoch, we use the epoch expression derived from
+  whichever side is currently consistent.
+- When an operation requires Y/M/D, we use Y/M/D terms derived similarly.
+- Comparisons prefer Y/M/D when both sides have consistent Y/M/D; otherwise
+  prefer epoch if both have consistent epoch; otherwise derive epoch terms
+  on the fly and compare.
 """
 
 from typing import Union, Tuple, List
@@ -61,9 +66,9 @@ class DateVar:
         self._year_var = None
         self._month_var = None
         self._day_var = None
-        self._forward_link_added = False
-        # Tracks whether epoch_var and (Y,M,D) are linked for this var
-        self._epoch_ymd_consistent = False
+        # Consistency flags: which representation reflects the current value
+        self._epoch_consistent = True   # epoch_var starts as the source of truth
+        self._ymd_consistent = False    # Y/M/D not yet materialized/consistent
 
     def __str__(self) -> str:
         return f"DateVar({self.name})"
@@ -92,30 +97,98 @@ class DateVar:
         return self._day_var
 
     def to_concrete_date(self, model: ModelRef) -> Date:
-        if self._ymd_exists:
+        if self._ymd_consistent and self._ymd_exists:
             y = model.evaluate(self._year_var, model_completion=True).as_long()
             m = model.evaluate(self._month_var, model_completion=True).as_long()
             d = model.evaluate(self._day_var, model_completion=True).as_long()
             return Date(y, m, d)
-        else:
-            e = model.evaluate(self.epoch_var, model_completion=True).as_long()
-            return from_days_since_epoch(e)
+        # Otherwise evaluate epoch expression and decode
+        e = model.evaluate(self._epoch_expr(), model_completion=True).as_long()
+        return from_days_since_epoch(e)
+
+    # ----- Internal helpers -----
+    def _ensure_ymd(self) -> None:
+        if self._ymd_exists:
+            return
+        self._year_var = Int(f"{self.name}_year")
+        self._month_var = Int(f"{self.name}_month")
+        self._day_var = Int(f"{self.name}_day")
+        self._ymd_exists = True
+        # Add validity constraints, but do NOT link to epoch automatically
+        self.ctx._add_date_constraints(self)
+
+    def _epoch_expr(self) -> ArithRef:
+        """Return an epoch-days expression consistent with current state (lazy).
+        
+        If epoch is consistent, return epoch_var directly.
+        Otherwise, derive epoch from Y/M/D (Y/M/D must exist when epoch_consistent is False).
+        """
+        if self._epoch_consistent:
+            return self.epoch_var
+        # derive from Y/M/D lazily
+        # Invariant: if _epoch_consistent is False, _ymd_exists should be True
+        # (because we only set _epoch_consistent=False after creating Y/M/D in month/year operations)
+        return days_since_epoch_from_ymd(self._year_var, self._month_var, self._day_var)
+
+    def _ymd_expr(self) -> Tuple[ArithRef, ArithRef, ArithRef]:
+        """Return Y/M/D expressions consistent with current state (lazy)."""
+        if self._ymd_consistent and self._ymd_exists:
+            return self._year_var, self._month_var, self._day_var
+        # derive from epoch lazily
+        return ymd_from_days_since_epoch(self._epoch_expr())
 
     def __ge__(self, other) -> BoolRef:
-        """Support x >= date comparison."""
+        """Support x >= date comparison.
+        
+        Comparison strategy (dual-lazy):
+        1. If both have consistent Y/M/D: compare lexicographically on (Y, M, D)
+        2. Else if both have consistent epoch: compare on epoch_var
+        3. Else: derive epoch expressions for both sides (converting Y/M/D to epoch if needed) and compare
+        """
         if isinstance(other, Date):
-            return self.days_var >= to_days_since_epoch(other)
+            return self._epoch_expr() >= to_days_since_epoch(other)
         elif isinstance(other, DateVar):
-            return self.days_var >= other.days_var
+            # Case 1: Both have consistent Y/M/D - use Y/M/D comparison
+            if self._ymd_consistent and self._ymd_exists and other._ymd_consistent and other._ymd_exists:
+                y1, m1, d1 = self._year_var, self._month_var, self._day_var
+                y2, m2, d2 = other._year_var, other._month_var, other._day_var
+                return Or(
+                    y1 > y2,
+                    And(y1 == y2, Or(m1 > m2, And(m1 == m2, d1 >= d2)))
+                )
+            # Case 2: Both have consistent epoch - use epoch comparison
+            if self._epoch_consistent and other._epoch_consistent:
+                return self.epoch_var >= other.epoch_var
+            # Case 3: Inconsistent - derive epoch expressions for both and compare
+            # (this handles: epoch vs Y/M/D, epoch vs epoch (but one inconsistent), etc.)
+            return self._epoch_expr() >= other._epoch_expr()
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
     def __le__(self, other) -> BoolRef:
-        """Support x <= date comparison."""
+        """Support x <= date comparison.
+        
+        Comparison strategy (dual-lazy):
+        1. If both have consistent Y/M/D: compare lexicographically on (Y, M, D)
+        2. Else if both have consistent epoch: compare on epoch_var
+        3. Else: derive epoch expressions for both sides (converting Y/M/D to epoch if needed) and compare
+        """
         if isinstance(other, Date):
-            return self.days_var <= to_days_since_epoch(other)
+            return self._epoch_expr() <= to_days_since_epoch(other)
         elif isinstance(other, DateVar):
-            return self.days_var <= other.days_var
+            # Case 1: Both have consistent Y/M/D - use Y/M/D comparison
+            if self._ymd_consistent and self._ymd_exists and other._ymd_consistent and other._ymd_exists:
+                y1, m1, d1 = self._year_var, self._month_var, self._day_var
+                y2, m2, d2 = other._year_var, other._month_var, other._day_var
+                return Or(
+                    y1 < y2,
+                    And(y1 == y2, Or(m1 < m2, And(m1 == m2, d1 <= d2)))
+                )
+            # Case 2: Both have consistent epoch - use epoch comparison
+            if self._epoch_consistent and other._epoch_consistent:
+                return self.epoch_var <= other.epoch_var
+            # Case 3: Inconsistent - derive epoch expressions for both and compare
+            return self._epoch_expr() <= other._epoch_expr()
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
@@ -134,11 +207,28 @@ class DateVar:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
     def __eq__(self, other) -> BoolRef:
-        """Support x == date comparison."""
+        """Support x == date comparison.
+        
+        Comparison strategy (dual-lazy):
+        1. If both have consistent Y/M/D: compare on (Y, M, D) components
+        2. Else if both have consistent epoch: compare on epoch_var
+        3. Else: derive epoch expressions for both sides (converting Y/M/D to epoch if needed) and compare
+        """
         if isinstance(other, Date):
-            return self.days_var == to_days_since_epoch(other)
+            return self._epoch_expr() == to_days_since_epoch(other)
         elif isinstance(other, DateVar):
-            return self.days_var == other.days_var
+            # Case 1: Both have consistent Y/M/D - use Y/M/D comparison
+            if self._ymd_consistent and self._ymd_exists and other._ymd_consistent and other._ymd_exists:
+                return And(
+                    self._year_var == other._year_var,
+                    self._month_var == other._month_var,
+                    self._day_var == other._day_var,
+                )
+            # Case 2: Both have consistent epoch - use epoch comparison
+            if self._epoch_consistent and other._epoch_consistent:
+                return self.epoch_var == other.epoch_var
+            # Case 3: Inconsistent - derive epoch expressions for both and compare
+            return self._epoch_expr() == other._epoch_expr()
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
@@ -146,8 +236,7 @@ class DateVar:
         """Support x != date comparison."""
         return Not(self.__eq__(other))
 
-    # TODO: Confirm this is consistent with the doc.
-    def __add__(self, other):
+    def __add__(self, other) -> 'DateVar':
         """Hybrid date + Period: mirror epoch_days semantics, but avoid epoch encode unless days-only.
 
         - days-only: epoch add (O(1))
@@ -161,7 +250,10 @@ class DateVar:
 
         # Concrete Period fast-path for days-only
         if isinstance(other, Period) and other.years == 0 and other.months == 0:
-            self.ctx.solver.add(result.epoch_var == self.epoch_var + IntVal(other.days))
+            self.ctx.solver.add(result.epoch_var == self._epoch_expr() + IntVal(other.days))
+            # Result now has epoch consistent; YMD not yet
+            result._epoch_consistent = True
+            result._ymd_consistent = False
             return result
 
         # Extract period components as Z3 terms
@@ -170,12 +262,8 @@ class DateVar:
         else:
             oy, om, od = other.years, other.months, other.days
 
-        # Decode current epoch to Y/M/D (pure Z3 terms), unless we already have
-        # materialized, consistent Y/M/D variables for this date
-        if self._ymd_exists and self._epoch_ymd_consistent:
-            y0, m0, d0 = self._year_var, self._month_var, self._day_var
-        else:
-            y0, m0, d0 = ymd_from_days_since_epoch(self.epoch_var)
+        # Get base Y/M/D terms lazily from whichever side is consistent
+        y0, m0, d0 = self._ymd_expr()
         # Step 1: combine years/months with AMI normalization
         period_total_months = oy * IntVal(12) + om
         total_months = m0 + period_total_months
@@ -185,10 +273,12 @@ class DateVar:
         d1 = eom_clamp(y1, m1, d0)
         # Step 3: add days in ordinal space
         y2, m2, d2 = add_days_ordinal(y1, m1, d1, od)
-        # Constrain result Y/M/D only (epoch will be derived on demand)
+        # Constrain result Y/M/D only; leave epoch to be derived on demand
         self.ctx.solver.add(result.year_var == y2)
         self.ctx.solver.add(result.month_var == m2)
         self.ctx.solver.add(result.day_var == d2)
+        result._ymd_consistent = True
+        result._epoch_consistent = False
         return result
 
     def __sub__(self, other) -> 'DateVar':
@@ -198,28 +288,6 @@ class DateVar:
             return self.__add__(neg)
         else:
             raise TypeError(f"Cannot subtract {type(other)} from DateVar")
-
-    def _ensure_ymd(self) -> None:
-        if self._ymd_exists:
-            return
-        self._year_var = Int(f"{self.name}_year")
-        self._month_var = Int(f"{self.name}_month")
-        self._day_var = Int(f"{self.name}_day")
-        self._ymd_exists = True
-        # Add validity constraints
-        self.ctx._add_date_constraints(self)
-        # Add forward link
-        self._add_forward_link()
-
-    def _add_forward_link(self) -> None:
-        if self._forward_link_added:
-            return
-        self.ctx.solver.add(
-            self.epoch_var
-            == days_since_epoch_from_ymd(self._year_var, self._month_var, self._day_var)
-        )
-        self._forward_link_added = True
-        self._epoch_ymd_consistent = True
 
 class HybridSolver:
     """Hybrid date constraint solver using dual representation (epoch + YMD)."""
