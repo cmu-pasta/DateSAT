@@ -325,19 +325,14 @@ def validate_sat_record(
     }
 
     # Use concrete validation from validation.py
-    is_valid, message = validate_solution_with_concrete(
-        constraint_data, solution, constraint_id, save_dir
+    # Construct approach name from approach and implementation
+    approach_name = f"{approach}_{rec.get('implementation', 'unknown')}"
+    is_valid, message, smtlib_constraints = validate_solution_with_concrete(
+        constraint_data, solution, constraint_id, save_dir, approach_name
     )
 
-    if save_dir is not None:
-        # Save a note about using concrete validation
-        out_file = save_dir / f"{constraint_id}_{approach}_concrete_validation.txt"
-        out_file.parent.mkdir(parents=True, exist_ok=True)
-        with out_file.open("w", encoding="utf-8") as f:
-            f.write(f"Concrete validation for {constraint_id} ({approach})\n")
-            f.write(f"Valid: {is_valid}\n")
-            f.write(f"Message: {message}\n")
-            f.write(f"Solution: {solution}\n")
+    # SMT-LIB constraints are now saved by validate_solution_with_concrete
+    # No need to save a separate text file - the SMT-LIB file contains the assertions
 
     return is_valid, message
 

@@ -122,6 +122,10 @@ class ConcreteSolver:
         self, name: str, year: int = None, month: int = None, day: int = None
     ) -> ConcreteDateVar:
         """Add a concrete date variable with given values."""
+        # If variable already exists with concrete values, return it
+        if name in self.date_vars and year is None and month is None and day is None:
+            return self.date_vars[name]
+        
         if year is None or month is None or day is None:
             # This is a symbolic variable creation - we'll bind it later
             # For now, create a placeholder that will be replaced when we have concrete values

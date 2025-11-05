@@ -99,7 +99,7 @@ def execute_constraint_code(
         # We'll do this by creating a concrete solver and checking the constraints
         concrete_solver = ConcreteSolver()
 
-        # Parse and create concrete variables
+        # Parse and create concrete variables with solution values
         for var_name, var_value in solution.items():
             var_value = var_value.strip()
 
@@ -124,8 +124,41 @@ def execute_constraint_code(
 
             return False, f"Could not parse variable {var_name} value: {var_value}", smtlib_constraints
 
-        # For now, we consider the solution valid if the constraint code executed
-        # without errors and we could generate SMT-LIB constraints
+        # Re-execute the constraint code with concrete solver and solution values
+        # This will populate concrete_solver.constraints with the constraints
+        exec_globals_concrete = {
+            'Date': Date,
+            'Period': Period,
+            'DateSMTBuilder': lambda: concrete_solver,
+            'result': concrete_solver,
+            'builder': concrete_solver,
+        }
+        
+        # Execute constraint code to build constraints with concrete solver
+        exec(constraint_code, exec_globals_concrete)
+        
+        # Evaluate each constraint and check if all are satisfied
+        failed_constraints = []
+        for i, constraint in enumerate(concrete_solver.constraints):
+            try:
+                # Evaluate the constraint (should be a boolean)
+                if isinstance(constraint, bool):
+                    constraint_result = constraint
+                else:
+                    # Try to evaluate as a boolean expression
+                    # For Z3 BoolRef objects stored in constraints, we need to handle them differently
+                    # But in concrete solver, constraints should be boolean values
+                    constraint_result = bool(constraint) if constraint is not None else False
+                
+                if not constraint_result:
+                    failed_constraints.append(f"Constraint {i+1}: {constraint}")
+            except Exception as e:
+                # If we can't evaluate the constraint, consider it failed
+                failed_constraints.append(f"Constraint {i+1}: Evaluation error - {str(e)}")
+
+        if failed_constraints:
+            return False, f"Solution does not satisfy constraints: {', '.join(failed_constraints)}", smtlib_constraints
+
         return True, "Solution validated successfully with concrete implementation", smtlib_constraints
 
     except Exception as e:
@@ -137,7 +170,8 @@ def validate_solution_with_concrete(
     solution: Dict[str, Union[str, Date, Period]],
     constraint_id: str = "",
     save_dir: Optional[Path] = None,
-) -> Tuple[bool, str]:
+    approach: str = "concrete",
+) -> Tuple[bool, str, Optional[str]]:
     """
     Validate a solution using concrete implementation and save SMT-LIB constraints.
 
@@ -147,12 +181,13 @@ def validate_solution_with_concrete(
                  (can be strings like "Date(2020, 3, 15)" or actual Date/Period objects)
         constraint_id: ID of the constraint
         save_dir: Optional directory to save SMT-LIB constraints
+        approach: Approach name (e.g., "hybrid_bitvector") for file naming
 
     Returns:
-        (is_valid, message)
+        (is_valid, message, smtlib_constraints)
     """
     if not solution:
-        return False, "Empty solution"
+        return False, "Empty solution", None
 
     # Convert new format to executable code
     constraint_code = _get_constraint_code(constraint_data)
@@ -171,19 +206,18 @@ def validate_solution_with_concrete(
                 f"Period({var_value.years}, {var_value.months}, {var_value.days})"
             )
         else:
-            return False, f"Unknown variable type for {var_name}: {type(var_value)}"
+            return False, f"Unknown variable type for {var_name}: {type(var_value)}", None
 
     # Execute the constraint with concrete values and get SMT-LIB constraints
     success, message, smtlib_constraints = execute_constraint_code(constraint_code, string_solution)
 
     if not success:
-        return False, f"Constraint execution failed: {message}"
+        return False, f"Constraint execution failed: {message}", smtlib_constraints
 
     # Save SMT-LIB constraints if requested
     if save_dir is not None and smtlib_constraints:
         # Create a filename based on constraint_id and approach
-        approach = "concrete"  # Since we're using concrete validation
-        smt2_file = save_dir / f"{constraint_id}_{approach}_constraints.smt2"
+        smt2_file = save_dir / f"{constraint_id}_{approach}_concrete_validation.smt2"
         smt2_file.parent.mkdir(parents=True, exist_ok=True)
 
         try:
@@ -193,7 +227,10 @@ def validate_solution_with_concrete(
             # If we can't save the file, continue without it
             pass
 
-    return True, "Solution validated successfully with concrete implementation"
+    if success:
+        return True, "Solution validated successfully with concrete implementation", smtlib_constraints
+    else:
+        return False, message, smtlib_constraints
 
 
 # --------------------------
@@ -253,9 +290,17 @@ def validate_results_with_concrete(results_dir: Path) -> Dict[str, Any]:
                 }
                 continue
 
+            # Construct constraint data from record
+            constraint_data = {
+                "constraints": record.get("constraints", []),
+                "coverage_tags": record.get("coverage_tags", []),
+            }
+
             # Validate using concrete implementation
-            is_valid, message = validate_solution_with_concrete(
-                constraint_code, solution, {}
+            # Extract approach name from record if available
+            approach_name = f"{approach}_{record.get('implementation', 'unknown')}"
+            is_valid, message, _ = validate_solution_with_concrete(
+                constraint_data, solution, cid, None, approach_name
             )
 
             constraint_results[approach] = {

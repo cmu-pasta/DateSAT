@@ -57,19 +57,19 @@ class TestConcreteValidation:
 
         # Valid solution
         solution = {"d1": "Date(2020, 3, 15)"}
-        is_valid, message = validate_solution_with_concrete(
-            constraint_data, solution, {}
+        is_valid, message, _ = validate_solution_with_concrete(
+            constraint_data, solution, "test_simple"
         )
         assert is_valid
         assert "successfully" in message
 
-        # Invalid solution (should still execute without error)
+        # Invalid solution (should be rejected)
         solution = {"d1": "Date(2019, 12, 31)"}
-        is_valid, message = validate_solution_with_concrete(
-            constraint_data, solution, {}
+        is_valid, message, _ = validate_solution_with_concrete(
+            constraint_data, solution, "test_simple_invalid"
         )
-        # Note: This might still be valid since we're not actually checking constraints yet
-        # The concrete validation currently just checks if the code executes
+        assert not is_valid, "Invalid solution should be rejected"
+        assert "does not satisfy" in message.lower()
 
     def test_validate_with_periods(self):
         """Test validating constraints with concrete periods."""
@@ -79,12 +79,20 @@ class TestConcreteValidation:
             "constraints": ["d1 + Period(0, 2, 15) >= Date(2020, 6, 1)"],
         }
 
-        solution = {"d1": "Date(2020, 3, 15)"}
-        is_valid, message = validate_solution_with_concrete(
-            constraint_data, solution, {}
+        # Valid solution: Date(2020, 3, 17) + Period(0, 2, 15) = Date(2020, 6, 1) >= Date(2020, 6, 1)
+        solution = {"d1": "Date(2020, 3, 17)"}
+        is_valid, message, _ = validate_solution_with_concrete(
+            constraint_data, solution, "test_periods"
         )
-        assert is_valid
+        assert is_valid, f"Valid solution rejected: {message}"
         assert "successfully" in message
+
+        # Invalid solution: Date(2020, 3, 15) + Period(0, 2, 15) = Date(2020, 5, 30) < Date(2020, 6, 1)
+        solution = {"d1": "Date(2020, 3, 15)"}
+        is_valid, message, _ = validate_solution_with_concrete(
+            constraint_data, solution, "test_periods_invalid"
+        )
+        assert not is_valid, f"Invalid solution accepted: {message}"
 
     def test_validate_invalid_solution_format(self):
         """Test validation with invalid solution format."""
@@ -96,8 +104,8 @@ class TestConcreteValidation:
 
         # Invalid variable value
         solution = {"d1": "Invalid format"}
-        is_valid, message = validate_solution_with_concrete(
-            constraint_data, solution, {}
+        is_valid, message, _ = validate_solution_with_concrete(
+            constraint_data, solution, "test_invalid"
         )
         assert not is_valid
         assert "Could not parse" in message
@@ -110,8 +118,8 @@ class TestConcreteValidation:
             "constraints": [],
         }
         solution = {"d1": "Date(2020, 3, 15)"}
-        is_valid, message = validate_solution_with_concrete(
-            constraint_data, solution, {}
+        is_valid, message, _ = validate_solution_with_concrete(
+            constraint_data, solution, "test_empty"
         )
         # Should still execute (empty code is valid)
         assert is_valid
@@ -153,3 +161,163 @@ class TestConcreteValidation:
         assert date1 == date_obj
         assert date1 >= date_obj
         assert date1 <= date_obj
+
+    def test_leap_year_feb_29_constraint(self):
+        """Test the leap year Feb 29 constraint case (the bug we fixed)."""
+        constraint_data = {
+            "description": "Check if a date is February 29 in a leap year",
+            "constraints": [
+                "x >= Date(2000, 2, 28)",
+                "x <= Date(2000, 3, 1)",
+                "x != Date(2000, 2, 28)",
+                "x != Date(2000, 3, 1)",
+            ],
+            "coverage_tags": ["leap_year"],
+        }
+
+        # Valid solution: Feb 29, 2000 (leap year)
+        solution = {"x": "Date(2000, 2, 29)"}
+        is_valid, message, _ = validate_solution_with_concrete(
+            constraint_data, solution, "test_leap_feb29"
+        )
+        assert is_valid, f"Valid solution rejected: {message}"
+
+        # Invalid solution: Feb 28, 2000 (excluded by constraint)
+        solution = {"x": "Date(2000, 2, 28)"}
+        is_valid, message, _ = validate_solution_with_concrete(
+            constraint_data, solution, "test_leap_feb28"
+        )
+        assert not is_valid, f"Invalid solution accepted: {message}"
+        assert "does not satisfy" in message.lower()
+
+        # Invalid solution: Mar 1, 2000 (excluded by constraint)
+        solution = {"x": "Date(2000, 3, 1)"}
+        is_valid, message, _ = validate_solution_with_concrete(
+            constraint_data, solution, "test_leap_mar1"
+        )
+        assert not is_valid, f"Invalid solution accepted: {message}"
+
+    def test_negative_epoch_constraint(self):
+        """Test constraints with negative epoch values (dates before 2000-03-01)."""
+        constraint_data = {
+            "description": "Range constraint before epoch",
+            "constraints": [
+                "x >= Date(2000, 2, 27)",
+                "x <= Date(2000, 2, 29)",
+            ],
+            "coverage_tags": [],
+        }
+
+        # Valid solution: Feb 28, 2000 (negative epoch: -2)
+        solution = {"x": "Date(2000, 2, 28)"}
+        is_valid, message, _ = validate_solution_with_concrete(
+            constraint_data, solution, "test_neg_epoch_feb28"
+        )
+        assert is_valid, f"Valid solution rejected: {message}"
+
+        # Invalid solution: Feb 26, 2000 (too early)
+        solution = {"x": "Date(2000, 2, 26)"}
+        is_valid, message, _ = validate_solution_with_concrete(
+            constraint_data, solution, "test_neg_epoch_feb26"
+        )
+        assert not is_valid, f"Invalid solution accepted: {message}"
+
+    def test_invalid_solution_before_epoch(self):
+        """Test that invalid solutions before epoch are correctly rejected."""
+        constraint_data = {
+            "description": "Constraint requiring date after 2023",
+            "constraints": [
+                "x >= Date(2023, 1, 1)",
+            ],
+            "coverage_tags": [],
+        }
+
+        # Invalid solution: Date(2000, 1, 30) does NOT satisfy x >= Date(2023, 1, 1)
+        solution = {"x": "Date(2000, 1, 30)"}
+        is_valid, message, _ = validate_solution_with_concrete(
+            constraint_data, solution, "test_invalid_before_epoch"
+        )
+        assert not is_valid, f"Invalid solution incorrectly accepted: {message}"
+        assert "does not satisfy" in message.lower() or "Constraint" in message
+
+        # Valid solution: Date(2023, 6, 15) satisfies x >= Date(2023, 1, 1)
+        solution = {"x": "Date(2023, 6, 15)"}
+        is_valid, message, _ = validate_solution_with_concrete(
+            constraint_data, solution, "test_valid_after_epoch"
+        )
+        assert is_valid, f"Valid solution incorrectly rejected: {message}"
+
+    def test_month_vs_days_constraint(self):
+        """Test month vs days contrast constraint (the bug case from analysis)."""
+        constraint_data = {
+            "description": "Month vs days contrast",
+            "constraints": [
+                "x >= Date(2023, 1, 1)",
+                "(x + Period(0, 1, 0)) > (x + Period(0, 0, 31))",
+            ],
+            "coverage_tags": ["month_vs_days"],
+        }
+
+        # The key bug case: Date(2000, 1, 30) was incorrectly validated as satisfying
+        # the constraints, but it clearly doesn't satisfy x >= Date(2023, 1, 1)
+        # Invalid solution: Date(2000, 1, 30) does NOT satisfy x >= Date(2023, 1, 1)
+        solution = {"x": "Date(2000, 1, 30)"}
+        is_valid, message, _ = validate_solution_with_concrete(
+            constraint_data, solution, "test_month_vs_days_invalid"
+        )
+        assert not is_valid, f"Invalid solution incorrectly accepted: {message}"
+        assert "does not satisfy" in message.lower() or "Constraint" in message
+        
+        # Note: The constraint (x + 1 month) > (x + 31 days) is very rarely satisfiable
+        # because for most dates, adding 1 month gives approximately the same result
+        # as adding 31 days. This constraint set may be UNSAT, but the important thing
+        # is that we correctly reject solutions that don't satisfy the first constraint.
+
+    def test_exact_constraint_before_epoch(self):
+        """Test exact constraint before epoch boundary."""
+        constraint_data = {
+            "description": "Exact constraint before epoch",
+            "constraints": [
+                "x == Date(2000, 2, 28)",
+            ],
+            "coverage_tags": [],
+        }
+
+        # Valid solution: exact match
+        solution = {"x": "Date(2000, 2, 28)"}
+        is_valid, message, _ = validate_solution_with_concrete(
+            constraint_data, solution, "test_exact_before_epoch"
+        )
+        assert is_valid, f"Valid solution rejected: {message}"
+
+        # Invalid solution: wrong date
+        solution = {"x": "Date(2000, 2, 29)"}
+        is_valid, message, _ = validate_solution_with_concrete(
+            constraint_data, solution, "test_exact_before_epoch_invalid"
+        )
+        assert not is_valid, f"Invalid solution accepted: {message}"
+
+    def test_across_epoch_boundary(self):
+        """Test constraint that spans epoch boundary."""
+        constraint_data = {
+            "description": "Comparison across epoch boundary",
+            "constraints": [
+                "x >= Date(2000, 2, 29)",
+                "x <= Date(2000, 3, 2)",
+            ],
+            "coverage_tags": [],
+        }
+
+        # Valid solution: Mar 1, 2000 (epoch date)
+        solution = {"x": "Date(2000, 3, 1)"}
+        is_valid, message, _ = validate_solution_with_concrete(
+            constraint_data, solution, "test_across_epoch"
+        )
+        assert is_valid, f"Valid solution rejected: {message}"
+
+        # Invalid solution: too early
+        solution = {"x": "Date(2000, 2, 28)"}
+        is_valid, message, _ = validate_solution_with_concrete(
+            constraint_data, solution, "test_across_epoch_invalid"
+        )
+        assert not is_valid, f"Invalid solution accepted: {message}"

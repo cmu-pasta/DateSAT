@@ -147,7 +147,8 @@ class DateVar:
         3. Else: derive epoch expressions for both sides (converting Y/M/D to epoch if needed) and compare
         """
         if isinstance(other, Date):
-            return UGE(self._epoch_expr(), to_days_since_epoch(other))
+            # Use signed comparison for epoch values (can be negative)
+            return self._epoch_expr() >= BitVecVal(to_days_since_epoch(other), LEGACY_BITS)
         elif isinstance(other, DateVar):
             # Case 1: Both have consistent Y/M/D - use Y/M/D comparison
             if self._ymd_consistent and self._ymd_exists and other._ymd_consistent and other._ymd_exists:
@@ -157,11 +158,11 @@ class DateVar:
                     UGT(y1, y2),
                     And(y1 == y2, Or(UGT(m1, m2), And(m1 == m2, UGE(d1, d2))))
                 )
-            # Case 2: Both have consistent epoch - use epoch comparison
+            # Case 2: Both have consistent epoch - use signed epoch comparison (can be negative)
             if self._epoch_consistent and other._epoch_consistent:
-                return UGE(self.epoch_var, other.epoch_var)
-            # Case 3: Inconsistent - derive epoch expressions for both and compare
-            return UGE(self._epoch_expr(), other._epoch_expr())
+                return self.epoch_var >= other.epoch_var
+            # Case 3: Inconsistent - derive epoch expressions for both and compare (signed, can be negative)
+            return self._epoch_expr() >= other._epoch_expr()
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
@@ -174,7 +175,8 @@ class DateVar:
         3. Else: derive epoch expressions for both sides (converting Y/M/D to epoch if needed) and compare
         """
         if isinstance(other, Date):
-            return ULE(self._epoch_expr(), to_days_since_epoch(other))
+            # Use signed comparison for epoch values (can be negative)
+            return self._epoch_expr() <= BitVecVal(to_days_since_epoch(other), LEGACY_BITS)
         elif isinstance(other, DateVar):
             # Case 1: Both have consistent Y/M/D - use Y/M/D comparison
             if self._ymd_consistent and self._ymd_exists and other._ymd_consistent and other._ymd_exists:
@@ -184,11 +186,11 @@ class DateVar:
                     ULT(y1, y2),
                     And(y1 == y2, Or(ULT(m1, m2), And(m1 == m2, ULE(d1, d2))))
                 )
-            # Case 2: Both have consistent epoch - use epoch comparison
+            # Case 2: Both have consistent epoch - use signed epoch comparison (can be negative)
             if self._epoch_consistent and other._epoch_consistent:
-                return ULE(self.epoch_var, other.epoch_var)
-            # Case 3: Inconsistent - derive epoch expressions for both and compare
-            return ULE(self._epoch_expr(), other._epoch_expr())
+                return self.epoch_var <= other.epoch_var
+            # Case 3: Inconsistent - derive epoch expressions for both and compare (signed, can be negative)
+            return self._epoch_expr() <= other._epoch_expr()
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
@@ -215,7 +217,7 @@ class DateVar:
         3. Else: derive epoch expressions for both sides (converting Y/M/D to epoch if needed) and compare
         """
         if isinstance(other, Date):
-            return self._epoch_expr() == to_days_since_epoch(other)
+            return self._epoch_expr() == BitVecVal(to_days_since_epoch(other), LEGACY_BITS)
         elif isinstance(other, DateVar):
             # Case 1: Both have consistent Y/M/D - use Y/M/D comparison
             if self._ymd_consistent and self._ymd_exists and other._ymd_consistent and other._ymd_exists:
