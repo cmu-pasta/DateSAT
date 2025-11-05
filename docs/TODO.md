@@ -15,6 +15,8 @@ DateSMT
 [X] Update hybrid method: lazy on both ymd and epoch
 [ ] Think about cases where bitvector is slower? (div/mod)
 [X] Optimize add func for all methods (fast paths for adding days within a month?)
+[ ] Support OR (CNF)
+[ ] List of clauses, each clause is a disjunction of items - have a list of list
 
 Unit test
 [X] Add unit test coverage (Angel)
@@ -51,12 +53,14 @@ Debugging
     [X]1758090062-13
 
 Evaluation
-[ ] Dump smt to run on cvc 5 - better performance?
+[X] Dump smt to run on cvc 5 - better performance - NO
+[X] Keep num of lines only for information but not for evaluation
 [ ] Constrant generator? (Random Testing) - Ask Vasu
 [X] LLM generated ones
 [ ] Legal docs
-[ ] IAM Policies
 [ ] Add a baseline groundtruth just by enumerating with Python datetime library
+[ ] IAM Policies
+[ ] Look into vector distance in performance for diverse benchmark creation (diverse and hard) -> can use to prune benchmark
 
 General
 [X] Organize repo (Angel)
