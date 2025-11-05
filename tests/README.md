@@ -1,6 +1,6 @@
 # DATE-SMT Test Suite
 
-This directory contains unit, property-based, and integration tests for the DATE-SMT library.
+This directory contains unit and property-based tests for the DATE-SMT library.
 
 ## Layout
 
@@ -10,9 +10,6 @@ This directory contains unit, property-based, and integration tests for the DATE
   - `bitvector/`: Bitvector backend tests 
 - `property_tests/`
   - Hypothesis-based property tests for dates, periods, epoch conversions, and cross-language equivalence
-- `integration_tests/`
-  - End-to-end runner and validation utilities
-  - Dataset in `integration_tests/data/`
 
 ## Running tests
 
@@ -28,18 +25,6 @@ pytest tests/unit_tests
 
 # Property-based tests
 pytest tests/property_tests
-
-# Integration tests (runner + validation)
-pytest tests/integration_tests
-```
-
-### Integration test specific
-```bash
-# Execute a dataset with execution (run toward datesmt and get the result) + analysis (analyze results' correctness)
-python tests/integration_tests/run_tests.py tests/integration_tests/data/constraints1.json --output-dir tests/integration_tests/results/constraints1
-
-# Skip analysis
-python tests/integration_tests/run_tests.py tests/integration_tests/data/constraints1.json --output-dir tests/integration_tests/results/constraints1 --no-analysis
 ```
 
 ### Testing specific methods

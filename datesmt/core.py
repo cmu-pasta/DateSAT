@@ -7,6 +7,7 @@ not in the data representation itself.
 """
 
 from datetime import date, timedelta
+from dateutil.relativedelta import relativedelta
 from z3 import *
 
 
@@ -95,6 +96,33 @@ class Date:
     def from_python_date(cls, d: date) -> "Date":
         """Create Date from Python date object."""
         return cls(d.year, d.month, d.day)
+
+    def __add__(self, other: "Period") -> "Date":
+        """
+        Date + Period using Python's datetime library with relativedelta.
+        This provides the same semantics as the symbolic DateVar operations.
+        """
+        if not isinstance(other, Period):
+            raise TypeError(f"Cannot add {type(other)} to Date")
+        
+        # Convert to Python date and use relativedelta for years/months/days
+        py_date = self.to_python_date()
+        result_date = py_date + relativedelta(
+            years=other.years, months=other.months, days=other.days
+        )
+        
+        # Convert back to Date (will validate the result)
+        return Date.from_python_date(result_date)
+
+    def __sub__(self, other: "Period") -> "Date":
+        """
+        Date - Period implemented as Date + (-Period).
+        """
+        if not isinstance(other, Period):
+            raise TypeError(f"Cannot subtract {type(other)} from Date")
+        
+        neg_period = Period(-other.years, -other.months, -other.days)
+        return self.__add__(neg_period)
 
 
 class Period:
