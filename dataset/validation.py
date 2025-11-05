@@ -1,7 +1,7 @@
 """
-Concrete validation for integration test results.
+Enumeration baseline validation for integration test results.
 
-This module validates symbolic solver results using the concrete implementation
+This module validates symbolic solver results using the enumeration baseline implementation
 instead of rebuilding constraints and checking them with Z3.
 """
 
@@ -17,7 +17,7 @@ REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
-from datesmt.concrete import ConcreteSolver, ConcreteDateVar
+from datesmt.enumeration_baseline import EnumerationSolver, EnumerationDateVar, ConstraintWrapper
 from datesmt.constraint_parser import ConstraintParser
 from datesmt.core import Date, Period
 
@@ -62,7 +62,7 @@ def execute_constraint_code(
     constraint_code: str, solution: Dict[str, str], constraint_data: Optional[Dict[str, Any]] = None
 ) -> Tuple[bool, str, Optional[str]]:
     """
-    Execute constraint code with concrete values using Python-based concrete solver.
+    Execute constraint code with concrete values using Python-based enumeration solver.
 
     Args:
         constraint_code: The constraint code to execute
@@ -74,9 +74,9 @@ def execute_constraint_code(
         validated_constraints_str: The original constraint strings that were validated (not SMT-LIB)
     """
     try:
-        # For concrete validation, we use ConcreteSolver which evaluates constraints in Python
+        # For validation, we use EnumerationSolver which evaluates constraints in Python
         # We don't need SMT-LIB - we validate using Python date arithmetic
-        concrete_solver = ConcreteSolver()
+        enumeration_solver = EnumerationSolver()
 
         # Parse and create concrete variables with solution values
         for var_name, var_value in solution.items():
@@ -85,7 +85,7 @@ def execute_constraint_code(
             # Try to parse as Date
             try:
                 date_obj = parse_date_string(var_value)
-                concrete_solver.add_date_var(
+                enumeration_solver.add_date_var(
                     var_name, date_obj.year, date_obj.month, date_obj.day
                 )
                 continue
@@ -103,17 +103,17 @@ def execute_constraint_code(
 
             return False, f"Could not parse variable {var_name} value: {var_value}", None
 
-        # Re-execute the constraint code with concrete solver and solution values
-        # This will populate concrete_solver.constraints with the constraints
+        # Re-execute the constraint code with enumeration solver and solution values
+        # This will populate enumeration_solver.constraints with the constraints
         exec_globals_concrete = {
             'Date': Date,
             'Period': Period,
-            'DateSMTBuilder': lambda: concrete_solver,
-            'result': concrete_solver,
-            'builder': concrete_solver,
+            'DateSMTBuilder': lambda: enumeration_solver,
+            'result': enumeration_solver,
+            'builder': enumeration_solver,
         }
 
-        # Execute constraint code to build constraints with concrete solver
+        # Execute constraint code to build constraints with enumeration solver
         exec(constraint_code, exec_globals_concrete)
 
         # Get the original constraint strings that were validated (if available)
@@ -123,28 +123,47 @@ def execute_constraint_code(
             validated_constraints_str = "\n".join(constraint_data.get("constraints", []))
 
         # Evaluate each constraint and check if all are satisfied
+        # EnumerationSolver uses ConstraintWrapper objects for deferred evaluation
         failed_constraints = []
-        for i, constraint in enumerate(concrete_solver.constraints):
+        solution_dict = {}
+        for var_name, var_value in solution.items():
+            var_value = var_value.strip()
             try:
-                # Evaluate the constraint (should be a boolean)
-                if isinstance(constraint, bool):
-                    constraint_result = constraint
-                else:
-                    # Try to evaluate as a boolean expression
-                    # For Z3 BoolRef objects stored in constraints, we need to handle them differently
-                    # But in concrete solver, constraints should be boolean values
-                    constraint_result = bool(constraint) if constraint is not None else False
+                date_obj = parse_date_string(var_value)
+                solution_dict[var_name] = Date(date_obj.year, date_obj.month, date_obj.day)
+            except ValueError:
+                pass
 
-                if not constraint_result:
-                    failed_constraints.append(f"Constraint {i+1}: {constraint}")
-            except Exception as e:
-                # If we can't evaluate the constraint, consider it failed
-                failed_constraints.append(f"Constraint {i+1}: Evaluation error - {str(e)}")
+        # Use the validate_solution method which handles ConstraintWrapper evaluation
+        if not enumeration_solver.validate_solution(solution_dict):
+            # Get more details about which constraints failed
+            for i, constraint in enumerate(enumeration_solver.constraints):
+                try:
+                    if isinstance(constraint, bool):
+                        if not constraint:
+                            failed_constraints.append(f"Constraint {i+1}: {constraint}")
+                    elif isinstance(constraint, ConstraintWrapper):
+                        if not constraint.evaluate():
+                            failed_constraints.append(f"Constraint {i+1}: {constraint.description or 'constraint'}")
+                    elif callable(constraint):
+                        if not constraint():
+                            failed_constraints.append(f"Constraint {i+1}: callable")
+                    else:
+                        try:
+                            result = bool(constraint)
+                            if not result:
+                                failed_constraints.append(f"Constraint {i+1}: {constraint}")
+                        except (TypeError, ValueError):
+                            pass
+                except Exception as e:
+                    failed_constraints.append(f"Constraint {i+1}: Evaluation error - {str(e)}")
 
-        if failed_constraints:
-            return False, f"Solution does not satisfy constraints: {', '.join(failed_constraints)}", validated_constraints_str
+            if failed_constraints:
+                return False, f"Solution does not satisfy constraints: {', '.join(failed_constraints)}", validated_constraints_str
+            else:
+                return False, "Solution does not satisfy constraints", validated_constraints_str
 
-        return True, "Solution validated successfully with concrete implementation", validated_constraints_str
+        return True, "Solution validated successfully with enumeration baseline", validated_constraints_str
 
     except Exception as e:
         return False, f"Error during constraint execution: {str(e)}", None
@@ -158,9 +177,9 @@ def validate_solution_with_concrete(
     approach: str = "concrete",
 ) -> Tuple[bool, str, Optional[str]]:
     """
-    Validate a solution using concrete (Python-based) implementation.
+    Validate a solution using enumeration baseline (Python-based) implementation.
 
-    This validates constraints using Python date arithmetic via ConcreteSolver,
+    This validates constraints using Python date arithmetic via EnumerationSolver,
     not SMT-LIB. The validation checks if the solution satisfies the constraints
     by evaluating them concretely in Python.
 
@@ -198,7 +217,7 @@ def validate_solution_with_concrete(
         else:
             return False, f"Unknown variable type for {var_name}: {type(var_value)}", None
 
-    # Execute the constraint with concrete values using Python-based concrete solver
+    # Execute the constraint with concrete values using Python-based enumeration solver
     # This validates using Python date arithmetic, not SMT-LIB
     success, message, validated_constraints_str = execute_constraint_code(
         constraint_code, string_solution, constraint_data
@@ -208,7 +227,7 @@ def validate_solution_with_concrete(
         return False, f"Constraint execution failed: {message}", validated_constraints_str
 
     # Save the solution and constraints with substituted values
-    # This shows what was actually validated using Python concrete implementation
+    # This shows what was actually validated using Python enumeration baseline implementation
     # Note: We save as .txt since these are constraint strings, not SMT-LIB
     # The folder name "smt2_assertion" is historical - these files contain constraint strings
     if save_dir is not None and validated_constraints_str:
@@ -219,8 +238,8 @@ def validate_solution_with_concrete(
         try:
             with constraint_file.open("w", encoding="utf-8") as f:
                 # Write header
-                f.write("; Constraints validated through concrete (Python) validation\n")
-                f.write("; Validation performed using Python date arithmetic (ConcreteSolver), not SMT-LIB\n\n")
+                f.write("; Constraints validated through enumeration baseline (Python) validation\n")
+                f.write("; Validation performed using Python date arithmetic (EnumerationSolver), not SMT-LIB\n\n")
 
                 # Write the solution (variable assignments)
                 f.write("; Solution:\n")
@@ -250,7 +269,7 @@ def validate_solution_with_concrete(
             pass
 
     if success:
-        return True, "Solution validated successfully with concrete implementation", validated_constraints_str
+        return True, "Solution validated successfully with enumeration baseline", validated_constraints_str
     else:
         return False, message, validated_constraints_str
 
@@ -321,7 +340,7 @@ def validate_sat_record(
     constraint_id: str, rec: Dict[str, Any], save_dir: Optional[Path] = None
 ) -> Tuple[bool, str]:
     """
-    Validates the provided sat solution using concrete implementation.
+    Validates the provided sat solution using enumeration baseline implementation.
 
     Returns:
       (is_valid, message)
@@ -707,7 +726,7 @@ def check_results_dir(results_dir: Path) -> Dict[str, Any]:
 
 def validate_results_with_concrete(results_dir: Path) -> Dict[str, Any]:
     """
-    Validate all results in a directory using concrete implementation.
+    Validate all results in a directory using enumeration baseline implementation.
 
     Supports multiple result file patterns:
     - results_*.json (legacy format)
@@ -803,7 +822,7 @@ def validate_results_with_concrete(results_dir: Path) -> Dict[str, Any]:
                     counts_by_approach[approach_key]["wrong"] += 1
                     continue
 
-                # Validate using concrete implementation
+                # Validate using enumeration baseline implementation
                 is_valid, message, _ = validate_solution_with_concrete(
                     constraint_data, solution, cid, None, approach_key
                 )
@@ -896,7 +915,7 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="Validate integration test results using concrete implementation. "
+        description="Validate integration test results using enumeration baseline implementation. "
                     "Supports results from run_tests.py (LLM constraints) and other datasets.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""

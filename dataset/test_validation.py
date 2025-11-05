@@ -1,5 +1,5 @@
 """
-Test concrete validation functionality.
+Test enumeration baseline validation functionality.
 """
 
 import os
@@ -11,7 +11,7 @@ REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
-from datesmt.concrete import ConcreteSolver, ConcreteDateVar
+from datesmt.enumeration_baseline import EnumerationSolver, EnumerationDateVar
 from datesmt.core import Date, Period
 from dataset.validation import (
     parse_date_string,
@@ -20,8 +20,8 @@ from dataset.validation import (
 )
 
 
-class TestConcreteValidation:
-    """Test concrete validation functionality."""
+class TestEnumerationBaselineValidation:
+    """Test enumeration baseline validation functionality."""
 
     def test_parse_date_string(self):
         """Test parsing date strings."""
@@ -124,43 +124,46 @@ class TestConcreteValidation:
         # Should still execute (empty code is valid)
         assert is_valid
 
-    def test_concrete_solver_basic_operations(self):
-        """Test basic operations with concrete solver."""
-        solver = ConcreteSolver()
+    def test_enumeration_solver_basic_operations(self):
+        """Test basic operations with enumeration solver."""
+        solver = EnumerationSolver()
 
-        # Add date variable
+        # Add date variable with concrete values
         date_var = solver.add_date_var("d1", 2020, 3, 15)
-        assert isinstance(date_var, ConcreteDateVar)
-        assert date_var.year == 2020
-        assert date_var.month == 3
-        assert date_var.day == 15
+        assert isinstance(date_var, EnumerationDateVar)
+        assert date_var.get_value() is not None
+        assert date_var.get_value().year == 2020
+        assert date_var.get_value().month == 3
+        assert date_var.get_value().day == 15
 
         # Test date arithmetic with core Period
         period = Period(1, 2, 3)
         result = date_var + period
-        assert isinstance(result, ConcreteDateVar)
+        assert isinstance(result, EnumerationDateVar)
         # The result should be 2020-03-15 + 1 year, 2 months, 3 days = 2021-05-18
-        assert result.year == 2021
-        assert result.month == 5
-        assert result.day == 18
+        assert result.get_value() is not None
+        assert result.get_value().year == 2021
+        assert result.get_value().month == 5
+        assert result.get_value().day == 18
 
-    def test_concrete_date_comparison(self):
-        """Test concrete date comparison."""
-        solver = ConcreteSolver()
+    def test_enumeration_date_comparison(self):
+        """Test enumeration date comparison."""
+        solver = EnumerationSolver()
         date1 = solver.add_date_var("d1", 2020, 3, 15)
         date2 = solver.add_date_var("d2", 2020, 3, 16)
 
-        assert date1 < date2
-        assert date2 > date1
-        assert date1 <= date2
-        assert date2 >= date1
-        assert date1 != date2
+        # Comparisons return ConstraintWrapper objects, need to evaluate them
+        assert (date1 < date2).evaluate()
+        assert (date2 > date1).evaluate()
+        assert (date1 <= date2).evaluate()
+        assert (date2 >= date1).evaluate()
+        assert (date1 != date2).evaluate()
 
         # Test with Date objects
         date_obj = Date(2020, 3, 15)
-        assert date1 == date_obj
-        assert date1 >= date_obj
-        assert date1 <= date_obj
+        assert (date1 == date_obj).evaluate()
+        assert (date1 >= date_obj).evaluate()
+        assert (date1 <= date_obj).evaluate()
 
     def test_leap_year_feb_29_constraint(self):
         """Test the leap year Feb 29 constraint case (the bug we fixed)."""
