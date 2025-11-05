@@ -9,6 +9,25 @@ A Python library for symbolic analysis of date computations using Z3.
 
 DATE-SMT provides multiple implementations for expressing and solving date constraints using Z3. It converts DATE-SMT expressions into Z3 constraints (expressed through integer or bitvector) for efficient symbolic analysis.
 
+## Supported Ranges
+
+### Date Range
+
+All `Date` objects must fall within the following range:
+- **Minimum**: 1900-03-01
+- **Maximum**: 2100-02-28
+
+Dates outside this range will raise a `ValueError` during construction. 
+
+### Period Range
+
+All `Period` objects must fall within the following bounds (based on the date range):
+- **Years**: ±200 (maximum absolute value)
+- **Months**: ±2400 (maximum absolute value, equivalent to ±200 years)
+- **Days**: ±73048 (maximum absolute value, equivalent to the full date range span)
+
+Periods exceeding these bounds will raise a `ValueError` during construction.
+
 ## Installation
 
 ```bash

@@ -106,6 +106,18 @@ All methods must enforce the valid date range:
 - **1901-01-01 to 2099-12-31**: Standard full-year validation
 - **2100-01-01 to 2100-02-28**: Special handling for last year (2100 not a leap year)
 
+### Period Validation
+
+All methods must enforce valid period bounds (based on the date range):
+- **Years**: ±200 (maximum absolute value, `MAX_PERIOD_YEARS`)
+- **Months**: ±2400 (maximum absolute value, `MAX_PERIOD_MONTHS`, equivalent to ±200 years)
+- **Days**: ±73048 (maximum absolute value, `MAX_PERIOD_DAYS`, equivalent to the full date range span)
+
+**Period Validation Details**:
+- Period bounds are derived from the date range [1900-03-01 to 2100-02-28]
+- These bounds ensure periods are semantically valid within the supported date range
+- Periods exceeding these bounds will raise a `ValueError` during construction
+
 ### Error Handling
 
 - **TypeError**: For unsupported operand types
@@ -113,6 +125,10 @@ All methods must enforce the valid date range:
   - Invalid date format: "year, month, and day must be integers"
   - Invalid date: "Invalid date: YYYY-MM-DD"
   - Date outside allowed range: "Date outside allowed range: YYYY-MM-DD (allowed [1900-03-01..2100-02-28])"
+  - Invalid Period format: "years, months, and days must be integers"
+  - Period years out of range: "Period years out of range: YYYY (max ±200)"
+  - Period months out of range: "Period months out of range: MMMM (max ±2400)"
+  - Period days out of range: "Period days out of range: DDDD (max ±73048)"
 - **Z3 exceptions**: For solver-specific errors
 
 ### Input Validation

@@ -242,7 +242,9 @@ def out_of_range_date_tuple(request):
         Period(10, 6, 15),
         Period(1, -2, 3),  # mixed signs
         Period(100, 50, 365),
-        Period(9_999_999, 9_999_999, 9_999_999),
+        Period(200, 0, 0),  # Max years (boundary)
+        Period(0, 2400, 0),  # Max months (boundary)
+        Period(0, 0, 73048),  # Max days (boundary)
     ]
 )
 def sample_period_obj(request):
@@ -260,7 +262,9 @@ def sample_period_obj(request):
         (1, -2, 3),  # mixed signs
         (10, 6, 15),
         (100, 50, 365),
-        (9_999_999, 9_999_999, 9_999_999),
+        (200, 0, 0),  # Max years (boundary)
+        (0, 2400, 0),  # Max months (boundary)
+        (0, 0, 73048),  # Max days (boundary)
     ]
 )
 def sample_period_tuple(request):

@@ -100,6 +100,12 @@ class Date:
 class Period:
     """Period class for representing time periods."""
 
+    # Period bounds based on date range [1900-03-01 to 2100-02-28]
+    # These match the allowed date range to ensure periods are semantically valid
+    MAX_PERIOD_DAYS = 73048  # abs(EPOCH_DAYS_MAX - EPOCH_DAYS_MIN) = abs(36523 - (-36525))
+    MAX_PERIOD_YEARS = 200  # YEAR_MAX - YEAR_MIN = 2100 - 1900
+    MAX_PERIOD_MONTHS = 2400  # MAX_PERIOD_YEARS * 12 = 200 * 12
+
     def __init__(self, years: int, months: int, days: int):
         """Initialize a Period with years, months, days components."""
         # Validate input format: exactly three integer components (no bools allowed)
@@ -107,6 +113,20 @@ class Period:
         if not all(isinstance(v, int) and not isinstance(v, bool) for v in period_components):
             raise ValueError(
                 "Invalid Period format: years, months, and days must be integers"
+            )
+
+        # Validate period bounds: ensure periods fit within the allowed date range
+        if abs(years) > self.MAX_PERIOD_YEARS:
+            raise ValueError(
+                f"Period years out of range: {years} (max ±{self.MAX_PERIOD_YEARS})"
+            )
+        if abs(months) > self.MAX_PERIOD_MONTHS:
+            raise ValueError(
+                f"Period months out of range: {months} (max ±{self.MAX_PERIOD_MONTHS})"
+            )
+        if abs(days) > self.MAX_PERIOD_DAYS:
+            raise ValueError(
+                f"Period days out of range: {days} (max ±{self.MAX_PERIOD_DAYS})"
             )
 
         self._years = years

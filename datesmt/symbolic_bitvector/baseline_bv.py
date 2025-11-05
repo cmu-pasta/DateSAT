@@ -67,11 +67,13 @@ def normalize_month(y, m) -> Tuple[BitVecRef, BitVecRef]:
     NormMonth(y,m) = (y + ((m-1) div 12), ((m-1) mod 12) + 1)
     Works for concrete and symbolic inputs.
     """
-    # Check if m is negative (>= 2^31)
-    is_negative = UGE(m, BitVecVal(2**31, LEGACY_BITS))
+    # Check if m is negative (>= 2^(LEGACY_BITS-1), the sign bit)
+    sign_bit = 2**(LEGACY_BITS-1)
+    is_negative = UGE(m, BitVecVal(sign_bit, LEGACY_BITS))
 
     # Convert to signed value
-    signed_m = If(is_negative, m - BitVecVal(2**32, LEGACY_BITS), m)
+    wrap_around = 2**LEGACY_BITS
+    signed_m = If(is_negative, m - BitVecVal(wrap_around, LEGACY_BITS), m)
 
     # Normalize using signed arithmetic with floor division
     t = signed_m - BitVecVal(1, LEGACY_BITS)
@@ -79,8 +81,8 @@ def normalize_month(y, m) -> Tuple[BitVecRef, BitVecRef]:
     # Implement floor division: if t < 0 and t % 12 != 0, subtract 1 from quotient
     q_trunc = t / BitVecVal(12, LEGACY_BITS)  # Truncating division
     r = t % BitVecVal(12, LEGACY_BITS)  # Modulo
-    # Check if t is negative by checking if it's >= 2^31 (unsigned comparison)
-    is_negative_t = UGE(t, BitVecVal(2**31, LEGACY_BITS))
+    # Check if t is negative by checking if it's >= sign bit (unsigned comparison)
+    is_negative_t = UGE(t, BitVecVal(sign_bit, LEGACY_BITS))
     is_negative_and_has_remainder = And(is_negative_t, r != BitVecVal(0, LEGACY_BITS))
     q = If(is_negative_and_has_remainder, q_trunc - BitVecVal(1, LEGACY_BITS), q_trunc)
 

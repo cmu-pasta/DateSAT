@@ -57,21 +57,25 @@ def mod48(x) -> BitVecRef:
 
 def _floor_div_12(x) -> BitVecRef:
     """Implement floor division by 12 for bitvectors to match Python's // behavior."""
-    is_negative = UGE(x, BitVecVal(2**31, LEGACY_BITS))
-    signed_x = If(is_negative, x - BitVecVal(2**LEGACY_BITS, LEGACY_BITS), x)
+    sign_bit = 2**(LEGACY_BITS-1)
+    wrap_around = 2**LEGACY_BITS
+    is_negative = UGE(x, BitVecVal(sign_bit, LEGACY_BITS))
+    signed_x = If(is_negative, x - BitVecVal(wrap_around, LEGACY_BITS), x)
     q_trunc = signed_x / BitVecVal(12, LEGACY_BITS)
     r = signed_x % BitVecVal(12, LEGACY_BITS)
-    is_negative_and_has_remainder = And(UGE(signed_x, BitVecVal(2**31, LEGACY_BITS)), r != BitVecVal(0, LEGACY_BITS))
+    is_negative_and_has_remainder = And(UGE(signed_x, BitVecVal(sign_bit, LEGACY_BITS)), r != BitVecVal(0, LEGACY_BITS))
     q = If(is_negative_and_has_remainder, q_trunc - BitVecVal(1, LEGACY_BITS), q_trunc)
     return q
 
 def _floor_div_four_year_days(x) -> BitVecRef:
     """Implement floor division by FOUR_YEAR_DAYS for bitvectors to match Python's // behavior."""
-    is_negative = UGE(x, BitVecVal(2**31, LEGACY_BITS))
-    signed_x = If(is_negative, x - BitVecVal(2**LEGACY_BITS, LEGACY_BITS), x)
+    sign_bit = 2**(LEGACY_BITS-1)
+    wrap_around = 2**LEGACY_BITS
+    is_negative = UGE(x, BitVecVal(sign_bit, LEGACY_BITS))
+    signed_x = If(is_negative, x - BitVecVal(wrap_around, LEGACY_BITS), x)
     q_trunc = signed_x / BitVecVal(_FOUR_YEAR_DAYS, LEGACY_BITS)
     r = signed_x % BitVecVal(_FOUR_YEAR_DAYS, LEGACY_BITS)
-    is_negative_and_has_remainder = And(UGE(signed_x, BitVecVal(2**31, LEGACY_BITS)), r != BitVecVal(0, LEGACY_BITS))
+    is_negative_and_has_remainder = And(UGE(signed_x, BitVecVal(sign_bit, LEGACY_BITS)), r != BitVecVal(0, LEGACY_BITS))
     q = If(is_negative_and_has_remainder, q_trunc - BitVecVal(1, LEGACY_BITS), q_trunc)
     return q
 
@@ -365,11 +369,8 @@ class AlphaBetaTableSolver:
         # Beta bounds: 0 <= beta < DIM with 2100-02 (non-leap century) override
         idx = mod48(date_var.months_var)
         absm = alpha_to_abs_month(date_var.months_var)
-        # Convert idx to 32-bit for array access
-        idx_32 = If(idx >= BitVecVal(2**LEGACY_BITS, LEGACY_BITS),
-                    BitVecVal(0, LEGACY_BITS) + (idx - BitVecVal(2**LEGACY_BITS, LEGACY_BITS)),
-                    BitVecVal(0, LEGACY_BITS) + idx)
-        dim_raw = Select(_DIM48_LIST, idx_32)
+        # Use idx directly (mod48 already constrains to [0, 47])
+        dim_raw = Select(_DIM48_LIST, idx)
         dim = If(absm == _T2100_FEB, BitVecVal(28, LEGACY_BITS), dim_raw)
         self.solver.add(
             And(date_var.beta_var >= BitVecVal(0, LEGACY_BITS), date_var.beta_var < dim)

@@ -4,8 +4,7 @@ Bit width constants for date components in Z3 bitvector operations.
 This module defines the minimum bit widths needed for various date components
 to avoid unnecessary overhead while ensuring all valid values can be represented.
 """
-# TODO: Why 24 bits is not enough?
-LEGACY_BITS = 32
+LEGACY_BITS = 21
 
 # Date component bit widths
 YEAR_BITS = 12     # 4096 > 2100
