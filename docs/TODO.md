@@ -8,7 +8,8 @@ DateSMT
 [X] Clean up symbolic_alpha_beta_table
 [X] Check if we can specify temp var (var that we don't need result for) - still need to solve but can not return the result -> don't matter in terms of performance?
 [X] Use bit vector? - Added
-[ ] Further reduce bit width?
+[X] Further reduce bit width?
+[ ] Dynamic bit width?
 [ ] BitVector/Int hybrid approach?
 [X] Think about hybrid method: do we need lazy approach?
 [X] Update hybrid method: lazy on both ymd and epoch
