@@ -7,13 +7,13 @@ import sys
 import pytest
 
 # Ensure repository root is on sys.path so `import datesmt` works
-REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
 from datesmt.concrete import ConcreteSolver, ConcreteDateVar
 from datesmt.core import Date, Period
-from validation import (
+from dataset.validation import (
     parse_date_string,
     parse_period_string,
     validate_solution_with_concrete,
@@ -267,7 +267,7 @@ class TestConcreteValidation:
         )
         assert not is_valid, f"Invalid solution incorrectly accepted: {message}"
         assert "does not satisfy" in message.lower() or "Constraint" in message
-        
+
         # Note: The constraint (x + 1 month) > (x + 31 days) is very rarely satisfiable
         # because for most dates, adding 1 month gives approximately the same result
         # as adding 31 days. This constraint set may be UNSAT, but the important thing

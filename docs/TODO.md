@@ -53,7 +53,7 @@ Debugging
 Evaluation
 [ ] Dump smt to run on cvc 5 - better performance?
 [ ] Constrant generator? (Random Testing) - Ask Vasu
-[ ] LLM generated ones
+[X] LLM generated ones
 [ ] Legal docs
 [ ] IAM Policies
 
@@ -86,4 +86,4 @@ General
 [X] Clean up existing doc
 [X] Add READMEs
 [X] Add documentation for each method
-[ ] Flatten data from llm_constraints_generator?
+[X] Flatten data from llm_constraints_generator?

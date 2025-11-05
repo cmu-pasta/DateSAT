@@ -159,40 +159,12 @@ The script will:
 
 ## Testing and Validation
 
-### Running Constraint Tests
+For information on running constraint tests and validation, see the dataset-level `README.md`:
+- Running constraint tests with `run_tests.py`
+- Validation workflow and usage
+- Running validation unit tests
 
-Use `run_tests.py` to execute constraints against all DATE-SMT approaches and implementations:
-
-```bash
-# Run tests with analysis (default)
-python dataset/LLM_gen_constraints/run_tests.py dataset/LLM_gen_constraints/constraints/all_constraints.json --output-dir dataset/LLM_gen_constraints/results
-
-# Run tests without analysis
-python dataset/LLM_gen_constraints/run_tests.py dataset/LLM_gen_constraints/constraints/all_constraints.json --output-dir dataset/LLM_gen_constraints/results --no-analysis
-
-# Set custom timeout (in milliseconds)
-python dataset/LLM_gen_constraints/run_tests.py dataset/LLM_gen_constraints/constraints/all_constraints.json --output-dir dataset/LLM_gen_constraints/results --timeout 120000
-```
-
-The script will:
-- Execute each constraint with all approaches (baseline, epoch_days, hybrid, alpha_beta, alpha_beta_table)
-- Test both implementations (int and bitvector)
-- Generate SMT-LIB files for each constraint
-- Validate SAT solutions using concrete validation (if analysis is enabled)
-- Generate summary statistics and analysis reports
-
-### Validation
-
-The `validation.py` module provides concrete validation functionality to verify that symbolic solver solutions actually satisfy the constraints. This is used automatically by `run_tests.py` when analysis is enabled.
-
-### Running Validation Tests
-
-Use `test_validation.py` to run unit tests for the validation functionality:
-
-```bash
-# Run validation tests
-pytest dataset/LLM_gen_constraints/test_validation.py
-```
+The `dataset/validation.py` module provides concrete validation functionality to verify that symbolic solver solutions actually satisfy the constraints. This is used automatically by `run_tests.py` when analysis is enabled.
 
 ## Features
 

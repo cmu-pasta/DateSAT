@@ -17,7 +17,7 @@ All `Date` objects must fall within the following range:
 - **Minimum**: 1900-03-01
 - **Maximum**: 2100-02-28
 
-Dates outside this range will raise a `ValueError` during construction. 
+Dates outside this range will raise a `ValueError` during construction.
 
 ### Period Range
 
@@ -57,8 +57,8 @@ export PYTHONPATH=$PYTHONPATH:$(pwd)
   - `generator/` - Constraint generation scripts (llm_client.py, combine_constraints.py)
   - `constraints/` - Generated constraint JSON files
   - `run_tests.py` - Test runner for executing constraints against all DATE-SMT approaches
-  - `validation.py` - Concrete validation for verifying solver solutions
-  - `test_validation.py` - Unit tests for validation functionality
+- `dataset/validation.py` - Concrete validation for verifying solver solutions
+- `dataset/test_validation.py` - Unit tests for validation functionality
 - `requirements/` - Python dependencies
 
 ## Testing
