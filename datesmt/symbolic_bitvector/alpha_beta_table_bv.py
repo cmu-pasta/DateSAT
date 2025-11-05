@@ -126,7 +126,7 @@ class DateVar:
         year = (k - 1) // 12
         month = k - year * 12
         day = beta_val + 1
-        
+
         return Date(year, month, day)
 
     def __ge__(self, other) -> BoolRef:
@@ -217,26 +217,26 @@ class DateVar:
             abs1 = alpha_to_abs_month(alpha1)
             dim1 = _override_dim_for_century_feb(abs1, Select(_DIM48_LIST, idx1))
             beta1 = eom_clamp(dim1, self.beta_var)
-            
+
             # Within-month fast path: if beta1 + days_delta stays in [0, dim1)
             new_beta = beta1 + days_delta
             stays_in_month = And(
                 new_beta >= BitVecVal(0, LEGACY_BITS),
                 new_beta < dim1
             )
-            
+
             # Within-month: simple addition
             alpha_within = alpha1
             beta_within = new_beta
-            
+
             # Fallback: use full table lookup (when days cross month boundary)
             base48 = Select(_DBM48_LIST, idx1) + beta1
             corr1 = _century_correction(abs1)
             total = base48 + corr1 + days_delta
-            
+
             q0 = _floor_div_four_year_days(total)
             r0 = total % BitVecVal(_FOUR_YEAR_DAYS, LEGACY_BITS)
-            
+
             # Compute idx2 by scanning all 48 months with century correction at target
             best = BitVecVal(0, LEGACY_BITS)
             for i in range(1, _FOUR_YEAR_MONTHS):
@@ -247,7 +247,7 @@ class DateVar:
                 corr_i = _century_correction(abs_i)
                 dbm_i_corr = Select(_DBM48_LIST, BitVecVal(i, LEGACY_BITS)) + corr_i
                 best = If(r0 >= dbm_i_corr, BitVecVal(i, LEGACY_BITS), best)
-            
+
             idx2 = best
             diff2 = idx2 - idx1
             abs2 = alpha_to_abs_month(
@@ -255,13 +255,13 @@ class DateVar:
             )
             corr2 = _century_correction(abs2)
             beta2 = r0 - (Select(_DBM48_LIST, idx2) + corr2)
-            
+
             dim2 = _override_dim_for_century_feb(abs2, Select(_DIM48_LIST, idx2))
             carry = If(beta2 >= dim2, BitVecVal(1, LEGACY_BITS), BitVecVal(0, LEGACY_BITS))
-            
+
             alpha_ordinal = alpha1 + q0 * BitVecVal(_FOUR_YEAR_MONTHS, LEGACY_BITS) + diff2 + carry
             beta_ordinal = If(carry == BitVecVal(1, LEGACY_BITS), beta2 - dim2, beta2)
-            
+
             # Select result based on within-month condition
             result.months_var = If(stays_in_month, alpha_within, alpha_ordinal)
             result.beta_var = If(stays_in_month, beta_within, beta_ordinal)
@@ -337,7 +337,7 @@ class DateVar:
 class AlphaBetaTableSolver:
     """Alpha-beta date constraint solver using epoch-based conversion."""
 
-    def __init__(self, timeout_ms=60000):
+    def __init__(self, timeout_ms=600000):
         """Initialize the solver with timeout.
 
         Args:

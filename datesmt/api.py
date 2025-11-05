@@ -17,14 +17,14 @@ class DateSMTBuilder:
         self,
         approach: str = "epoch_days",
         implementation: str = "int",
-        timeout_ms: int = 60000,
+        timeout_ms: int = 600000,
     ):
         """Initialize the builder with the specified approach, implementation, and timeout.
 
         Args:
             approach: Either "baseline", "epoch_days", "hybrid", "alpha_beta", or "alpha_beta_table"
             implementation: Either "int" or "bitvector" (default: "int")
-            timeout_ms: Timeout in milliseconds (default: 60 seconds)
+            timeout_ms: Timeout in milliseconds (default: 600000 = 10 minutes)
         """
         self.approach = approach
         self.implementation = implementation

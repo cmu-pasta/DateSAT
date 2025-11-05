@@ -29,7 +29,7 @@ def _apply_sequence_python(base: Date, seq: list[Period]) -> Date:
 
 
 def _solve_with_solver(solver_cls, base: Date, seq: list[Period]):
-    s = solver_cls(max_examples=50000)  # Increase examples for multi-operation
+    s = solver_cls()  # Use default timeout (10 minutes)
     x = s.add_date_var("x")
     s.add_constraint(x == base)
     cur = x
@@ -43,7 +43,7 @@ def _solve_with_solver(solver_cls, base: Date, seq: list[Period]):
 
 def _solve_with_solver_sub(solver_cls, base: Date, seq: list[Period]):
     # Implement each step via subtraction of the negated period
-    s = solver_cls(max_examples=50000)
+    s = solver_cls()  # Use default timeout (10 minutes)
     x = s.add_date_var("x")
     s.add_constraint(x == base)
     cur = x

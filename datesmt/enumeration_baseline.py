@@ -10,6 +10,7 @@ finding a solution if one exists, but may be slow for large constraint sets.
 from datetime import date, timedelta
 from dateutil.relativedelta import relativedelta
 from typing import Any, Dict, Optional, Union
+import time
 from .core import Date, Period
 
 
@@ -239,8 +240,12 @@ class EnumerationSolver:
     MIN_DATE = date(1900, 3, 1)
     MAX_DATE = date(2100, 2, 28)
 
-    def __init__(self, timeout_ms: int = 60000):
-        """Initialize the enumeration solver."""
+    def __init__(self, timeout_ms: int = 600000):
+        """Initialize the enumeration solver.
+
+        Args:
+            timeout_ms: Timeout in milliseconds (default: 600000 = 10 minutes)
+        """
         self.date_vars: Dict[str, EnumerationDateVar] = {}
         self.constraints: list = []
         self.timeout_ms = timeout_ms
@@ -374,15 +379,23 @@ class EnumerationSolver:
         num_symbolic = len(symbolic_vars)
         num_dates = len(valid_dates)
 
-        # Limit enumeration if there are too many combinations
-        max_combinations = 1000000  # Limit to prevent excessive computation
+        if num_dates ** num_symbolic > 1000000:
+            print(f"Warning: Large search space ({num_dates ** num_symbolic} combinations).")
 
-        if num_dates ** num_symbolic > max_combinations:
-            print(f"Warning: Large search space ({num_dates ** num_symbolic} combinations), "
-                  f"limiting enumeration...")
+        # Record start time for timeout checking
+        start_time = time.time()
+        timeout_seconds = self.timeout_ms / 1000.0
 
         # Try each combination for symbolic variables
+        # Note: This will enumerate all possibilities. If it times out, it will timeout.
         for date_combination in product(valid_dates, repeat=num_symbolic):
+            # Check timeout
+            elapsed_time = time.time() - start_time
+            if elapsed_time > timeout_seconds:
+                # Timeout exceeded - raise an exception or return None
+                # We'll let the outer code handle timeout detection
+                raise TimeoutError(f"Enumeration timeout after {elapsed_time:.2f} seconds (limit: {timeout_seconds:.2f}s)")
+
             # Create assignment: combine concrete and symbolic values
             assignment = concrete_vars.copy()
             for i, var_name in enumerate(symbolic_vars):

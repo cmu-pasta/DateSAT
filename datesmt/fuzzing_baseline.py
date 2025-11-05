@@ -351,28 +351,50 @@ class HypothesisSolver:
         # We need to generate a tuple of dates, one for each symbolic variable
         var_strategy = st.tuples(*[date_strategy for _ in symbolic_vars])
 
+        # Track tested combinations to avoid retesting (Hypothesis can generate duplicates)
+        # Use tuple of date tuples for hashability
+        tested_combinations = set()
+        max_tested_combinations = 1000000  # Limit to prevent excessive memory usage
+
         # Try to find a satisfying assignment by sampling from the strategy
-        for _ in range(self.max_examples):
+        attempt_count = 0
+        while attempt_count < self.max_examples:
             try:
                 # Generate a random example for symbolic variables
                 date_tuple = var_strategy.example()
 
                 # Convert to assignment dictionary: combine concrete and fuzzed values
                 assignment = concrete_vars.copy()
+                date_tuple_list = []
                 for i, var_name in enumerate(symbolic_vars):
                     d = date_tuple[i]
                     try:
-                        assignment[var_name] = Date(d.year, d.month, d.day)
+                        date_obj = Date(d.year, d.month, d.day)
+                        assignment[var_name] = date_obj
+                        date_tuple_list.append((date_obj.year, date_obj.month, date_obj.day))
                     except ValueError:
                         # Skip invalid dates
                         break
                 else:
-                    # All dates were valid, test the assignment
+                    # All dates were valid, check if we've tested this combination before
+                    combination_key = tuple(date_tuple_list)
+                    if combination_key in tested_combinations:
+                        # Skip this duplicate combination
+                        attempt_count += 1
+                        continue
+
+                    # Add to tested set (if not at limit)
+                    if len(tested_combinations) < max_tested_combinations:
+                        tested_combinations.add(combination_key)
+
+                    # Test the assignment
                     if self._evaluate_constraints(assignment):
                         return assignment
             except Exception:
                 # Continue on errors
-                continue
+                pass
+
+            attempt_count += 1
 
         return None
 

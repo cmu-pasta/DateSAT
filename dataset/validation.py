@@ -376,6 +376,8 @@ def summarize_constraint(
     """
     Summarize validation results for a single constraint across all approaches.
 
+    Uses enumeration baseline as ground truth for validation.
+
     Args:
         cid: Constraint ID
         approaches: Nested dict structure {approach: {implementation: record}}
@@ -389,6 +391,7 @@ def summarize_constraint(
     for approach, implementations in approaches.items():
         for implementation, record in implementations.items():
             # Create a composite key for approach + implementation
+            # For enumeration and fuzzing, implementation is "baseline"
             key = f"{approach}_{implementation}"
             flattened_approaches[key] = record
 
@@ -402,62 +405,97 @@ def summarize_constraint(
         a: r for a, r in flattened_approaches.items() if r.get("status") == "unsat"
     }
 
+    # Get enumeration baseline status (ground truth)
+    enumeration_key = None
+    for key in flattened_approaches.keys():
+        if key.startswith("enumeration_"):
+            enumeration_key = key
+            break
+
+    enumeration_status = approach_statuses.get(enumeration_key) if enumeration_key else None
+
     # For description, pick SAT one if any, else any
     any_rec = next(iter(sat_recs.values()), next(iter(flattened_approaches.values())))
     description = any_rec.get("description")
 
-    # Validate SAT records by actually pinning and checking
+    # Validate SAT records using enumeration baseline
     sat_validation: Dict[str, Dict[str, Any]] = {}
     for a, r in sat_recs.items():
         ok, msg = validate_sat_record(cid, r, save_dir=save_dir)
         sat_validation[a] = {"valid": ok, "message": msg, "solution": r.get("solution")}
 
-    # Decide verdicts per policy, per-approach
-    # Original all-unsat consensus across ALL approaches
-    all_unsat = len(approach_statuses) > 0 and all(
-        s == "unsat" for s in approach_statuses.values()
-    )
-    # New: UNSAT consensus ignoring timeouts (treat timeouts as neutral/ignored)
-    non_timeout_statuses = [s for s in approach_statuses.values() if s != "timeout"]
-    unsat_consensus_ignoring_timeouts = len(non_timeout_statuses) > 0 and all(
-        s == "unsat" for s in non_timeout_statuses
-    )
-    any_sat = bool(sat_recs)
+    # New validation logic based on enumeration baseline as ground truth
     per_approach_verdict: Dict[str, str] = {}
+
+    # Check if all methods are SAT
+    all_sat = len(approach_statuses) > 0 and all(
+        s == "sat" for s in approach_statuses.values() if s != "timeout" and s != "error"
+    )
+
+    # Check if everything is UNSAT
+    non_timeout_statuses = [s for s in approach_statuses.values() if s != "timeout" and s != "error"]
+    all_unsat = len(non_timeout_statuses) > 0 and all(s == "unsat" for s in non_timeout_statuses)
+
+    # Check if enumeration is SAT but others are UNSAT
+    enumeration_sat_others_unsat = (
+        enumeration_status == "sat" and
+        all(s == "unsat" for k, s in approach_statuses.items()
+            if k != enumeration_key and s != "timeout" and s != "error")
+    )
 
     for a, status in approach_statuses.items():
         if status == "error":
             per_approach_verdict[a] = "error"
         elif status == "timeout":
-            # Distinct verdict for timeouts so we can tally separately
             per_approach_verdict[a] = "timeout"
         elif status == "sat":
-            vinfo = sat_validation.get(a)
-            if vinfo and vinfo.get("valid"):
-                per_approach_verdict[a] = "correct"
+            # If all methods are SAT, validate using enumeration baseline
+            if all_sat:
+                vinfo = sat_validation.get(a)
+                if vinfo and vinfo.get("valid"):
+                    per_approach_verdict[a] = "correct"
+                else:
+                    per_approach_verdict[a] = "wrong"
+            # If some are SAT, some are UNSAT, check if SAT ones are correct
+            # If at least one SAT is correct, then UNSAT is wrong
             else:
-                # a sat that does not validate
-                per_approach_verdict[a] = "wrong"
+                vinfo = sat_validation.get(a)
+                if vinfo and vinfo.get("valid"):
+                    per_approach_verdict[a] = "correct"
+                else:
+                    per_approach_verdict[a] = "wrong"
         elif status == "unsat":
-            # Treat as correct if every non-timeout approach reported UNSAT
-            per_approach_verdict[a] = (
-                "correct"
-                if (all_unsat or unsat_consensus_ignoring_timeouts)
-                else "wrong"
-            )
+            # If everything is UNSAT, then correct
+            if all_unsat:
+                per_approach_verdict[a] = "correct"
+            # If enumeration is SAT but others are UNSAT, then UNSAT ones are wrong
+            elif enumeration_sat_others_unsat:
+                per_approach_verdict[a] = "wrong"
+            # If some are SAT, some are UNSAT, check if at least one SAT is correct
+            # If at least one SAT is correct, then UNSAT is wrong
+            else:
+                # Check if any SAT solution is valid
+                any_valid_sat = any(
+                    sat_validation.get(sat_key, {}).get("valid", False)
+                    for sat_key in sat_recs.keys()
+                )
+                if any_valid_sat:
+                    per_approach_verdict[a] = "wrong"
+                else:
+                    # No valid SAT solutions, UNSAT might be correct
+                    per_approach_verdict[a] = "correct"
         else:
             per_approach_verdict[a] = "wrong"
 
     # Retain aggregate verdict fields for backward-compatibility
     any_error = any(s == "error" for s in approach_statuses.values())
-    if any_error and not any_sat and not all_unsat:
+    if any_error and not any(s == "sat" for s in approach_statuses.values()) and not all_unsat:
         verdict = "error"
         unsat_consensus = False
         wrong_approaches = [a for a, v in per_approach_verdict.items() if v == "wrong"]
         might_correct_approaches = []
-    elif (all_unsat or unsat_consensus_ignoring_timeouts) and not any_sat:
+    elif all_unsat:
         verdict = "correct_unsat"
-        # Expose consensus flag as true when timeouts are ignored and the rest agree on UNSAT
         unsat_consensus = True
         wrong_approaches = []
         might_correct_approaches = []
@@ -469,7 +507,7 @@ def summarize_constraint(
             verdict = "wrong"
         else:
             verdict = "correct"
-        unsat_consensus = all_unsat or unsat_consensus_ignoring_timeouts
+        unsat_consensus = all_unsat
         wrong_approaches = [a for a, v in per_approach_verdict.items() if v == "wrong"]
         might_correct_approaches = []
 

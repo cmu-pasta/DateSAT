@@ -335,7 +335,7 @@ class DateVar:
         1) Combine Y and M (normalize months into 1..12 with year carry)
         2) Apply EOM clamp: day := min(original_day, days_in_month(new_year,new_month))
         3) Add D days in ordinal space (exact day arithmetic)
-        
+
         Optimizations:
         - Fast path: If period is days-only (years=0, months=0), skip month normalization
         """
@@ -390,7 +390,7 @@ class DateVar:
 class BaselineSolver:
     """Baseline date constraint solver using component-based representation."""
 
-    def __init__(self, timeout_ms=60000):
+    def __init__(self, timeout_ms=600000):
         """Initialize the solver with optional year bounds and timeout.
 
         Args:

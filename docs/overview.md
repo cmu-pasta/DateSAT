@@ -23,7 +23,7 @@ Every method must implement a `DateVar` class with:
 
 **Comparison Operations:**
 - `__eq__(other)` - Equality comparison
-- `__ne__(other)` - Inequality comparison  
+- `__ne__(other)` - Inequality comparison
 - `__lt__(other)` - Less than comparison
 - `__le__(other)` - Less than or equal comparison
 - `__gt__(other)` - Greater than comparison
@@ -44,7 +44,7 @@ Every method must implement a `DateVar` class with:
 Every method must implement a solver class with:
 
 **Core Methods:**
-- `__init__(timeout_ms=60000)` - Initialize with optional timeout
+- `__init__(timeout_ms=600000)` - Initialize with optional timeout
 - `add_date_var(name)` - Create and register a symbolic date variable
 - `add_constraint(constraint)` - Add a Z3 constraint to the solver
 - `check()` - Check if constraints are satisfiable

@@ -159,12 +159,95 @@ The script will:
 
 ## Testing and Validation
 
-For information on running constraint tests and validation, see the dataset-level `README.md`:
-- Running constraint tests with `run_tests.py`
+### Running Constraint Tests (`run_tests.py`)
+
+The `run_tests.py` script tests all constraints with multiple approaches:
+- **Symbolic approaches**: baseline, epoch_days, hybrid, alpha_beta, alpha_beta_table (with both int and bitvector implementations)
+- **Baseline approaches**: enumeration (exhaustive enumeration), fuzzing (Hypothesis-based fuzzing)
+
+**Basic Usage:**
+```bash
+# Test all constraints in a file with default settings
+python dataset/LLM_gen_constraints/run_tests.py dataset/LLM_gen_constraints/constraints/all_constraints.json
+```
+
+**Command-Line Arguments:**
+- `constraints_file` (required): Path to the JSON file containing constraints to test
+- `--output-dir`: Output directory for results (default: `results`)
+- `--timeout`: Timeout in milliseconds for each constraint (default: 10 minutes)
+- `--methods`: Select specific methods to run (default: all methods). Can specify multiple methods.
+  - Format options:
+    - `approach_implementation` (e.g., `baseline_bitvector`, `epoch_days_int`)
+    - `approach` (e.g., `baseline` - runs all implementations of that approach)
+    - `implementation` (e.g., `bitvector` - runs all approaches with that implementation)
+    - `enumeration` or `fuzzing` (baseline approaches)
+  - Examples: `--methods baseline_bitvector enumeration` or `--methods bitvector`
+- `--analysis`: Enable analysis after constraint execution (default: enabled)
+- `--no-analysis`: Skip analysis and only run constraint execution
+
+**Examples:**
+```bash
+# Test all constraints with default settings (all methods)
+python dataset/LLM_gen_constraints/run_tests.py dataset/LLM_gen_constraints/constraints/all_constraints.json
+
+# Test constraints with custom output directory
+python dataset/LLM_gen_constraints/run_tests.py constraints/1.json --output-dir results/test1
+
+# Test with custom timeout (30 seconds)
+python dataset/LLM_gen_constraints/run_tests.py constraints/all_constraints.json --timeout 30000
+
+# Run tests without analysis (faster, no validation)
+python dataset/LLM_gen_constraints/run_tests.py constraints/1.json --no-analysis
+
+# Run only specific methods: baseline_bitvector and enumeration
+python dataset/LLM_gen_constraints/run_tests.py constraints/all_constraints.json \
+    --methods baseline_bitvector enumeration
+
+# Run all bitvector implementations
+python dataset/LLM_gen_constraints/run_tests.py constraints/all_constraints.json \
+    --methods bitvector
+
+# Run baseline approach with both int and bitvector implementations
+python dataset/LLM_gen_constraints/run_tests.py constraints/all_constraints.json \
+    --methods baseline
+
+# Run multiple specific methods
+python dataset/LLM_gen_constraints/run_tests.py constraints/all_constraints.json \
+    --methods baseline_int epoch_days_bitvector enumeration fuzzing
+
+# Test with all options
+python dataset/LLM_gen_constraints/run_tests.py constraints/all_constraints.json \
+    --output-dir results/full_test \
+    --timeout 120000 \
+    --methods baseline_bitvector \
+    --analysis
+```
+
+**Output:**
+The script generates:
+- Individual result files for each approach: `{approach}_{implementation}_{timestamp}.json`
+- SMT-LIB files for each constraint: `smt2/{constraint_id}_{approach}_{implementation}.smt2`
+- Analysis summary (if analysis enabled): `checked_summary.json` containing:
+  - Validation results using enumeration baseline as ground truth
+  - Correctness verdicts for each approach
+  - Metrics (execution time, SMT-LIB lines, etc.)
+  - Summary statistics by approach
+
+**What Gets Tested:**
+By default, for each constraint, the script tests:
+1. All symbolic approaches (baseline, epoch_days, hybrid, alpha_beta, alpha_beta_table)
+2. Both implementations (int and bitvector) for each symbolic approach
+3. Both baseline approaches (enumeration and fuzzing)
+
+Use the `--methods` option to selectively run only specific methods, which can significantly reduce execution time for focused testing.
+
+**Validation:**
+The `dataset/validation.py` module provides concrete validation functionality to verify that symbolic solver solutions actually satisfy the constraints. It uses enumeration baseline as the ground truth for validation. This is used automatically by `run_tests.py` when analysis is enabled.
+
+For more information on validation logic and workflow, see the dataset-level `README.md`:
 - Validation workflow and usage
 - Running validation unit tests
-
-The `dataset/validation.py` module provides concrete validation functionality to verify that symbolic solver solutions actually satisfy the constraints. This is used automatically by `run_tests.py` when analysis is enabled.
+- Validation logic based on enumeration baseline
 
 ## Features
 

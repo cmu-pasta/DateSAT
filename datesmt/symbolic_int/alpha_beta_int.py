@@ -171,10 +171,10 @@ class DateVar:
                 # Decode current (y,m,d) from (alpha,beta)
                 y0, m0 = ym_from_months_since_epoch(self.months_var)
                 d0 = self.beta_var + IntVal(1)
-                
+
                 # Add days (add_days_ordinal handles within-month fast path)
                 y2, m2, d2 = add_days_ordinal(y0, m0, d0, days_delta)
-                
+
                 result.months_var = months_since_epoch_from_ym(y2, m2)
                 result.beta_var = d2 - IntVal(1)
                 return result
@@ -211,7 +211,7 @@ class DateVar:
 class AlphaBetaSolver:
     """Alpha-beta date constraint solver using epoch-based conversion."""
 
-    def __init__(self, timeout_ms=60000):
+    def __init__(self, timeout_ms=600000):
         """Initialize the solver with timeout.
 
         Args:

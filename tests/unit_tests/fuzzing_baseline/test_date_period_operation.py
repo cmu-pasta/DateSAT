@@ -150,7 +150,7 @@ def python_date_plus(base: Date, per: Period) -> Date:
 
 
 def _solve_single_add(solver_cls, base: Date, per: Period) -> dict:
-    s = solver_cls(max_examples=50000)  # Increase examples for fuzzing
+    s = solver_cls()  # Use default timeout (10 minutes)
     x = s.add_date_var("x")
     y = s.add_date_var("y")
     s.add_constraint(x == base)
@@ -160,7 +160,7 @@ def _solve_single_add(solver_cls, base: Date, per: Period) -> dict:
 
 
 def _solve_single_sub(solver_cls, base: Date, per: Period) -> dict:
-    s = solver_cls(max_examples=50000)  # Increase examples for fuzzing
+    s = solver_cls()  # Use default timeout (10 minutes)
     x = s.add_date_var("x")
     y = s.add_date_var("y")
     s.add_constraint(x == base)

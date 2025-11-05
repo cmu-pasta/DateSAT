@@ -119,7 +119,7 @@ class DateVar:
 
     def _epoch_expr(self) -> ArithRef:
         """Return an epoch-days expression consistent with current state (lazy).
-        
+
         If epoch is consistent, return epoch_var directly.
         Otherwise, derive epoch from Y/M/D (Y/M/D must exist when epoch_consistent is False).
         """
@@ -139,7 +139,7 @@ class DateVar:
 
     def __ge__(self, other) -> BoolRef:
         """Support x >= date comparison.
-        
+
         Comparison strategy (dual-lazy):
         1. If both have consistent Y/M/D: compare lexicographically on (Y, M, D)
         2. Else if both have consistent epoch: compare on epoch_var
@@ -167,7 +167,7 @@ class DateVar:
 
     def __le__(self, other) -> BoolRef:
         """Support x <= date comparison.
-        
+
         Comparison strategy (dual-lazy):
         1. If both have consistent Y/M/D: compare lexicographically on (Y, M, D)
         2. Else if both have consistent epoch: compare on epoch_var
@@ -208,7 +208,7 @@ class DateVar:
 
     def __eq__(self, other) -> BoolRef:
         """Support x == date comparison.
-        
+
         Comparison strategy (dual-lazy):
         1. If both have consistent Y/M/D: compare on (Y, M, D) components
         2. Else if both have consistent epoch: compare on epoch_var
@@ -292,7 +292,7 @@ class DateVar:
 class HybridSolver:
     """Hybrid date constraint solver using dual representation (epoch + YMD)."""
 
-    def __init__(self, timeout_ms=60000):
+    def __init__(self, timeout_ms=600000):
         """Initialize the solver with timeout.
 
         Args:

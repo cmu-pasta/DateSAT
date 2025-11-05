@@ -23,7 +23,15 @@ The `validation.py` module provides concrete validation functionality to verify 
 - Works with any dataset by pointing to a results directory
 - Supports multiple result file formats (`results_*.json` and `*_*.json` patterns)
 - Reconstructs constraint code from constraint data when needed
-- Validates SAT solutions using concrete implementation
+- Validates SAT solutions using enumeration baseline as ground truth
+- Records metrics for all approaches including enumeration and fuzzing baselines
+
+**Validation Logic:**
+The validation uses enumeration baseline as the ground truth and follows these rules:
+1. **If all methods are SAT**: Validate all SAT solutions using enumeration baseline
+2. **If some are SAT, some are UNSAT**: Check if SAT solutions are correct. If at least one SAT is correct, then UNSAT results are wrong
+3. **If everything is UNSAT**: All approaches are correct
+4. **If enumeration baseline is SAT but others are UNSAT**: The UNSAT approaches are wrong
 
 **Key Functions:**
 - `validate_solution_with_concrete()` - Validates a single solution against constraints
@@ -67,12 +75,16 @@ The validation script will:
 
 Result files should contain JSON arrays of records, where each record has:
 - `constraint_id`: Unique identifier for the constraint
-- `approach`: The DATE-SMT approach used (e.g., "baseline", "epoch_days", "hybrid")
-- `implementation`: The implementation type (e.g., "int", "bitvector")
+- `approach`: The DATE-SMT approach used (e.g., "baseline", "epoch_days", "hybrid", "enumeration", "fuzzing")
+- `implementation`: The implementation type (e.g., "int", "bitvector", "baseline" for enumeration/fuzzing)
 - `status`: Solver status ("sat", "unsat", "timeout", etc.)
 - `solution`: Dictionary mapping variable names to solution values (for SAT results)
 - `constraints`: Array of constraint strings (e.g., `["x >= Date(2020, 1, 1)"]`)
 - `coverage_tags`: Optional array of coverage tags
+
+**Baseline Approaches:**
+- **enumeration**: Exhaustive enumeration baseline that checks all valid dates in the range [1900-03-01 to 2100-02-28]. Guaranteed to find a solution if one exists.
+- **fuzzing**: Hypothesis-based fuzzing baseline that randomly samples dates to find solutions. Faster than enumeration but not guaranteed to find all solutions.
 
 Example:
 ```json
@@ -145,5 +157,5 @@ for constraint_id, approaches in validation_results['constraint_results'].items(
 
 ## Additional Resources
 
-- **LLM Constraint Generation**: See `LLM_gen_constraints/README.md` for detailed documentation on generating constraints with LLMs
+- **LLM Constraint Generation**: See `LLM_gen_constraints/README.md` for detailed documentation on generating constraints with LLMs and running tests with `run_tests.py` (including the `--methods` option for selective method execution)
 - **Main Project README**: See the root `README.md` for project overview and installation instructions

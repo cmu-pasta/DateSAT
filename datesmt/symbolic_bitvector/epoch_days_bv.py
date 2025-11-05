@@ -35,8 +35,8 @@ from .baseline_bv import (
     to_ordinal,
     from_ordinal,
     ymd_from_days_since_epoch,
-    days_since_epoch_from_ymd, 
-    eom_clamp, 
+    days_since_epoch_from_ymd,
+    eom_clamp,
     add_days_ordinal,
     _dbm_index,
 )
@@ -170,7 +170,7 @@ class DateVar:
 class EpochDaysSolver:
     """Epoch_days date constraint solver using epoch-based conversion."""
 
-    def __init__(self, timeout_ms=60000):
+    def __init__(self, timeout_ms=600000):
         """Initialize the solver with timeout.
 
         Args:
