@@ -35,6 +35,7 @@ except ImportError:
 DEFAULT_OPENAI_MODEL = "gpt-3.5-turbo"
 DEFAULT_ANTHROPIC_MODEL = "claude-3-7-sonnet-latest"
 
+# TODO: no too large Period range
 SYSTEM_PROMPT = """You are an expert in writing DateSMT constraints.
 
 GOAL
@@ -104,11 +105,11 @@ def _basic_schema_ok(items: Any) -> bool:
     """Validate that items is a list of constraint objects with required fields."""
     if not isinstance(items, list) or not items:
         return False
-    
+
     # Check if it's a simple array of constraint strings (backward compatibility)
     if all(isinstance(item, str) for item in items):
         return True
-    
+
     # Required fields for constraint objects (id is optional, added later)
     required_keys = {"description", "constraints", "coverage_tags"}
     for it in items:
@@ -173,7 +174,7 @@ def _normalize_llm_json(s: str) -> str:
 
 def _normalize_to_dict_format(items: List[Any]) -> List[Dict]:
     """Normalize items to expected dict format with id, description, constraints, and coverage_tags.
-    
+
     If items is an array of strings (backward compatibility), each string becomes its own constraint object.
     If items contains dicts, they are preserved with IDs added if needed.
     """
@@ -297,10 +298,10 @@ class LLMClient:
             return resp.content[0].text
 
     def generate_constraints(
-        self, 
-        num_constraints: int = 10, 
-        retries: int = 2, 
-        batch_size: int = 5, 
+        self,
+        num_constraints: int = 10,
+        retries: int = 2,
+        batch_size: int = 5,
         tags: Optional[List[str]] = None,
         min_constraints_per_object: Optional[int] = None,
         max_constraints_per_object: Optional[int] = None,
@@ -309,13 +310,13 @@ class LLMClient:
         """
         Generate DATE-SMT constraints with validation + simple auto-repair.
         Produces a mix of SAT/UNSAT across diverse boundary categories.
-        
+
         Args:
             num_constraints: Number of constraint objects to generate
             retries: Number of retry attempts for failed generations
             batch_size: Batch size for generating large constraint sets
             tags: List of coverage tags to restrict generation to. If None, all tags are allowed (default).
-                  Valid tags: leap_year, eom, year_vs_days, month_vs_days, chain_ops, 
+                  Valid tags: leap_year, eom, year_vs_days, month_vs_days, chain_ops,
                   chain_ops_brackets, ineq_window, multi_var
             min_constraints_per_object: Minimum number of constraints per object (default: 1)
             max_constraints_per_object: Maximum number of constraints per object (default: 8)
@@ -326,7 +327,7 @@ class LLMClient:
             local_last_err = None
             local_raw = ""
             local_norm = ""
-            
+
             # Build prompt with tag restrictions if specified
             tag_restriction = ""
             if tags:
@@ -336,7 +337,7 @@ class LLMClient:
                     f"Each constraint object must have at least one of these tags in its coverage_tags array. "
                     f"Do not use any other tags."
                 )
-            
+
             # Build constraint count instructions
             constraint_count_instruction = ""
             if exact_constraints_per_object is not None:
@@ -353,7 +354,7 @@ class LLMClient:
                     f"Generate a diverse mix - some objects should have {min_c} constraint(s), some should have {max_c} constraints, "
                     f"and others should have various counts in between. Do NOT make all objects have the same number of constraints."
                 )
-            
+
             local_prompt = (
                 f"Generate exactly {n} unique constraint objects as a JSON array per the OUTPUT SCHEMA. "
                 f"Each object must have 'description', 'constraints' (array of constraint strings), and 'coverage_tags' (array of tags).{constraint_count_instruction}{tag_restriction} "
@@ -492,7 +493,7 @@ def main():
 
     client = LLMClient(api_key=args.api_key, model=args.model, provider=args.provider)
     constraints = client.generate_constraints(
-        args.num, 
+        args.num,
         tags=args.tags,
         min_constraints_per_object=args.min_constraints,
         max_constraints_per_object=args.max_constraints,

@@ -9,7 +9,7 @@ DateSMT
 [X] Check if we can specify temp var (var that we don't need result for) - still need to solve but can not return the result -> don't matter in terms of performance?
 [X] Use bit vector? - Added
 [X] Further reduce bit width?
-[ ] Dynamic bit width?
+[X] Dynamic bit width? - No
 [ ] BitVector/Int hybrid approach?
 [X] Think about hybrid method: do we need lazy approach?
 [X] Update hybrid method: lazy on both ymd and epoch
@@ -33,7 +33,7 @@ Integration test
 [X] Fix integration test check result so that it uses python library to check for ground truth
 
 LLM test generation
-[ ] Make llm_constraints_generator better in generating integration tests that cover more cases
+[X] Make llm_constraints_generator better in generating integration tests that cover more cases
 [X] Make constraint_code just a list of strings of constraints, write the constraints parser
 
 Debugging
@@ -56,6 +56,7 @@ Evaluation
 [X] LLM generated ones
 [ ] Legal docs
 [ ] IAM Policies
+[ ] Add a baseline groundtruth just by enumerating with Python datetime library
 
 General
 [X] Organize repo (Angel)
