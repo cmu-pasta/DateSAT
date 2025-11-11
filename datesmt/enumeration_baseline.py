@@ -9,24 +9,16 @@ finding a solution if one exists, but may be slow for large constraint sets.
 
 from datetime import date, timedelta
 from dateutil.relativedelta import relativedelta
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional, Union, List
 import time
 from .core import Date, Period
+
 
 
 class ConstraintWrapper:
     """Wrapper for deferred constraint evaluation."""
 
     def __init__(self, func, description: str = "", var_ref=None, concrete_value=None, rhs_ref=None):
-        """Create a constraint wrapper with a callable.
-
-        Args:
-            func: Function to evaluate the constraint
-            description: Optional description
-            var_ref: Reference to the LHS variable (for extracting bindings)
-            concrete_value: Concrete value if this is an equality binding
-            rhs_ref: Reference to the RHS (for extracting bindings from expressions)
-        """
         self.func = func
         self.description = description
         self.var_ref = var_ref
@@ -34,18 +26,15 @@ class ConstraintWrapper:
         self.rhs_ref = rhs_ref  # For equality constraints: x == expr, store expr here
 
     def evaluate(self) -> bool:
-        """Evaluate the constraint."""
         try:
             return bool(self.func())
         except (ValueError, TypeError):
             return False
 
     def is_equality_binding(self) -> bool:
-        """Check if this constraint binds a variable to a concrete value."""
         return self.concrete_value is not None and self.var_ref is not None
 
     def get_rhs_value(self) -> Optional[Date]:
-        """Get the concrete value from the RHS if available."""
         if self.rhs_ref is not None:
             if isinstance(self.rhs_ref, Date):
                 return self.rhs_ref
@@ -53,16 +42,20 @@ class ConstraintWrapper:
                 try:
                     return self.rhs_ref.get_value()
                 except ValueError:
-                    # Date is outside allowed range, return None
                     return None
         return None
+
+    # ★ prevent accidental boolean usage like: if (x == y): ...
+    def __bool__(self):
+        raise TypeError(
+            "Constraint objects are not truthy. Add them to the solver via add_constraint()."
+        )
 
 
 class EnumerationDateVar:
     """Date variable for enumeration baseline that evaluates constraints concretely."""
 
     def __init__(self, name: str, year: int = None, month: int = None, day: int = None):
-        """Create a date variable with optional concrete values."""
         self.name = name
         self._year = year
         self._month = month
@@ -72,11 +65,14 @@ class EnumerationDateVar:
             self._value = Date(year, month, day)
 
     def __str__(self) -> str:
-        """Return a string representation of the EnumerationDateVar."""
         return f"EnumerationDateVar({self.name})"
 
+    def _hard_reset_value(self) -> None:
+        """★ Reset cached concrete value for lazy nodes safely."""
+        self._value = None
+        # do NOT blindly clear year/month/day for base variables; only lazy nodes call this
+
     def set_value(self, year: int, month: int, day: int) -> None:
-        """Set the concrete value for this variable."""
         self._year = year
         self._month = month
         self._day = day
@@ -85,118 +81,107 @@ class EnumerationDateVar:
         except ValueError:
             self._value = None
 
+    def clear_value(self) -> None:
+        """Clear the concrete value without raising."""
+        self._value = None
+        # keep _year/_month/_day as-is; they are advisory, value drives truth
+
     def get_value(self) -> Optional[Date]:
-        """Get the current concrete Date value, computing lazy operations if needed."""
         # Handle lazy operations
         if self._value is None and hasattr(self, '_lazy_op'):
             op_type, left, right = self._lazy_op
+            left_val = left.get_value()
+            if left_val is None:
+                return None
+            py_date = left_val.to_python_date()
             if op_type == 'add':
-                left_val = left.get_value()
-                if left_val is not None:
-                    # Compute the result
-                    py_date = left_val.to_python_date()
                     result_date = py_date + relativedelta(
                         years=right.years, months=right.months, days=right.days
                     )
-                    result = Date.from_python_date(result_date)
-                    self.set_value(result.year, result.month, result.day)
             elif op_type == 'sub':
-                left_val = left.get_value()
-                if left_val is not None:
-                    # Compute the result
-                    py_date = left_val.to_python_date()
                     neg_period = Period(-right.years, -right.months, -right.days)
                     result_date = py_date + relativedelta(
                         years=neg_period.years, months=neg_period.months, days=neg_period.days
                     )
+            else:  # defensive
+                return None
+            try:
                     result = Date.from_python_date(result_date)
                     self.set_value(result.year, result.month, result.day)
+            except ValueError:
+                # Date outside allowed range - return None instead of raising
+                # This allows the solver to properly return UNSAT
+                return None
         return self._value
 
     def to_concrete_date(self) -> Date:
-        """Get the concrete Date value (raises if not set)."""
         if self._value is None:
             raise ValueError(f"Date variable {self.name} has no concrete value")
         return self._value
 
     def _get_comparison_func(self, op: str, other: Union[Date, "EnumerationDateVar"]):
-        """Create a deferred comparison function."""
         if isinstance(other, Date):
             other_date = other
+
             def compare():
                 self_val = self.get_value()
                 if self_val is None:
                     return False
                 return getattr(self_val.to_python_date(), f"__{op}__")(other_date.to_python_date())
+
             return compare
         elif isinstance(other, EnumerationDateVar):
             other_ref = other
+
             def compare():
                 self_val = self.get_value()
                 other_val = other_ref.get_value()
                 if self_val is None or other_val is None:
                     return False
-                return getattr(self_val.to_python_date(), f"__{op}__")(
-                    other_val.to_python_date()
-                )
+                return getattr(self_val.to_python_date(), f"__{op}__")(other_val.to_python_date())
+
             return compare
         else:
             raise TypeError(f"Cannot compare EnumerationDateVar with {type(other)}")
 
     def _get_equality_binding(self, other: Union[Date, "EnumerationDateVar"]) -> Optional[Date]:
-        """Extract concrete value from equality constraint if applicable."""
         if isinstance(other, Date):
             return other
         elif isinstance(other, EnumerationDateVar):
-            return other.get_value()
+            return other.get_value()  # may be None now; will be propagated later
         return None
 
     def __ge__(self, other: Union[Date, "EnumerationDateVar"]) -> ConstraintWrapper:
-        """Support x >= date comparison."""
-        return ConstraintWrapper(self._get_comparison_func("ge", other))
+        return ConstraintWrapper(self._get_comparison_func("ge", other), var_ref=self, rhs_ref=other)
 
     def __le__(self, other: Union[Date, "EnumerationDateVar"]) -> ConstraintWrapper:
-        """Support x <= date comparison."""
-        return ConstraintWrapper(self._get_comparison_func("le", other))
+        return ConstraintWrapper(self._get_comparison_func("le", other), var_ref=self, rhs_ref=other)
 
     def __lt__(self, other: Union[Date, "EnumerationDateVar"]) -> ConstraintWrapper:
-        """Support x < date comparison."""
-        return ConstraintWrapper(self._get_comparison_func("lt", other))
+        return ConstraintWrapper(self._get_comparison_func("lt", other), var_ref=self, rhs_ref=other)
 
     def __gt__(self, other: Union[Date, "EnumerationDateVar"]) -> ConstraintWrapper:
-        """Support x > date comparison."""
-        return ConstraintWrapper(self._get_comparison_func("gt", other))
+        return ConstraintWrapper(self._get_comparison_func("gt", other), var_ref=self, rhs_ref=other)
 
-    def __eq__(self, other: Union[Date, "EnumerationDateVar"]) -> ConstraintWrapper:
-        """Support x == date comparison."""
-        # If comparing to a concrete Date, this is a binding
+    def __eq__(self, other: Union[Date, "EnumerationDateVar"]) -> ConstraintWrapper:  # type: ignore[override]
         concrete_value = self._get_equality_binding(other)
         return ConstraintWrapper(
             self._get_comparison_func("eq", other),
             var_ref=self,
             concrete_value=concrete_value,
-            rhs_ref=other  # Store RHS reference for later evaluation
+            rhs_ref=other,
         )
 
-    def __ne__(self, other: Union[Date, "EnumerationDateVar"]) -> ConstraintWrapper:
-        """Support x != date comparison."""
-        return ConstraintWrapper(self._get_comparison_func("ne", other))
+    def __ne__(self, other: Union[Date, "EnumerationDateVar"]) -> ConstraintWrapper:  # type: ignore[override]
+        return ConstraintWrapper(self._get_comparison_func("ne", other), var_ref=self, rhs_ref=other)
 
     def __add__(self, other: Period) -> "EnumerationDateVar":
-        """EnumerationDateVar + Period using Python datetime."""
         if not isinstance(other, Period):
             raise TypeError(f"Cannot add {type(other)} to EnumerationDateVar")
-
-        # If we don't have a value yet, compute it lazily when needed
-        # Store the operation to compute when value is accessed
         result_var = EnumerationDateVar(
             f"{self.name}_plus_{other.years}y_{other.months}m_{other.days}d"
         )
-
-        # Store operation for lazy evaluation
         result_var._lazy_op = ('add', self, other)
-
-        # If we have a value now, compute immediately
         if self._value is not None:
             py_date = self._value.to_python_date()
             result_date = py_date + relativedelta(
@@ -204,23 +189,15 @@ class EnumerationDateVar:
             )
             result = Date.from_python_date(result_date)
             result_var.set_value(result.year, result.month, result.day)
-
         return result_var
 
     def __sub__(self, other: Period) -> "EnumerationDateVar":
-        """EnumerationDateVar - Period using Python datetime."""
         if not isinstance(other, Period):
             raise TypeError(f"Cannot subtract {type(other)} from EnumerationDateVar")
-
-        # Similar to __add__, but for subtraction
         result_var = EnumerationDateVar(
             f"{self.name}_minus_{other.years}y_{other.months}m_{other.days}d"
         )
-
-        # Store operation for lazy evaluation
         result_var._lazy_op = ('sub', self, other)
-
-        # If we have a value now, compute immediately
         if self._value is not None:
             py_date = self._value.to_python_date()
             neg_period = Period(-other.years, -other.months, -other.days)
@@ -229,290 +206,256 @@ class EnumerationDateVar:
             )
             result = Date.from_python_date(result_date)
             result_var.set_value(result.year, result.month, result.day)
-
         return result_var
 
 
 class EnumerationSolver:
     """Solver that enumerates all valid dates and checks constraints."""
 
-    # Valid date range: [1900-03-01 to 2100-02-28]
     MIN_DATE = date(1900, 3, 1)
     MAX_DATE = date(2100, 2, 28)
 
     def __init__(self, timeout_ms: int = 600000):
-        """Initialize the enumeration solver.
-
-        Args:
-            timeout_ms: Timeout in milliseconds (default: 600000 = 10 minutes)
-        """
         self.date_vars: Dict[str, EnumerationDateVar] = {}
-        self.constraints: list = []
+        self.constraints: List[Any] = []
         self.timeout_ms = timeout_ms
-        self._cached_valid_dates = None  # Cache for valid dates list
+        self._cached_valid_dates: Optional[List[date]] = None
 
     def add_date_var(self, name: str, year: int = None, month: int = None, day: int = None) -> EnumerationDateVar:
-        """Add a date variable to the solver.
-
-        Args:
-            name: Variable name
-            year: Optional year value (for validation mode)
-            month: Optional month value (for validation mode)
-            day: Optional day value (for validation mode)
-        """
         if name not in self.date_vars:
             if year is not None and month is not None and day is not None:
-                # Create variable with concrete values (validation mode)
                 date_var = EnumerationDateVar(name, year, month, day)
             else:
-                # Create variable without values (solving mode)
                 date_var = EnumerationDateVar(name)
             self.date_vars[name] = date_var
         elif year is not None and month is not None and day is not None:
-            # Update existing variable with values
             self.date_vars[name].set_value(year, month, day)
         return self.date_vars[name]
 
     def add_constraint(self, constraint: Any, description: str = "") -> None:
-        """Add a constraint to the solver."""
         self.constraints.append(constraint)
 
     def check(self) -> str:
-        """Check if constraints are satisfiable by enumerating all dates."""
-        # Try to find a satisfying assignment
-        solution = self._find_solution()
-        if solution:
-            return 'sat'
-        else:
-            return 'unsat'
+        try:
+            solution = self._find_solution()
+            return 'sat' if solution is not None else 'unsat'
+        except TimeoutError:
+            return 'timeout'  # ★ cleaner status
+
+    def solve(self) -> Dict[str, Any]:
+        try:
+            solution = self._find_solution()
+            if solution is not None:
+                return {'status': 'sat', 'dates': solution}
+            else:
+                return {'status': 'unsat', 'dates': {}}
+        except TimeoutError as e:
+            return {'status': 'timeout', 'reason': str(e), 'dates': {}}
+
+    def model(self) -> Dict[str, Any]:
+        out = self.solve()
+        return out
+
+    def get_concrete_dates(self) -> Dict[str, Date]:
+        out = self.solve()
+        return out.get('dates', {})
+
+    def to_smt2(self) -> str:
+        return "; Enumeration baseline - no SMT-LIB output"
+
+    def get_assertions(self) -> list:
+        return self.constraints
+
+    def validate_solution(self, solution: Dict[str, Date]) -> bool:
+        return self._evaluate_constraints(solution)
+
+    # ------------------------- internals -------------------------
 
     def _find_solution(self) -> Optional[Dict[str, Date]]:
-        """Find a solution by enumerating all valid dates."""
+        """Brute-force enumeration: enumerate all possible dates for all variables.
+        
+        If no variables are declared, evaluate constraints concretely using datetime.
+        Otherwise, enumerate all possible date combinations for all declared variables.
+        """
         var_names = list(self.date_vars.keys())
+
+        # If no variables, evaluate constraints concretely using datetime
         if not var_names:
-            # No variables, check if constraints are trivially satisfied
-            return self._evaluate_constraints({}) if self._evaluate_constraints({}) else None
+            return {} if self._evaluate_constraints({}) else None
 
-        # Extract variable bindings from equality constraints iteratively
-        # This handles cases like:
-        # - x == Date(2020, 6, 15) → direct binding
-        # - t0 == x + Period(1, 2, 3) → after x is bound, evaluate expression and bind t0
-        concrete_vars = {}
+        # Ensure any referenced vars exist (for intermediate lazy nodes)
+        for c in self.constraints:
+            if isinstance(c, ConstraintWrapper):
+                if c.var_ref is not None and c.var_ref.name not in self.date_vars:
+                    self.date_vars[c.var_ref.name] = c.var_ref
+                if c.rhs_ref is not None and isinstance(c.rhs_ref, EnumerationDateVar):
+                    if c.rhs_ref.name not in self.date_vars:
+                        self.date_vars[c.rhs_ref.name] = c.rhs_ref
+
+        # Automatically bind variables that are assigned to a concrete Date
+        # and substitute them in all constraints
+        bound_assignments: Dict[str, Date] = {}
         changed = True
-
-        # Iteratively extract bindings until no more can be found
         while changed:
             changed = False
+            for c in self.constraints:
+                if not isinstance(c, ConstraintWrapper):
+                    continue
+                if not c.is_equality_binding():
+                    continue
+                if c.var_ref is None:
+                    continue
 
-            # First, check for direct variable values (including from lazy operations)
-            for var_name in var_names:
-                if var_name not in concrete_vars:
-                    date_var = self.date_vars[var_name]
-                    value = date_var.get_value()  # This will evaluate lazy ops if dependencies are concrete
-                    if value is not None:
-                        concrete_vars[var_name] = value
-                        changed = True
+                name = c.var_ref.name
+                # Skip if already bound
+                if name in bound_assignments:
+                    continue
 
-            # Then, extract bindings from equality constraints
-            for constraint in self.constraints:
-                if isinstance(constraint, ConstraintWrapper):
-                    var_ref = constraint.var_ref
-                    if var_ref is not None:
-                        var_name = var_ref.name
-                        if var_name not in concrete_vars:
-                            # Try to get the concrete value from the constraint
-                            # This handles both x == Date(...) and x == other_datevar
-                            concrete_value = constraint.concrete_value
+                value = c.concrete_value
+                if value is None:
+                    # Try to evaluate RHS - if it references bound variables, substitute them
+                    if c.rhs_ref is not None:
+                        if isinstance(c.rhs_ref, Date):
+                            value = c.rhs_ref
+                        elif isinstance(c.rhs_ref, EnumerationDateVar):
+                            # If RHS is a bound variable, use its concrete date
+                            if c.rhs_ref.name in bound_assignments:
+                                value = bound_assignments[c.rhs_ref.name]
+                            else:
+                                # Check if it's a lazy operation (x + P or x - P) that can be evaluated
+                                if hasattr(c.rhs_ref, '_lazy_op'):
+                                    op_type, left, right = c.rhs_ref._lazy_op
+                                    if isinstance(left, EnumerationDateVar) and left.name in bound_assignments:
+                                        # Evaluate the lazy operation with the bound variable
+                                        left_date = bound_assignments[left.name]
+                                        py_date = left_date.to_python_date()
+                                        if op_type == 'add':
+                                            result_date = py_date + relativedelta(
+                                                years=right.years, months=right.months, days=right.days
+                                            )
+                                        elif op_type == 'sub':
+                                            result_date = py_date + relativedelta(
+                                                years=-right.years, months=-right.months, days=-right.days
+                                            )
+                                        else:
+                                            result_date = None
+                                        if result_date is not None:
+                                            try:
+                                                value = Date.from_python_date(result_date)
+                                            except ValueError:
+                                                pass
+                                # If still None, try get_value() - this should work if x is bound
+                                if value is None:
+                                    val = c.rhs_ref.get_value()
+                                    if val is not None:
+                                        value = val
 
-                            # If constraint.concrete_value is None, try to evaluate the RHS
-                            # This handles cases like t0 == x + p where x just became concrete
-                            if concrete_value is None:
-                                rhs_value = constraint.get_rhs_value()
-                                if rhs_value is not None:
-                                    concrete_value = rhs_value
+                if isinstance(value, Date):
+                    bound_assignments[name] = value
+                    if name not in self.date_vars:
+                        self.date_vars[name] = c.var_ref
+                    self.date_vars[name].set_value(value.year, value.month, value.day)
+                    changed = True
 
-                            if concrete_value is not None:
-                                # Bind the variable to the concrete value
-                                concrete_vars[var_name] = concrete_value
-                                self.date_vars[var_name].set_value(
-                                    concrete_value.year, concrete_value.month, concrete_value.day
-                                )
-                                changed = True
+        # Get all base variables (skip intermediate lazy nodes)
+        base_vars: List[str] = []
+        for name in list(self.date_vars.keys()):
+            # skip intermediate lazy nodes
+            if '_plus_' in name or '_minus_' in name:
+                continue
+            if name in bound_assignments:
+                continue
+            base_vars.append(name)
 
-            # Re-evaluate constraints to propagate bindings through expressions
-            # This handles cases where t0 == x + p and x just became concrete
-            for constraint in self.constraints:
-                if isinstance(constraint, ConstraintWrapper):
-                    var_ref = constraint.var_ref
-                    if var_ref is not None:
-                        var_name = var_ref.name
-                        if var_name not in concrete_vars:
-                            # Try to get value by evaluating the DateVar
-                            # This will work if it's a lazy operation whose dependencies are now concrete
-                            value = var_ref.get_value()
-                            if value is not None:
-                                concrete_vars[var_name] = value
-                                self.date_vars[var_name].set_value(
-                                    value.year, value.month, value.day
-                                )
-                                changed = True
+        if not base_vars:
+            assignment = dict(bound_assignments)
+            return assignment if self._evaluate_constraints(assignment) else None
 
-        # Separate variables into concrete (bound) and symbolic (need enumeration)
-        symbolic_vars = []
-        for var_name in var_names:
-            if var_name not in concrete_vars:
-                symbolic_vars.append(var_name)
+        # Generate all valid dates for each variable (full range)
+        all_valid_dates = self._generate_all_valid_dates()
+        
+        # Build candidate lists: all valid dates for each variable
+        candidate_lists = [all_valid_dates for _ in base_vars]
 
-        # If all variables are concrete, just evaluate constraints directly (fast path)
-        if not symbolic_vars:
-            if self._evaluate_constraints(concrete_vars):
-                return concrete_vars
-            else:
-                return None
+        # Quick product-size warning
+        space = len(all_valid_dates) ** len(base_vars)
+        if space > 1_000_000:
+            print(f"Warning: Large search space ({space} combinations).")
 
-        # Generate all valid dates for enumeration (only for symbolic variables)
-        valid_dates = self._generate_all_valid_dates()
+        start = time.time()
+        timeout_s = self.timeout_ms / 1000.0
 
-        # Only enumerate over symbolic variables
+        # Enumerate all combinations
         from itertools import product
+        for combo in product(*candidate_lists):
+            if (time.time() - start) > timeout_s:
+                raise TimeoutError(
+                    f"Enumeration timeout after {time.time() - start:.2f}s (limit: {timeout_s:.2f}s)"
+                )
 
-        num_symbolic = len(symbolic_vars)
-        num_dates = len(valid_dates)
+            # Create assignment: map each variable to a date
+            assignment: Dict[str, Date] = dict(bound_assignments)
+            for vname, dpy in zip(base_vars, combo):
+                assignment[vname] = Date(dpy.year, dpy.month, dpy.day)
+                self.date_vars[vname].set_value(dpy.year, dpy.month, dpy.day)
 
-        if num_dates ** num_symbolic > 1000000:
-            print(f"Warning: Large search space ({num_dates ** num_symbolic} combinations).")
-
-        # Record start time for timeout checking
-        start_time = time.time()
-        timeout_seconds = self.timeout_ms / 1000.0
-
-        # Try each combination for symbolic variables
-        # Note: This will enumerate all possibilities. If it times out, it will timeout.
-        for date_combination in product(valid_dates, repeat=num_symbolic):
-            # Check timeout
-            elapsed_time = time.time() - start_time
-            if elapsed_time > timeout_seconds:
-                # Timeout exceeded - raise an exception or return None
-                # We'll let the outer code handle timeout detection
-                raise TimeoutError(f"Enumeration timeout after {elapsed_time:.2f} seconds (limit: {timeout_seconds:.2f}s)")
-
-            # Create assignment: combine concrete and symbolic values
-            assignment = concrete_vars.copy()
-            for i, var_name in enumerate(symbolic_vars):
-                d = date_combination[i]
-                assignment[var_name] = Date(d.year, d.month, d.day)
-                # Set the value in the date variable
-                self.date_vars[var_name].set_value(d.year, d.month, d.day)
-
-            # Evaluate constraints
+            # Evaluate constraints with this assignment
             if self._evaluate_constraints(assignment):
                 return assignment
 
         return None
 
-    def _generate_all_valid_dates(self):
-        """Generate all valid dates in the allowed range (cached)."""
+
+    def _generate_all_valid_dates(self) -> List[date]:
         if self._cached_valid_dates is None:
-            dates = []
+            dates: List[date] = []
             current = self.MIN_DATE
             while current <= self.MAX_DATE:
                 try:
-                    # Validate the date is in range
                     Date(current.year, current.month, current.day)
                     dates.append(current)
                 except ValueError:
-                    pass  # Skip invalid dates (shouldn't happen in range)
-
-                # Move to next day
+                    pass
                 current += timedelta(days=1)
-
             self._cached_valid_dates = dates
-
         return self._cached_valid_dates
 
     def _evaluate_constraints(self, assignment: Dict[str, Date]) -> bool:
-        """Evaluate all constraints with the given assignment."""
         try:
-            # Set all variable values
-            for var_name, date_val in assignment.items():
-                if var_name in self.date_vars:
-                    self.date_vars[var_name].set_value(
-                        date_val.year, date_val.month, date_val.day
-                    )
+            # Make sure all referenced vars exist
+            for c in self.constraints:
+                if isinstance(c, ConstraintWrapper):
+                    if c.var_ref is not None and c.var_ref.name not in self.date_vars:
+                        self.date_vars[c.var_ref.name] = c.var_ref
+                    if c.rhs_ref is not None and isinstance(c.rhs_ref, EnumerationDateVar):
+                        if c.rhs_ref.name not in self.date_vars:
+                            self.date_vars[c.rhs_ref.name] = c.rhs_ref
 
-            # Evaluate each constraint
-            for constraint in self.constraints:
-                # Constraints can be:
-                # 1. Boolean values (from direct evaluation)
-                # 2. ConstraintWrapper objects (from deferred evaluation)
-                # 3. Callable objects that return boolean
+            # Reset lazy nodes so they recompute from base values
+            for name, var in list(self.date_vars.items()):
+                if '_plus_' in name or '_minus_' in name:
+                    var._hard_reset_value()  # ★
 
-                if isinstance(constraint, bool):
-                    if not constraint:
+            # Set all base variable values for this assignment
+            for name, d in assignment.items():
+                if name in self.date_vars:
+                    self.date_vars[name].set_value(d.year, d.month, d.day)
+
+            # Evaluate
+            for c in self.constraints:
+                if isinstance(c, bool):
+                    if not c:
                         return False
-                elif isinstance(constraint, ConstraintWrapper):
-                    if not constraint.evaluate():
+                elif isinstance(c, ConstraintWrapper):
+                    if not c.evaluate():
                         return False
-                elif callable(constraint):
-                    if not constraint():
+                elif callable(c):
+                    if not c():
                         return False
                 else:
-                    # Try to evaluate as boolean
-                    try:
-                        result = bool(constraint)
-                        if not result:
+                    # last resort: bool() — but many types (like ConstraintWrapper) forbid __bool__
+                    if not bool(c):
                             return False
-                    except (TypeError, ValueError):
-                        # If we can't evaluate, assume it's satisfied
-                        pass
-
             return True
-        except (ValueError, TypeError) as e:
-            # If evaluation fails, assume constraint is not satisfied
+        except (ValueError, TypeError):
             return False
-
-    def model(self) -> Dict[str, Any]:
-        """Get the model (returns current variable values if solution found)."""
-        solution = self._find_solution()
-        if solution:
-            return {'dates': solution}
-        else:
-            return {'dates': {}}
-
-    def get_concrete_dates(self) -> Dict[str, Date]:
-        """Get concrete dates from the solver."""
-        solution = self._find_solution()
-        return solution if solution else {}
-
-    def solve(self) -> Dict[str, Any]:
-        """Solve the constraints and return results."""
-        solution = self._find_solution()
-        if solution:
-            return {
-                'status': 'sat',
-                'dates': solution,
-            }
-        else:
-            return {'status': 'unsat', 'dates': {}}
-
-    def to_smt2(self) -> str:
-        """Return empty SMT-LIB v2 format (not applicable for enumeration)."""
-        return "; Enumeration baseline - no SMT-LIB output"
-
-    def get_assertions(self) -> list:
-        """Return the list of current constraints."""
-        return self.constraints
-
-    def validate_solution(self, solution: Dict[str, Date]) -> bool:
-        """Validate a solution by checking if it satisfies all constraints.
-
-        This is a convenience method for validation. It sets the solution values
-        and evaluates all constraints.
-
-        Args:
-            solution: Dictionary mapping variable names to Date values
-
-        Returns:
-            True if all constraints are satisfied, False otherwise
-        """
-        return self._evaluate_constraints(solution)

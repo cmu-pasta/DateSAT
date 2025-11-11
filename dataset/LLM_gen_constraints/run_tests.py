@@ -23,7 +23,6 @@ try:
     from datesmt.constraint_parser import ConstraintParser
     from datesmt.core import Date, Period
     from datesmt.enumeration_baseline import EnumerationSolver, EnumerationDateVar
-    from datesmt.fuzzing_baseline import HypothesisSolver, HypothesisDateVar
     from dataset.validation import (
         check_results_dir,
         parse_date_string,
@@ -39,7 +38,6 @@ except ImportError:
     from datesmt.constraint_parser import ConstraintParser
     from datesmt.core import Date, Period
     from datesmt.enumeration_baseline import EnumerationSolver, EnumerationDateVar
-    from datesmt.fuzzing_baseline import HypothesisSolver, HypothesisDateVar
     from dataset.validation import (
         check_results_dir,
         parse_date_string,
@@ -96,10 +94,10 @@ def run_constraint_with_approach(
         "smtlib": None,
     }
 
+    start_time = time.time()
     try:
-        start_time = time.time()
 
-        # Handle enumeration and fuzzing baselines differently (they don't use DateSMTBuilder)
+        # Handle enumeration baseline differently (it doesn't use DateSMTBuilder)
         if approach == "enumeration":
             # Create EnumerationSolver directly
             def create_builder():
@@ -119,30 +117,6 @@ def run_constraint_with_approach(
                 raise RuntimeError("Constraint code did not create a solver")
 
             # Enumeration baseline doesn't generate SMT-LIB
-            result["smtlib"] = builder.to_smt2()
-
-            # Solve
-            solve_result = builder.solve()
-
-        elif approach == "fuzzing":
-            # Create HypothesisSolver directly
-            def create_builder():
-                return HypothesisSolver(timeout_ms=timeout_ms)
-
-            exec_globals = {
-                'Date': Date,
-                'Period': Period,
-                'DateSMTBuilder': create_builder,
-            }
-
-            exec(constraint_code, exec_globals)
-
-            # Get the solver from the executed code
-            builder = exec_globals.get('result') or exec_globals.get('builder')
-            if not builder:
-                raise RuntimeError("Constraint code did not create a solver")
-
-            # Fuzzing baseline doesn't generate SMT-LIB
             result["smtlib"] = builder.to_smt2()
 
             # Solve
@@ -215,10 +189,14 @@ def run_constraint_with_approach(
             print(f"❌ No solution found")
 
     except TimeoutError as e:
+        end_time = time.time()
+        result["execution_time"] = end_time - start_time
         result["status"] = "timeout"
         result["error_message"] = str(e)
         print(f"⏱️ Timeout: {e}")
     except TypeError as e:
+        end_time = time.time()
+        result["execution_time"] = end_time - start_time
         if (
             "'>' not supported between instances of 'Period' and 'Period'" in str(e)
             or "'<' not supported between instances of 'Period' and 'Period'" in str(e)
@@ -234,8 +212,16 @@ def run_constraint_with_approach(
             result["error_message"] = str(e)
             print(f"❌ Error: {e}")
     except Exception as e:
+        end_time = time.time()
+        result["execution_time"] = end_time - start_time
         result["error_message"] = str(e)
         print(f"❌ Error: {e}")
+    finally:
+        # Ensure execution_time is always set, even if an exception occurred before it was calculated
+        # This is a safety net in case execution_time wasn't set in any exception handler
+        if result["execution_time"] == 0:
+            end_time = time.time()
+            result["execution_time"] = end_time - start_time
 
     return result
 
@@ -263,8 +249,8 @@ def parse_method_spec(method_spec: str) -> tuple:
     if not method_spec:
         return (None, None)
 
-    # Check if it's a baseline approach (enumeration or fuzzing)
-    if method_spec in ["enumeration", "fuzzing"]:
+    # Check if it's a baseline approach (enumeration)
+    if method_spec == "enumeration":
         return (method_spec, "baseline")
 
     # Check if it's just an implementation type
@@ -288,7 +274,7 @@ def parse_method_spec(method_spec: str) -> tuple:
     raise ValueError(f"Invalid method specification: {method_spec}. "
                      f"Expected format: 'approach_implementation' (e.g., 'baseline_bitvector'), "
                      f"'approach' (e.g., 'baseline'), 'implementation' (e.g., 'bitvector'), "
-                     f"or 'enumeration'/'fuzzing'")
+                     f"or 'enumeration'")
 
 
 def filter_methods(methods: Optional[List[str]] = None) -> tuple:
@@ -305,7 +291,7 @@ def filter_methods(methods: Optional[List[str]] = None) -> tuple:
         - baseline_methods: List of baseline approach names
     """
     symbolic_approaches = ["baseline", "epoch_days", "hybrid", "alpha_beta", "alpha_beta_table"]
-    baseline_approaches = ["enumeration", "fuzzing"]
+    baseline_approaches = ["enumeration"]
     implementations = ["int", "bitvector"]
 
     # If no methods specified, return all
@@ -444,7 +430,7 @@ def run_constraints_file(
         print(f"  Successful: {successful}/{total} ({successful/total*100:.1f}%)")
         print(f"  Avg time: {avg_time:.4f}s")
 
-    # Run baseline approaches (enumeration and fuzzing) - no implementation distinction
+    # Run baseline approaches (enumeration) - no implementation distinction
     for approach in baseline_methods:
         print(f"\n{'='*60}")
         print(f"TESTING WITH {approach.upper()} BASELINE")
@@ -545,7 +531,7 @@ def main():
              "Default: run all methods. "
              "Format: 'approach_implementation' (e.g., 'baseline_bitvector'), "
              "'approach' (e.g., 'baseline'), 'implementation' (e.g., 'bitvector'), "
-             "or 'enumeration'/'fuzzing'",
+             "or 'enumeration'",
     )
 
     args = parser.parse_args()

@@ -391,7 +391,7 @@ def summarize_constraint(
     for approach, implementations in approaches.items():
         for implementation, record in implementations.items():
             # Create a composite key for approach + implementation
-            # For enumeration and fuzzing, implementation is "baseline"
+            # For enumeration, implementation is "baseline"
             key = f"{approach}_{implementation}"
             flattened_approaches[key] = record
 
@@ -613,10 +613,10 @@ def check_results_dir(results_dir: Path) -> Dict[str, Any]:
                     }
                 )
 
-                # Update approach-level metrics
-                approach_line_sum[approach] = approach_line_sum.get(approach, 0) + lines
-                approach_time_sum[approach] = approach_time_sum.get(approach, 0.0) + t
-                approach_counts[approach] = approach_counts.get(approach, 0) + 1
+                # Update approach-level metrics using composite key (approach_implementation)
+                approach_line_sum[composite_key] = approach_line_sum.get(composite_key, 0) + lines
+                approach_time_sum[composite_key] = approach_time_sum.get(composite_key, 0.0) + t
+                approach_counts[composite_key] = approach_counts.get(composite_key, 0) + 1
 
                 # Update implementation-level metrics
                 implementation_line_sum[implementation] = (
