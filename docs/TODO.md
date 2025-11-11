@@ -15,8 +15,8 @@ DateSMT
 [X] Update hybrid method: lazy on both ymd and epoch
 [X] Think about cases where bitvector is slower? (div/mod)
 [X] Optimize add func for all methods (fast paths for adding days within a month?)
-[ ] Support OR (CNF)
-[ ] List of clauses, each clause is a disjunction of items - have a list of list
+[X] Support OR (CNF)
+[X] List of clauses, each clause is a disjunction of items - have a list of list
 
 Unit test
 [X] Add unit test coverage (Angel)

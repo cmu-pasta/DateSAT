@@ -51,7 +51,6 @@ RULES & OPERATIONS
   • Date ▷◁ Date (▷◁ ∈ {==, !=, <, <=, >, >=})
 - FORBIDDEN: Period comparisons (Period ▷◁ Period). Compare dates after adding periods instead.
 - Example: (x + Period(0,1,0)) > (x + Period(0,0,31))
-- FORBIDDEN: Period(0,1,0) > Period(0,0,31)
 
 DateSMT SYNTAX
 - Constructors: Date(year, month, day), Period(years, months, days)
@@ -77,28 +76,42 @@ Return ONLY a JSON array (no markdown fences, no commentary).
 Each element must be an object:
 {
   "description": "brief human explanation of the constraint set",
-  "constraints": ["x >= Date(2000,2,28)", "x <= Date(2000,3,1)", "x != Date(2000,2,28)", "x != Date(2000,3,1)"],
+  "constraints": [["x >= Date(2000,2,28)", "x <= Date(2000,2,29)"], "x != Date(2000,3,1)"],
   "coverage_tags": ["leap_boundary", "eom"]
 }
+
+CONSTRAINT FORMAT (CNF - Conjunctive Normal Form)
+The "constraints" field supports Conjunctive Normal Form (CNF) where:
+- Each element can be a string (single constraint) or a list of strings (OR clause)
+- All top-level constraints are ANDed together
+- Lists of strings are ORed together
+
+Examples:
+- Simple AND: ["x >= Date(2000,2,28)", "x <= Date(2000,3,1)"] → (x >= Date(2000,2,28)) AND (x <= Date(2000,3,1))
+- With OR clause: [["x >= Date(2000,2,28)", "x <= Date(2000,2,29)"], "x != Date(2000,3,1)"] → ((x >= Date(2000,2,28)) OR (x <= Date(2000,2,29))) AND (x != Date(2000,3,1))
+- Mixed: ["x >= Date(2000,1,1)", ["x <= Date(2000,2,28)", "x >= Date(2000,3,1)"], "y == x + Period(0,1,0)"]
 
 STYLE FOR constraints
 - Write constraints as individual strings that can be parsed by the constraint parser.
 - Use simple, readable constraint expressions.
 - Each constraint should be a complete boolean expression.
+- You can use OR clauses (lists of strings) when multiple alternative constraints are needed.
 - Example format:
   "x >= Date(2000,2,28)"
   "(x + Period(0,1,0)) > (y + Period(0,0,31))"
   "x == Date(2020,3,15)"
   "(x + Period(1,0,0)) < Date(2025,1,1)"
   "(x + Period(0,1,0) * 12) == (x + Period(1,0,0))"
+  ["x >= Date(2000,2,28)", "x <= Date(2000,2,29)"]  # OR clause
 
 OUTPUT REQUIREMENTS
 - Output MUST be a valid JSON array of objects with the exact schema above.
-- Each object must have "description", "constraints" (array of strings), and "coverage_tags" (array of strings).
+- Each object must have "description", "constraints" (array of strings or mixed strings/lists for CNF), and "coverage_tags" (array of strings).
 - Select appropriate coverage_tags from the CONTENT DIVERSITY section based on what each constraint set covers.
 - No code fences, markdown, trailing commas, or comments.
 - Use only ASCII quotes in JSON strings.
-- Each constraint string must be parseable by the constraint parser."""
+- Each constraint string must be parseable by the constraint parser.
+- You can optionally use CNF format with OR clauses when it makes semantic sense (e.g., when multiple alternative constraints are needed)."""
 
 
 def _basic_schema_ok(items: Any) -> bool:

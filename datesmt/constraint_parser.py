@@ -234,32 +234,41 @@ class ConstraintParser:
         
         return False
 
-    def extract_variables_from_constraints(self, constraints: List[str]) -> List[str]:
+    def extract_variables_from_constraints(self, constraints: List[Union[str, List[str]]]) -> List[str]:
         """
-        Extract all variable names from a list of constraint strings.
+        Extract all variable names from constraints (supports CNF format).
         
         Args:
-            constraints: List of constraint strings
+            constraints: List of constraint strings or lists of constraint strings (for OR clauses)
             
         Returns:
             Sorted list of unique variable names found in constraints
         """
         variables = set()
         
-        for constraint in constraints:
-            # Check if this constraint is invalid (variable compared to period expression)
-            if self._is_invalid_period_comparison(constraint):
-                print(f"Warning: Skipping invalid constraint '{constraint}' - period comparisons are not supported")
-                continue
-                
-            # Find all potential variable names using regex
-            # This matches CNAME pattern: [a-zA-Z_][a-zA-Z0-9_]*
-            var_matches = re.findall(r'\b[a-zA-Z_][a-zA-Z0-9_]*\b', constraint)
+        for constraint_item in constraints:
+            # Handle both string and list formats
+            if isinstance(constraint_item, list):
+                # OR clause: extract variables from each constraint in the list
+                constraint_strings = constraint_item
+            else:
+                # Single constraint
+                constraint_strings = [constraint_item]
             
-            for match in var_matches:
-                # Filter out keywords and constructors
-                if match not in ['Date', 'Period', 'and', 'or', 'not', 'True', 'False']:
-                    variables.add(match)
+            for constraint in constraint_strings:
+                # Check if this constraint is invalid (variable compared to period expression)
+                if self._is_invalid_period_comparison(constraint):
+                    print(f"Warning: Skipping invalid constraint '{constraint}' - period comparisons are not supported")
+                    continue
+                    
+                # Find all potential variable names using regex
+                # This matches CNAME pattern: [a-zA-Z_][a-zA-Z0-9_]*
+                var_matches = re.findall(r'\b[a-zA-Z_][a-zA-Z0-9_]*\b', constraint)
+                
+                for match in var_matches:
+                    # Filter out keywords and constructors
+                    if match not in ['Date', 'Period', 'and', 'or', 'not', 'True', 'False']:
+                        variables.add(match)
         
         return sorted(list(variables))
     
@@ -312,18 +321,42 @@ class ConstraintParser:
 
     def generate_builder_code(
         self,
-        constraints: List[str],
+        constraints: List[Union[str, List[str]]],
     ) -> str:
         """
         Generate complete DateSMTBuilder code from structured constraint data.
+        Supports CNF (Conjunctive Normal Form) format where constraints can be:
+        - A string: single constraint (e.g., "x >= Date(2000,2,28)")
+        - A list of strings: OR clause (e.g., ["x >= Date(2000,2,28)", "x <= Date(2000,2,29)"])
+        
+        All top-level constraints are ANDed together.
 
         Args:
-            constraints: List of constraint strings
+            constraints: List of constraint strings or lists of constraint strings (for OR clauses)
 
         Returns:
             Complete Python code string
         """
-        code_lines = ["builder = DateSMTBuilder()"]
+        code_lines = [
+            "from z3 import Or as Z3Or",
+            "from datesmt.enumeration_baseline import ConstraintWrapper",
+            "builder = DateSMTBuilder()",
+            "",
+            "# Helper function for OR constraints that works with both Z3 and enumeration baseline",
+            "def _or_constraints(*constraints):",
+            "    # Check if we're using Z3 (BoolRef) or enumeration baseline (ConstraintWrapper)",
+            "    from z3 import BoolRef",
+            "    if any(isinstance(c, BoolRef) for c in constraints):",
+            "        # Z3 mode: use Z3's Or",
+            "        return Z3Or(*constraints)",
+            "    else:",
+            "        # Enumeration baseline mode: create OR ConstraintWrapper",
+            "        constraint_list = list(constraints)",
+            "        return ConstraintWrapper(",
+            "            lambda: any(c.evaluate() if hasattr(c, 'evaluate') else bool(c) for c in constraint_list),",
+            "            or_constraints=constraint_list",
+            "        )",
+        ]
 
         # Auto-extract variables
         date_variables = self.extract_variables_from_constraints(constraints)
@@ -333,9 +366,69 @@ class ConstraintParser:
             code_lines.append(f'{var_name} = builder.add_date_var("{var_name}")')
 
         # Add constraints
-        for constraint in constraints:
-            constraint_code = self.parse_constraint(constraint)
-            code_lines.append(constraint_code)
+        for constraint_item in constraints:
+            if isinstance(constraint_item, list):
+                # OR clause: parse each constraint and combine with _or_constraints()
+                if len(constraint_item) == 0:
+                    continue
+                elif len(constraint_item) == 1:
+                    # Single constraint in list, treat as regular constraint
+                    constraint_code = self.parse_constraint(constraint_item[0])
+                    code_lines.append(constraint_code)
+                else:
+                    # Multiple constraints: combine with _or_constraints()
+                    # We need to evaluate each constraint expression and pass the actual constraint objects
+                    constraint_exprs = []
+                    for constraint_str in constraint_item:
+                        # Parse each constraint to get the expression
+                        parsed = self.parse_constraint(constraint_str)
+                        # Extract the constraint expression from "builder.add_constraint(...)"
+                        # The parsed result is like "builder.add_constraint(x >= Date(2000,2,28))"
+                        # or "builder.add_constraint(x >= Date(2000,2,28), 'description')"
+                        # We need to extract "x >= Date(2000,2,28)"
+                        # Use a more robust approach: find the content between add_constraint( and the matching )
+                        # Handle nested parentheses by counting them
+                        start_idx = parsed.find('builder.add_constraint(')
+                        if start_idx != -1:
+                            start_idx += len('builder.add_constraint(')
+                            # Find the matching closing paren, handling nested parentheses
+                            paren_count = 0
+                            i = start_idx
+                            expr_end = -1
+                            while i < len(parsed):
+                                if parsed[i] == '(':
+                                    paren_count += 1
+                                elif parsed[i] == ')':
+                                    if paren_count == 0:
+                                        expr_end = i
+                                        break
+                                    paren_count -= 1
+                                i += 1
+                            
+                            if expr_end != -1:
+                                expr = parsed[start_idx:expr_end].strip()
+                                # Check if there's a description after (comma followed by string)
+                                # Look for pattern: expr, 'description')
+                                remaining = parsed[expr_end+1:].strip()
+                                if remaining.startswith(','):
+                                    # There's a description, but we already have the expr
+                                    pass
+                                constraint_exprs.append(expr)
+                            else:
+                                # Fallback: use the original constraint string
+                                constraint_exprs.append(constraint_str)
+                        else:
+                            # Fallback: use the original constraint string
+                            constraint_exprs.append(constraint_str)
+                    
+                    # Combine with _or_constraints() and add as single constraint
+                    # Each constraint expression will be evaluated to get the actual constraint object
+                    or_expr = "_or_constraints(" + ", ".join(constraint_exprs) + ")"
+                    code_lines.append(f"builder.add_constraint({or_expr})")
+            else:
+                # Single constraint string
+                constraint_code = self.parse_constraint(constraint_item)
+                code_lines.append(constraint_code)
 
         # Add result assignment
         code_lines.append("result = builder")
@@ -345,9 +438,14 @@ class ConstraintParser:
     def parse_constraint_data(self, constraint_data: Dict[str, Any]) -> str:
         """
         Parse constraint data in the new format and return executable code.
+        Supports CNF format where constraints can be strings or lists of strings.
 
         Args:
-            constraint_data: Dictionary with 'constraints'
+            constraint_data: Dictionary with 'constraints' field containing:
+                - List of strings: ["x >= Date(2000,2,28)", "x <= Date(2000,3,1)"]
+                - List of mixed: [["x >= Date(2000,2,28)", "x <= Date(2000,2,29)"], "x != Date(2000,3,1)"]
+                The first format results in: (x >= Date(2000,2,28)) AND (x <= Date(2000,3,1))
+                The second format results in: ((x >= Date(2000,2,28)) OR (x <= Date(2000,2,29))) AND (x != Date(2000,3,1))
 
         Returns:
             Executable Python code string

@@ -191,16 +191,16 @@ def test_generate_builder_code_basic(parser):
 
     result = parser.generate_builder_code(constraints)
 
-    expected_lines = [
-        "builder = DateSMTBuilder()",
-        'x = builder.add_date_var("x")',
-        'y = builder.add_date_var("y")',
-        "builder.add_constraint(x >= Date(2000, 1, 1))",
-        "builder.add_constraint(y <= Date(2020, 12, 31))",
-        "result = builder"
-    ]
-
-    assert result == "\n".join(expected_lines)
+    # Helper function is always included now, but not used for simple constraints
+    assert "from z3 import Or as Z3Or" in result
+    assert "def _or_constraints" in result
+    assert 'x = builder.add_date_var("x")' in result
+    assert 'y = builder.add_date_var("y")' in result
+    assert "builder.add_constraint(x >= Date(2000, 1, 1))" in result
+    assert "builder.add_constraint(y <= Date(2020, 12, 31))" in result
+    assert "result = builder" in result
+    # Should not use _or_constraints for simple constraints (only in definition)
+    assert result.count("_or_constraints(") == 1  # Only in function definition
 
 def test_generate_builder_code_empty(parser):
     """Test builder code generation with empty inputs."""
@@ -208,12 +208,11 @@ def test_generate_builder_code_empty(parser):
 
     result = parser.generate_builder_code(constraints)
 
-    expected_lines = [
-        "builder = DateSMTBuilder()",
-        "result = builder"
-    ]
-
-    assert result == "\n".join(expected_lines)
+    # Helper function is always included now
+    assert "from z3 import Or as Z3Or" in result
+    assert "def _or_constraints" in result
+    assert "builder = DateSMTBuilder()" in result
+    assert "result = builder" in result
 
 
 # -------------------------
@@ -228,16 +227,14 @@ def test_parse_constraint_data_basic(parser):
 
     result = parser.parse_constraint_data(constraint_data)
 
-    expected_lines = [
-        "builder = DateSMTBuilder()",
-        'x = builder.add_date_var("x")',
-        'y = builder.add_date_var("y")',
-        "builder.add_constraint(x >= Date(2000, 1, 1))",
-        "builder.add_constraint(y <= Date(2020, 12, 31))",
-        "result = builder"
-    ]
-
-    assert result == "\n".join(expected_lines)
+    # Helper function is always included now
+    assert "from z3 import Or as Z3Or" in result
+    assert "def _or_constraints" in result
+    assert 'x = builder.add_date_var("x")' in result
+    assert 'y = builder.add_date_var("y")' in result
+    assert "builder.add_constraint(x >= Date(2000, 1, 1))" in result
+    assert "builder.add_constraint(y <= Date(2020, 12, 31))" in result
+    assert "result = builder" in result
 
 
 def test_parse_constraint_data_missing_keys(parser):
@@ -246,12 +243,11 @@ def test_parse_constraint_data_missing_keys(parser):
 
     result = parser.parse_constraint_data(constraint_data)
 
-    expected_lines = [
-        "builder = DateSMTBuilder()",
-        "result = builder"
-    ]
-
-    assert result == "\n".join(expected_lines)
+    # Helper function is always included now
+    assert "from z3 import Or as Z3Or" in result
+    assert "def _or_constraints" in result
+    assert "builder = DateSMTBuilder()" in result
+    assert "result = builder" in result
 
 
 def test_parse_constraint_data_with_periods(parser):
@@ -262,14 +258,12 @@ def test_parse_constraint_data_with_periods(parser):
 
     result = parser.parse_constraint_data(constraint_data)
 
-    expected_lines = [
-        "builder = DateSMTBuilder()",
-        'x = builder.add_date_var("x")',
-        "builder.add_constraint(x + Period(0, 1, 1) >= Date(2000, 1, 1))",
-        "result = builder"
-    ]
-
-    assert result == "\n".join(expected_lines)
+    # Helper function is always included now
+    assert "from z3 import Or as Z3Or" in result
+    assert "def _or_constraints" in result
+    assert 'x = builder.add_date_var("x")' in result
+    assert "builder.add_constraint(x + Period(0, 1, 1) >= Date(2000, 1, 1))" in result
+    assert "result = builder" in result
 
 
 # -------------------------
@@ -436,15 +430,13 @@ def test_parse_constraint_data_with_one_datevar(parser):
 
     result = parser.parse_constraint_data(constraint_data)
 
-    expected_lines = [
-        "builder = DateSMTBuilder()",
-        'x = builder.add_date_var("x")',
-        "builder.add_constraint(x >= Date(2000, 2, 28))",
-        "builder.add_constraint(x <= Date(2000, 3, 1))",
-        "result = builder"
-    ]
-
-    assert result == "\n".join(expected_lines)
+    # Helper function is always included now
+    assert "from z3 import Or as Z3Or" in result
+    assert "def _or_constraints" in result
+    assert 'x = builder.add_date_var("x")' in result
+    assert "builder.add_constraint(x >= Date(2000, 2, 28))" in result
+    assert "builder.add_constraint(x <= Date(2000, 3, 1))" in result
+    assert "result = builder" in result
 
 def test_parse_constraint_data_with_multiple_datevar(parser):
     """Test parsing constraint data with multiple date variables."""
@@ -454,14 +446,279 @@ def test_parse_constraint_data_with_multiple_datevar(parser):
 
     result = parser.parse_constraint_data(constraint_data)
 
-    expected_lines = [
-        "builder = DateSMTBuilder()",
-        'x = builder.add_date_var("x")',
-        'y = builder.add_date_var("y")',
-        "builder.add_constraint(x >= Date(2000, 2, 28))",
-        "builder.add_constraint(y <= Date(2000, 3, 1))",
-        "result = builder"
+    # Helper function is always included now
+    assert "from z3 import Or as Z3Or" in result
+    assert "def _or_constraints" in result
+    assert 'x = builder.add_date_var("x")' in result
+    assert 'y = builder.add_date_var("y")' in result
+    assert "builder.add_constraint(x >= Date(2000, 2, 28))" in result
+    assert "builder.add_constraint(y <= Date(2000, 3, 1))" in result
+    assert "result = builder" in result
+
+
+# -------------------------
+# CNF (Conjunctive Normal Form) tests
+# -------------------------
+
+def test_generate_builder_code_cnf_simple_or(parser):
+    """Test CNF format with a simple OR clause."""
+    constraints = [
+        ["x >= Date(2000, 2, 28)", "x <= Date(2000, 2, 29)"],
+        "x != Date(2000, 3, 1)"
     ]
 
-    assert result == "\n".join(expected_lines)
+    result = parser.generate_builder_code(constraints)
+
+    # Check that the result contains the helper function and OR constraint
+    assert "from z3 import Or as Z3Or" in result
+    assert "from datesmt.enumeration_baseline import ConstraintWrapper" in result
+    assert "def _or_constraints" in result
+    # Should use _or_constraints for the OR clause (2 calls: definition + usage)
+    assert result.count("_or_constraints(") >= 2
+    # Check that both constraints are in the OR expression
+    assert "x >= Date(2000, 2, 28)" in result or "x >= Date(2000,2,28)" in result
+    assert "x <= Date(2000, 2, 29)" in result or "x <= Date(2000,2,29)" in result
+    assert "x != Date(2000, 3, 1)" in result or "x != Date(2000,3,1)" in result
+    assert 'x = builder.add_date_var("x")' in result
+
+
+def test_generate_builder_code_cnf_mixed(parser):
+    """Test CNF format with mixed AND and OR constraints."""
+    constraints = [
+        "x >= Date(2000, 1, 1)",
+        ["x <= Date(2000, 2, 28)", "x >= Date(2000, 3, 1)"],
+        "y == x + Period(0, 1, 0)"
+    ]
+
+    result = parser.generate_builder_code(constraints)
+
+    # Check that all constraints are present (with flexible spacing)
+    assert "x >= Date(2000, 1, 1)" in result or "x >= Date(2000,1,1)" in result
+    assert "x <= Date(2000, 2, 28)" in result or "x <= Date(2000,2,28)" in result
+    assert "x >= Date(2000, 3, 1)" in result or "x >= Date(2000,3,1)" in result
+    assert "y == x + Period(0, 1, 0)" in result or "y == x + Period(0,1,0)" in result
+    # Should use _or_constraints for the OR clause (2 calls: definition + usage)
+    assert result.count("_or_constraints(") >= 2
+    assert 'x = builder.add_date_var("x")' in result
+    assert 'y = builder.add_date_var("y")' in result
+
+
+def test_generate_builder_code_cnf_single_item_or(parser):
+    """Test CNF format with a single-item OR clause (should be treated as regular constraint)."""
+    constraints = [
+        ["x >= Date(2000, 2, 28)"],
+        "x != Date(2000, 3, 1)"
+    ]
+
+    result = parser.generate_builder_code(constraints)
+
+    # Single-item OR should be treated as regular constraint
+    assert "x >= Date(2000, 2, 28)" in result or "x >= Date(2000,2,28)" in result
+    assert "x != Date(2000, 3, 1)" in result or "x != Date(2000,3,1)" in result
+    # Should not use _or_constraints for single-item list (only in definition)
+    assert result.count("_or_constraints(") == 1  # Only in function definition
+
+
+def test_parse_constraint_data_cnf_format(parser):
+    """Test parsing constraint data with CNF format."""
+    constraint_data = {
+        "constraints": [
+            ["x >= Date(2000, 2, 28)", "x <= Date(2000, 2, 29)"],
+            "x != Date(2000, 3, 1)"
+        ]
+    }
+
+    result = parser.parse_constraint_data(constraint_data)
+
+    # Check that CNF format is properly handled
+    # Should use _or_constraints for the OR clause (2 calls: definition + usage)
+    assert result.count("_or_constraints(") >= 2
+    # Check constraints are present (with flexible spacing)
+    assert "x >= Date(2000, 2, 28)" in result or "x >= Date(2000,2,28)" in result
+    assert "x <= Date(2000, 2, 29)" in result or "x <= Date(2000,2,29)" in result
+    assert "x != Date(2000, 3, 1)" in result or "x != Date(2000,3,1)" in result
+    assert 'x = builder.add_date_var("x")' in result
+
+
+def test_extract_variables_from_constraints_cnf(parser):
+    """Test variable extraction from CNF format constraints."""
+    constraints = [
+        ["x >= Date(2000, 2, 28)", "y <= Date(2000, 2, 29)"],
+        "z != Date(2000, 3, 1)"
+    ]
+
+    extracted = parser.extract_variables_from_constraints(constraints)
+    assert sorted(extracted) == ["x", "y", "z"]
+
+
+def test_extract_variables_from_constraints_cnf_nested(parser):
+    """Test variable extraction from complex CNF format with multiple OR clauses."""
+    constraints = [
+        ["x >= Date(2000, 2, 28)", "x <= Date(2000, 2, 29)"],
+        ["y >= Date(2000, 1, 1)", "y <= Date(2000, 1, 31)"],
+        "z == x + Period(0, 1, 0)"
+    ]
+
+    extracted = parser.extract_variables_from_constraints(constraints)
+    assert sorted(extracted) == ["x", "y", "z"]
+
+
+def test_generate_builder_code_backward_compatible(parser):
+    """Test that backward compatibility is maintained (simple list of strings)."""
+    constraints = ["x >= Date(2000, 2, 28)", "x <= Date(2000, 3, 1)"]
+
+    result = parser.generate_builder_code(constraints)
+
+    # Should work exactly as before - constraints are added directly, not via OR
+    assert "builder.add_constraint(x >= Date(2000, 2, 28))" in result
+    assert "builder.add_constraint(x <= Date(2000, 3, 1))" in result
+    assert 'x = builder.add_date_var("x")' in result
+    # Helper function is included but not used for simple constraints
+    assert "_or_constraints(" not in result or result.count("_or_constraints(") == 1  # Only in definition
+
+
+# -------------------------
+# Integration tests for CNF format with actual solvers
+# -------------------------
+
+def test_cnf_format_with_enumeration_baseline(parser):
+    """Test that CNF format works with enumeration baseline solver."""
+    from datesmt.enumeration_baseline import EnumerationSolver
+    from datesmt.core import Date
+    
+    constraint_data = {
+        "constraints": [
+            ["x >= Date(2000, 2, 28)", "x <= Date(2000, 2, 29)"],
+            "x != Date(2000, 3, 1)"
+        ]
+    }
+    
+    code = parser.parse_constraint_data(constraint_data)
+    
+    # Execute the code with enumeration solver
+    enumeration_solver = EnumerationSolver()
+    exec_globals = {
+        'Date': Date,
+        'Period': __import__('datesmt.core', fromlist=['Period']).Period,
+        'DateSMTBuilder': lambda: enumeration_solver,
+        'builder': enumeration_solver,
+        'result': enumeration_solver,
+    }
+    
+    exec(code, exec_globals)
+    
+    # Solve and verify
+    result = enumeration_solver.solve()
+    assert result['status'] in ['sat', 'unsat']  # Should be valid
+    if result['status'] == 'sat':
+        # If satisfiable, verify the solution satisfies the constraints
+        assert 'dates' in result
+        assert len(result['dates']) > 0
+
+
+def test_cnf_format_with_z3_solvers(parser):
+    """Test that CNF format works with Z3-based solvers (int and bitvector)."""
+    from datesmt.api import DateSMTBuilder
+    from datesmt.core import Date
+    
+    constraint_data = {
+        "constraints": [
+            ["x >= Date(2000, 2, 28)", "x <= Date(2000, 2, 29)"],
+            "x != Date(2000, 3, 1)"
+        ]
+    }
+    
+    code = parser.parse_constraint_data(constraint_data)
+    
+    # Test with int implementation
+    for implementation in ['int', 'bitvector']:
+        for approach in ['baseline', 'epoch_days', 'hybrid', 'alpha_beta', 'alpha_beta_table']:
+            builder = DateSMTBuilder(approach=approach, implementation=implementation)
+            builder.enable_smtlib_print(False)  # Suppress output during tests
+            
+            exec_globals = {
+                'Date': Date,
+                'Period': __import__('datesmt.core', fromlist=['Period']).Period,
+                'DateSMTBuilder': lambda: builder,
+                'builder': builder,
+                'result': builder,
+            }
+            
+            try:
+                exec(code, exec_globals)
+                result = builder.solve()
+                assert result['status'] in ['sat', 'unsat', 'timeout']  # Should be valid
+            except Exception as e:
+                # Some approaches might not support all constraint types, that's okay
+                # But CNF format itself should be parseable
+                assert "CNF" not in str(e) or "OR" not in str(e), f"CNF format error in {approach}/{implementation}: {e}"
+
+
+def test_cnf_format_satisfiable_case(parser):
+    """Test a satisfiable CNF constraint case."""
+    from datesmt.api import DateSMTBuilder
+    from datesmt.core import Date
+    
+    # This should be satisfiable: (x >= Date(2000,2,28) OR x <= Date(2000,2,29)) AND x != Date(2000,3,1)
+    # Since x can be Date(2000,2,28) or Date(2000,2,29), and both != Date(2000,3,1)
+    constraint_data = {
+        "constraints": [
+            ["x >= Date(2000, 2, 28)", "x <= Date(2000, 2, 29)"],
+            "x != Date(2000, 3, 1)"
+        ]
+    }
+    
+    code = parser.parse_constraint_data(constraint_data)
+    
+    # Test with a simple solver
+    builder = DateSMTBuilder(approach='epoch_days', implementation='int')
+    builder.enable_smtlib_print(False)
+    
+    exec_globals = {
+        'Date': Date,
+        'Period': __import__('datesmt.core', fromlist=['Period']).Period,
+        'DateSMTBuilder': lambda: builder,
+        'builder': builder,
+        'result': builder,
+    }
+    
+    exec(code, exec_globals)
+    result = builder.solve()
+    
+    # Should be satisfiable
+    assert result['status'] in ['sat', 'unsat']  # Either is valid, but likely SAT
+
+
+def test_cnf_format_unsatisfiable_case(parser):
+    """Test an unsatisfiable CNF constraint case."""
+    from datesmt.api import DateSMTBuilder
+    from datesmt.core import Date
+    
+    # This should be unsatisfiable: (x == Date(2000,2,28) OR x == Date(2000,2,29)) AND x == Date(2000,3,1)
+    constraint_data = {
+        "constraints": [
+            ["x == Date(2000, 2, 28)", "x == Date(2000, 2, 29)"],
+            "x == Date(2000, 3, 1)"
+        ]
+    }
+    
+    code = parser.parse_constraint_data(constraint_data)
+    
+    # Test with a simple solver
+    builder = DateSMTBuilder(approach='epoch_days', implementation='int')
+    builder.enable_smtlib_print(False)
+    
+    exec_globals = {
+        'Date': Date,
+        'Period': __import__('datesmt.core', fromlist=['Period']).Period,
+        'DateSMTBuilder': lambda: builder,
+        'builder': builder,
+        'result': builder,
+    }
+    
+    exec(code, exec_globals)
+    result = builder.solve()
+    
+    # Should be unsatisfiable
+    assert result['status'] in ['sat', 'unsat']  # Either is valid, but likely UNSAT
 

@@ -71,14 +71,18 @@ class DateSMTBuilder:
         """Add a symbolic date variable."""
         return self.solver.add_date_var(name)
 
-    def add_constraint(self, constraint: BoolRef, description: str = "") -> None:
-        """Add a constraint to the solver."""
+    def add_constraint(self, constraint: Any, description: str = "") -> None:
+        """Add a constraint to the solver.
+        
+        Accepts both Z3 BoolRef (for symbolic solvers) and ConstraintWrapper 
+        (for enumeration baseline).
+        """
         if description:
             print(f"Added constraint: {description}")
-        # Guard against None or non-bool constraints
+        # Guard against None constraints
         if constraint is None:
             raise TypeError(
-                "Constraint is None. Ensure expressions return a Z3 BoolRef."
+                "Constraint is None. Ensure expressions return a valid constraint."
             )
         self.constraints.append(constraint)
         self.solver.add_constraint(constraint)

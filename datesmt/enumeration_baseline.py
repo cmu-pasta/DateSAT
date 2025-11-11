@@ -18,15 +18,19 @@ from .core import Date, Period
 class ConstraintWrapper:
     """Wrapper for deferred constraint evaluation."""
 
-    def __init__(self, func, description: str = "", var_ref=None, concrete_value=None, rhs_ref=None):
+    def __init__(self, func, description: str = "", var_ref=None, concrete_value=None, rhs_ref=None, or_constraints=None):
         self.func = func
         self.description = description
         self.var_ref = var_ref
         self.concrete_value = concrete_value
         self.rhs_ref = rhs_ref  # For equality constraints: x == expr, store expr here
+        self.or_constraints = or_constraints  # For OR constraints: list of ConstraintWrapper objects
 
     def evaluate(self) -> bool:
         try:
+            # If this is an OR constraint, evaluate any of the sub-constraints
+            if self.or_constraints is not None:
+                return any(c.evaluate() for c in self.or_constraints)
             return bool(self.func())
         except (ValueError, TypeError):
             return False
@@ -425,11 +429,20 @@ class EnumerationSolver:
             # Make sure all referenced vars exist
             for c in self.constraints:
                 if isinstance(c, ConstraintWrapper):
-                    if c.var_ref is not None and c.var_ref.name not in self.date_vars:
-                        self.date_vars[c.var_ref.name] = c.var_ref
-                    if c.rhs_ref is not None and isinstance(c.rhs_ref, EnumerationDateVar):
-                        if c.rhs_ref.name not in self.date_vars:
-                            self.date_vars[c.rhs_ref.name] = c.rhs_ref
+                    # Handle OR constraints - check all sub-constraints
+                    if c.or_constraints is not None:
+                        for sub_c in c.or_constraints:
+                            if sub_c.var_ref is not None and sub_c.var_ref.name not in self.date_vars:
+                                self.date_vars[sub_c.var_ref.name] = sub_c.var_ref
+                            if sub_c.rhs_ref is not None and isinstance(sub_c.rhs_ref, EnumerationDateVar):
+                                if sub_c.rhs_ref.name not in self.date_vars:
+                                    self.date_vars[sub_c.rhs_ref.name] = sub_c.rhs_ref
+                    else:
+                        if c.var_ref is not None and c.var_ref.name not in self.date_vars:
+                            self.date_vars[c.var_ref.name] = c.var_ref
+                        if c.rhs_ref is not None and isinstance(c.rhs_ref, EnumerationDateVar):
+                            if c.rhs_ref.name not in self.date_vars:
+                                self.date_vars[c.rhs_ref.name] = c.rhs_ref
 
             # Reset lazy nodes so they recompute from base values
             for name, var in list(self.date_vars.items()):

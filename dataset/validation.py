@@ -120,7 +120,15 @@ def execute_constraint_code(
         validated_constraints_str = None
         if constraint_data and constraint_data.get("constraints"):
             # Save the original constraint strings that were validated
-            validated_constraints_str = "\n".join(constraint_data.get("constraints", []))
+            # Handle CNF format: convert lists to readable format
+            constraint_strs = []
+            for constraint_item in constraint_data.get("constraints", []):
+                if isinstance(constraint_item, list):
+                    # OR clause: format as (c1 OR c2 OR ...)
+                    constraint_strs.append("(" + " OR ".join(constraint_item) + ")")
+                else:
+                    constraint_strs.append(constraint_item)
+            validated_constraints_str = "\n".join(constraint_strs)
 
         # Evaluate each constraint and check if all are satisfied
         # EnumerationSolver uses ConstraintWrapper objects for deferred evaluation
@@ -249,13 +257,23 @@ def validate_solution_with_concrete(
 
                 # Write the original constraints
                 f.write("; Original constraints:\n")
-                for constraint in constraint_data.get("constraints", []):
-                    f.write(f"{constraint}\n")
+                for constraint_item in constraint_data.get("constraints", []):
+                    if isinstance(constraint_item, list):
+                        # OR clause: format as (c1 OR c2 OR ...)
+                        f.write(f";   ({' OR '.join(constraint_item)})\n")
+                    else:
+                        f.write(f";   {constraint_item}\n")
                 f.write("\n")
 
                 # Write constraints with solution substituted (what was actually evaluated)
                 f.write("; Constraints with solution substituted (what was validated):\n")
-                for constraint in constraint_data.get("constraints", []):
+                for constraint_item in constraint_data.get("constraints", []):
+                    # Handle CNF format
+                    if isinstance(constraint_item, list):
+                        # OR clause: format as (c1 OR c2 OR ...)
+                        constraint = f"({' OR '.join(constraint_item)})"
+                    else:
+                        constraint = constraint_item
                     # Substitute each variable in the constraint with its solution value
                     substituted = constraint
                     for var_name, var_value in solution.items():

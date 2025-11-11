@@ -28,6 +28,54 @@ All `Period` objects must fall within the following bounds (based on the date ra
 
 Periods exceeding these bounds will raise a `ValueError` during construction.
 
+## Constraint Format
+
+DATE-SMT supports constraints in **Conjunctive Normal Form (CNF)**, where constraints can be combined with both AND and OR operations.
+
+### Basic Format
+
+Constraints are specified as a list where each element can be:
+- **A string**: A single constraint (e.g., `"x >= Date(2000,2,28)"`)
+- **A list of strings**: An OR clause where at least one constraint must be satisfied
+
+All top-level constraints are ANDed together.
+
+### Examples
+
+**Simple AND constraints** (backward compatible):
+```json
+{
+  "constraints": [
+    "x >= Date(2000,2,28)",
+    "x <= Date(2000,3,1)"
+  ]
+}
+```
+This results in: `(x >= Date(2000,2,28)) AND (x <= Date(2000,3,1))`
+
+**CNF format with OR clauses**:
+```json
+{
+  "constraints": [
+    ["x >= Date(2000,2,28)", "x <= Date(2000,2,29)"],
+    "x != Date(2000,3,1)"
+  ]
+}
+```
+This results in: `((x >= Date(2000,2,28)) OR (x <= Date(2000,2,29))) AND (x != Date(2000,3,1))`
+
+**Mixed format**:
+```json
+{
+  "constraints": [
+    "x >= Date(2000,1,1)",
+    ["x <= Date(2000,2,28)", "x >= Date(2000,3,1)"],
+    "y == x + Period(0,1,0)"
+  ]
+}
+```
+This results in: `(x >= Date(2000,1,1)) AND ((x <= Date(2000,2,28)) OR (x >= Date(2000,3,1))) AND (y == x + Period(0,1,0))`
+
 ## Installation
 
 ```bash
