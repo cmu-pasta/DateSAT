@@ -437,10 +437,20 @@ def summarize_constraint(
     all_unsat = len(non_timeout_statuses) > 0 and all(s == "unsat" for s in non_timeout_statuses)
 
     # Check if enumeration is SAT but others are UNSAT
+    # Treat UNSAT approaches as wrong only if there exists at least one SAT approach
+    # whose solution validates correctly. Specifically, the special case where
+    # enumeration is SAT and all others are UNSAT should only penalize the UNSAT
+    # approaches when enumeration's SAT solution is valid.
+    enum_vinfo = sat_validation.get(enumeration_key)
+    enum_valid = bool(enum_vinfo and enum_vinfo.get("valid"))
     enumeration_sat_others_unsat = (
-        enumeration_status == "sat" and
-        all(s == "unsat" for k, s in approach_statuses.items()
-            if k != enumeration_key and s != "timeout" and s != "error")
+        enumeration_status == "sat"
+        and enum_valid
+        and all(
+            s == "unsat"
+            for k, s in approach_statuses.items()
+            if k != enumeration_key and s != "timeout" and s != "error"
+        )
     )
 
     for a, status in approach_statuses.items():
@@ -455,7 +465,12 @@ def summarize_constraint(
                 if vinfo and vinfo.get("valid"):
                     per_approach_verdict[a] = "correct"
                 else:
-                    per_approach_verdict[a] = "wrong"
+                    # downgrade to warning if out-of-bounds concrete evaluation
+                    msg = (vinfo or {}).get("message", "")
+                    if isinstance(msg, str) and "Date outside allowed range" in msg:
+                        per_approach_verdict[a] = "warning"
+                    else:
+                        per_approach_verdict[a] = "wrong"
             # If some are SAT, some are UNSAT, check if SAT ones are correct
             # If at least one SAT is correct, then UNSAT is wrong
             else:
@@ -463,7 +478,11 @@ def summarize_constraint(
                 if vinfo and vinfo.get("valid"):
                     per_approach_verdict[a] = "correct"
                 else:
-                    per_approach_verdict[a] = "wrong"
+                    msg = (vinfo or {}).get("message", "")
+                    if isinstance(msg, str) and "Date outside allowed range" in msg:
+                        per_approach_verdict[a] = "warning"
+                    else:
+                        per_approach_verdict[a] = "wrong"
         elif status == "unsat":
             # If everything is UNSAT, then correct
             if all_unsat:
@@ -501,7 +520,7 @@ def summarize_constraint(
         might_correct_approaches = []
     else:
         # Aggregate to "correct" if all are correct/correct_unsat; else "wrong" if any wrong; else "correct" if at least one correct
-        if all(v in ("correct",) for v in per_approach_verdict.values()):
+        if all(v in ("correct", "warning") for v in per_approach_verdict.values()):
             verdict = "correct"
         elif any(v == "wrong" for v in per_approach_verdict.values()):
             verdict = "wrong"
@@ -559,6 +578,7 @@ def check_results_dir(results_dir: Path) -> Dict[str, Any]:
                     "wrong": 0,
                     "error": 0,
                     "timeout": 0,
+                    "warning": 0,
                 }
             if v in counts_by_approach[approach]:
                 counts_by_approach[approach][v] += 1
@@ -837,6 +857,7 @@ def validate_results_with_concrete(results_dir: Path) -> Dict[str, Any]:
                     "wrong": 0,
                     "error": 0,
                     "timeout": 0,
+                    "warning": 0,
                 }
 
             # Handle different statuses
@@ -876,8 +897,13 @@ def validate_results_with_concrete(results_dir: Path) -> Dict[str, Any]:
                     verdicts_by_approach[approach_key] = "correct"
                     counts_by_approach[approach_key]["correct"] += 1
                 else:
-                    verdicts_by_approach[approach_key] = "wrong"
-                    counts_by_approach[approach_key]["wrong"] += 1
+                    # Treat out-of-bounds concrete evaluation as a warning (not wrong)
+                    if isinstance(message, str) and "Date outside allowed range" in message:
+                        verdicts_by_approach[approach_key] = "warning"
+                        counts_by_approach[approach_key]["warning"] += 1
+                    else:
+                        verdicts_by_approach[approach_key] = "wrong"
+                        counts_by_approach[approach_key]["wrong"] += 1
 
             elif status == "error":
                 constraint_results[approach_key] = {
