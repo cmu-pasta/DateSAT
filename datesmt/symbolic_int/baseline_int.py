@@ -153,13 +153,63 @@ def add_days_ordinal(y, m, d, delta_days) -> Tuple[ArithRef, ArithRef, ArithRef]
     out_d = If(no_shift, d, If(stays_in_month, d_within, d_ordinal))
     return out_y, out_m, out_d
 
+def add_days_componentwise(y, m, d, delta_days: int) -> Tuple[ArithRef, ArithRef, ArithRef]:
+    """
+    Add a concrete day offset by iteratively carrying into months/years.
+    """
+    if delta_days == 0:
+        return y, m, d
+
+    one = IntVal(1)
+    twelve = IntVal(12)
+    cur_y, cur_m, cur_d = y, m, d
+
+    if delta_days > 0:
+        for _ in range(delta_days):
+            max_day = days_in_month(cur_y, cur_m)
+            next_day = cur_d + one
+            overflow = next_day > max_day
+            month_plus_one = cur_m + one
+            month_wrap = month_plus_one > twelve
+
+            new_day = If(overflow, one, next_day)
+            new_month = If(
+                overflow,
+                If(month_wrap, one, month_plus_one),
+                cur_m,
+            )
+            new_year = If(
+                overflow,
+                If(month_wrap, cur_y + one, cur_y),
+                cur_y,
+            )
+
+            cur_y, cur_m, cur_d = new_year, new_month, new_day
+        return cur_y, cur_m, cur_d
+
+    for _ in range(-delta_days):
+        prev_day = cur_d - one
+        underflow = prev_day < one
+        month_minus_one = cur_m - one
+        month_wrap = month_minus_one < one
+
+        prev_year = If(month_wrap, cur_y - one, cur_y)
+        normalized_month = If(month_wrap, twelve, month_minus_one)
+        prev_max_day = days_in_month(prev_year, normalized_month)
+
+        new_day = If(underflow, prev_max_day, prev_day)
+        new_month = If(underflow, normalized_month, cur_m)
+        new_year = If(underflow, prev_year, cur_y)
+
+        cur_y, cur_m, cur_d = new_year, new_month, new_day
+
+    return cur_y, cur_m, cur_d
 
 def _dbm_index(y, idx) -> ArithRef:
     """days_before_month for fixed idx∈{1..12} as a Z3 term."""
     non = IntVal(_NONLEAP_PREFIX[idx - 1])
     lep = IntVal(_LEAP_PREFIX[idx - 1])
     return If(is_leap(y), lep, non)
-
 
 class DateVar:
     """Symbolic date variable for baseline implementation."""
@@ -240,7 +290,7 @@ class DateVar:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
     def __ne__(self, other) -> BoolRef:
-        """Support x != date comparison using ordinal arithmetic."""
+        """Support x != date comparison."""
         if isinstance(other, Date) or isinstance(other, DateVar):
             return Not(self.__eq__(other))
         else:
@@ -251,7 +301,7 @@ class DateVar:
         DateVar + Period following baseline semantics:
         1) Combine Y and M (normalize months into 1..12 with year carry)
         2) Apply EOM clamp: day := min(original_day, days_in_month(new_year,new_month))
-        3) Add D days in ordinal space (exact day arithmetic)
+        3) Add D days via iterative day carry (month/year rollover as required)
 
         Optimizations:
         - Fast path: If period is days-only (years=0, months=0), skip month normalization
@@ -270,8 +320,8 @@ class DateVar:
             # Check at Python level since Period components are concrete integers
             if period_years == 0 and period_months == 0:
                 # Days-only path: directly add days
-                y2, m2, d2 = add_days_ordinal(
-                    self.year, self.month, self.day, IntVal(period_days)
+                y2, m2, d2 = add_days_componentwise(
+                    self.year, self.month, self.day, period_days
                 )
                 result.year, result.month, result.day = y2, m2, d2
                 return result
@@ -287,8 +337,8 @@ class DateVar:
             # Step 2: Apply EOM clamp: day := min(original_day, days_in_month(new_year,new_month))
             d1 = eom_clamp(y1, m1, self.day)
 
-            # Step 3: Add D days in ordinal space (exact day arithmetic)
-            y2, m2, d2 = add_days_ordinal(y1, m1, d1, IntVal(period_days))
+            # Step 3: Add D days via iterative carry across month/year boundaries
+            y2, m2, d2 = add_days_componentwise(y1, m1, d1, period_days)
 
             result.year, result.month, result.day = y2, m2, d2
             return result

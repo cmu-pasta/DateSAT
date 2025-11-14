@@ -42,8 +42,7 @@ From core.py
 ### DateVar + Period
 
 **Optimizations:**
-- **Days-only fast path**: If period has only days (years=0, months=0), skip month normalization and EOM clamp, directly add days
-- **Within-month fast path**: When adding days, if the result stays within the same month, avoid ordinal conversion and use simple addition
+- **Days-only fast path**: If period has only days (years=0, months=0), skip month normalization and end-of-month clamping and apply the iterative day carry immediately.
 
 **Full Path (when months/years are present):**
 
@@ -55,10 +54,10 @@ From core.py
    - **EOM Clamp**: When adding months to a date, if the original day doesn't exist in the target month (e.g., Jan 31 + 1 month = Feb 31), clamp the day to the last valid day of that month (Feb 28/29)
    - `day = min(original_day, days_in_month(new_year, new_month))`
 
-3. **Add Days**: Uses `add_days_ordinal()` which:
-   - Fast path 1: If delta_days == 0, return unchanged date
-   - Fast path 2: If result stays within same month (1 ≤ day + delta_days ≤ days_in_month), use simple addition
-   - Otherwise: Convert dates to days since EPOCH (2000-03-01), perform exact integer arithmetic, then convert back to year/month/day
+3. **Add Days**: Apply the day offset by iteratively stepping forward/backward one day at a time.
+   - Each step checks whether the day goes past the current month’s limit (using the leap-aware `days_in_month` helper)
+   - If the bound is exceeded, roll into the next/previous month and adjust the year when crossing December/January
+   - Repeat for the absolute value of the concrete day offset
 
 ### DateVar Comparisons
 
@@ -68,4 +67,4 @@ From core.py
 
 - `DateVar` - Symbolic date variable with year/month/day components
 - `BaselineSolver` - Constraint solver with comprehensive date validation
-- Helper functions: `is_leap()`, `days_in_month()`, `normalize_month()`, `eom_clamp()`, `days_before_year()`, `days_before_month()`, `to_ordinal()`, `from_ordinal()`, `ymd_from_days_since_epoch()`, `days_since_epoch_from_ymd()`, `add_days_ordinal()`
+- Helper functions: `is_leap()`, `days_in_month()`, `normalize_month()`, `eom_clamp()`, `add_days_componentwise()`, plus legacy ordinal helpers (`days_before_year()`, `days_before_month()`, `to_ordinal()`, `from_ordinal()`, `ymd_from_days_since_epoch()`, `days_since_epoch_from_ymd()`, `add_days_ordinal()`)
