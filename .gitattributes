@@ -1,2 +1,2 @@
-dataset/LLM_gen_constraints/results/**/*.smt2 filter=lfs diff=lfs merge=lfs -text
 dataset/LLM_gen_constraints/results/**/*.json filter=lfs diff=lfs merge=lfs -text
+dataset/LLM_gen_constraints/results/**/*.smt2 filter=lfs diff=lfs merge=lfs -text
