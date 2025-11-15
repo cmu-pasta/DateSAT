@@ -65,16 +65,6 @@ def run_constraint_with_approach(
     description = constraint_data.get("description", "")
     coverage_tags = constraint_data.get("coverage_tags", [])
 
-    # Get constraint code from new format
-    constraint_code = _get_constraint_code(constraint_data)
-
-    print(
-        f"\n=== Running {constraint_id} ({approach.upper()}, {implementation.upper()}) ==="
-    )
-    print(f"Description: {description}")
-    print(f"Coverage tags: {', '.join(coverage_tags)}")
-    print(f"Constraint: {constraint_code}")
-
     result = {
         # New format fields (copied directly from input)
         "id": constraint_id,
@@ -83,7 +73,7 @@ def run_constraint_with_approach(
         "coverage_tags": coverage_tags,
         # Old format fields (for backward compatibility)
         "constraint_id": constraint_id,
-        "constraint_code": constraint_code,
+        "constraint_code": None,
         # Execution metadata
         "approach": approach,
         "implementation": implementation,
@@ -96,6 +86,16 @@ def run_constraint_with_approach(
 
     start_time = time.time()
     try:
+        # Get constraint code from new format (inside try block to catch parsing errors)
+        constraint_code = _get_constraint_code(constraint_data)
+        result["constraint_code"] = constraint_code
+
+        print(
+            f"\n=== Running {constraint_id} ({approach.upper()}, {implementation.upper()}) ==="
+        )
+        print(f"Description: {description}")
+        print(f"Coverage tags: {', '.join(coverage_tags)}")
+        print(f"Constraint: {constraint_code}")
 
         # Handle enumeration baseline differently (it doesn't use DateSMTBuilder)
         if approach == "enumeration":
@@ -150,30 +150,47 @@ def run_constraint_with_approach(
             # Solve
             solve_result = builder.solve()
 
-            # Detect Z3 timeout and normalize status to "timeout" instead of mislabeling as unsat
-            if result["status"] != "sat":
-                try:
-                    # Access underlying z3.Solver via builder.solver.solver
-                    solver_wrapper = getattr(builder, "solver", None)
-                    z3_solver = getattr(solver_wrapper, "solver", None)
-                    if z3_solver is not None:
-                        reason = (
-                            str(getattr(z3_solver, "reason_unknown", lambda: "")())
-                            .strip()
-                            .lower()
-                        )
-                        if reason == "timeout" or "timeout" in reason:
-                            result["status"] = "timeout"
-                            # Preserve the reason for diagnostics
-                            if not result.get("error_message"):
-                                result["error_message"] = reason
-                except Exception:
-                    # Best-effort; ignore probing errors
-                    pass
-
         end_time = time.time()
         result["execution_time"] = end_time - start_time
         result["status"] = solve_result["status"]
+        
+        # Detect Z3 timeout and normalize status to "timeout" instead of mislabeling as unsat
+        # This check applies to both enumeration and symbolic approaches
+        # When Z3 times out, check() returns unknown, but solve() methods may return "unsat"
+        # So we need to check Z3's reason_unknown to detect actual timeouts
+        if result["status"] == "unsat" or result["status"] not in ["sat", "timeout"]:
+            try:
+                # For symbolic approaches, check Z3's reason_unknown
+                if approach != "enumeration":
+                    solver_wrapper = getattr(builder, "solver", None)
+                    z3_solver = getattr(solver_wrapper, "solver", None)
+                    if z3_solver is not None:
+                        # Check Z3's reason_unknown - this is set when check() returns unknown
+                        # reason_unknown() is a method that returns the reason string
+                        try:
+                            reason = str(z3_solver.reason_unknown()).strip().lower()
+                            if reason == "timeout" or "timeout" in reason:
+                                result["status"] = "timeout"
+                                # Preserve the reason for diagnostics
+                                if not result.get("error_message"):
+                                    result["error_message"] = reason
+                        except (AttributeError, TypeError):
+                            # If reason_unknown is not available or not callable, try as attribute
+                            try:
+                                reason = str(getattr(z3_solver, "reason_unknown", "")).strip().lower()
+                                if reason == "timeout" or "timeout" in reason:
+                                    result["status"] = "timeout"
+                                    if not result.get("error_message"):
+                                        result["error_message"] = reason
+                            except Exception:
+                                pass
+                # For enumeration, solve_result should already have correct status
+                # but we check solve_result directly just in case
+                elif "timeout" in str(solve_result.get("reason", "")).lower():
+                    result["status"] = "timeout"
+            except Exception:
+                # Best-effort; ignore probing errors
+                pass
         result["solution"] = solve_result.get("dates", {})
         if solve_result.get("periods"):
             result["solution"].update(solve_result["periods"])
@@ -188,6 +205,18 @@ def run_constraint_with_approach(
         else:
             print(f"❌ No solution found")
 
+    except ValueError as e:
+        # Handle parsing errors (e.g., unsupported operations in constraints)
+        end_time = time.time()
+        result["execution_time"] = end_time - start_time
+        error_str = str(e)
+        if "Could not parse constraint" in error_str:
+            result["status"] = "parse_error"
+            result["error_message"] = error_str
+            print(f"🚫 PARSE ERROR: {error_str}")
+        else:
+            result["error_message"] = error_str
+            print(f"❌ Error: {e}")
     except TimeoutError as e:
         end_time = time.time()
         result["execution_time"] = end_time - start_time

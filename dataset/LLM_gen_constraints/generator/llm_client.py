@@ -85,6 +85,7 @@ The "constraints" field supports Conjunctive Normal Form (CNF) where:
 - Each element can be a string (single constraint) or a list of strings (OR clause)
 - All top-level constraints are ANDed together
 - Lists of strings are ORed together
+- Include OR clauses regularly: aim for at least one third of the constraint objects to contain at least one OR clause (list of strings). These OR clauses count as a single constraint toward any min/max constraint requirements.
 
 Examples:
 - Simple AND: ["x >= Date(2000,2,28)", "x <= Date(2000,3,1)"] → (x >= Date(2000,2,28)) AND (x <= Date(2000,3,1))
@@ -95,7 +96,7 @@ STYLE FOR constraints
 - Write constraints as individual strings that can be parsed by the constraint parser.
 - Use simple, readable constraint expressions.
 - Each constraint should be a complete boolean expression.
-- You can use OR clauses (lists of strings) when multiple alternative constraints are needed.
+- Use OR clauses (lists of strings) when multiple alternative constraints are needed; an OR clause counts as a single top-level constraint.
 - Example format:
   "x >= Date(2000,2,28)"
   "(x + Period(0,1,0)) > (y + Period(0,0,31))"
@@ -111,7 +112,7 @@ OUTPUT REQUIREMENTS
 - No code fences, markdown, trailing commas, or comments.
 - Use only ASCII quotes in JSON strings.
 - Each constraint string must be parseable by the constraint parser.
-- You can optionally use CNF format with OR clauses when it makes semantic sense (e.g., when multiple alternative constraints are needed)."""
+- Use CNF format with OR clauses whenever multiple alternative constraints are needed, ensuring the OR usage target above is met."""
 
 
 def _basic_schema_ok(items: Any) -> bool:
@@ -134,12 +135,21 @@ def _basic_schema_ok(items: Any) -> bool:
         # Validate types
         if not isinstance(it["description"], str):
             return False
-        if not isinstance(it["constraints"], list) or not it["constraints"]:
+        constraints = it.get("constraints")
+        if not isinstance(constraints, list) or not constraints:
             return False
         if not isinstance(it["coverage_tags"], list):
             return False
-        # Validate constraint strings
-        if not all(isinstance(c, str) for c in it["constraints"]):
+        # Validate constraint strings and OR clauses
+        for clause in constraints:
+            if isinstance(clause, str):
+                continue
+            if (
+                isinstance(clause, list)
+                and clause
+                and all(isinstance(option, str) for option in clause)
+            ):
+                continue
             return False
         # Validate coverage tags
         if not all(isinstance(tag, str) for tag in it["coverage_tags"]):
@@ -210,6 +220,20 @@ def _normalize_to_dict_format(items: List[Any]) -> List[Dict]:
         else:
             raise ValueError(f"Unexpected constraint format: {type(item)}")
     return result
+
+
+def _count_constraints(constraints: List[Any]) -> int:
+    """Count top-level constraints, treating OR clauses as single entries."""
+    count = 0
+    for clause in constraints:
+        if isinstance(clause, str):
+            count += 1
+        elif isinstance(clause, list):
+            count += 1
+        else:
+            # Should be filtered by _basic_schema_ok, but ignore silently here.
+            continue
+    return count
 
 
 def _detect_provider_and_model() -> tuple[str, str]:
@@ -353,17 +377,25 @@ class LLMClient:
 
             # Build constraint count instructions
             constraint_count_instruction = ""
+            min_c = (
+                min_constraints_per_object
+                if min_constraints_per_object is not None
+                else 1
+            )
+            max_c = (
+                max_constraints_per_object
+                if max_constraints_per_object is not None
+                else 8
+            )
             if exact_constraints_per_object is not None:
                 constraint_count_instruction = (
                     f" CRITICAL: Each constraint object must have exactly {exact_constraints_per_object} constraints in its 'constraints' array. "
                     f"All {n} objects must have exactly {exact_constraints_per_object} constraints."
                 )
             else:
-                min_c = min_constraints_per_object if min_constraints_per_object is not None else 1
-                max_c = max_constraints_per_object if max_constraints_per_object is not None else 8
                 constraint_count_instruction = (
                     f" CRITICAL: Vary the number of constraints per object. Each constraint object must have between {min_c} and {max_c} constraints "
-                    f"(inclusive) in its 'constraints' array. "
+                    f"(inclusive) in its 'constraints' array. Treat each top-level entry as one constraint; an OR clause represented as a list counts as a single constraint toward this total. "
                     f"Generate a diverse mix - some objects should have {min_c} constraint(s), some should have {max_c} constraints, "
                     f"and others should have various counts in between. Do NOT make all objects have the same number of constraints."
                 )
@@ -383,6 +415,18 @@ class LLMClient:
                     items = json.loads(local_norm)
                     if not _basic_schema_ok(items):
                         raise ValueError("Output failed basic schema validation.")
+                    for idx, it in enumerate(items, start=1):
+                        constraint_total = _count_constraints(it["constraints"])
+                        if exact_constraints_per_object is not None:
+                            if constraint_total != exact_constraints_per_object:
+                                raise ValueError(
+                                    f"Constraint object {idx} has {constraint_total} constraints; expected exactly {exact_constraints_per_object}."
+                                )
+                        else:
+                            if constraint_total < min_c or constraint_total > max_c:
+                                raise ValueError(
+                                    f"Constraint object {idx} has {constraint_total} constraints; expected between {min_c} and {max_c}."
+                                )
                     return items
                 except Exception as e:
                     local_last_err = e

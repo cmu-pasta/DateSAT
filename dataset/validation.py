@@ -28,6 +28,18 @@ from datesmt.core import Date, Period
 DATE_RE = re.compile(r"^Date\((\-?\d{1,6}),\s*(\d{1,2}),\s*(\d{1,2})\)$")
 PERIOD_RE = re.compile(r"^Period\((\-?\d+),\s*(\-?\d+),\s*(\-?\d+)\)$")
 
+ERROR_STATUS_VALUES = {"error", "parse_error", "validation_error", "builder_error"}
+
+
+def normalize_status(status: Optional[str]) -> str:
+    """Normalize status strings for downstream analysis."""
+    if not status:
+        return "unknown"
+    status_lower = status.lower()
+    if status_lower in ERROR_STATUS_VALUES:
+        return "error"
+    return status_lower
+
 
 def parse_date_string(date_str: str) -> Date:
     """Parse a Date string into a Date object."""
@@ -416,6 +428,9 @@ def summarize_constraint(
     approach_statuses: Dict[str, str] = {
         a: r.get("status", "unknown") for a, r in flattened_approaches.items()
     }
+    normalized_statuses: Dict[str, str] = {
+        a: normalize_status(status) for a, status in approach_statuses.items()
+    }
     sat_recs = {
         a: r for a, r in flattened_approaches.items() if r.get("status") == "sat"
     }
@@ -430,7 +445,9 @@ def summarize_constraint(
             enumeration_key = key
             break
 
-    enumeration_status = approach_statuses.get(enumeration_key) if enumeration_key else None
+    enumeration_status = (
+        normalized_statuses.get(enumeration_key) if enumeration_key else None
+    )
 
     # For description, pick SAT one if any, else any
     any_rec = next(iter(sat_recs.values()), next(iter(flattened_approaches.values())))
@@ -446,12 +463,14 @@ def summarize_constraint(
     per_approach_verdict: Dict[str, str] = {}
 
     # Check if all methods are SAT
-    all_sat = len(approach_statuses) > 0 and all(
-        s == "sat" for s in approach_statuses.values() if s != "timeout" and s != "error"
+    all_sat = len(normalized_statuses) > 0 and all(
+        s == "sat" for s in normalized_statuses.values() if s not in ("timeout", "error")
     )
 
     # Check if everything is UNSAT
-    non_timeout_statuses = [s for s in approach_statuses.values() if s != "timeout" and s != "error"]
+    non_timeout_statuses = [
+        s for s in normalized_statuses.values() if s not in ("timeout", "error")
+    ]
     all_unsat = len(non_timeout_statuses) > 0 and all(s == "unsat" for s in non_timeout_statuses)
 
     # Check if enumeration is SAT but others are UNSAT
@@ -466,12 +485,12 @@ def summarize_constraint(
         and enum_valid
         and all(
             s == "unsat"
-            for k, s in approach_statuses.items()
-            if k != enumeration_key and s != "timeout" and s != "error"
+            for k, s in normalized_statuses.items()
+            if k != enumeration_key and s not in ("timeout", "error")
         )
     )
 
-    for a, status in approach_statuses.items():
+    for a, status in normalized_statuses.items():
         if status == "error":
             per_approach_verdict[a] = "error"
         elif status == "timeout":
@@ -525,7 +544,7 @@ def summarize_constraint(
             per_approach_verdict[a] = "wrong"
 
     # Retain aggregate verdict fields for backward-compatibility
-    any_error = any(s == "error" for s in approach_statuses.values())
+    any_error = any(s == "error" for s in normalized_statuses.values())
     if any_error and not any(s == "sat" for s in approach_statuses.values()) and not all_unsat:
         verdict = "error"
         unsat_consensus = False
@@ -866,6 +885,7 @@ def validate_results_with_concrete(results_dir: Path) -> Dict[str, Any]:
 
         for approach_key, record in approaches.items():
             status = record.get("status", "unknown")
+            normalized_status = normalize_status(status)
             approach_statuses[approach_key] = status
 
             # Initialize counts for this approach
@@ -879,7 +899,7 @@ def validate_results_with_concrete(results_dir: Path) -> Dict[str, Any]:
                 }
 
             # Handle different statuses
-            if status == "sat":
+            if normalized_status == "sat":
                 solution = record.get("solution", {})
 
                 # Construct constraint data from record
@@ -923,7 +943,7 @@ def validate_results_with_concrete(results_dir: Path) -> Dict[str, Any]:
                         verdicts_by_approach[approach_key] = "wrong"
                         counts_by_approach[approach_key]["wrong"] += 1
 
-            elif status == "error":
+            elif normalized_status == "error":
                 constraint_results[approach_key] = {
                     "valid": False,
                     "message": f"Error status: {record.get('error_message', 'Unknown error')}",
@@ -931,7 +951,7 @@ def validate_results_with_concrete(results_dir: Path) -> Dict[str, Any]:
                 }
                 verdicts_by_approach[approach_key] = "error"
                 counts_by_approach[approach_key]["error"] += 1
-            elif status == "timeout":
+            elif normalized_status == "timeout":
                 constraint_results[approach_key] = {
                     "valid": False,
                     "message": "Solver timeout",
@@ -943,7 +963,7 @@ def validate_results_with_concrete(results_dir: Path) -> Dict[str, Any]:
                 # UNSAT or other statuses
                 constraint_results[approach_key] = {
                     "valid": False,
-                    "message": f"Status: {status}",
+                    "message": f"Status: {normalized_status}",
                     "solution": record.get("solution", {}),
                 }
                 # For UNSAT, we'd need to check consensus to determine correct/wrong

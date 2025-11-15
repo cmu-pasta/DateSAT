@@ -1,0 +1,380 @@
+[
+  {
+    "description": "Nested period operations with brackets involving leap year dates",
+    "constraints": [
+      "x >= Date(2020, 1, 1)",
+      "x <= Date(2020, 3, 1)",
+      "y == x - (Period(0, 0, 10) + Period(0, 1, 0))",
+      "z == y + (Period(0, 1, 0) - Period(0, 0, 2))",
+      "z <= Date(2020, 2, 29)",
+      "z >= Date(2020, 2, 25)"
+    ],
+    "coverage_tags": [
+      "chain_ops_brackets"
+    ],
+    "id": "1763103128-1"
+  },
+  {
+    "description": "Complex period subtraction with brackets across month boundaries",
+    "constraints": [
+      "start_date == Date(2023, 3, 15)",
+      "end_date == start_date + (Period(0, 3, 0) - Period(0, 0, 5))",
+      "mid_date == start_date + (Period(0, 1, 15) - Period(0, 0, 10))"
+    ],
+    "coverage_tags": [
+      "chain_ops_brackets"
+    ],
+    "id": "1763103128-2"
+  },
+  {
+    "description": "Nested period operations with multiple variables and OR conditions",
+    "constraints": [
+      "x >= Date(2024, 1, 1)",
+      "y == x + (Period(0, 2, 0) - Period(0, 0, 15))",
+      [
+        "y <= Date(2024, 2, 29)",
+        "y >= Date(2024, 3, 10)"
+      ],
+      "z == y - (Period(0, 1, 0) + Period(0, 0, 5))"
+    ],
+    "coverage_tags": [
+      "chain_ops_brackets"
+    ],
+    "id": "1763103128-3"
+  },
+  {
+    "description": "Complex period calculations with brackets across year boundaries",
+    "constraints": [
+      "start_date == Date(2019, 12, 15)",
+      "mid_date == start_date + (Period(0, 3, 0) - Period(0, 0, 15))",
+      "end_date == mid_date + (Period(0, 0, 30) - Period(0, 0, 5))",
+      "final_date == end_date - (Period(0, 1, 0) + Period(0, 0, 10))",
+      "final_date >= Date(2020, 2, 15)"
+    ],
+    "coverage_tags": [
+      "chain_ops_brackets"
+    ],
+    "id": "1763103128-4"
+  },
+  {
+    "description": "Nested period operations with multiple variables and complex constraints",
+    "constraints": [
+      "base_date == Date(2022, 1, 15)",
+      "date1 == base_date + (Period(0, 1, 0) - Period(0, 0, 5))",
+      "date2 == date1 - (Period(0, 0, 10) + Period(0, 0, 5))",
+      [
+        "date2 >= Date(2022, 1, 25)",
+        "date2 <= Date(2022, 1, 20)"
+      ],
+      "date3 == date2 + (Period(0, 2, 0) - Period(0, 0, 15))"
+    ],
+    "coverage_tags": [
+      "chain_ops_brackets"
+    ],
+    "id": "1763103128-5"
+  },
+  {
+    "description": "Nested bracket operations with leap year edge case",
+    "constraints": [
+      "x == Date(2020, 2, 28)",
+      "y == x + (Period(0, 0, 1) + Period(0, 0, 1))",
+      "z == x + (Period(0, 0, 1) - Period(0, 0, -1))",
+      "w == y - (Period(0, 0, 2) - Period(0, 0, 1))",
+      "v == z - (Period(0, 0, 1) + Period(0, 0, 1))",
+      "w == Date(2020, 2, 29)"
+    ],
+    "coverage_tags": [
+      "chain_ops_brackets"
+    ],
+    "id": "1763103128-6"
+  },
+  {
+    "description": "Complex period calculations with brackets across month boundaries",
+    "constraints": [
+      "start_date == Date(2023, 1, 31)",
+      "end_date == start_date + (Period(0, 1, 0) - Period(0, 0, 3))",
+      "mid_date == start_date + (Period(0, 0, 15) + Period(0, 0, 10))",
+      [
+        "end_date == Date(2023, 2, 28)",
+        "mid_date > Date(2023, 2, 20)"
+      ]
+    ],
+    "coverage_tags": [
+      "chain_ops_brackets"
+    ],
+    "id": "1763103128-7"
+  },
+  {
+    "description": "Nested period calculations with multiple variables",
+    "constraints": [
+      "date1 == Date(2024, 6, 15)",
+      "date2 == date1 + (Period(0, 3, 0) - Period(0, 1, 15))",
+      "date3 == date2 - (Period(0, 0, 10) + Period(0, 0, 5))"
+    ],
+    "coverage_tags": [
+      "chain_ops_brackets"
+    ],
+    "id": "1763103128-8"
+  },
+  {
+    "description": "Complex period arithmetic with brackets and multiple variables",
+    "constraints": [
+      "base_date == Date(2022, 12, 31)",
+      "next_date == base_date + (Period(0, 2, 0) - Period(0, 0, 15))",
+      "alt_date == base_date + (Period(0, 1, 31) + Period(0, 0, 1))",
+      "final_date == next_date - (Period(0, 0, 28) - Period(0, 0, 14))",
+      [
+        "alt_date > Date(2023, 2, 15)",
+        "final_date < Date(2023, 3, 1)"
+      ]
+    ],
+    "coverage_tags": [
+      "chain_ops_brackets"
+    ],
+    "id": "1763103128-9"
+  },
+  {
+    "description": "Nested operations with period multiplication and subtraction",
+    "constraints": [
+      "anchor == Date(2025, 1, 1)",
+      "target == anchor + (Period(1, 0, 0) - Period(0, 0, 1) * 30)",
+      "midpoint == anchor + (Period(0, 6, 0) - Period(0, 0, 15))",
+      "checkpoint == midpoint + (Period(0, 3, 0) * 2 - Period(0, 0, 10))",
+      "endpoint == target - (Period(0, 1, 0) + Period(0, 0, 15))",
+      [
+        "checkpoint > Date(2025, 8, 15)",
+        "endpoint < Date(2025, 12, 1)"
+      ]
+    ],
+    "coverage_tags": [
+      "chain_ops_brackets"
+    ],
+    "id": "1763103128-10"
+  },
+  {
+    "description": "Nested bracket operations with leap year date calculations",
+    "constraints": [
+      "x >= Date(2020, 1, 1)",
+      "x <= Date(2020, 3, 1)",
+      "y == x - (Period(0, 1, 0) + Period(0, 0, 15))",
+      "z == x + (Period(0, 2, 0) - Period(0, 0, 10))",
+      "y < Date(2020, 1, 1)",
+      "z > Date(2020, 3, 15)"
+    ],
+    "coverage_tags": [
+      "chain_ops_brackets"
+    ],
+    "id": "1763103128-11"
+  },
+  {
+    "description": "Complex period calculations with brackets around February leap day",
+    "constraints": [
+      "start_date == Date(2020, 2, 15)",
+      "end_date == start_date + (Period(0, 0, 20) - Period(0, 0, 5))",
+      "mid_date == start_date + (Period(0, 0, 14) - Period(0, 0, 0))",
+      [
+        "end_date == Date(2020, 3, 1)",
+        "mid_date == Date(2020, 2, 29)"
+      ]
+    ],
+    "coverage_tags": [
+      "chain_ops_brackets"
+    ],
+    "id": "1763103128-12"
+  },
+  {
+    "description": "Nested period operations with multiple variables",
+    "constraints": [
+      "date1 >= Date(2019, 12, 1)",
+      "date1 <= Date(2020, 1, 31)",
+      "date2 == date1 + (Period(0, 2, 0) - Period(0, 0, 15))"
+    ],
+    "coverage_tags": [
+      "chain_ops_brackets"
+    ],
+    "id": "1763103128-13"
+  },
+  {
+    "description": "Complex bracketed period calculations across month boundaries",
+    "constraints": [
+      "base_date == Date(2023, 1, 15)",
+      "result1 == base_date + (Period(0, 1, 15) - Period(0, 0, 10))",
+      "result2 == base_date - (Period(0, 2, 0) - Period(0, 0, 20))",
+      "result3 == base_date + (Period(1, 0, 0) - (Period(0, 11, 0) + Period(0, 0, 15)))",
+      [
+        "result1 > Date(2023, 2, 15)",
+        "result2 < Date(2022, 12, 5)"
+      ]
+    ],
+    "coverage_tags": [
+      "chain_ops_brackets"
+    ],
+    "id": "1763103128-14"
+  },
+  {
+    "description": "Nested period operations with multiplication and subtraction",
+    "constraints": [
+      "start == Date(2024, 1, 1)",
+      "end == start + (Period(0, 3, 0) * 2 - Period(0, 1, 15))",
+      "mid == start + (Period(0, 1, 0) * 3 - Period(0, 0, 15) * 2)",
+      "end > Date(2024, 4, 15)",
+      "mid < end",
+      "mid > start"
+    ],
+    "coverage_tags": [
+      "chain_ops_brackets"
+    ],
+    "id": "1763103128-15"
+  },
+  {
+    "description": "Complex bracket operations with leap year edge case",
+    "constraints": [
+      "x == Date(2020, 2, 28)",
+      "y == x + (Period(0, 0, 1) + Period(0, 0, 1))",
+      "z == x - (Period(0, 0, 1) - Period(0, 0, 2))",
+      "w == y + (Period(0, 0, 1) - Period(0, 0, 0))",
+      "w == Date(2020, 3, 1)",
+      "z == Date(2020, 2, 29)"
+    ],
+    "coverage_tags": [
+      "chain_ops_brackets"
+    ],
+    "id": "1763103128-16"
+  },
+  {
+    "description": "Nested period calculations with brackets at month boundaries",
+    "constraints": [
+      "start_date == Date(2023, 1, 31)",
+      "end_date == start_date + (Period(0, 1, 0) - Period(0, 0, 3))",
+      "end_date == Date(2023, 2, 28)"
+    ],
+    "coverage_tags": [
+      "chain_ops_brackets"
+    ],
+    "id": "1763103128-17"
+  },
+  {
+    "description": "Multiple variable constraints with complex period calculations",
+    "constraints": [
+      "x == Date(2024, 1, 15)",
+      "y == x + (Period(0, 1, 15) - Period(0, 0, 15))",
+      "z == y - (Period(0, 0, 30) - Period(0, 0, 29))",
+      [
+        "z == Date(2024, 2, 14)",
+        "z == Date(2024, 2, 15)"
+      ],
+      "w == z + (Period(0, 0, 14) + Period(0, 0, 1))"
+    ],
+    "coverage_tags": [
+      "chain_ops_brackets"
+    ],
+    "id": "1763103128-18"
+  },
+  {
+    "description": "Nested period calculations with year boundaries",
+    "constraints": [
+      "start_date == Date(2019, 12, 31)",
+      "mid_date == start_date + (Period(0, 1, 0) - Period(0, 0, 1))",
+      "end_date == mid_date + (Period(0, 0, 30) - Period(0, 0, 29))",
+      "end_date == Date(2020, 1, 30)"
+    ],
+    "coverage_tags": [
+      "chain_ops_brackets"
+    ],
+    "id": "1763103128-19"
+  },
+  {
+    "description": "Complex period arithmetic with multiple variables and OR clauses",
+    "constraints": [
+      "base_date == Date(2022, 3, 30)",
+      [
+        "next_date == base_date + (Period(0, 1, 0) - Period(0, 0, 1))",
+        "next_date == base_date + (Period(0, 0, 29) + Period(0, 0, 0))"
+      ],
+      "alt_date == base_date - (Period(0, 1, 0) - Period(0, 1, 1))",
+      "final_date == next_date + (Period(0, 0, 1) + Period(0, 0, 1))",
+      [
+        "final_date == Date(2022, 5, 1)",
+        "final_date == Date(2022, 5, 2)"
+      ]
+    ],
+    "coverage_tags": [
+      "chain_ops_brackets"
+    ],
+    "id": "1763103128-20"
+  },
+  {
+    "description": "Nested bracket operations with multiple periods and date variables",
+    "constraints": [
+      "x == Date(2020, 2, 29)",
+      "y == Date(2021, 3, 1)",
+      "z == x - (Period(0, 1, 0) + Period(0, 0, 15))",
+      "w == y - (Period(0, 2, 0) - Period(0, 0, 10))",
+      "z < w",
+      "z > Date(2020, 1, 1)"
+    ],
+    "coverage_tags": [
+      "chain_ops_brackets"
+    ],
+    "id": "1763103128-21"
+  },
+  {
+    "description": "Leap year calculations with nested period operations",
+    "constraints": [
+      "start_date == Date(2020, 2, 29)",
+      "end_date == start_date - (Period(0, 0, 366) - Period(0, 0, 1))",
+      "middle_date == start_date - (Period(1, 0, 0) - Period(0, 11, 0))"
+    ],
+    "coverage_tags": [
+      "chain_ops_brackets"
+    ],
+    "id": "1763103128-22"
+  },
+  {
+    "description": "Complex period calculations with brackets across multiple variables",
+    "constraints": [
+      "base_date == Date(2022, 5, 15)",
+      "result1 == base_date + (Period(1, 0, 0) - Period(0, 3, 0))",
+      "result2 == base_date - (Period(0, 6, 0) + Period(0, 0, 15))",
+      [
+        "result1 < Date(2023, 3, 1)",
+        "result2 > Date(2021, 10, 31)"
+      ],
+      "result3 == result1 - (Period(0, 1, 0) * 2)"
+    ],
+    "coverage_tags": [
+      "chain_ops_brackets"
+    ],
+    "id": "1763103128-23"
+  },
+  {
+    "description": "Nested period operations with month-end considerations",
+    "constraints": [
+      "start_date == Date(2023, 1, 31)",
+      "adjusted_date == start_date + (Period(0, 1, 0) - Period(0, 0, 3))",
+      "final_date == adjusted_date - (Period(0, 0, 28) + Period(0, 0, 2))",
+      "final_date == Date(2023, 1, 28)"
+    ],
+    "coverage_tags": [
+      "chain_ops_brackets"
+    ],
+    "id": "1763103128-24"
+  },
+  {
+    "description": "Complex date calculations with nested period operations and OR conditions",
+    "constraints": [
+      "initial == Date(2024, 2, 29)",
+      [
+        "calculated == initial - (Period(0, 0, 365) + Period(0, 0, 1))",
+        "calculated == initial - Period(1, 0, 0)"
+      ],
+      "intermediate == initial + (Period(0, 1, 0) - Period(0, 0, 15))",
+      "final == intermediate - (Period(0, 0, 14) + Period(0, 0, 1))",
+      "final == Date(2024, 2, 29)"
+    ],
+    "coverage_tags": [
+      "chain_ops_brackets"
+    ],
+    "id": "1763103128-25"
+  }
+]

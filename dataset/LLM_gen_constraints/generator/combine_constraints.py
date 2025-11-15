@@ -12,6 +12,36 @@ from pathlib import Path
 from typing import List, Dict
 
 
+def _resolve_existing_dir(path_str: str, script_dir: Path) -> Path:
+    """Resolve a directory path, considering several relative bases."""
+    candidate = Path(path_str)
+    if candidate.is_absolute():
+        return candidate
+
+    parent_dir = script_dir.parent
+    for base in (Path.cwd(), script_dir, parent_dir):
+        resolved = (base / candidate).resolve()
+        if resolved.exists():
+            return resolved
+    # Fall back to assuming path relative to script_dir even if it doesn't exist,
+    # so the caller still sees a helpful error message.
+    return (script_dir / candidate).resolve()
+
+
+def _resolve_output_path(path_str: str, script_dir: Path) -> Path:
+    """Resolve an output path, allowing directories that don't exist yet."""
+    candidate = Path(path_str)
+    if candidate.is_absolute():
+        return candidate
+
+    parent_dir = script_dir.parent
+    for base in (Path.cwd(), script_dir, parent_dir):
+        resolved = (base / candidate).resolve()
+        if resolved.parent.exists():
+            return resolved
+    return (script_dir / candidate).resolve()
+
+
 def combine_constraints(
     constraints_dir: str = "constraints", output_file: str = "constraints/all_constraints.json"
 ) -> None:
@@ -24,7 +54,7 @@ def combine_constraints(
     """
     # Get the script directory to resolve paths relative to it
     script_dir = Path(__file__).parent.resolve()
-    constraints_path = script_dir / constraints_dir
+    constraints_path = _resolve_existing_dir(constraints_dir, script_dir)
     
     if not constraints_path.exists():
         print(f"Error: Constraints directory '{constraints_dir}' does not exist")
@@ -71,7 +101,7 @@ def combine_constraints(
         return
     
     # Save combined constraints
-    output_path = script_dir / output_file
+    output_path = _resolve_output_path(output_file, script_dir)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     
     with open(output_path, 'w', encoding='utf-8') as f:

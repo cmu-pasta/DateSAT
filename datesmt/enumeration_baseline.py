@@ -36,7 +36,21 @@ class ConstraintWrapper:
             return False
 
     def is_equality_binding(self) -> bool:
-        return self.concrete_value is not None and self.var_ref is not None
+        """Check if this is an equality constraint that can bind a variable.
+        
+        Returns True if:
+        - Has a concrete value (direct binding: x == Date(...))
+        - OR has a var_ref and rhs_ref (can be evaluated: x == y or x == y + Period(...))
+        """
+        if self.var_ref is None:
+            return False
+        # Direct binding with concrete value
+        if self.concrete_value is not None:
+            return True
+        # Equality constraint with RHS that can be evaluated (variable or lazy operation)
+        if self.rhs_ref is not None:
+            return True
+        return False
 
     def get_rhs_value(self) -> Optional[Date]:
         if self.rhs_ref is not None:
@@ -94,9 +108,11 @@ class EnumerationDateVar:
         # Handle lazy operations
         if self._value is None and hasattr(self, '_lazy_op'):
             op_type, left, right = self._lazy_op
+            # Evaluate left first (this recursively handles nested lazy operations)
             left_val = left.get_value()
             if left_val is None:
                 return None
+            # Apply the operation to the left value
             py_date = left_val.to_python_date()
             if op_type == 'add':
                     result_date = py_date + relativedelta(
@@ -278,6 +294,9 @@ class EnumerationSolver:
     def _find_solution(self) -> Optional[Dict[str, Date]]:
         """Brute-force enumeration: enumerate all possible dates for all variables.
         
+        Pure enumeration baseline - no optimizations. Enumerates all combinations
+        of dates for all base variables and checks which satisfy the constraints.
+        
         If no variables are declared, evaluate constraints concretely using datetime.
         Otherwise, enumerate all possible date combinations for all declared variables.
         """
@@ -296,84 +315,19 @@ class EnumerationSolver:
                     if c.rhs_ref.name not in self.date_vars:
                         self.date_vars[c.rhs_ref.name] = c.rhs_ref
 
-        # Automatically bind variables that are assigned to a concrete Date
-        # and substitute them in all constraints
-        bound_assignments: Dict[str, Date] = {}
-        changed = True
-        while changed:
-            changed = False
-            for c in self.constraints:
-                if not isinstance(c, ConstraintWrapper):
-                    continue
-                if not c.is_equality_binding():
-                    continue
-                if c.var_ref is None:
-                    continue
-
-                name = c.var_ref.name
-                # Skip if already bound
-                if name in bound_assignments:
-                    continue
-
-                value = c.concrete_value
-                if value is None:
-                    # Try to evaluate RHS - if it references bound variables, substitute them
-                    if c.rhs_ref is not None:
-                        if isinstance(c.rhs_ref, Date):
-                            value = c.rhs_ref
-                        elif isinstance(c.rhs_ref, EnumerationDateVar):
-                            # If RHS is a bound variable, use its concrete date
-                            if c.rhs_ref.name in bound_assignments:
-                                value = bound_assignments[c.rhs_ref.name]
-                            else:
-                                # Check if it's a lazy operation (x + P or x - P) that can be evaluated
-                                if hasattr(c.rhs_ref, '_lazy_op'):
-                                    op_type, left, right = c.rhs_ref._lazy_op
-                                    if isinstance(left, EnumerationDateVar) and left.name in bound_assignments:
-                                        # Evaluate the lazy operation with the bound variable
-                                        left_date = bound_assignments[left.name]
-                                        py_date = left_date.to_python_date()
-                                        if op_type == 'add':
-                                            result_date = py_date + relativedelta(
-                                                years=right.years, months=right.months, days=right.days
-                                            )
-                                        elif op_type == 'sub':
-                                            result_date = py_date + relativedelta(
-                                                years=-right.years, months=-right.months, days=-right.days
-                                            )
-                                        else:
-                                            result_date = None
-                                        if result_date is not None:
-                                            try:
-                                                value = Date.from_python_date(result_date)
-                                            except ValueError:
-                                                pass
-                                # If still None, try get_value() - this should work if x is bound
-                                if value is None:
-                                    val = c.rhs_ref.get_value()
-                                    if val is not None:
-                                        value = val
-
-                if isinstance(value, Date):
-                    bound_assignments[name] = value
-                    if name not in self.date_vars:
-                        self.date_vars[name] = c.var_ref
-                    self.date_vars[name].set_value(value.year, value.month, value.day)
-                    changed = True
-
         # Get all base variables (skip intermediate lazy nodes)
+        # NO BINDING OPTIMIZATION - enumerate all base variables
         base_vars: List[str] = []
         for name in list(self.date_vars.keys()):
-            # skip intermediate lazy nodes
-            if '_plus_' in name or '_minus_' in name:
-                continue
-            if name in bound_assignments:
+            var = self.date_vars[name]
+            # skip intermediate lazy nodes (they have _lazy_op attribute)
+            if hasattr(var, '_lazy_op'):
                 continue
             base_vars.append(name)
 
         if not base_vars:
-            assignment = dict(bound_assignments)
-            return assignment if self._evaluate_constraints(assignment) else None
+            # No base variables to enumerate - evaluate constraints with empty assignment
+            return {} if self._evaluate_constraints({}) else None
 
         # Generate all valid dates for each variable (full range)
         all_valid_dates = self._generate_all_valid_dates()
@@ -389,7 +343,7 @@ class EnumerationSolver:
         start = time.time()
         timeout_s = self.timeout_ms / 1000.0
 
-        # Enumerate all combinations
+        # Enumerate all combinations - pure brute force
         from itertools import product
         for combo in product(*candidate_lists):
             if (time.time() - start) > timeout_s:
@@ -398,7 +352,7 @@ class EnumerationSolver:
                 )
 
             # Create assignment: map each variable to a date
-            assignment: Dict[str, Date] = dict(bound_assignments)
+            assignment: Dict[str, Date] = {}
             for vname, dpy in zip(base_vars, combo):
                 assignment[vname] = Date(dpy.year, dpy.month, dpy.day)
                 self.date_vars[vname].set_value(dpy.year, dpy.month, dpy.day)
@@ -446,7 +400,7 @@ class EnumerationSolver:
 
             # Reset lazy nodes so they recompute from base values
             for name, var in list(self.date_vars.items()):
-                if '_plus_' in name or '_minus_' in name:
+                if hasattr(var, '_lazy_op'):
                     var._hard_reset_value()  # ★
 
             # Set all base variable values for this assignment
