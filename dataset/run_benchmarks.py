@@ -282,7 +282,7 @@ def main():
         "--timeout",
         type=int,
         default=TIMEOUT_MS,
-        help="Timeout in milliseconds (default: 60000 = 1 minute)",
+        help="Timeout in milliseconds (default: 10000 = 10 seconds)",
     )
     parser.add_argument(
         "--no-analysis",
