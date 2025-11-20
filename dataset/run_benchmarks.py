@@ -312,7 +312,7 @@ def main():
             continue
 
         # Run constraint execution
-        all_results = run_constraints_file(
+        run_constraints_file(
             str(constraints_file), str(output_dir), args.timeout
         )
 
