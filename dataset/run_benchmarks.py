@@ -4,7 +4,6 @@ import os
 import re
 import sys
 import time
-from datetime import datetime
 from pathlib import Path
 
 # Ensure repository root is on sys.path so `import datesmt` works
