@@ -61,7 +61,7 @@ Evaluation
 [X] Add a baseline groundtruth just by enumerating with Python datetime library
 [ ] IAM Policies
 [ ] Look into vector distance in performance for diverse benchmark creation (diverse and hard) -> can use to prune benchmark
-[ ] Make a universal llm client code
+[X] Make a universal llm client code
 [ ] Verify that timeout now don't save as unsat, but as timeout
 [ ] Enable parallel runs
 

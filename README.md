@@ -101,8 +101,8 @@ export PYTHONPATH=$PYTHONPATH:$(pwd)
   - `symbolic_bitvector/` - Bitvector-based symbolic backends (baseline, epoch_days, hybrid, alpha_beta, alpha_beta_table)
 - `tests/` - Test suite (see `tests/README.md` for details)
 - `docs/` - Technical documentation (methods, implementations)
-- `dataset/LLM_gen_constraints/` - LLM-based constraint generation and testing tools
-  - `generator/` - Constraint generation scripts (llm_client.py, combine_constraints.py)
+- `dataset/llm_constraints/` - LLM-based constraint generation and testing tools
+  - `generator/` - Constraint generation scripts (constraint_generator.py, combine_constraints.py)
   - `constraints/` - Generated constraint JSON files
   - `run_tests.py` - Test runner for executing constraints against all DATE-SMT approaches
 - `dataset/validation.py` - Concrete validation for verifying solver solutions
