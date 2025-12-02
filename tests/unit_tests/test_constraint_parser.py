@@ -632,7 +632,7 @@ def test_cnf_format_with_z3_solvers(parser):
     
     # Test with int implementation
     for implementation in ['int', 'bitvector']:
-        for approach in ['baseline', 'epoch_days', 'hybrid', 'alpha_beta', 'alpha_beta_table']:
+        for approach in ['naive', 'epoch_days', 'hybrid', 'alpha_beta', 'alpha_beta_table']:
             builder = DateSMTBuilder(approach=approach, implementation=implementation)
             builder.enable_smtlib_print(False)  # Suppress output during tests
             

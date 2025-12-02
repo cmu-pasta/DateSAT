@@ -178,7 +178,7 @@ def run_constraints_file(
     # Define all methods to run
     baseline_approaches = ["enumeration"]
     symbolic_approaches = [
-        "baseline",
+        "naive",
         "epoch_days",
         "hybrid",
         "alpha_beta",

@@ -71,4 +71,4 @@ From core.py
 
 - `DateVar` - Symbolic date variable with alpha/beta components
 - `AlphaBetaSolver` - Constraint solver with alpha/beta range validation
-- Helper functions: `months_since_epoch_from_ym()`, `ym_from_months_since_epoch()`, `eom_clamp()` (reused from baseline), `days_in_month()` (reused from baseline), `add_days_ordinal()` (reused from baseline)
+- Helper functions: `months_since_epoch_from_ym()`, `ym_from_months_since_epoch()`, `eom_clamp()` (reused from naive), `days_in_month()` (reused from naive), `add_days_ordinal()` (reused from naive)

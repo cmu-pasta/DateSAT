@@ -28,7 +28,7 @@ from z3 import (
     sat
 )
 from ..core import Date, Period
-from .baseline_int import days_in_month, add_days_ordinal
+from .naive_int import days_in_month, add_days_ordinal
 _EPOCH_YEAR = 2000
 _EPOCH_MONTH = 3
 # Linearized epoch month as a Z3 Int numeral

@@ -88,7 +88,7 @@ The validation script will:
 
 Result files should contain JSON arrays of records, where each record has:
 - `constraint_id`: Unique identifier for the constraint
-- `approach`: The DATE-SMT approach used (e.g., "baseline", "epoch_days", "hybrid", "enumeration")
+- `approach`: The DATE-SMT approach used (e.g., "naive", "epoch_days", "hybrid", "enumeration")
 - `implementation`: The implementation type (e.g., "int", "bitvector", "baseline" for enumeration)
 - `status`: Solver status ("sat", "unsat", "timeout", etc.)
 - `solution`: Dictionary mapping variable names to solution values (for SAT results)
@@ -103,7 +103,7 @@ Example:
 [
   {
     "constraint_id": "test-1",
-    "approach": "baseline",
+    "approach": "naive",
     "implementation": "int",
     "status": "sat",
     "solution": {"x": "Date(2020, 3, 15)"},

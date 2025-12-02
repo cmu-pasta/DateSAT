@@ -1,6 +1,6 @@
-# Baseline Method
+# Naive Method
 
-The baseline method uses direct year-month-day representation for dates and performs component-wise arithmetic with proper normalization.
+The naive method uses direct year-month-day representation for dates and performs component-wise arithmetic with proper normalization.
 
 ## Data Types
 
@@ -66,5 +66,5 @@ From core.py
 ### Implementation Classes
 
 - `DateVar` - Symbolic date variable with year/month/day components
-- `BaselineSolver` - Constraint solver with comprehensive date validation
+- `NaiveSolver` - Constraint solver with comprehensive date validation
 - Helper functions: `is_leap()`, `days_in_month()`, `normalize_month()`, `eom_clamp()`, `add_days_componentwise()`, plus legacy ordinal helpers (`days_before_year()`, `days_before_month()`, `to_ordinal()`, `from_ordinal()`, `ymd_from_days_since_epoch()`, `days_since_epoch_from_ymd()`, `add_days_ordinal()`)

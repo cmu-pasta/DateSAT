@@ -32,7 +32,7 @@ Use pytest markers to test specific symbolic backends:
 
 ```bash
 # Test specific backends
-pytest tests/ -m baseline
+pytest tests/ -m naive
 pytest tests/ -m epoch_days
 pytest tests/ -m hybrid
 pytest tests/ -m alpha_beta
@@ -43,5 +43,5 @@ pytest tests/ -m int
 pytest tests/ -m bitvector
 
 # Test specific backend with specific method
-pytest tests/unit_tests/int -m baseline
+pytest tests/unit_tests/int -m naive
 ```

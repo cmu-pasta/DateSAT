@@ -115,7 +115,7 @@ def parse_cobertura(xml_path: Path):
         filename = cls.attrib.get('filename', '')
         if not filename or not filename.endswith('.py'):
             continue
-        # Expect paths like datesmt/core.py or datesmt/symbolic_int/baseline_int.py
+        # Expect paths like datesmt/core.py or datesmt/symbolic_int/naive_int.py
         module = filename.replace(os.sep, "/").replace('/', '.')
         if module.endswith('.py'):
             module = module[:-3]

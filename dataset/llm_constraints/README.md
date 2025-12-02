@@ -174,7 +174,7 @@ The script will:
 ### Running Constraint Tests (`run_tests.py`)
 
 The `run_tests.py` script tests all constraints with multiple approaches:
-- **Symbolic approaches**: baseline, epoch_days, hybrid, alpha_beta, alpha_beta_table (with both int and bitvector implementations)
+- **Symbolic approaches**: naive, epoch_days, hybrid, alpha_beta, alpha_beta_table (with both int and bitvector implementations)
 - **Baseline approaches**: enumeration (exhaustive enumeration)
 
 **Basic Usage:**
@@ -189,11 +189,11 @@ python dataset/llm_constraints/run_tests.py dataset/llm_constraints/constraints/
 - `--timeout`: Timeout in milliseconds for each constraint (default: 10 minutes)
 - `--methods`: Select specific methods to run (default: all methods). Can specify multiple methods.
   - Format options:
-    - `approach_implementation` (e.g., `baseline_bitvector`, `epoch_days_int`)
-    - `approach` (e.g., `baseline` - runs all implementations of that approach)
+    - `approach_implementation` (e.g., `naive_bitvector`, `epoch_days_int`)
+    - `approach` (e.g., `naive` - runs all implementations of that approach)
     - `implementation` (e.g., `bitvector` - runs all approaches with that implementation)
     - `enumeration` (baseline approach)
-  - Examples: `--methods baseline_bitvector enumeration` or `--methods bitvector`
+  - Examples: `--methods naive_bitvector enumeration` or `--methods bitvector`
 - `--analysis`: Enable analysis after constraint execution (default: enabled)
 - `--no-analysis`: Skip analysis and only run constraint execution
 
@@ -211,20 +211,20 @@ python dataset/llm_constraints/run_tests.py dataset/llm_constraints/constraints/
 # Run tests without analysis (faster, no validation)
 python dataset/llm_constraints/run_tests.py dataset/llm_constraints/constraints/1.json --no-analysis
 
-# Run only specific methods: baseline_bitvector and enumeration
-python dataset/llm_constraints/run_tests.py dataset/llm_constraints/constraints/all_constraints.json --methods baseline_bitvector enumeration
+# Run only specific methods: naive_bitvector and enumeration
+python dataset/llm_constraints/run_tests.py dataset/llm_constraints/constraints/all_constraints.json --methods naive_bitvector enumeration
 
 # Run all bitvector implementations
 python dataset/llm_constraints/run_tests.py dataset/llm_constraints/constraints/all_constraints.json --methods bitvector
 
-# Run baseline approach with both int and bitvector implementations
-python dataset/llm_constraints/run_tests.py dataset/llm_constraints/constraints/all_constraints.json --methods baseline
+# Run naive approach with both int and bitvector implementations
+python dataset/llm_constraints/run_tests.py dataset/llm_constraints/constraints/all_constraints.json --methods naive
 
 # Run multiple specific methods
-python dataset/llm_constraints/run_tests.py dataset/llm_constraints/constraints/all_constraints.json --methods baseline_int epoch_days_bitvector enumeration
+python dataset/llm_constraints/run_tests.py dataset/llm_constraints/constraints/all_constraints.json --methods naive_int epoch_days_bitvector enumeration
 
 # Test with all options
-python dataset/llm_constraints/run_tests.py dataset/llm_constraints/constraints/all_constraints.json --output-dir dataset/llm_constraints/results/full_test --timeout 120000 --methods baseline_bitvector --analysis
+python dataset/llm_constraints/run_tests.py dataset/llm_constraints/constraints/all_constraints.json --output-dir dataset/llm_constraints/results/full_test --timeout 120000 --methods naive_bitvector --analysis
 ```
 
 **Output:**
@@ -239,7 +239,7 @@ The script generates:
 
 **What Gets Tested:**
 By default, for each constraint, the script tests:
-1. All symbolic approaches (baseline, epoch_days, hybrid, alpha_beta, alpha_beta_table)
+1. All symbolic approaches (naive, epoch_days, hybrid, alpha_beta, alpha_beta_table)
 2. Both implementations (int and bitvector) for each symbolic approach
 3. The enumeration baseline approach
 

@@ -97,8 +97,8 @@ export PYTHONPATH=$PYTHONPATH:$(pwd)
 
 - `datesmt/` - Core library with data types and symbolic backends
   - `core.py` - Date and Period data structures
-  - `symbolic_int/` - Integer-based symbolic backends (baseline, epoch_days, hybrid, alpha_beta, alpha_beta_table)
-  - `symbolic_bitvector/` - Bitvector-based symbolic backends (baseline, epoch_days, hybrid, alpha_beta, alpha_beta_table)
+  - `symbolic_int/` - Integer-based symbolic backends (naive, epoch_days, hybrid, alpha_beta, alpha_beta_table)
+  - `symbolic_bitvector/` - Bitvector-based symbolic backends (naive, epoch_days, hybrid, alpha_beta, alpha_beta_table)
 - `tests/` - Test suite (see `tests/README.md` for details)
 - `docs/` - Technical documentation (methods, implementations)
 - `dataset/llm_constraints/` - LLM-based constraint generation and testing tools

@@ -330,7 +330,7 @@ def pytest_collection_modifyitems(config, items):
             or fspath.endswith("tests/unit_tests/core_data_structures/test_date.py")
             or fspath.endswith("tests/unit_tests/core_data_structures/test_period.py")
         ):
-            item.add_marker("baseline")
+            item.add_marker("naive")
             item.add_marker("epoch_days")
             item.add_marker("hybrid")
             item.add_marker("alpha_beta")

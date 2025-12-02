@@ -23,7 +23,7 @@ from z3 import (
     sat
 )
 from ..core import Date, Period
-from .baseline_int import (
+from .naive_int import (
     is_leap,
     days_in_month,
     normalize_month,
