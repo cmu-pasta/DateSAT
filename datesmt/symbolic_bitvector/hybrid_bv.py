@@ -41,7 +41,7 @@ from z3 import (
 )
 from ..core import Date, Period
 from .bitwidths import LEGACY_BITS
-from .baseline_bv import (
+from .naive_bv import (
     is_leap,
     days_in_month,
     normalize_month,

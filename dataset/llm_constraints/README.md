@@ -4,6 +4,16 @@ A robust, coverage-oriented date constraint generation system for DATE-SMT with 
 
 **Note:** All commands in this README assume you are running from the repository root directory.
 
+## Architecture
+
+The constraint generation system is split into two components:
+
+- **`dataset/llm.py`**: Universal LLM client that handles API calls, provider detection (OpenAI/Anthropic), and JSON parsing/normalization. This module can be reused by any dataset generator.
+
+- **`dataset/llm_constraints/generator/constraint_generator.py`**: Constraint-specific generator that contains the system prompt, validation logic, and generation workflows. This module uses the universal `llm.py` for LLM interactions.
+
+This separation allows the LLM infrastructure to be reused across different dataset generators while keeping constraint-specific logic isolated.
+
 ## What's New
 
 This enhanced version includes:
@@ -67,35 +77,35 @@ The system auto-detects which provider to use. If both are set, Anthropic is pre
 Basic usage:
 
 ```bash
-python dataset/LLM_gen_constraints/generator/llm_client.py --output dataset/LLM_gen_constraints/constraints/1.json
+python dataset/llm_constraints/generator/constraint_generator.py --output dataset/llm_constraints/constraints/1.json
 ```
 
 Advanced options:
 
 ```bash
 # Specify provider explicitly
-python dataset/LLM_gen_constraints/generator/llm_client.py --num 10 --output dataset/LLM_gen_constraints/constraints/1.json --provider anthropic
+python dataset/llm_constraints/generator/constraint_generator.py --num 10 --output dataset/llm_constraints/constraints/1.json --provider anthropic
 
 # Use a specific model
-python dataset/LLM_gen_constraints/generator/llm_client.py --num 10 --output dataset/LLM_gen_constraints/constraints/1.json --model gpt-4
+python dataset/llm_constraints/generator/constraint_generator.py --num 10 --output dataset/llm_constraints/constraints/1.json --model gpt-4
 
 # Pass API key directly (instead of environment variable)
-python dataset/LLM_gen_constraints/generator/llm_client.py --num 10 --output dataset/LLM_gen_constraints/constraints/1.json --api-key YOUR_KEY
+python dataset/llm_constraints/generator/constraint_generator.py --num 10 --output dataset/llm_constraints/constraints/1.json --api-key YOUR_KEY
 
 # Generate constraints with specific coverage tags only
-python dataset/LLM_gen_constraints/generator/llm_client.py --num 10 --output dataset/LLM_gen_constraints/constraints/1.json --tags leap_year eom
+python dataset/llm_constraints/generator/constraint_generator.py --num 10 --output dataset/llm_constraints/constraints/1.json --tags leap_year eom
 
 # Generate constraints with multiple specific tags
-python dataset/LLM_gen_constraints/generator/llm_client.py --num 10 --output dataset/LLM_gen_constraints/constraints/1.json --tags chain_ops multi_var ineq_window
+python dataset/llm_constraints/generator/constraint_generator.py --num 10 --output dataset/llm_constraints/constraints/1.json --tags chain_ops multi_var ineq_window
 
 # Control the number of constraints per object (vary between min and max)
-python dataset/LLM_gen_constraints/generator/llm_client.py --num 10 --output dataset/LLM_gen_constraints/constraints/1.json --min-constraints 2 --max-constraints 6
+python dataset/llm_constraints/generator/constraint_generator.py --num 10 --output dataset/llm_constraints/constraints/1.json --min-constraints 2 --max-constraints 6
 
 # Generate all objects with the same number of constraints
-python dataset/LLM_gen_constraints/generator/llm_client.py --num 10 --output dataset/LLM_gen_constraints/constraints/1.json --exact-constraints 5
+python dataset/llm_constraints/generator/constraint_generator.py --num 10 --output dataset/llm_constraints/constraints/1.json --exact-constraints 5
 
 # Combine tag filtering with constraint count control
-python dataset/LLM_gen_constraints/generator/llm_client.py --num 10 --output dataset/LLM_gen_constraints/constraints/1.json --tags leap_year eom --min-constraints 3 --max-constraints 7
+python dataset/llm_constraints/generator/constraint_generator.py --num 10 --output dataset/llm_constraints/constraints/1.json --tags leap_year eom --min-constraints 3 --max-constraints 7
 ```
 
 ### Command Line Arguments
@@ -116,7 +126,7 @@ You can restrict the LLM to generate constraints with only specific coverage tag
 
 **Example**: To generate only leap year and end-of-month constraints:
 ```bash
-python dataset/LLM_gen_constraints/generator/llm_client.py --num 10 --output dataset/LLM_gen_constraints/constraints/1.json --tags leap_year eom
+python dataset/llm_constraints/generator/constraint_generator.py --num 10 --output dataset/llm_constraints/constraints/1.json --tags leap_year eom
 ```
 
 If `--tags` is not specified, the LLM will generate constraints with any combination of tags (default behavior).
@@ -131,14 +141,14 @@ By default, the system generates constraint objects with a **varied number of co
 
   **Example**: Generate constraints with 3-7 constraints per object:
   ```bash
-  python dataset/LLM_gen_constraints/generator/llm_client.py --num 10 --output dataset/LLM_gen_constraints/constraints/1.json --min-constraints 3 --max-constraints 7
+  python dataset/llm_constraints/generator/constraint_generator.py --num 10 --output dataset/llm_constraints/constraints/1.json --min-constraints 3 --max-constraints 7
   ```
 
 - **Exact count**: Use `--exact-constraints` to make all objects have the same number of constraints. This overrides any min/max settings.
 
   **Example**: Generate all objects with exactly 5 constraints:
   ```bash
-  python dataset/LLM_gen_constraints/generator/llm_client.py --num 10 --output dataset/LLM_gen_constraints/constraints/1.json --exact-constraints 5
+  python dataset/llm_constraints/generator/constraint_generator.py --num 10 --output dataset/llm_constraints/constraints/1.json --exact-constraints 5
   ```
 
 ## Combining Constraints
@@ -147,10 +157,10 @@ After generating multiple constraint files, you can combine them into a single f
 
 ```bash
 # Combine all constraint files (excluding all_constraints.json) into all_constraints.json
-python dataset/LLM_gen_constraints/generator/combine_constraints.py
+python dataset/llm_constraints/generator/combine_constraints.py
 
 # Specify custom directory and output file
-python dataset/LLM_gen_constraints/generator/combine_constraints.py --constraints-dir dataset/LLM_gen_constraints/constraints --output dataset/LLM_gen_constraints/constraints/all_constraints.json
+python dataset/llm_constraints/generator/combine_constraints.py --constraints-dir dataset/llm_constraints/constraints --output dataset/llm_constraints/constraints/all_constraints.json
 ```
 
 The script will:
@@ -164,13 +174,13 @@ The script will:
 ### Running Constraint Tests (`run_tests.py`)
 
 The `run_tests.py` script tests all constraints with multiple approaches:
-- **Symbolic approaches**: baseline, epoch_days, hybrid, alpha_beta, alpha_beta_table (with both int and bitvector implementations)
+- **Symbolic approaches**: naive, epoch_days, hybrid, alpha_beta, alpha_beta_table (with both int and bitvector implementations)
 - **Baseline approaches**: enumeration (exhaustive enumeration)
 
 **Basic Usage:**
 ```bash
 # Test all constraints in a file with default settings
-python dataset/LLM_gen_constraints/run_tests.py dataset/LLM_gen_constraints/constraints/all_constraints.json
+python dataset/llm_constraints/run_tests.py dataset/llm_constraints/constraints/all_constraints.json
 ```
 
 **Command-Line Arguments:**
@@ -179,42 +189,42 @@ python dataset/LLM_gen_constraints/run_tests.py dataset/LLM_gen_constraints/cons
 - `--timeout`: Timeout in milliseconds for each constraint (default: 10 minutes)
 - `--methods`: Select specific methods to run (default: all methods). Can specify multiple methods.
   - Format options:
-    - `approach_implementation` (e.g., `baseline_bitvector`, `epoch_days_int`)
-    - `approach` (e.g., `baseline` - runs all implementations of that approach)
+    - `approach_implementation` (e.g., `naive_bitvector`, `epoch_days_int`)
+    - `approach` (e.g., `naive` - runs all implementations of that approach)
     - `implementation` (e.g., `bitvector` - runs all approaches with that implementation)
     - `enumeration` (baseline approach)
-  - Examples: `--methods baseline_bitvector enumeration` or `--methods bitvector`
+  - Examples: `--methods naive_bitvector enumeration` or `--methods bitvector`
 - `--analysis`: Enable analysis after constraint execution (default: enabled)
 - `--no-analysis`: Skip analysis and only run constraint execution
 
 **Examples:**
 ```bash
 # Test all constraints with default settings (all methods)
-python dataset/LLM_gen_constraints/run_tests.py dataset/LLM_gen_constraints/constraints/all_constraints.json
+python dataset/llm_constraints/run_tests.py dataset/llm_constraints/constraints/all_constraints.json
 
 # Test constraints with custom output directory
-python dataset/LLM_gen_constraints/run_tests.py dataset/LLM_gen_constraints/constraints/1.json --output-dir dataset/LLM_gen_constraints/results/test1
+python dataset/llm_constraints/run_tests.py dataset/llm_constraints/constraints/1.json --output-dir dataset/llm_constraints/results/test1
 
 # Test with custom timeout (30 seconds)
-python dataset/LLM_gen_constraints/run_tests.py dataset/LLM_gen_constraints/constraints/all_constraints.json --timeout 30000
+python dataset/llm_constraints/run_tests.py dataset/llm_constraints/constraints/all_constraints.json --timeout 30000
 
 # Run tests without analysis (faster, no validation)
-python dataset/LLM_gen_constraints/run_tests.py dataset/LLM_gen_constraints/constraints/1.json --no-analysis
+python dataset/llm_constraints/run_tests.py dataset/llm_constraints/constraints/1.json --no-analysis
 
-# Run only specific methods: baseline_bitvector and enumeration
-python dataset/LLM_gen_constraints/run_tests.py dataset/LLM_gen_constraints/constraints/all_constraints.json --methods baseline_bitvector enumeration
+# Run only specific methods: naive_bitvector and enumeration
+python dataset/llm_constraints/run_tests.py dataset/llm_constraints/constraints/all_constraints.json --methods naive_bitvector enumeration
 
 # Run all bitvector implementations
-python dataset/LLM_gen_constraints/run_tests.py dataset/LLM_gen_constraints/constraints/all_constraints.json --methods bitvector
+python dataset/llm_constraints/run_tests.py dataset/llm_constraints/constraints/all_constraints.json --methods bitvector
 
-# Run baseline approach with both int and bitvector implementations
-python dataset/LLM_gen_constraints/run_tests.py dataset/LLM_gen_constraints/constraints/all_constraints.json --methods baseline
+# Run naive approach with both int and bitvector implementations
+python dataset/llm_constraints/run_tests.py dataset/llm_constraints/constraints/all_constraints.json --methods naive
 
 # Run multiple specific methods
-python dataset/LLM_gen_constraints/run_tests.py dataset/LLM_gen_constraints/constraints/all_constraints.json --methods baseline_int epoch_days_bitvector enumeration
+python dataset/llm_constraints/run_tests.py dataset/llm_constraints/constraints/all_constraints.json --methods naive_int epoch_days_bitvector enumeration
 
 # Test with all options
-python dataset/LLM_gen_constraints/run_tests.py dataset/LLM_gen_constraints/constraints/all_constraints.json --output-dir dataset/LLM_gen_constraints/results/full_test --timeout 120000 --methods baseline_bitvector --analysis
+python dataset/llm_constraints/run_tests.py dataset/llm_constraints/constraints/all_constraints.json --output-dir dataset/llm_constraints/results/full_test --timeout 120000 --methods naive_bitvector --analysis
 ```
 
 **Output:**
@@ -229,7 +239,7 @@ The script generates:
 
 **What Gets Tested:**
 By default, for each constraint, the script tests:
-1. All symbolic approaches (baseline, epoch_days, hybrid, alpha_beta, alpha_beta_table)
+1. All symbolic approaches (naive, epoch_days, hybrid, alpha_beta, alpha_beta_table)
 2. Both implementations (int and bitvector) for each symbolic approach
 3. The enumeration baseline approach
 

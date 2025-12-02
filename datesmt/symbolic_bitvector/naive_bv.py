@@ -1,7 +1,7 @@
 """
-Baseline DATE-SMT implementation using component-based representation.
+Naive DATE-SMT implementation using component-based representation.
 
-This module implements the baseline approach where dates are represented
+This module implements the naive approach where dates are represented
 as separate year, month, and day variables, and period arithmetic is done
 component-wise with proper normalization.
 """
@@ -172,7 +172,7 @@ def add_days_ordinal(y, m, d, delta_days) -> Tuple[BitVec, BitVec, BitVec]:
     """
     Exact ordinal-based addition via a single ordinal add with optimizations.
     Steps:
-      - EOM clamp input day (baseline 'round down' policy).
+      - EOM clamp input day (naive 'round down' policy).
       - Fast path 1: If delta_days == 0 → return (y,m,d).
       - Fast path 2: If result stays within same month → simple addition without ordinal conversion.
       - Otherwise: Add delta_days in days-since-epoch space and decode.
@@ -268,7 +268,7 @@ def _dbm_index(y, idx) -> BitVecRef:
 
 
 class DateVar:
-    """Symbolic date variable for baseline implementation."""
+    """Symbolic date variable for naive implementation."""
 
     def __init__(self, name: str):
         """Create a symbolic date variable."""
@@ -384,7 +384,7 @@ class DateVar:
 
     def __add__(self, other) -> 'DateVar':
         """
-        DateVar + Period following baseline semantics:
+        DateVar + Period following naive semantics:
         1) Combine Y and M (normalize months into 1..12 with year carry)
         2) Apply EOM clamp: day := min(original_day, days_in_month(new_year,new_month))
         3) Add D days via iterative day carry (month/year rollover as required)
@@ -440,8 +440,8 @@ class DateVar:
             raise TypeError(f"Cannot subtract {type(other)} from DateVar")
 
 
-class BaselineSolver:
-    """Baseline date constraint solver using component-based representation."""
+class NaiveSolver:
+    """Naive date constraint solver using component-based representation."""
 
     def __init__(self, timeout_ms=600000):
         """Initialize the solver with optional year bounds and timeout.

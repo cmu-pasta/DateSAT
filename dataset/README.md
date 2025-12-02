@@ -2,18 +2,31 @@
 
 This directory contains datasets, test constraints, and validation tools for the DATE-SMT project.
 
-## Directory Structure
-
-```
-dataset/
-├── validation.py              # Concrete validation module for verifying solver solutions
-├── test_validation.py         # Unit tests for validation functionality
-├── LLM_gen_constraints/       # LLM-based constraint generation and testing tools
-│   └── README.md              # Detailed documentation for LLM constraint generation
-└── law/                       # Constraints from legal documents
-```
 
 ## Components
+
+### Universal LLM Client (`llm.py`)
+
+The `llm.py` module provides a universal LLM client that can be used by any dataset generator. It supports:
+
+- **Multi-provider support**: OpenAI and Anthropic APIs with auto-detection
+- **JSON parsing**: Robust JSON parsing with normalization and error recovery
+- **Provider detection**: Automatically detects available API keys and selects appropriate provider
+- **Flexible configuration**: Supports custom models, API keys, and provider selection
+
+**Usage Example:**
+```python
+from dataset.llm import LLMClient
+
+client = LLMClient(provider="auto")  # Auto-detect provider
+response = client.call(
+    system_prompt="You are a helpful assistant.",
+    user_prompt="Generate some data."
+)
+data = client.parse_json_response(response)
+```
+
+This module is used by `llm_constraints/generator/constraint_generator.py` for constraint generation, but can be reused by other dataset generators.
 
 ### Validation Module (`validation.py`)
 
@@ -75,7 +88,7 @@ The validation script will:
 
 Result files should contain JSON arrays of records, where each record has:
 - `constraint_id`: Unique identifier for the constraint
-- `approach`: The DATE-SMT approach used (e.g., "baseline", "epoch_days", "hybrid", "enumeration")
+- `approach`: The DATE-SMT approach used (e.g., "naive", "epoch_days", "hybrid", "enumeration")
 - `implementation`: The implementation type (e.g., "int", "bitvector", "baseline" for enumeration)
 - `status`: Solver status ("sat", "unsat", "timeout", etc.)
 - `solution`: Dictionary mapping variable names to solution values (for SAT results)
@@ -90,7 +103,7 @@ Example:
 [
   {
     "constraint_id": "test-1",
-    "approach": "baseline",
+    "approach": "naive",
     "implementation": "int",
     "status": "sat",
     "solution": {"x": "Date(2020, 3, 15)"},
@@ -156,5 +169,6 @@ for constraint_id, approaches in validation_results['constraint_results'].items(
 
 ## Additional Resources
 
-- **LLM Constraint Generation**: See `LLM_gen_constraints/README.md` for detailed documentation on generating constraints with LLMs and running tests with `run_tests.py` (including the `--methods` option for selective method execution)
+- **LLM Constraint Generation**: See `llm_constraints/README.md` for detailed documentation on generating constraints with LLMs and running tests with `run_tests.py` (including the `--methods` option for selective method execution)
+- **Universal LLM Client**: See `llm.py` for the reusable LLM client that can be used by any dataset generator
 - **Main Project README**: See the root `README.md` for project overview and installation instructions

@@ -4,7 +4,7 @@ from dateutil.relativedelta import relativedelta
 from datesmt.core import Date, Period
 from datesmt.symbolic_bitvector.alpha_beta_bv import AlphaBetaSolver
 from datesmt.symbolic_bitvector.alpha_beta_table_bv import AlphaBetaTableSolver
-from datesmt.symbolic_bitvector.baseline_bv import BaselineSolver
+from datesmt.symbolic_bitvector.naive_bv import NaiveSolver
 from datesmt.symbolic_bitvector.epoch_days_bv import EpochDaysSolver
 from datesmt.symbolic_bitvector.hybrid_bv import HybridSolver
 
@@ -193,10 +193,10 @@ def test_python_output_equals_ground_truth(base: Date, per: Period, expect: Date
         for base, per, expect in get_period_arithmetic_test_cases()
     ],
 )
-@pytest.mark.baseline
+@pytest.mark.naive
 @pytest.mark.bitvector
-def test_baseline_equals_ground_truth(base: Date, per: Period, expect: Date):
-    rb = _solve_single_add(BaselineSolver, base, per)
+def test_naive_equals_ground_truth(base: Date, per: Period, expect: Date):
+    rb = _solve_single_add(NaiveSolver, base, per)
     assert rb["status"] == "sat"
     got_b = rb["dates"]["y"]
     assert got_b == expect, f"Baseline: {base} + {per} -> {got_b}, expected {expect}"
@@ -278,10 +278,10 @@ def test_alpha_beta_table_equals_ground_truth(base: Date, per: Period, expect: D
         for base, per, _ in get_period_arithmetic_test_cases()
     ],
 )
-@pytest.mark.baseline
+@pytest.mark.naive
 @pytest.mark.bitvector
-def test_baseline_subtract_matches_python(base: Date, per: Period):
-    model = _solve_single_sub(BaselineSolver, base, per)
+def test_naive_subtract_matches_python(base: Date, per: Period):
+    model = _solve_single_sub(NaiveSolver, base, per)
     try:
         expect = python_date_plus(base, Period(-per.years, -per.months, -per.days))
     except ValueError:

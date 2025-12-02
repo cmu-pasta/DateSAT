@@ -22,7 +22,7 @@ from z3 import (
 )
 
 from ..core import Date, Period
-from .baseline_bv import eom_clamp, days_in_month, add_days_ordinal
+from .naive_bv import eom_clamp, days_in_month, add_days_ordinal
 from .bitwidths import LEGACY_BITS
 # -------------------------------
 # Alpha (months-since-epoch) helpers

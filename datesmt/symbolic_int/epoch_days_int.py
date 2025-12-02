@@ -23,7 +23,7 @@ from z3 import (
     sat
 )
 from ..core import Date, Period
-from .baseline_int import (
+from .naive_int import (
     is_leap,
     days_in_month,
     normalize_month,
@@ -116,7 +116,7 @@ class DateVar:
 
     def __add__(self, other) -> 'DateVar':
         """
-        DateVar + Period following baseline semantics.
+        DateVar + Period following semantics.
         Steps: normalize Y/M, EOM clamp, then add D days in ordinal space.
         """
         if isinstance(other, Period):

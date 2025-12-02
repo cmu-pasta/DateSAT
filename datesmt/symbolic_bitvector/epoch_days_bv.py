@@ -26,7 +26,7 @@ from z3 import (
 )
 from ..core import Date, Period
 from .bitwidths import LEGACY_BITS
-from .baseline_bv import (
+from .naive_bv import (
     is_leap,
     days_in_month,
     normalize_month,
@@ -119,7 +119,7 @@ class DateVar:
 
     def __add__(self, other) -> 'DateVar':
         """
-        DateVar + Period following baseline semantics.
+        DateVar + Period following semantics.
         Steps: normalize Y/M, EOM clamp, then add D days in ordinal space.
         """
         if isinstance(other, Period):

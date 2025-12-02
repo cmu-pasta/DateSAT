@@ -13,7 +13,7 @@ DATE-SMT's bitvector implementations share a legacy width constant,
 `LEGACY_BITS = 21` (`datesmt/symbolic_bitvector/bitwidths.py`). Each solver uses
 this 21-bit width for variables and literals.
 
-The differences are **consistent across all methods** (baseline, epoch_days, hybrid, alpha_beta, alpha_beta_table).
+The differences are **consistent across all methods** (naive, epoch_days, hybrid, alpha_beta, alpha_beta_table).
 
 ## Core Differences
 
@@ -56,7 +56,7 @@ The differences are **consistent across all methods** (baseline, epoch_days, hyb
 
 ## Method-Specific Examples
 
-### Baseline Method
+### Naive Method
 - **Integer**: `normalize_month(y, m)` uses simple `(m-1) // 12` and `(m-1) % 12`
 - **Bitvector**: Complex signed arithmetic with `UGE` checks and floor division
   - Checks for negative values: `UGE(m, BitVecVal(2**20, 21))`

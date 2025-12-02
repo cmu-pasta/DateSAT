@@ -1,41 +1,30 @@
 """
-Enhanced LLM client for generating DATE-SMT constraints.
+Constraint generator for DATE-SMT using LLM.
 
-Supports both OpenAI and Anthropic APIs with robust JSON parsing and coverage-oriented generation.
+This module handles constraint-specific logic including prompts, validation,
+and generation workflows. It uses the universal dataset.llm module for LLM API calls.
 """
 
 import json
 import os
-import re
 from typing import Any, Dict, List, Optional
 
 try:
-    from dotenv import load_dotenv
-    # Load .env file from project root
-    # Try multiple possible locations: current working directory, or relative to this file
-    import pathlib
-    # First try current working directory (most common when running from root)
-    load_dotenv()
-    # Also try relative to this file (in case script is run from different directory)
-    script_path = pathlib.Path(__file__).resolve()
-    repo_root = script_path.parent.parent  # LLM_gen_constraints is now one level from root
-    env_path = repo_root / ".env"
-    if env_path.exists():
-        load_dotenv(dotenv_path=env_path, override=False)
+    from ..llm import LLMClient
 except ImportError:
-    # dotenv not available, skip loading .env file
-    pass
+    # Try absolute import
+    import sys
+    from pathlib import Path
+    dataset_path = Path(__file__).parent.parent.parent
+    sys.path.insert(0, str(dataset_path))
+    from llm import LLMClient
 
 try:
     from .id_counter import get_next_id
 except ImportError:
     from id_counter import get_next_id
 
-# Default models for each provider
-DEFAULT_OPENAI_MODEL = "gpt-3.5-turbo"
-DEFAULT_ANTHROPIC_MODEL = "claude-3-7-sonnet-latest"
-
-# TODO: no too large Period range
+# System prompt for constraint generation
 SYSTEM_PROMPT = """You are an expert in writing DateSMT constraints.
 
 GOAL
@@ -50,7 +39,7 @@ RULES & OPERATIONS
   • Period × Int → Period
   • Date ▷◁ Date (▷◁ ∈ {==, !=, <, <=, >, >=})
 - FORBIDDEN: Period comparisons (Period ▷◁ Period). Compare dates after adding periods instead.
-- Example: (x + Period(0,1,0)) > (x + Period(0,0,31))
+- Example: (x + Period(0,1,0)) > (y + Period(0,0,31))
 
 DateSMT SYNTAX
 - Constructors: Date(year, month, day), Period(years, months, days)
@@ -157,44 +146,6 @@ def _basic_schema_ok(items: Any) -> bool:
     return True
 
 
-def _strip_code_fences(s: str) -> str:
-    # Handle ```json ... ``` or ``` ... ``` blocks gracefully.
-    if "```" not in s:
-        return s.strip()
-    # Prefer explicitly tagged json fence
-    m = re.search(r"```json\s*(.*?)```", s, flags=re.S)
-    if m:
-        return m.group(1).strip()
-    # Fallback: first fenced block
-    m = re.search(r"```(.*?)```", s, flags=re.S)
-    return m.group(1).strip() if m else s.strip()
-
-
-def _normalize_llm_json(s: str) -> str:
-    """Best-effort normalization to improve JSON parse success without altering content semantics.
-
-    - Strip BOM/whitespace
-    - Replace curly/smart quotes with ASCII quotes
-    - Normalize line endings
-    - Ensure backticks are removed
-    """
-    if not isinstance(s, str):
-        return s
-    txt = s.strip().lstrip("\ufeff")
-    # Remove stray backtick fences if any slipped through
-    txt = txt.replace("```", "")
-    # Normalize fancy quotes to plain quotes
-    smart_double = "\u201c\u201d\uFF02"
-    smart_single = "\u2018\u2019\uFF07"
-    for ch in smart_double:
-        txt = txt.replace(ch, '"')
-    for ch in smart_single:
-        txt = txt.replace(ch, "'")
-    # Normalize line endings
-    txt = txt.replace("\r\n", "\n").replace("\r", "\n")
-    return txt
-
-
 def _normalize_to_dict_format(items: List[Any]) -> List[Dict]:
     """Normalize items to expected dict format with id, description, constraints, and coverage_tags.
 
@@ -236,26 +187,8 @@ def _count_constraints(constraints: List[Any]) -> int:
     return count
 
 
-def _detect_provider_and_model() -> tuple[str, str]:
-    """Auto-detect provider and return appropriate model."""
-    openai_key = os.getenv("OPENAI_API_KEY")
-    anthropic_key = os.getenv("ANTHROPIC_API_KEY")
-
-    if anthropic_key and not openai_key:
-        return "anthropic", DEFAULT_ANTHROPIC_MODEL
-    elif openai_key and not anthropic_key:
-        return "openai", DEFAULT_OPENAI_MODEL
-    elif anthropic_key and openai_key:
-        # Both available, prefer Anthropic
-        return "anthropic", DEFAULT_ANTHROPIC_MODEL
-    else:
-        raise ValueError(
-            "No API key found. Set OPENAI_API_KEY or ANTHROPIC_API_KEY environment variable, or pass api_key parameter."
-        )
-
-
-class LLMClient:
-    """Enhanced DATE-SMT constraint generator supporting OpenAI and Anthropic."""
+class ConstraintGenerator:
+    """Generator for DATE-SMT constraints using LLM."""
 
     def __init__(
         self,
@@ -263,76 +196,15 @@ class LLMClient:
         model: Optional[str] = None,
         provider: str = "auto",
     ):
-        self.api_key = api_key
-        self.provider = provider.lower()
+        """
+        Initialize constraint generator.
 
-        # Auto-detect provider and model if not specified
-        if self.provider == "auto":
-            self.provider, default_model = _detect_provider_and_model()
-            self.model = model or default_model
-        else:
-            # Provider explicitly specified
-            if self.provider == "openai":
-                self.api_key = api_key or os.getenv("OPENAI_API_KEY")
-                if not self.api_key:
-                    raise ValueError(
-                        "OpenAI API key required. Set OPENAI_API_KEY or pass api_key."
-                    )
-                self.model = model or DEFAULT_OPENAI_MODEL
-            elif self.provider == "anthropic":
-                self.api_key = api_key or os.getenv("ANTHROPIC_API_KEY")
-                if not self.api_key:
-                    raise ValueError(
-                        "Anthropic API key required. Set ANTHROPIC_API_KEY or pass api_key."
-                    )
-                self.model = model or DEFAULT_ANTHROPIC_MODEL
-            else:
-                raise ValueError(
-                    f"Unsupported provider: {provider}. Use 'openai', 'anthropic', or 'auto'."
-                )
-
-        # Set up the appropriate client
-        if self.provider == "openai":
-            import openai
-
-            self.client = openai.OpenAI(api_key=self.api_key)
-        elif self.provider == "anthropic":
-            import anthropic
-
-            self.client = anthropic.Anthropic(api_key=self.api_key)
-
-        # Light defaults that usually help JSON fidelity
-        self.max_tokens = 2000
-        self.temperature = 0.4
-        self.top_p = 0.95
-
-    def _ask(self, system_prompt: str, user_prompt: str) -> str:
-        if self.provider == "openai":
-            resp = self.client.chat.completions.create(
-                model=self.model,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {
-                        "role": "system",
-                        "content": "When randomness is needed, use a deterministic seed of 1337.",
-                    },
-                    {"role": "user", "content": user_prompt},
-                ],
-                temperature=self.temperature,
-                top_p=self.top_p,
-                max_tokens=self.max_tokens,
-            )
-            return resp.choices[0].message.content
-        elif self.provider == "anthropic":
-            resp = self.client.messages.create(
-                model=self.model,
-                max_tokens=self.max_tokens,
-                temperature=self.temperature,
-                system=system_prompt
-                + "\n\nWhen randomness is needed, use a deterministic seed of 1337.",
-                messages=[{"role": "user", "content": user_prompt}],
-            )
-            return resp.content[0].text
+        Args:
+            api_key: API key for the LLM provider (overrides environment variable)
+            model: Model name (uses default for provider if not specified)
+            provider: Provider name - 'openai', 'anthropic', or 'auto' (default: 'auto')
+        """
+        self.llm_client = LLMClient(api_key=api_key, model=model, provider=provider)
 
     def generate_constraints(
         self,
@@ -359,7 +231,6 @@ class LLMClient:
             max_constraints_per_object: Maximum number of constraints per object (default: 8)
             exact_constraints_per_object: Exact number of constraints per object (overrides min/max if set)
         """
-
         def _one_call(n: int) -> List[Dict]:
             local_last_err = None
             local_raw = ""
@@ -409,10 +280,8 @@ class LLMClient:
             )
             for attempt in range(retries + 1):
                 try:
-                    local_raw = self._ask(SYSTEM_PROMPT, local_prompt)
-                    txt = _strip_code_fences(local_raw)
-                    local_norm = _normalize_llm_json(txt)
-                    items = json.loads(local_norm)
+                    local_raw = self.llm_client.call(SYSTEM_PROMPT, local_prompt)
+                    items = self.llm_client.parse_json_response(local_raw, extract_array=True)
                     if not _basic_schema_ok(items):
                         raise ValueError("Output failed basic schema validation.")
                     for idx, it in enumerate(items, start=1):
@@ -431,13 +300,12 @@ class LLMClient:
                 except Exception as e:
                     local_last_err = e
                     try:
-                        candidate = self._extract_json_array(
-                            local_raw if 'local_raw' in locals() else ""
+                        # Try to extract and parse JSON array as fallback
+                        candidate = self.llm_client.parse_json_response(
+                            local_raw if 'local_raw' in locals() else "", extract_array=True
                         )
-                        candidate = _normalize_llm_json(candidate)
-                        items = json.loads(candidate)
-                        if _basic_schema_ok(items):
-                            return items
+                        if _basic_schema_ok(candidate):
+                            return candidate
                     except Exception:
                         pass
             # Persist last failure context for this call
@@ -447,7 +315,7 @@ class LLMClient:
                 with open(os.path.join(debug_dir, "last_raw.txt"), "w") as f:
                     f.write(local_raw)
                 with open(os.path.join(debug_dir, "last_normalized.txt"), "w") as f:
-                    f.write(local_norm)
+                    f.write(local_norm if 'local_norm' in locals() else "")
             except Exception:
                 pass
             raise RuntimeError(
@@ -477,18 +345,8 @@ class LLMClient:
         return _normalize_to_dict_format(all_items)
 
     @staticmethod
-    def _extract_json_array(s: str) -> str:
-        """
-        Greedy substring extraction of the first plausible JSON array.
-        """
-        start = s.find('[')
-        end = s.rfind(']')
-        if start != -1 and end != -1 and end > start:
-            return s[start : end + 1]
-        raise ValueError("No JSON array found in response.")
-
-    @staticmethod
     def save_constraints(constraints: List[Dict], filename: str) -> None:
+        """Save constraints to a JSON file."""
         # Create directory if it doesn't exist
         dirname = os.path.dirname(filename)
         if dirname:  # Only create directory if there's a directory path
@@ -505,6 +363,7 @@ class LLMClient:
 
 
 def main():
+    """Main entry point for command-line usage."""
     import argparse
 
     parser = argparse.ArgumentParser(
@@ -548,8 +407,8 @@ def main():
     )
     args = parser.parse_args()
 
-    client = LLMClient(api_key=args.api_key, model=args.model, provider=args.provider)
-    constraints = client.generate_constraints(
+    generator = ConstraintGenerator(api_key=args.api_key, model=args.model, provider=args.provider)
+    constraints = generator.generate_constraints(
         args.num,
         tags=args.tags,
         min_constraints_per_object=args.min_constraints,
@@ -557,9 +416,9 @@ def main():
         exact_constraints_per_object=args.exact_constraints
     )
     if constraints:
-        client.save_constraints(constraints, args.output)
+        generator.save_constraints(constraints, args.output)
         print(
-            f"Successfully generated {len(constraints)} constraints using {client.provider.upper()}"
+            f"Successfully generated {len(constraints)} constraints using {generator.llm_client.provider.upper()}"
         )
     else:
         print("Failed to generate constraints")
@@ -567,3 +426,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

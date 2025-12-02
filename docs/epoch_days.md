@@ -44,9 +44,9 @@ From core.py
    - `result.days_var = self.days_var + period_days`
    - Skips all month/year normalization and ordinal conversion
 
-2. **Add Months/Years**: Convert to ordinal days, add, convert back (similar to baseline)
+2. **Add Months/Years**: Convert to ordinal days, add, convert back (similar to naive)
    - Convert current date to year/month/day using `from_days_since_epoch()`
-   - Add period months/years using component-wise arithmetic (reuses `normalize_month()` from baseline)
+   - Add period months/years using component-wise arithmetic (reuses `normalize_month()` from naive)
    - Add days using `add_days_ordinal()` which includes:
      - Fast path: If result stays within same month, use simple addition (avoids ordinal conversion)
      - Otherwise: Convert to ordinal days, add, convert back to year/month/day
@@ -60,4 +60,4 @@ From core.py
 
 - `DateVar` - Symbolic date variable with days since epoch
 - `EpochDaysSolver` - Constraint solver with epoch-based validation
-- Helper functions: `from_days_since_epoch()`, `to_days_since_epoch()`, `is_leap()` (reused from baseline), `days_in_month()` (reused from baseline), `normalize_month()` (reused from baseline), `days_before_year()` (reused from baseline), `days_before_month()` (reused from baseline), `to_ordinal()` (reused from baseline), `from_ordinal()` (reused from baseline), `ymd_from_days_since_epoch()` (reused from baseline), `days_since_epoch_from_ymd()` (reused from baseline), `eom_clamp()` (reused from baseline), `add_days_ordinal()` (reused from baseline)
+- Helper functions: `from_days_since_epoch()`, `to_days_since_epoch()`, `is_leap()` (reused from naive), `days_in_month()` (reused from naive), `normalize_month()` (reused from naive), `days_before_year()` (reused from naive), `days_before_month()` (reused from naive), `to_ordinal()` (reused from naive), `from_ordinal()` (reused from naive), `ymd_from_days_since_epoch()` (reused from naive), `days_since_epoch_from_ymd()` (reused from naive), `eom_clamp()` (reused from naive), `add_days_ordinal()` (reused from naive)

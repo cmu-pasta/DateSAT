@@ -5,7 +5,7 @@ import pytest
 from datesmt.core import Date, Period
 from datesmt.symbolic_int.alpha_beta_int import AlphaBetaSolver
 from datesmt.symbolic_int.alpha_beta_table_int import AlphaBetaTableSolver
-from datesmt.symbolic_int.baseline_int import BaselineSolver
+from datesmt.symbolic_int.naive_int import NaiveSolver
 from datesmt.symbolic_int.epoch_days_int import EpochDaysSolver
 from datesmt.symbolic_int.hybrid_int import HybridSolver
 
@@ -79,11 +79,11 @@ MULTI_OP_CASES = [
 
 
 @pytest.mark.parametrize("base,seq", MULTI_OP_CASES)
-@pytest.mark.baseline
+@pytest.mark.naive
 @pytest.mark.integer
 def test_stepwise_multi_op_baseline_matches_python(base: Date, seq: list[Period]):
     expected = _apply_sequence_python(base, seq)
-    res = _solve_with_solver(BaselineSolver, base, seq)
+    res = _solve_with_solver(NaiveSolver, base, seq)
     assert res["status"] == "sat"
     assert res["dates"]["y"] == expected
 
@@ -135,10 +135,10 @@ def test_stepwise_multi_op_alpha_beta_table_matches_python(
 # sub sequence: implement each addition via subtracting the negated period.
 # If any intermediate step would go out of domain, the solver should report UNSAT.
 @pytest.mark.parametrize("base,seq", MULTI_OP_CASES)
-@pytest.mark.baseline
+@pytest.mark.naive
 @pytest.mark.integer
 def test_stepwise_multi_op_sub_baseline_matches_python(base: Date, seq: list[Period]):
-    res = _solve_with_solver_sub(BaselineSolver, base, seq)
+    res = _solve_with_solver_sub(NaiveSolver, base, seq)
     if res["status"] == "unsat":
         return
     expected = _apply_sequence_python(base, seq)

@@ -5,7 +5,7 @@ This directory contains detailed technical documentation for the DATE-SMT librar
 ## Documentation Files
 
 ### Method Documentation
-- **[Baseline](baseline.md)** - Direct year-month-day representation
+- **[Naive](naive.md)** - Direct year-month-day representation
 - **[Epoch Days](epoch_days.md)** - Days since epoch representation  
 - **[Hybrid](hybrid.md)** - Dual epoch + Y/M/D representation
 - **[Alpha Beta](alpha_beta.md)** - Optimized months/days representation
@@ -20,7 +20,7 @@ This directory contains detailed technical documentation for the DATE-SMT librar
 ## Quick Reference
 
 ### Available Methods
-- `baseline` - Direct year-month-day representation
+- `naive` - Direct year-month-day representation
 - `epoch_days` - Days since epoch representation
 - `hybrid` - Combination approach
 - `alpha_beta` - Optimized constraint generation
