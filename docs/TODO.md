@@ -98,3 +98,6 @@ General
 [X] Fix CI so that do not run unit tests when push, only when raising PR
 [X] Accept timeout for enumeration baseline unit tests
 [ ] Rename baseline encoding into naive encoding
+
+Legal
+[ ] Add how to download raw_data to README.md (figure out how to "push" title26.xml)

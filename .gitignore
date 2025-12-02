@@ -82,3 +82,6 @@ Miniforge3-MacOSX-arm64.sh
 
 # Ignore all results folders in dataset subdirectories
 dataset/*/results/
+
+# Ignore big files
+dataset/legal_doc_constraints/raw_data
