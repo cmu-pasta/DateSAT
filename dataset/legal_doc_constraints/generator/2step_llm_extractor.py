@@ -7,7 +7,7 @@ This script implements a small two-step LLM pipeline:
 
 Compared to the single-call llm_extractor.py, this version uses two
 consecutive LLM calls per record with shared conversation history to
-potentially improve reasoning, but it is not a full tool-using agent.
+potentially improve reasoning, but it is not a full tool-using 2 step llm pipeline.
 """
 
 import argparse
@@ -31,6 +31,9 @@ from format_jsonl import format_as_pretty_jsonl
 
 DATE_PATTERN = re.compile(r"Date\(([^)]*)\)")
 PERIOD_PATTERN = re.compile(r"Period\(([^)]*)\)")
+INT_COMPARE_PATTERN = re.compile(
+    r"\b([A-Za-z_][A-Za-z0-9_]*)\s*(==|!=|<=|>=|<|>)\s*([+-]?\d+)\b"
+)
 
 
 def _flatten_constraints(constraints: List) -> List[str]:
@@ -60,10 +63,12 @@ def _find_invalid_date_period(constraints: List) -> Tuple[bool, Optional[str]]:
                 for arg in args:
                     if not _is_valid_numeric(arg):
                         return True, constraint
+        # Also reject integer variable comparisons like "calendar_year > 2003"
+        if INT_COMPARE_PATTERN.search(constraint):
+            return True, constraint
     return False, None
 
 
-# System prompts for agent steps
 ANALYSIS_PROMPT = """You are analyzing legal text from Title 26 (Internal Revenue Code) to identify temporal entities and events.
 
 Your task is to identify:
@@ -137,10 +142,12 @@ If no constraints can be generated, return null."""
 
 
 def extract_constraints_with_pipeline(
-    record: Dict, pipeline: LLMPipeline, max_text_length: int = 50000, log_file=None
+    record: Dict,
+    pipeline: LLMPipeline,
+    max_text_length: int = 50000,
+    log_file=None,
+    max_retries: int = 5,
 ) -> Optional[Dict]:
-    """Extract constraints using an agent with analysis + single-generation step."""
-
     text = record.get("text", "")
     if not text:
         return None
@@ -171,7 +178,7 @@ def extract_constraints_with_pipeline(
         log_entry = {
             "record_id": record.get("id", "unknown"),
             "timestamp": datetime.now().isoformat(),
-            "agent_calls": [],
+            "llm_calls": [],
             "input": {
                 "heading": heading,
                 "subsection_path": subsection_path,
@@ -201,7 +208,7 @@ Identify what entities/events are mentioned and what temporal references exist."
         )
 
         if log_file:
-            log_entry["agent_calls"].append(
+            log_entry["llm_calls"].append(
                 {
                     "step": "analysis",
                     "prompt": analysis_prompt,
@@ -216,8 +223,10 @@ Identify what entities/events are mentioned and what temporal references exist."
                 log_file.flush()
             return None
 
-        # Step 2: Generation (constraints) based on analysis + text
-        generation_prompt = f"""Based on this analysis and the original legal text, reason step-by-step about the temporal (date/period) constraints and then output the final constraints in DateSMT format.
+        last_feedback = ""
+
+        for attempt in range(1, max_retries + 1):
+            generation_prompt = f"""Based on this analysis and the original legal text, reason step-by-step about the temporal (date/period) constraints and then output the final constraints in DateSMT format.
 
 First, think internally about:
 - What date variables are needed
@@ -232,114 +241,202 @@ Analysis:
 Original Legal Text:
 {text}
 """
+            if last_feedback:
+                generation_prompt += (
+                    "\n\nFEEDBACK FROM PREVIOUS ATTEMPT:\n"
+                    f"{last_feedback}\n"
+                    "Regenerate the constraints, strictly obeying the rules above."
+                )
 
-        constraint_response = pipeline.call(
-            system_prompt=GENERATION_PROMPT,
-            user_prompt=generation_prompt,
-            include_history=True,
-        )
-
-        if log_file:
-            log_entry["agent_calls"].append(
-                {
-                    "step": "generation",
-                    "prompt": generation_prompt,
-                    "response": constraint_response,
-                }
+            constraint_response = pipeline.call(
+                system_prompt=GENERATION_PROMPT,
+                user_prompt=generation_prompt,
+                include_history=False,
             )
 
-        # Parse constraint response
-        constraint_response = constraint_response.strip()
-
-        # Remove markdown code fences if present
-        if "```" in constraint_response:
-            code_block_pattern = r"```(?:json)?\s*(.*?)\s*```"
-            matches = re.findall(code_block_pattern, constraint_response, re.DOTALL)
-            if matches:
-                constraint_response = matches[-1].strip()
-
-        # Try to extract JSON
-        if not (
-            constraint_response.strip().startswith("{")
-            or constraint_response.strip() == "null"
-        ):
-            json_match = re.search(r"(\{.*\}|null)", constraint_response, re.DOTALL)
-            if json_match:
-                constraint_response = json_match.group(1).strip()
-
-        try:
-            constraint_obj = json.loads(constraint_response)
-        except json.JSONDecodeError:
             if log_file:
-                log_entry["error"] = "Failed to parse constraint JSON"
-                log_entry["raw_response"] = constraint_response[:1000]
+                log_entry["llm_calls"].append(
+                    {
+                        "step": "generation",
+                        "attempt": attempt,
+                        "prompt": generation_prompt,
+                        "response": constraint_response,
+                    }
+                )
+
+            # Parse constraint response
+            resp = constraint_response.strip()
+
+            # Remove markdown code fences if present
+            if "```" in resp:
+                code_block_pattern = r"```(?:json)?\s*(.*?)\s*```"
+                matches = re.findall(code_block_pattern, resp, re.DOTALL)
+                if matches:
+                    resp = matches[-1].strip()
+
+            # Try to extract JSON
+            if not (resp.strip().startswith("{") or resp.strip() == "null"):
+                json_match = re.search(r"(\{.*\}|null)", resp, re.DOTALL)
+                if json_match:
+                    resp = json_match.group(1).strip()
+
+            try:
+                constraint_obj = json.loads(resp)
+            except json.JSONDecodeError as e:
+                last_feedback = (
+                    f"Previous response was not valid JSON (parse error: {e}). "
+                    "You must output ONLY a JSON object with 'description' and 'constraints', or null."
+                )
+                if log_file:
+                    feedback_log = {
+                        "record_id": record.get("id", "unknown"),
+                        "timestamp": datetime.now().isoformat(),
+                        "attempt": attempt,
+                        "feedback_type": "parse_error",
+                        "feedback": last_feedback,
+                    }
+                    log_file.write(json.dumps(feedback_log, ensure_ascii=False) + "\n")
+                    log_file.flush()
+                if attempt == max_retries:
+                    if log_file:
+                        log_entry["error"] = "Failed to parse constraint JSON"
+                        log_entry["raw_response"] = resp[:1000]
+                        log_file.write(
+                            json.dumps(log_entry, ensure_ascii=False) + "\n"
+                        )
+                        log_file.flush()
+                    return None
+                continue
+
+            # Check if null
+            if constraint_obj is None:
+                if log_file:
+                    log_entry["result"] = "no_constraints"
+                    log_file.write(json.dumps(log_entry, ensure_ascii=False) + "\n")
+                    log_file.flush()
+                return {"_status": "no_constraints"}
+
+            # Validate structure
+            if not isinstance(constraint_obj, dict):
+                last_feedback = (
+                    "Previous response was not a JSON object. "
+                    "You must return a JSON object with 'description' and 'constraints', or null."
+                )
+                if log_file:
+                    feedback_log = {
+                        "record_id": record.get("id", "unknown"),
+                        "timestamp": datetime.now().isoformat(),
+                        "attempt": attempt,
+                        "feedback_type": "not_dict",
+                        "feedback": last_feedback,
+                    }
+                    log_file.write(json.dumps(feedback_log, ensure_ascii=False) + "\n")
+                    log_file.flush()
+                if attempt == max_retries:
+                    if log_file:
+                        log_entry["error"] = "Response is not a dictionary"
+                        log_entry["response_type"] = str(type(constraint_obj))
+                        log_entry["response_preview"] = str(constraint_obj)[:500]
+                        log_file.write(
+                            json.dumps(log_entry, ensure_ascii=False) + "\n"
+                        )
+                        log_file.flush()
+                    return None
+                continue
+
+            if "constraints" not in constraint_obj:
+                last_feedback = (
+                    "Previous response was missing the 'constraints' field. "
+                    "You must include a 'constraints' array in the JSON object."
+                )
+                if log_file:
+                    feedback_log = {
+                        "record_id": record.get("id", "unknown"),
+                        "timestamp": datetime.now().isoformat(),
+                        "attempt": attempt,
+                        "feedback_type": "missing_constraints_field",
+                        "feedback": last_feedback,
+                    }
+                    log_file.write(json.dumps(feedback_log, ensure_ascii=False) + "\n")
+                    log_file.flush()
+                if attempt == max_retries:
+                    if log_file:
+                        log_entry["error"] = "Response missing 'constraints' field"
+                        log_entry["response_keys"] = (
+                            list(constraint_obj.keys())
+                            if isinstance(constraint_obj, dict)
+                            else None
+                        )
+                        log_entry["response_preview"] = json.dumps(
+                            constraint_obj, indent=2
+                        )[:500]
+                        log_file.write(
+                            json.dumps(log_entry, ensure_ascii=False) + "\n"
+                        )
+                        log_file.flush()
+                    return None
+                continue
+
+            # Remove coverage_tags if present
+            if "coverage_tags" in constraint_obj:
+                del constraint_obj["coverage_tags"]
+
+            # Validate Date/Period constructors use only numeric literals
+            invalid, offending = _find_invalid_date_period(
+                constraint_obj.get("constraints", [])
+            )
+            if invalid:
+                last_feedback = (
+                    "Previous response used invalid Date(...) or Period(...) constructors. "
+                    f"The offending constraint was: {offending}. "
+                    "All arguments to Date(...) and Period(...) must be plain integer literals."
+                )
+                if log_file:
+                    feedback_log = {
+                        "record_id": record.get("id", "unknown"),
+                        "timestamp": datetime.now().isoformat(),
+                        "attempt": attempt,
+                        "feedback_type": "invalid_date_period",
+                        "feedback": last_feedback,
+                        "invalid_constraint": offending,
+                    }
+                    log_file.write(json.dumps(feedback_log, ensure_ascii=False) + "\n")
+                    log_file.flush()
+                if attempt == max_retries:
+                    if log_file:
+                        log_entry["error"] = "Invalid Date/Period constructor usage"
+                        log_entry["invalid_constraint"] = offending
+                        log_file.write(
+                            json.dumps(log_entry, ensure_ascii=False) + "\n"
+                        )
+                        log_file.flush()
+                    return None
+                continue
+
+            # Add provenance
+            constraint_obj["provenance"] = {
+                "hierarchy": hierarchy,
+                "subsection_path": subsection_path,
+                "identifier": identifier,
+                "original_text": text,
+                "heading": heading,
+            }
+
+            # Keep the ID from the source file
+            source_id = record.get("id", "unknown")
+            constraint_obj["id"] = source_id
+
+            if "parsed_id" in record:
+                constraint_obj["parsed_id"] = record["parsed_id"]
+
+            # Log success
+            if log_file:
+                log_entry["result"] = "success"
+                log_entry["llm_call_count"] = pipeline.get_call_count()
                 log_file.write(json.dumps(log_entry, ensure_ascii=False) + "\n")
                 log_file.flush()
-            return None
 
-        # Check if null
-        if constraint_obj is None:
-            if log_file:
-                log_entry["result"] = "no_constraints"
-                log_file.write(json.dumps(log_entry, ensure_ascii=False) + "\n")
-                log_file.flush()
-            return {"_status": "no_constraints"}
-
-        # Validate structure
-        if not isinstance(constraint_obj, dict):
-            if log_file:
-                log_entry["error"] = "Response is not a dictionary"
-                log_file.write(json.dumps(log_entry, ensure_ascii=False) + "\n")
-                log_file.flush()
-            return None
-
-        if "constraints" not in constraint_obj:
-            if log_file:
-                log_entry["error"] = "Response missing 'constraints' field"
-                log_file.write(json.dumps(log_entry, ensure_ascii=False) + "\n")
-                log_file.flush()
-            return None
-
-        # Remove coverage_tags if present
-        if "coverage_tags" in constraint_obj:
-            del constraint_obj["coverage_tags"]
-
-        # Validate Date/Period constructors use only numeric literals
-        invalid, offending = _find_invalid_date_period(
-            constraint_obj.get("constraints", [])
-        )
-        if invalid:
-            if log_file:
-                log_entry["error"] = "Invalid Date/Period constructor usage"
-                log_entry["invalid_constraint"] = offending
-                log_file.write(json.dumps(log_entry, ensure_ascii=False) + "\n")
-                log_file.flush()
-            return None
-
-        # Add provenance
-        constraint_obj["provenance"] = {
-            "hierarchy": hierarchy,
-            "subsection_path": subsection_path,
-            "identifier": identifier,
-            "original_text": text,
-            "heading": heading,
-        }
-
-        # Keep the ID from the source file
-        source_id = record.get("id", "unknown")
-        constraint_obj["id"] = source_id
-
-        if "parsed_id" in record:
-            constraint_obj["parsed_id"] = record["parsed_id"]
-
-        # Log success
-        if log_file:
-            log_entry["result"] = "success"
-            log_entry["agent_call_count"] = pipeline.get_call_count()
-            log_file.write(json.dumps(log_entry, ensure_ascii=False) + "\n")
-            log_file.flush()
-
-        return constraint_obj
+            return constraint_obj
 
     except Exception as e:
         error_msg = str(e)
@@ -383,7 +480,7 @@ def main():
         "-o",
         type=str,
         default=None,
-        help="Output JSONL file path (default: dataset/legal_doc_constraints/constraints/constraints_agent_YYYY-MM-DD_HH-MM-SS.jsonl)",
+        help="Output JSONL file path (default: dataset/legal_doc_constraints/constraints/constraints_2llm_YYYY-MM-DD_HH-MM-SS.jsonl)",
     )
     parser.add_argument(
         "--id-range",
@@ -417,6 +514,12 @@ def main():
         default=50000,
         help="Maximum text length per record to send to LLM (default: 50000 chars). Longer text will be truncated.",
     )
+    parser.add_argument(
+        "--max-retries",
+        type=int,
+        default=5,
+        help="Maximum number of retries per record when LLM output is invalid (default: 5).",
+    )
 
     args = parser.parse_args()
 
@@ -433,13 +536,13 @@ def main():
 
     if args.output:
         output_path = Path(args.output)
-        if "constraints_agent_" in output_path.stem:
-            timestamp = output_path.stem.replace("constraints_agent_", "")
+        if "constraints_2llm_" in output_path.stem:
+            timestamp = output_path.stem.replace("constraints_2llm_", "")
         else:
             timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     else:
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        output_path = root_dir / "constraints" / f"constraints_agent_{timestamp}.jsonl"
+        output_path = root_dir / "constraints" / f"constraints_2llm_{timestamp}.jsonl"
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -467,7 +570,7 @@ def main():
     no_constraints = 0
     failed = 0
     skipped = 0
-    total_agent_calls = 0
+    total_llm_calls = 0
     all_constraints = []
 
     with open(input_path, "r", encoding="utf-8") as f_in:
@@ -484,9 +587,9 @@ def main():
             total += 1
 
             constraint = extract_constraints_with_pipeline(
-                record, pipeline, args.max_text_length, log_file
+                record, pipeline, args.max_text_length, log_file, args.max_retries
             )
-            total_agent_calls += pipeline.get_call_count()
+            total_llm_calls += pipeline.get_call_count()
 
             if constraint:
                 if isinstance(constraint, Dict) and constraint.get("_status") == "no_constraints":
@@ -506,7 +609,7 @@ def main():
                     )
 
             if total % 10 == 0:
-                avg_calls = total_agent_calls / total if total > 0 else 0
+                avg_calls = total_llm_calls / total if total > 0 else 0
                 print(
                     f"Processed {total} records, extracted {extracted}, no constraints {no_constraints}, failed {failed} (avg {avg_calls:.1f} calls/record)"
                 )
@@ -522,7 +625,7 @@ def main():
     pretty_output_path = output_path.parent / f"{output_path.stem}_formatted.jsonl"
     format_as_pretty_jsonl(output_path, pretty_output_path)
 
-    avg_calls = total_agent_calls / total if total > 0 else 0
+    avg_calls = total_llm_calls / total if total > 0 else 0
     print("\nDone!")
     print(f"Total records processed: {total}")
     if args.id_range:
@@ -531,7 +634,7 @@ def main():
     print(f"No constraints found: {no_constraints}")
     print(f"Failed: {failed}")
     print(
-        f"Total agent calls: {total_agent_calls} (avg {avg_calls:.1f} calls/record)"
+        f"Total llm calls: {total_llm_calls} (avg {avg_calls:.1f} calls/record)"
     )
     print(f"Success rate: {extracted/total*100:.2f}%" if total > 0 else "N/A")
     print(f"Output saved to: {output_path}")

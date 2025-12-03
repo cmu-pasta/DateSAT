@@ -8,7 +8,7 @@ This module provides a generic LLM interface that can be used by any dataset gen
 import json
 import os
 import re
-from typing import Optional
+from typing import Optional, Dict, List, Any
 
 try:
     from dotenv import load_dotenv
