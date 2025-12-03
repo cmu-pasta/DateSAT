@@ -40,26 +40,16 @@ CONSTRAINT_JSON = r"""
   "description": "Temporal constraints for tax table adjustments and marriage penalty phaseout",
   "constraints": [
     "prescription_deadline >= Date(1993, 12, 15)",
-    "prescription_deadline <= Date(2099, 12, 15)",
-    "taxable_year_start >= Date(1901, 1, 1)",
-    "taxable_year_start <= Date(2099, 1, 1)",
-    "taxable_year_end >= taxable_year_start",
-    "taxable_year_end <= taxable_year_start + Period(1, 0, 0) - Period(0, 0, 1)",
-    "succeeding_year_start >= taxable_year_start + Period(1, 0, 0)",
-    "succeeding_year_start <= taxable_year_start + Period(2, 0, 0)",
+    "prescription_deadline <= Date(2099, 2, 12)",
+    "taxable_year_start >= prescription_deadline + Period(0, 0, 17)",
+    "taxable_year_start <= prescription_deadline + Period(1, 0, 16)",
+    "taxable_year_end > taxable_year_start",
+    "taxable_year_end <= taxable_year_start + Period(1, 0, 0)",
     "cpi_measurement_period_end >= Date(1900, 8, 31)",
     "cpi_measurement_period_end <= Date(2099, 8, 31)",
-    "ccpi_publication_date >= cpi_measurement_period_end",
-    "ccpi_publication_date < prescription_deadline",
+    "ccpi_publication_date > cpi_measurement_period_end",
     "marriage_penalty_cutoff_date == Date(2003, 12, 31)",
-    [
-      "taxable_year_start > marriage_penalty_cutoff_date",
-      "marriage_penalty_applies == false"
-    ],
-    [
-      "taxable_year_start <= marriage_penalty_cutoff_date",
-      "marriage_penalty_applies == true"
-    ]
+    "taxable_year_start > marriage_penalty_cutoff_date"
   ],
   "provenance": {
     "hierarchy": {
