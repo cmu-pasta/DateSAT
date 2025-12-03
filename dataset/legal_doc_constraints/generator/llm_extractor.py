@@ -124,14 +124,14 @@ def _generate_coverage_tags(constraints: List) -> List[str]:
     return tags
 
 # System prompt for legal document constraint extraction
-LEGAL_EXTRACTION_PROMPT = """You are an expert in converting legal temporal clauses from Title 26 (Internal Revenue Code) into DateSMT constraints.
+LEGAL_EXTRACTION_PROMPT = """You are an expert in converting legal temporal clauses from Title 26 (Internal Revenue Code) into date constraints.
 
 GOAL
-Extract date/period constraints from legal text and convert them to DateSMT format. Additionally, add common knowledge constraints that are logically implied but not explicitly stated in the text.
+Extract date/period constraints from legal textt. You should add common knowledge constraints that are logically implied but not explicitly stated in the text as well.
 
 RULES & OPERATIONS
 - Use ONLY dates variables or concrete dates and concrete calendar periods (no times, time zones, or DST).
-- Date range: 1900-03-01 to 2100-02-28 (simple leap-year rules apply).
+- Valid date range: 1900-03-01 to 2100-02-28 (simple leap-year rules apply).
 - Allowed operations (Date can be a variable or a concrete date):
   • Date ± Period → Date
   • Period ± Period → Period
@@ -139,19 +139,18 @@ RULES & OPERATIONS
   • Date ▷◁ Date (▷◁ ∈ {==, !=, <, <=, >, >=})
 - FORBIDDEN: Period comparisons (Period ▷◁ Period). Compare dates after adding periods instead.
 
-DateSMT SYNTAX - CRITICAL RULES
+CONSTRAINT SYNTAX - CRITICAL RULES
 - Constructors: Date(year, month, day), Period(years, months, days)
   * Date() constructor ONLY accepts concrete integers (e.g., Date(2020, 12, 31))
   * Date() CANNOT accept variables as parameters (e.g., Date(calendar_year, 12, 15) is INVALID)
   * To use a variable year/month/day, create a date variable and use constraints to relate it to concrete dates
-- Date Variables: Use meaningful names (e.g., filing_date, payment_date, assessment_date, close_of_year, claim_date, marriage_date, spouse_birthday, individual_birthday)
-  * Date variables are used directly in constraints (e.g., filing_date >= Date(2020, 1, 1))
-  * Date variables can be compared to concrete dates or other date variables
-  * To express “end of the same year as X”, use date variables and Period arithmetic instead of Date(X.year(), 12, 31), e.g.:
+    * Example: To express “end of the same year as X”, use date variables and Period arithmetic instead of Date(X.year(), 12, 31), e.g.:
     - current_year_end >= current_year_start
     - current_year_end <= current_year_start + Period(1, 0, 0) + Period(0, 0, 1)
     - current_year_end == current_year_start + Period(0, 11, 30)
-- Valid ranges: 1900-03-01 <= Date <= 2100-02-28, 1<=month<=12, 1<=day<=31
+- Date Variables: Use meaningful names (e.g., filing_date, payment_date, assessment_date, close_of_year, claim_date, marriage_date, spouse_birthday, individual_birthday)
+  * Date variables are used directly in constraints (e.g., filing_date >= Date(2020, 1, 1))
+  * Date variables can be compared to concrete dates or other date variables
 
 CONSTRAINT FORMAT (CNF - Conjunctive Normal Form)
 The "constraints" field supports Conjunctive Normal Form (CNF) where:
@@ -168,10 +167,9 @@ Examples:
 
 Use OR clauses when the legal text has alternatives like "either X or Y" or "whichever is later/earlier".
 
-REASONING ABOUT CONSTRAINTS
 You must actively reason about what temporal constraints are appropriate based on the legal text. Do NOT automatically add constraints for entities that are not mentioned in the text.
 
-CRITICAL RULES:
+RULES FOR ADDING COMMON KNOWLEDGE CONSTRAINTS:
 1. **Only add constraints for entities/events actually mentioned in the text**
    - If the text mentions "married individual" or "spouse", you may infer marriage-related constraints
    - If the text mentions "filing", you may infer filing_date constraints
@@ -193,7 +191,6 @@ CRITICAL RULES:
 
 4. **What NOT to do:**
    - Don't add marriage_date constraints if the text doesn't mention marriage, spouse, or married individuals
-   - Don't add birth_date constraints if the text doesn't mention birth, age, or related concepts
    - Don't add constraints for entities that aren't relevant to the legal provision
    - Don't add constraints just because they're "common knowledge" - they must be relevant to THIS text
 
@@ -211,7 +208,7 @@ CONTEXT AWARENESS
 - Extract concrete dates when mentioned (e.g., "January 1, 2020")
 - For symbolic events (e.g., "filing_date", "close of taxable year"), use descriptive variable names
 
-OUTPUT FORMAT - CRITICAL
+OUTPUT FORMAT
 You MUST output ONLY valid JSON. Do NOT include any explanatory text, reasoning, or commentary before or after the JSON.
 Output ONLY one of the following:
 1. A JSON object with "description" and "constraints" fields
@@ -224,15 +221,11 @@ Return a JSON object (not an array):
   "constraints": ["constraint1", "constraint2", ...] or [["or_constraint1", "or_constraint2"], "and_constraint1", ...]
 }
 
-IMPORTANT - CONSTRAINT INFERENCE
+GENERAL RULES SUMMARY
 - Extract ALL explicit temporal constraints from the legal text
 - REASON about what temporal constraints are appropriate based on what's actually in the text
 - Only add constraints for entities/events that are mentioned or clearly implied in the legal text
-- For entities mentioned in the text, infer necessary temporal relationships:
-  * If text mentions "married individual" or "spouse" → infer marriage_date constraints relative to filing and tax year
-  * If text mentions "filing" → infer filing_date constraints relative to tax year boundaries
-  * If text mentions "taxable year" or "taxable income" → infer tax year start/end date constraints
-  * If text mentions events or actions → infer temporal ordering constraints between those events
+- For entities mentioned in the text, infer necessary temporal relationships
 - DO NOT add constraints for entities not mentioned (e.g., don't add marriage_date if text only discusses tax rates)
 - AVOID returning null unless the text contains absolutely NO date/time/period references whatsoever
 - Be logical and context-aware - only add constraints that are necessary for THIS legal provision
@@ -265,7 +258,6 @@ Output:
     "taxable_year_end <= taxable_year_start + Period(1, 0, 0)"
   ]
 }
-Note: Use date variables (like taxable_year_end) for symbolic dates. Date() constructor only accepts concrete integers like Date(2020, 12, 31).
 
 Example 3: Effective date constraint
 Legal Text: "This section applies to taxable years beginning after December 31, 2020."
@@ -294,7 +286,6 @@ Output:
     "taxable_year_end <= taxable_year_start + Period(1, 0, 0) + Period(0, 0, 1)"
   ]
 }
-Note: We only add constraints for entities mentioned (married individual → marriage_date, filing, taxable income → tax year). We don't add birthday constraints unless the text mentions age, birth, or related concepts.
 """
 
 
