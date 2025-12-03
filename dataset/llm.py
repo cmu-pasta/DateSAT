@@ -8,7 +8,7 @@ This module provides a generic LLM interface that can be used by any dataset gen
 import json
 import os
 import re
-from typing import Optional
+from typing import Optional, Dict, List, Any
 
 try:
     from dotenv import load_dotenv
@@ -143,9 +143,11 @@ class LLMClient:
         # Set up the appropriate client
         if self.provider == "openai":
             import openai
+
             self.client = openai.OpenAI(api_key=self.api_key)
         elif self.provider == "anthropic":
             import anthropic
+
             self.client = anthropic.Anthropic(api_key=self.api_key)
 
         # Light defaults that usually help JSON fidelity
@@ -202,9 +204,7 @@ class LLMClient:
             )
             return resp.content[0].text
 
-    def parse_json_response(
-        self, response: str, extract_array: bool = False
-    ) -> any:
+    def parse_json_response(self, response: str, extract_array: bool = False) -> any:
         """
         Parse JSON from LLM response with normalization and error recovery.
 
@@ -231,4 +231,95 @@ class LLMClient:
                 return json.loads(_normalize_llm_json(extracted))
         else:
             return json.loads(normalized)
+
+
+class LLMPipeline:
+    """
+    Lightweight helper for multi-step LLM calls with conversation history.
+
+    This is not a full tool-using agent, just a thin wrapper around LLMClient
+    that tracks history and provides a JSON-parsing helper.
+    """
+
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        model: Optional[str] = None,
+        provider: str = "auto",
+    ):
+        self.llm_client = LLMClient(api_key=api_key, model=model, provider=provider)
+        self.conversation_history: List[Dict[str, str]] = []
+        self.call_count = 0
+
+    def reset(self) -> None:
+        """Reset conversation history and call counter."""
+        self.conversation_history = []
+        self.call_count = 0
+
+    def call(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+        include_history: bool = True,
+    ) -> str:
+        """Call the LLM, optionally including previous exchanges as history."""
+        self.call_count += 1
+
+        if include_history and self.conversation_history:
+            history_text = "\n\n".join(
+                [
+                    f"Previous exchange {i+1}:\nUser: {ex['user']}\nAssistant: {ex['assistant']}"
+                    for i, ex in enumerate(self.conversation_history)
+                ]
+            )
+            full_user_prompt = f"{history_text}\n\nCurrent request:\n{user_prompt}"
+        else:
+            full_user_prompt = user_prompt
+
+        response = self.llm_client.call(
+            system_prompt=system_prompt,
+            user_prompt=full_user_prompt,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+
+        self.conversation_history.append(
+            {
+                "user": user_prompt,
+                "assistant": response,
+            }
+        )
+
+        return response
+
+    def call_with_json_output(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+        include_history: bool = True,
+    ) -> Optional[dict]:
+        """Call the LLM and parse the response as JSON."""
+        response = self.call(
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            include_history=include_history,
+        )
+        try:
+            return self.llm_client.parse_json_response(response)
+        except (json.JSONDecodeError, ValueError, Exception):
+            return None
+
+    def get_call_count(self) -> int:
+        """Number of calls made in the current run."""
+        return self.call_count
+
+    def get_history(self) -> List[Dict[str, str]]:
+        """Return a copy of the conversation history."""
+        return self.conversation_history.copy()
 
