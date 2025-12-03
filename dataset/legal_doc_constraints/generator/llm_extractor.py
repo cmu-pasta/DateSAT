@@ -28,6 +28,35 @@ if str(REPO_ROOT) not in sys.path:
 from dataset.llm import LLMClient
 import re
 
+DATE_PATTERN = re.compile(r"Date\(([^)]*)\)")
+PERIOD_PATTERN = re.compile(r"Period\(([^)]*)\)")
+
+
+def _flatten_constraints(constraints: List) -> List[str]:
+    flat: List[str] = []
+    for item in constraints:
+        if isinstance(item, list):
+            flat.extend(_flatten_constraints(item))
+        else:
+            flat.append(item)
+    return flat
+
+
+def _find_invalid_date_period(constraints: List) -> Tuple[bool, Optional[str]]:
+    def _is_valid_numeric(arg: str) -> bool:
+        return bool(re.fullmatch(r"[+-]?\d+", arg.strip()))
+
+    for constraint in _flatten_constraints(constraints):
+        for pattern in (DATE_PATTERN, PERIOD_PATTERN):
+            for match in pattern.finditer(constraint):
+                args = [arg.strip() for arg in match.group(1).split(",")]
+                if len(args) != 3:
+                    return True, constraint
+                for arg in args:
+                    if not _is_valid_numeric(arg):
+                        return True, constraint
+    return False, None
+
 
 def _generate_coverage_tags(constraints: List) -> List[str]:
     """Generate coverage tags based on constraint content."""
@@ -110,9 +139,18 @@ RULES & OPERATIONS
   • Date ▷◁ Date (▷◁ ∈ {==, !=, <, <=, >, >=})
 - FORBIDDEN: Period comparisons (Period ▷◁ Period). Compare dates after adding periods instead.
 
-DateSMT SYNTAX
+DateSMT SYNTAX - CRITICAL RULES
 - Constructors: Date(year, month, day), Period(years, months, days)
+  * Date() constructor ONLY accepts concrete integers (e.g., Date(2020, 12, 31))
+  * Date() CANNOT accept variables as parameters (e.g., Date(calendar_year, 12, 15) is INVALID)
+  * To use a variable year/month/day, create a date variable and use constraints to relate it to concrete dates
 - Date Variables: Use meaningful names (e.g., filing_date, payment_date, assessment_date, close_of_year, claim_date, marriage_date, spouse_birthday, individual_birthday)
+  * Date variables are used directly in constraints (e.g., filing_date >= Date(2020, 1, 1))
+  * Date variables can be compared to concrete dates or other date variables
+  * To express “end of the same year as X”, use date variables and Period arithmetic instead of Date(X.year(), 12, 31), e.g.:
+    - current_year_end >= current_year_start
+    - current_year_end <= current_year_start + Period(1, 0, 0) + Period(0, 0, 1)
+    - current_year_end == current_year_start + Period(0, 11, 30)
 - Valid ranges: 1900-03-01 <= Date <= 2100-02-28, 1<=month<=12, 1<=day<=31
 
 CONSTRAINT FORMAT (CNF - Conjunctive Normal Form)
@@ -130,50 +168,39 @@ Examples:
 
 Use OR clauses when the legal text has alternatives like "either X or Y" or "whichever is later/earlier".
 
-COMMON KNOWLEDGE CONSTRAINTS
-Add constraints based on logical common knowledge assumptions that are not explicitly stated but are necessary for correctness. The examples below are illustrative - you should add ANY reasonable common knowledge constraints that make logical sense given the entities and relationships mentioned in the text.
+REASONING ABOUT CONSTRAINTS
+You must actively reason about what temporal constraints are appropriate based on the legal text. Do NOT automatically add constraints for entities that are not mentioned in the text.
 
-Examples of common knowledge constraints (you are encouraged to add others as appropriate):
+CRITICAL RULES:
+1. **Only add constraints for entities/events actually mentioned in the text**
+   - If the text mentions "married individual" or "spouse", you may infer marriage-related constraints
+   - If the text mentions "filing", you may infer filing_date constraints
+   - If the text mentions "taxable year", you may infer tax year boundary constraints
+   - DO NOT add constraints for entities that are not mentioned (e.g., don't add marriage_date constraints if the text only talks about tax rates)
 
-1. **Marriage/Relationship Dates:**
-   - If text mentions "spouse" or "marriage", consider adding:
-     • marriage_date >= spouse_birthday (marriage cannot occur before spouse's birth)
-     • marriage_date >= individual_birthday (marriage cannot occur before individual's birth)
-   - If text mentions "divorce_date", consider adding:
-     • divorce_date >= marriage_date (divorce must occur after marriage)
+2. **Reason about what temporal relationships are necessary**
+   - What dates/periods are explicitly mentioned in the text?
+   - What temporal relationships between these dates are required by the legal provision?
+   - What common knowledge constraints are necessary for the provision to make temporal sense?
+   - Only add constraints that are logically required for the legal provision to be meaningful
 
-2. **Birth/Death Dates:**
-   - If text mentions "death_date" and "birth_date", consider adding:
-     • death_date >= birth_date (death must occur after birth)
+3. **Examples of appropriate reasoning:**
+   - If text mentions "married individual filing jointly" → marriage must occur before filing, so add: marriage_date <= filing_date
+   - If text mentions "taxable year" → tax year has boundaries, so add: taxable_year_end >= taxable_year_start, taxable_year_end <= taxable_year_start + Period(1, 0, 0) + Period(0, 0, 1)
+   - If text mentions "filing" and "taxable year" → filing typically occurs after tax year ends, so add: filing_date >= taxable_year_end
+   - If text mentions "spouse" → marriage cannot occur before birthdays, so add: marriage_date >= spouse_birthday, marriage_date >= individual_birthday
+   - If text only mentions tax rates without dates → focus on tax year boundaries, not marriage dates
 
-3. **Filing/Payment Sequences:**
-   - If text mentions both "filing_date" and "due_date", consider adding:
-     • filing_date >= due_date - Period(0, 6, 0) (filing typically within 6 months of due date, adjust based on context)
-   - If text mentions "payment_date" and "filing_date", consider adding:
-     • payment_date >= filing_date - Period(0, 0, 30) (payment may occur slightly before filing)
+4. **What NOT to do:**
+   - Don't add marriage_date constraints if the text doesn't mention marriage, spouse, or married individuals
+   - Don't add birth_date constraints if the text doesn't mention birth, age, or related concepts
+   - Don't add constraints for entities that aren't relevant to the legal provision
+   - Don't add constraints just because they're "common knowledge" - they must be relevant to THIS text
 
-4. **Tax Year Boundaries:**
-   - If text mentions "taxable_year_start" and "taxable_year_end", consider adding:
-     • taxable_year_end >= taxable_year_start (end must be after start)
-     • taxable_year_end <= taxable_year_start + Period(1, 0, 0) + Period(0, 0, 1) (within one year plus one day)
-
-5. **Assessment/Collection Sequences:**
-   - If text mentions "assessment_date" and "filing_date", consider adding:
-     • assessment_date >= filing_date (assessment occurs after filing)
-   - If text mentions "collection_date" and "assessment_date", consider adding:
-     • collection_date >= assessment_date (collection occurs after assessment)
-
-6. **Other Common Knowledge:**
-   - Age-related constraints: If text mentions age requirements, add constraints that age = current_date - birth_date
-   - Event sequences: If text mentions multiple events, add temporal ordering constraints
-   - Period validity: If text mentions periods, ensure they are non-negative where appropriate
-   - Date ranges: If text mentions start and end dates, ensure end >= start
-
-IMPORTANT: 
-- These are EXAMPLES - you should add ANY reasonable common knowledge constraints that are logically necessary and relevant to the legal text.
-- Use your judgment to identify relationships between entities (dates, events, people) that require temporal ordering or constraints.
-- Don't add constraints that don't make sense in context, but DO add constraints that are logically implied by the relationships described.
-- Be creative but logical - think about what temporal relationships MUST be true given the entities and events mentioned.
+5. **When to add common knowledge constraints:**
+   - Only when the entities are mentioned in the text
+   - Only when the temporal relationship is necessary for the legal provision to make sense
+   - When the constraint helps express the temporal logic of the provision
 
 CONTEXT AWARENESS
 - Understand what the constraint actually means in legal context
@@ -199,15 +226,16 @@ Return a JSON object (not an array):
 
 IMPORTANT - CONSTRAINT INFERENCE
 - Extract ALL explicit temporal constraints from the legal text
-- INFER and add common knowledge constraints based on the entities mentioned (marriage, birth, death, filing, tax years, etc.)
-- ASSUME necessary information to conclude date/time constraints. For example:
-  * If text mentions "married individual" or "spouse", infer marriage_date constraints relative to birthdays and tax year
-  * If text mentions "filing", infer filing_date constraints relative to tax year boundaries
-  * If text mentions "taxable income" or "taxable year", infer tax year start/end date constraints
-  * If text mentions events or actions, infer temporal ordering constraints
+- REASON about what temporal constraints are appropriate based on what's actually in the text
+- Only add constraints for entities/events that are mentioned or clearly implied in the legal text
+- For entities mentioned in the text, infer necessary temporal relationships:
+  * If text mentions "married individual" or "spouse" → infer marriage_date constraints relative to filing and tax year
+  * If text mentions "filing" → infer filing_date constraints relative to tax year boundaries
+  * If text mentions "taxable year" or "taxable income" → infer tax year start/end date constraints
+  * If text mentions events or actions → infer temporal ordering constraints between those events
+- DO NOT add constraints for entities not mentioned (e.g., don't add marriage_date if text only discusses tax rates)
 - AVOID returning null unless the text contains absolutely NO date/time/period references whatsoever
-- Even if explicit dates are not mentioned, infer constraints from context (e.g., marriage must occur before filing, filing must occur within tax year, etc.)
-- Be creative but logical - infer constraints that are necessary for the legal provision to make temporal sense
+- Be logical and context-aware - only add constraints that are necessary for THIS legal provision
 - Use concrete dates when available, symbolic variables for events
 - Use OR clauses (lists) when the legal text has alternatives
 
@@ -230,11 +258,14 @@ Output:
 {
   "description": "Spouse qualification requires marriage by end of taxable year, plus common knowledge that marriage cannot occur before birthdays",
   "constraints": [
-    "marriage_date <= Date(taxable_year, 12, 31)",
+    "marriage_date <= taxable_year_end",
     "marriage_date >= spouse_birthday",
-    "marriage_date >= individual_birthday"
+    "marriage_date >= individual_birthday",
+    "taxable_year_end >= taxable_year_start",
+    "taxable_year_end <= taxable_year_start + Period(1, 0, 0)"
   ]
 }
+Note: Use date variables (like taxable_year_end) for symbolic dates. Date() constructor only accepts concrete integers like Date(2020, 12, 31).
 
 Example 3: Effective date constraint
 Legal Text: "This section applies to taxable years beginning after December 31, 2020."
@@ -249,24 +280,21 @@ Output:
 
 Example 4: Inferring constraints from context (no explicit dates)
 Legal Text: "(a) Married individuals filing joint returns... There is hereby imposed on the taxable income of every married individual... a tax determined in accordance with the following table..."
+Reasoning: The text mentions "married individual" and "taxable income", which implies:
+- Marriage must occur before filing (to file jointly, you must be married)
+- Filing relates to taxable year (tax is imposed on taxable income)
+- Tax year has boundaries
 Output:
 {
-  "description": "Married individuals filing joint returns - inferred temporal constraints",
+  "description": "Married individuals filing joint returns - temporal constraints based on entities mentioned",
   "constraints": [
     "marriage_date <= filing_date",
-    "marriage_date >= spouse_birthday",
-    "marriage_date >= individual_birthday",
     "filing_date >= taxable_year_end",
     "taxable_year_end >= taxable_year_start",
     "taxable_year_end <= taxable_year_start + Period(1, 0, 0) + Period(0, 0, 1)"
   ]
 }
-
-Note: Even though the text doesn't explicitly mention dates, we infer:
-- Marriage must occur before filing (logical requirement)
-- Marriage cannot occur before birthdays (common knowledge)
-- Filing occurs after tax year ends (standard tax practice)
-- Tax year boundaries (standard constraint)
+Note: We only add constraints for entities mentioned (married individual → marriage_date, filing, taxable income → tax year). We don't add birthday constraints unless the text mentions age, birth, or related concepts.
 """
 
 
@@ -310,12 +338,14 @@ Identifier: {identifier}
 Legal Text:
 {text}
 
-Extract ALL explicit temporal constraints and INFER relevant common knowledge constraints (e.g., marriage date constraints based on birthdays, filing sequences, tax year boundaries, etc.). 
+Extract ALL explicit temporal constraints and REASON about what temporal constraints are appropriate based on the legal text.
 
 IMPORTANT: 
 - Output ONLY valid JSON (either a constraint object or null)
 - Do NOT include any explanatory text, reasoning, or commentary
-- ASSUME necessary information to infer constraints (e.g., if text mentions "married individual", infer marriage_date constraints relative to tax year and birthdays)
+- REASON about what entities are mentioned in the text and what temporal relationships are necessary
+- Only add constraints for entities/events actually mentioned or clearly implied in the text
+- Do NOT add constraints for entities not mentioned (e.g., don't add marriage_date if text only discusses tax rates)
 - Only return null if the text contains absolutely NO date/time/period references whatsoever
 
 Return constraints in DateSMT format."""
@@ -479,9 +509,23 @@ Return constraints in DateSMT format."""
                 log_file.flush()
             return None
 
-# Remove coverage_tags if present (we don't generate them for legal documents)
+        # Remove coverage_tags if present (we don't generate them for legal documents)
         if "coverage_tags" in constraint_obj:
             del constraint_obj["coverage_tags"]
+
+        # Validate Date/Period constructors to ensure only numeric literals in Date()/Period()
+        invalid, offending = _find_invalid_date_period(constraint_obj.get("constraints", []))
+        if invalid:
+            if log_file:
+                error_log = {
+                    "record_id": record.get("id", "unknown"),
+                    "timestamp": datetime.now().isoformat(),
+                    "error": "Invalid Date/Period constructor usage",
+                    "invalid_constraint": offending,
+                }
+                log_file.write(json.dumps(error_log, ensure_ascii=False) + "\n")
+                log_file.flush()
+            return None
 
         # Add provenance
         constraint_obj["provenance"] = {

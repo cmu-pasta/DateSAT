@@ -57,7 +57,7 @@ RELATION_KEYWORDS = [
     r"\bafter\b",
     r"\bbefore\b",
     r"\bprior\s+to\b",
-    r"\bfollowing\b",
+    #r"\bfollowing\b",
     r"\bpreceding\b",
     r"\bbeginning\b",
     r"\bending\b",
