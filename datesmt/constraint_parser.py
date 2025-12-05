@@ -75,6 +75,11 @@ class ConstraintTransformer(Transformer):
         year, month, day = items
         return f"Date({year}, {month}, {day})"
     
+    def concrete_date_constructor(self, items):
+        """Transform concrete Date constructor (from grammar)."""
+        year, month, day = items
+        return f"Date({year}, {month}, {day})"
+    
     def period_constructor(self, items):
         """Transform Period constructor."""
         years, months, days = items
@@ -119,7 +124,7 @@ class ConstraintParser:
                  | term "/" factor -> div
             
             ?factor: variable
-                   | date_constructor
+                   | concrete_date_constructor
                    | period_constructor
                    | number
                    | parenthesized_expression
@@ -131,7 +136,7 @@ class ConstraintParser:
             COMMA: ","
             
             variable: CNAME
-            date_constructor: "Date" "(" number "," number "," number ")"
+            concrete_date_constructor: "Date" "(" number "," number "," number ")"
             period_constructor: "Period" "(" number "," number "," number ")"
             description: ESCAPED_STRING
             
@@ -196,8 +201,27 @@ class ConstraintParser:
             return False
         
         # Check for invalid variable names like var-123, var.123, 123var
-        if re.search(r'\b[a-zA-Z_][a-zA-Z0-9_]*[-.][a-zA-Z0-9_]+\b', constraint_str):
-            return True
+        # But exclude cases where hyphen/dot is followed by keywords like Period/Date or '('
+        # This distinguishes "var-123" (invalid) from "z-Period(...)" (valid subtraction)
+        pattern1 = r'\b[a-zA-Z_][a-zA-Z0-9_]*[-.][a-zA-Z0-9_]+\b'
+        matches = re.finditer(pattern1, constraint_str)
+        for match in matches:
+            matched_text = match.group()
+            # Check if the part after hyphen/dot is a keyword (Period, Date)
+            parts = re.split(r'[-.]', matched_text, maxsplit=1)
+            if len(parts) == 2:
+                second_part = parts[1]
+                # If it's a keyword, this is likely an operator, not an invalid variable name
+                if second_part in ['Period', 'Date']:
+                    continue
+                # Check if followed by '(' which would indicate a function call
+                end_pos = match.end()
+                if end_pos < len(constraint_str) and constraint_str[end_pos] == '(':
+                    continue
+                # Otherwise, it's an invalid variable name
+                return True
+        
+        # Check for invalid variable names starting with digits like 123var
         if re.search(r'\b[0-9]+[a-zA-Z_][a-zA-Z0-9_]*\b', constraint_str):
             return True
         return False
