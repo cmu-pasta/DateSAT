@@ -70,11 +70,6 @@ class ConstraintTransformer(Transformer):
         """Transform variable reference."""
         return str(items[0])
     
-    def date_constructor(self, items):
-        """Transform Date constructor."""
-        year, month, day = items
-        return f"Date({year}, {month}, {day})"
-    
     def concrete_date_constructor(self, items):
         """Transform concrete Date constructor (from grammar)."""
         year, month, day = items
@@ -110,6 +105,7 @@ class ConstraintParser:
     def __init__(self):
         """Initialize the parser with Lark grammar."""
         self.date_vars: Dict[str, Any] = {}
+        self.variable_types: Dict[str, str] = {}  # Maps variable name to type: 'date', 'int', or 'bool'
         
         # Define the grammar for constraint parsing
         self.grammar = """
@@ -258,6 +254,70 @@ class ConstraintParser:
         
         return False
 
+    def extract_variable_declarations(self, constraints: List[Union[str, List[str]]]) -> Dict[str, str]:
+        """
+        Extract variable declarations from constraints.
+        Looks for patterns like "x: date", "y: int", "z: bool".
+        
+        Args:
+            constraints: List of constraint strings or lists of constraint strings
+            
+        Returns:
+            Dictionary mapping variable names to their types ('date', 'int', or 'bool')
+        """
+        declarations = {}
+        # Pattern to match variable declarations: "variable_name: type"
+        # where type is date, int, or bool
+        declaration_pattern = r'^\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*:\s*(date|int|bool)\s*$'
+        
+        for constraint_item in constraints:
+            # Handle both string and list formats
+            if isinstance(constraint_item, list):
+                constraint_strings = constraint_item
+            else:
+                constraint_strings = [constraint_item]
+            
+            for constraint in constraint_strings:
+                constraint = constraint.strip()
+                match = re.match(declaration_pattern, constraint, re.IGNORECASE)
+                if match:
+                    var_name = match.group(1)
+                    var_type = match.group(2).lower()  # Normalize to lowercase
+                    if var_type in ['date', 'int', 'bool']:
+                        declarations[var_name] = var_type
+        
+        return declarations
+
+    def filter_declarations_from_constraints(self, constraints: List[Union[str, List[str]]]) -> List[Union[str, List[str]]]:
+        """
+        Filter out variable declarations from the constraints list.
+        
+        Args:
+            constraints: List of constraint strings or lists of constraint strings
+            
+        Returns:
+            Filtered list with declarations removed
+        """
+        filtered = []
+        declaration_pattern = r'^\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*:\s*(date|int|bool)\s*$'
+        
+        for constraint_item in constraints:
+            if isinstance(constraint_item, list):
+                # Filter each item in the list
+                filtered_list = []
+                for constraint in constraint_item:
+                    constraint = constraint.strip()
+                    if not re.match(declaration_pattern, constraint, re.IGNORECASE):
+                        filtered_list.append(constraint)
+                if filtered_list:  # Only add non-empty lists
+                    filtered.append(filtered_list)
+            else:
+                constraint = constraint_item.strip()
+                if not re.match(declaration_pattern, constraint, re.IGNORECASE):
+                    filtered.append(constraint)
+        
+        return filtered
+
     def extract_variables_from_constraints(self, constraints: List[Union[str, List[str]]]) -> List[str]:
         """
         Extract all variable names from constraints (supports CNF format).
@@ -354,15 +414,21 @@ class ConstraintParser:
         - A list of strings: OR clause (e.g., ["x >= Date(2000,2,28)", "x <= Date(2000,2,29)"])
         
         All top-level constraints are ANDed together.
+        
+        Also supports variable declarations like "x: date", "y: int", "z: bool".
+        All variables used in constraints must be explicitly declared.
 
         Args:
             constraints: List of constraint strings or lists of constraint strings (for OR clauses)
 
         Returns:
             Complete Python code string
+            
+        Raises:
+            ValueError: If any variable used in constraints is not explicitly declared
         """
         code_lines = [
-            "from z3 import Or as Z3Or",
+            "from z3 import Or, Int, Bool",
             "from datesmt.enumeration_baseline import ConstraintWrapper",
             "builder = DateSMTBuilder()",
             "",
@@ -372,7 +438,7 @@ class ConstraintParser:
             "    from z3 import BoolRef",
             "    if any(isinstance(c, BoolRef) for c in constraints):",
             "        # Z3 mode: use Z3's Or",
-            "        return Z3Or(*constraints)",
+            "        return Or(*constraints)",
             "    else:",
             "        # Enumeration baseline mode: create OR ConstraintWrapper",
             "        constraint_list = list(constraints)",
@@ -382,15 +448,37 @@ class ConstraintParser:
             "        )",
         ]
 
-        # Auto-extract variables
-        date_variables = self.extract_variables_from_constraints(constraints)
+        # First, extract variable declarations
+        variable_types = self.extract_variable_declarations(constraints)
+        self.variable_types = variable_types
+        
+        # Filter out declarations from constraints
+        filtered_constraints = self.filter_declarations_from_constraints(constraints)
+        
+        # Auto-extract variables from remaining constraints
+        all_variables = self.extract_variables_from_constraints(filtered_constraints)
+        
+        # Check for undeclared variables and raise error if found
+        undeclared_vars = [var for var in all_variables if var not in variable_types]
+        if undeclared_vars:
+            undeclared_str = ", ".join(sorted(undeclared_vars))
+            raise ValueError(
+                f"Undeclared variables found in constraints: {undeclared_str}. "
+                f"All variables must be explicitly declared using 'variable_name: type' syntax "
+                f"(where type is 'date', 'int', or 'bool')."
+            )
+        
+        # Add variable declarations
+        for var_name, var_type in sorted(variable_types.items()):
+            if var_type == 'date':
+                code_lines.append(f'{var_name} = builder.add_date_var("{var_name}")')
+            elif var_type == 'int':
+                code_lines.append(f'{var_name} = Int("{var_name}")')
+            elif var_type == 'bool':
+                code_lines.append(f'{var_name} = Bool("{var_name}")')
 
-        # Add date variables
-        for var_name in date_variables:
-            code_lines.append(f'{var_name} = builder.add_date_var("{var_name}")')
-
-        # Add constraints
-        for constraint_item in constraints:
+        # Add constraints (using filtered constraints without declarations)
+        for constraint_item in filtered_constraints:
             if isinstance(constraint_item, list):
                 # OR clause: parse each constraint and combine with _or_constraints()
                 if len(constraint_item) == 0:

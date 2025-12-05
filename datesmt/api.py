@@ -96,9 +96,51 @@ class DateSMTBuilder:
             print(self.to_smt2())
         result = self.solver.solve()
         if result["status"] == "sat":
+            # Extract Int and Bool variables from the Z3 model
+            model = self.solver.model()
+            int_values = {}
+            bool_values = {}
+            
+            # Get all declarations from the model
+            # First, get all date variable names to exclude their internal components
+            date_var_names = set(self.solver.date_vars.keys())
+            
+            for decl in model.decls():
+                name = decl.name()
+                # Skip internal date variable components (they end with _year, _month, _day, _months, _beta, _days)
+                if any(name.endswith(suffix) for suffix in ['_year', '_month', '_day', '_months', '_beta', '_days']):
+                    continue
+                # Skip if this is a date variable (we already have it in result["dates"])
+                if name in date_var_names:
+                    continue
+                
+                # Check if this is an Int or Bool variable
+                try:
+                    value = model[decl]
+                    if value is not None:
+                        # Check the sort type
+                        from z3 import IntSort, BoolSort
+                        if decl.range() == IntSort():
+                            int_values[name] = value.as_long()
+                        elif decl.range() == BoolSort():
+                            bool_values[name] = bool(value)
+                except Exception:
+                    # Skip if we can't extract the value
+                    pass
+            
+            # Add Int and Bool values to result
+            if int_values:
+                result["ints"] = int_values
+            if bool_values:
+                result["bools"] = bool_values
+            
             print(f"✅ SATISFIABLE:")
             for name, date in result["dates"].items():
                 print(f"  {name} = {date}")
+            for name, value in result.get("ints", {}).items():
+                print(f"  {name} = {value}")
+            for name, value in result.get("bools", {}).items():
+                print(f"  {name} = {value}")
         else:
             print("❌ UNSATISFIABLE")
         return result

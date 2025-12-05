@@ -39,7 +39,10 @@ CONSTRAINT_JSON = r"""
 {
   "id": "grammar-10",
   "constraints": [
-    "z==((z-Period(2,85,127))+((Period(49,90,908)*509)+(Period(04,9,34)-Period(3,9,8))))",
+    "z: date",
+    "x: int",
+    "y: int",
+    "z==((z-Period(2,85,127))+Period(2,85,127))",
     "y==x"
   ]
 }
@@ -61,7 +64,7 @@ def main():
     # 3) Execute the generated code with a DateSMTBuilder factory
     def create_builder():
         # You can change approach/implementation if you want
-        return DateSMTBuilder(approach="epoch_days", implementation="int")
+        return DateSMTBuilder(approach="alpha_beta", implementation="bitvector")
 
     exec_globals = {
         "Date": Date,

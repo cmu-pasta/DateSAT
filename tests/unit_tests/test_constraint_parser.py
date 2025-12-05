@@ -192,7 +192,7 @@ def test_generate_builder_code_basic(parser):
     result = parser.generate_builder_code(constraints)
 
     # Helper function is always included now, but not used for simple constraints
-    assert "from z3 import Or as Z3Or" in result
+    assert "from z3 import Or" in result
     assert "def _or_constraints" in result
     assert 'x = builder.add_date_var("x")' in result
     assert 'y = builder.add_date_var("y")' in result
@@ -209,7 +209,7 @@ def test_generate_builder_code_empty(parser):
     result = parser.generate_builder_code(constraints)
 
     # Helper function is always included now
-    assert "from z3 import Or as Z3Or" in result
+    assert "from z3 import Or" in result
     assert "def _or_constraints" in result
     assert "builder = DateSMTBuilder()" in result
     assert "result = builder" in result
@@ -228,7 +228,7 @@ def test_parse_constraint_data_basic(parser):
     result = parser.parse_constraint_data(constraint_data)
 
     # Helper function is always included now
-    assert "from z3 import Or as Z3Or" in result
+    assert "from z3 import Or" in result
     assert "def _or_constraints" in result
     assert 'x = builder.add_date_var("x")' in result
     assert 'y = builder.add_date_var("y")' in result
@@ -244,7 +244,7 @@ def test_parse_constraint_data_missing_keys(parser):
     result = parser.parse_constraint_data(constraint_data)
 
     # Helper function is always included now
-    assert "from z3 import Or as Z3Or" in result
+    assert "from z3 import Or" in result
     assert "def _or_constraints" in result
     assert "builder = DateSMTBuilder()" in result
     assert "result = builder" in result
@@ -259,7 +259,7 @@ def test_parse_constraint_data_with_periods(parser):
     result = parser.parse_constraint_data(constraint_data)
 
     # Helper function is always included now
-    assert "from z3 import Or as Z3Or" in result
+    assert "from z3 import Or" in result
     assert "def _or_constraints" in result
     assert 'x = builder.add_date_var("x")' in result
     assert "builder.add_constraint(x + Period(0, 1, 1) >= Date(2000, 1, 1))" in result
@@ -431,7 +431,7 @@ def test_parse_constraint_data_with_one_datevar(parser):
     result = parser.parse_constraint_data(constraint_data)
 
     # Helper function is always included now
-    assert "from z3 import Or as Z3Or" in result
+    assert "from z3 import Or" in result
     assert "def _or_constraints" in result
     assert 'x = builder.add_date_var("x")' in result
     assert "builder.add_constraint(x >= Date(2000, 2, 28))" in result
@@ -447,7 +447,7 @@ def test_parse_constraint_data_with_multiple_datevar(parser):
     result = parser.parse_constraint_data(constraint_data)
 
     # Helper function is always included now
-    assert "from z3 import Or as Z3Or" in result
+    assert "from z3 import Or" in result
     assert "def _or_constraints" in result
     assert 'x = builder.add_date_var("x")' in result
     assert 'y = builder.add_date_var("y")' in result
@@ -470,7 +470,7 @@ def test_generate_builder_code_cnf_simple_or(parser):
     result = parser.generate_builder_code(constraints)
 
     # Check that the result contains the helper function and OR constraint
-    assert "from z3 import Or as Z3Or" in result
+    assert "from z3 import Or" in result
     assert "from datesmt.enumeration_baseline import ConstraintWrapper" in result
     assert "def _or_constraints" in result
     # Should use _or_constraints for the OR clause (2 calls: definition + usage)
