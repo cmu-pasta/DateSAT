@@ -18,13 +18,143 @@ class ConstraintTransformer(Transformer):
         """Transform a constraint into Python code."""
         if len(items) == 3:
             left, op, right = items
+            # Check if we need to transform symbolic Date() comparisons
+            transformed = self._transform_symbolic_date_comparison(left, op, right)
+            if transformed:
+                return f"builder.add_constraint({transformed})"
             return f"builder.add_constraint({left} {op} {right})"
         elif len(items) == 4:
             left, op, right, description = items
+            # Check if we need to transform symbolic Date() comparisons
+            transformed = self._transform_symbolic_date_comparison(left, op, right)
+            if transformed:
+                return f"builder.add_constraint({transformed}, {description})"
             return f"builder.add_constraint({left} {op} {right}, {description})"
         else:
             # Fallback for unexpected number of items
             return f"builder.add_constraint({' '.join(str(item) for item in items)})"
+    
+    def _transform_symbolic_date_comparison(self, left: str, op: str, right: str) -> str:
+        """
+        Transform comparisons involving symbolic Date() to constraint-based form.
+        
+        Examples:
+        - d >= Date(x+1, 1, 1) -> component-wise comparison
+        - d == Date(x, 1, 2) -> d.year == x AND d.month == 1 AND d.day == 2
+        """
+        import re
+        
+        # Helper to extract Date() components, handling nested parentheses
+        def extract_date_components(expr):
+            """Extract year, month, day from Date(...) expression."""
+            # Find Date( and match balanced parentheses
+            date_start = expr.find('Date(')
+            if date_start == -1:
+                return None
+            
+            # Find the opening paren after Date
+            start = date_start + 5  # len("Date(")
+            paren_count = 0
+            args = []
+            current_arg = []
+            i = start
+            
+            while i < len(expr):
+                char = expr[i]
+                if char == '(':
+                    paren_count += 1
+                    current_arg.append(char)
+                elif char == ')':
+                    if paren_count == 0:
+                        # This is the closing paren for Date()
+                        if current_arg:
+                            args.append(''.join(current_arg).strip())
+                        break
+                    paren_count -= 1
+                    current_arg.append(char)
+                elif char == ',' and paren_count == 0:
+                    # This comma separates arguments
+                    args.append(''.join(current_arg).strip())
+                    current_arg = []
+                else:
+                    current_arg.append(char)
+                i += 1
+            
+            if len(args) == 3:
+                return args
+            return None
+        
+        # Check if right side is a symbolic Date() constructor
+        date_components = extract_date_components(right)
+        date_var_expr = left.strip()
+        swapped = False
+        
+        if not date_components:
+            # Check if left side is a symbolic Date() constructor
+            date_components = extract_date_components(left)
+            if date_components:
+                # Swap left and right, invert operator
+                date_var_expr = right.strip()
+                op = self._invert_operator(op)
+                swapped = True
+            else:
+                return None
+        
+        year_expr, month_expr, day_expr = date_components
+        
+        # Check if any component is symbolic (not just a number)
+        def is_symbolic(expr):
+            expr = expr.strip()
+            # If it's just a number, it's not symbolic
+            if re.match(r'^-?\d+$', expr):
+                return False
+            # If it contains variables or operations, it's symbolic
+            return bool(re.search(r'[a-zA-Z_][a-zA-Z0-9_]*', expr))
+        
+        # If all components are concrete, no transformation needed
+        if not (is_symbolic(year_expr) or is_symbolic(month_expr) or is_symbolic(day_expr)):
+            return None
+        
+        # Extract the date variable name (handle property access like x.year)
+        date_var_match = re.match(r'^([a-zA-Z_][a-zA-Z0-9_]*)', date_var_expr)
+        if not date_var_match:
+            return None
+        
+        date_var = date_var_match.group(1)
+        
+        # Transform based on operator
+        if op == "==":
+            # Equality: all components must match
+            return f"And({date_var}.year == {year_expr}, {date_var}.month == {month_expr}, {date_var}.day == {day_expr})"
+        elif op == "!=":
+            # Inequality: at least one component differs
+            return f"Or({date_var}.year != {year_expr}, {date_var}.month != {month_expr}, {date_var}.day != {day_expr})"
+        elif op == ">=":
+            # Greater or equal: lexicographic comparison
+            return f"Or({date_var}.year > {year_expr}, And({date_var}.year == {year_expr}, Or({date_var}.month > {month_expr}, And({date_var}.month == {month_expr}, {date_var}.day >= {day_expr}))))"
+        elif op == "<=":
+            # Less or equal: lexicographic comparison
+            return f"Or({date_var}.year < {year_expr}, And({date_var}.year == {year_expr}, Or({date_var}.month < {month_expr}, And({date_var}.month == {month_expr}, {date_var}.day <= {day_expr}))))"
+        elif op == ">":
+            # Greater: not <=
+            return f"Not(Or({date_var}.year < {year_expr}, And({date_var}.year == {year_expr}, Or({date_var}.month < {month_expr}, And({date_var}.month == {month_expr}, {date_var}.day <= {day_expr})))))"
+        elif op == "<":
+            # Less: not >=
+            return f"Not(Or({date_var}.year > {year_expr}, And({date_var}.year == {year_expr}, Or({date_var}.month > {month_expr}, And({date_var}.month == {month_expr}, {date_var}.day >= {day_expr})))))"
+        
+        return None
+    
+    def _invert_operator(self, op: str) -> str:
+        """Invert a comparison operator."""
+        inversions = {
+            ">=": "<=",
+            "<=": ">=",
+            ">": "<",
+            "<": ">",
+            "==": "==",
+            "!=": "!="
+        }
+        return inversions.get(op, op)
     
     def expression(self, items):
         """Handle expression precedence."""
@@ -70,8 +200,22 @@ class ConstraintTransformer(Transformer):
         """Transform variable reference."""
         return str(items[0])
     
-    def concrete_date_constructor(self, items):
-        """Transform concrete Date constructor (from grammar)."""
+    def property_access(self, items):
+        """Transform property access like x.year, x.month, x.day."""
+        var_name, property_name = items
+        return f"{var_name}.{property_name}"
+    
+    def date_property_access(self, items):
+        """Transform property access on Date constructor like Date(1991,2,3).month."""
+        date_expr, property_name = items
+        return f"{date_expr}.{property_name}"
+    
+    def property_name(self, items):
+        """Transform property name."""
+        return str(items[0])
+    
+    def date_constructor(self, items):
+        """Transform Date constructor (may contain symbolic expressions)."""
         year, month, day = items
         return f"Date({year}, {month}, {day})"
     
@@ -120,19 +264,26 @@ class ConstraintParser:
                  | term "/" factor -> div
             
             ?factor: variable
-                   | concrete_date_constructor
+                   | date_constructor
                    | period_constructor
                    | number
                    | parenthesized_expression
+                   | property_access
+                   | date_property_access
             
             parenthesized_expression: LPAR expression RPAR
+            property_access: variable "." property_name
+            date_property_access: date_constructor "." property_name
             
             LPAR: "("
             RPAR: ")"
             COMMA: ","
+            DOT: "."
             
             variable: CNAME
-            concrete_date_constructor: "Date" "(" number "," number "," number ")"
+            property_name: PROPERTY_NAME
+            PROPERTY_NAME: "year" | "month" | "day"
+            date_constructor: "Date" "(" expression "," expression "," expression ")"
             period_constructor: "Period" "(" number "," number "," number ")"
             description: ESCAPED_STRING
             
@@ -196,6 +347,9 @@ class ConstraintParser:
         if not constraint_str or constraint_str.isspace():
             return False
         
+        # Property names that are valid after a dot
+        valid_property_names = {'year', 'month', 'day'}
+        
         # Check for invalid variable names like var-123, var.123, 123var
         # But exclude cases where hyphen/dot is followed by keywords like Period/Date or '('
         # This distinguishes "var-123" (invalid) from "z-Period(...)" (valid subtraction)
@@ -203,12 +357,12 @@ class ConstraintParser:
         matches = re.finditer(pattern1, constraint_str)
         for match in matches:
             matched_text = match.group()
-            # Check if the part after hyphen/dot is a keyword (Period, Date)
+            # Check if the part after hyphen/dot is a keyword (Period, Date) or a property name
             parts = re.split(r'[-.]', matched_text, maxsplit=1)
             if len(parts) == 2:
                 second_part = parts[1]
-                # If it's a keyword, this is likely an operator, not an invalid variable name
-                if second_part in ['Period', 'Date']:
+                # If it's a keyword or property name, this is valid
+                if second_part in ['Period', 'Date'] or second_part in valid_property_names:
                     continue
                 # Check if followed by '(' which would indicate a function call
                 end_pos = match.end()
@@ -344,10 +498,15 @@ class ConstraintParser:
                 if self._is_invalid_period_comparison(constraint):
                     print(f"Warning: Skipping invalid constraint '{constraint}' - period comparisons are not supported")
                     continue
+                
+                # Remove property access patterns (var.property) to avoid
+                # extracting property names as variables
+                # Replace patterns like ".year", ".month", ".day" with empty string
+                cleaned_constraint = re.sub(r'\.(?:year|month|day)\b', '', constraint)
                     
                 # Find all potential variable names using regex
                 # This matches CNAME pattern: [a-zA-Z_][a-zA-Z0-9_]*
-                var_matches = re.findall(r'\b[a-zA-Z_][a-zA-Z0-9_]*\b', constraint)
+                var_matches = re.findall(r'\b[a-zA-Z_][a-zA-Z0-9_]*\b', cleaned_constraint)
                 
                 for match in var_matches:
                     # Filter out keywords and constructors
@@ -355,6 +514,54 @@ class ConstraintParser:
                         variables.add(match)
         
         return sorted(list(variables))
+    
+    def infer_variable_types_from_context(self, constraints: List[Union[str, List[str]]]) -> Dict[str, str]:
+        """
+        Infer variable types from their usage context in constraints.
+        
+        Variables used inside Date() or Period() constructors are inferred as 'int'.
+        Variables used in boolean contexts (comparisons with bool literals) are inferred as 'bool'.
+        
+        Args:
+            constraints: List of constraint strings or lists of constraint strings
+            
+        Returns:
+            Dictionary mapping inferred variable names to their types
+        """
+        inferred_types = {}
+        
+        for constraint_item in constraints:
+            # Handle both string and list formats
+            if isinstance(constraint_item, list):
+                constraint_strings = constraint_item
+            else:
+                constraint_strings = [constraint_item]
+            
+            for constraint in constraint_strings:
+                # Find variables inside Date() constructor arguments
+                # Pattern: Date(arg1, arg2, arg3) where args can be expressions with variables
+                date_pattern = r'Date\s*\(\s*([^,)]+)\s*,\s*([^,)]+)\s*,\s*([^,)]+)\s*\)'
+                date_matches = re.finditer(date_pattern, constraint)
+                for match in date_matches:
+                    for arg in [match.group(1), match.group(2), match.group(3)]:
+                        # Extract variable names from each argument
+                        var_names = re.findall(r'\b[a-zA-Z_][a-zA-Z0-9_]*\b', arg)
+                        for var_name in var_names:
+                            if var_name not in ['Date', 'Period', 'and', 'or', 'not', 'True', 'False']:
+                                inferred_types[var_name] = 'int'
+                
+                # Find variables inside Period() constructor arguments
+                period_pattern = r'Period\s*\(\s*([^,)]+)\s*,\s*([^,)]+)\s*,\s*([^,)]+)\s*\)'
+                period_matches = re.finditer(period_pattern, constraint)
+                for match in period_matches:
+                    for arg in [match.group(1), match.group(2), match.group(3)]:
+                        # Extract variable names from each argument
+                        var_names = re.findall(r'\b[a-zA-Z_][a-zA-Z0-9_]*\b', arg)
+                        for var_name in var_names:
+                            if var_name not in ['Date', 'Period', 'and', 'or', 'not', 'True', 'False']:
+                                inferred_types[var_name] = 'int'
+        
+        return inferred_types
     
     def _is_invalid_period_comparison(self, constraint: str) -> bool:
         """
@@ -403,6 +610,97 @@ class ConstraintParser:
             
         return False
 
+    def _check_comparison_type_mismatches(
+        self, 
+        constraints: List[Union[str, List[str]]], 
+        variable_types: Dict[str, str]
+    ) -> None:
+        """
+        Check for type mismatches in comparisons between variables.
+        
+        For example, comparing an int variable with a bool variable is invalid.
+        """
+        for constraint_item in constraints:
+            if isinstance(constraint_item, list):
+                constraint_strings = constraint_item
+            else:
+                constraint_strings = [constraint_item]
+            
+            for constraint in constraint_strings:
+                # Find comparison operator and split
+                comp_match = re.search(r'(==|!=|>=|<=|>|<)', constraint)
+                if not comp_match:
+                    continue
+                
+                op = comp_match.group(1)
+                left_expr = constraint[:comp_match.start()].strip()
+                right_expr = constraint[comp_match.end():].strip()
+                
+                # Get types for both sides
+                left_type = self._get_full_expression_type(left_expr, variable_types)
+                right_type = self._get_full_expression_type(right_expr, variable_types)
+                
+                if left_type is None or right_type is None:
+                    continue
+                
+                if not self._types_compatible(left_type, right_type):
+                    raise ValueError(
+                        f"Type mismatch in constraint '{constraint}': "
+                        f"cannot compare '{left_expr}' (type: {left_type}) with "
+                        f"'{right_expr}' (type: {right_type}). "
+                        f"Only values of compatible types can be compared."
+                    )
+    
+    def _get_expression_type(self, expr: str, variable_types: Dict[str, str]) -> str:
+        """Get the type of an expression based on variable declarations."""
+        # Check for property access (e.g., k.year, k.month, k.day)
+        prop_match = re.match(r'([a-zA-Z_][a-zA-Z0-9_]*)\.(?:year|month|day)$', expr)
+        if prop_match:
+            var_name = prop_match.group(1)
+            if var_name in variable_types and variable_types[var_name] == 'date':
+                return 'int'
+            return None
+        
+        # Check for simple variable
+        if expr in variable_types:
+            return variable_types[expr]
+        
+        return None
+    
+    def _get_full_expression_type(self, expr: str, variable_types: Dict[str, str]) -> str:
+        """Get the type of a full expression including Date/Period constructors."""
+        expr = expr.strip()
+        
+        # Check for Date constructor
+        if re.match(r'Date\s*\(', expr):
+            return 'date'
+        
+        # Check for Period constructor
+        if re.match(r'Period\s*\(', expr):
+            return 'period'
+        
+        # Check for property access (e.g., k.year, Date(...).month)
+        if re.search(r'\.(?:year|month|day)$', expr):
+            return 'int'
+        
+        # Check for simple variable
+        if expr in variable_types:
+            return variable_types[expr]
+        
+        # Check for numeric literal
+        if re.match(r'^-?\d+$', expr):
+            return 'int'
+        
+        # Check for boolean literal
+        if expr in ['True', 'False']:
+            return 'bool'
+        
+        return None
+    
+    def _types_compatible(self, type1: str, type2: str) -> bool:
+        """Check if two types are compatible for comparison."""
+        return type1 == type2
+
     def generate_builder_code(
         self,
         constraints: List[Union[str, List[str]]],
@@ -428,7 +726,7 @@ class ConstraintParser:
             ValueError: If any variable used in constraints is not explicitly declared
         """
         code_lines = [
-            "from z3 import Or, Int, Bool",
+            "from z3 import Or, And, Not, Int, Bool",
             "from datesmt.enumeration_baseline import ConstraintWrapper",
             "builder = DateSMTBuilder()",
             "",
@@ -458,7 +756,35 @@ class ConstraintParser:
         # Auto-extract variables from remaining constraints
         all_variables = self.extract_variables_from_constraints(filtered_constraints)
         
-        # Check for undeclared variables and raise error if found
+        # Infer types for undeclared variables from their usage context
+        inferred_types = self.infer_variable_types_from_context(filtered_constraints)
+        
+        # Check for type conflicts between explicit declarations and inferred usage
+        type_conflicts = []
+        for var_name, inferred_type in inferred_types.items():
+            if var_name in variable_types:
+                declared_type = variable_types[var_name]
+                if declared_type != inferred_type:
+                    type_conflicts.append((var_name, declared_type, inferred_type))
+        
+        if type_conflicts:
+            conflict_messages = []
+            for var_name, declared_type, inferred_type in type_conflicts:
+                conflict_messages.append(
+                    f"'{var_name}' is declared as '{declared_type}' but used as '{inferred_type}' "
+                    f"(inside Date() or Period() constructor)"
+                )
+            raise ValueError(
+                f"Type conflict detected:\n  - " + "\n  - ".join(conflict_messages) + "\n"
+                f"Variables used inside Date() or Period() constructors must be of type 'int', not 'date'."
+            )
+        
+        # Merge inferred types into variable_types (explicit declarations take precedence)
+        for var_name, var_type in inferred_types.items():
+            if var_name not in variable_types:
+                variable_types[var_name] = var_type
+        
+        # Check for undeclared variables that couldn't be inferred
         undeclared_vars = [var for var in all_variables if var not in variable_types]
         if undeclared_vars:
             undeclared_str = ", ".join(sorted(undeclared_vars))
@@ -468,14 +794,19 @@ class ConstraintParser:
                 f"(where type is 'date', 'int', or 'bool')."
             )
         
+        # Check for type mismatches in comparisons (e.g., int == bool)
+        self._check_comparison_type_mismatches(filtered_constraints, variable_types)
+        
         # Add variable declarations
         for var_name, var_type in sorted(variable_types.items()):
             if var_type == 'date':
                 code_lines.append(f'{var_name} = builder.add_date_var("{var_name}")')
             elif var_type == 'int':
-                code_lines.append(f'{var_name} = Int("{var_name}")')
+                # Use builder.add_int_var() for int variables to ensure compatibility
+                # with the implementation (bitvector or int mode)
+                code_lines.append(f'{var_name} = builder.add_int_var("{var_name}")')
             elif var_type == 'bool':
-                code_lines.append(f'{var_name} = Bool("{var_name}")')
+                code_lines.append(f'{var_name} = builder.add_bool_var("{var_name}")')
 
         # Add constraints (using filtered constraints without declarations)
         for constraint_item in filtered_constraints:

@@ -67,6 +67,23 @@ class DateVar:
     def __str__(self) -> str:
         return f"DateVar({self.name})"
 
+    @property
+    def year(self) -> ArithRef:
+        """Get symbolic year component (decodes from months_var)."""
+        y, _ = ym_from_months_since_epoch(self.months_var)
+        return y
+
+    @property
+    def month(self) -> ArithRef:
+        """Get symbolic month component (decodes from months_var)."""
+        _, m = ym_from_months_since_epoch(self.months_var)
+        return m
+
+    @property
+    def day(self) -> ArithRef:
+        """Get symbolic day component (beta_var + 1, since beta is 0-based)."""
+        return self.beta_var + IntVal(1)
+
     def to_concrete_date(self, model: ModelRef) -> Date:
         """Convert Z3 model to concrete Date using (alpha, beta)."""
         alpha_val = model.evaluate(self.months_var, model_completion=True).as_long()

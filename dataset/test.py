@@ -39,11 +39,11 @@ CONSTRAINT_JSON = r"""
 {
   "id": "grammar-10",
   "constraints": [
-    "z: date",
-    "x: int",
-    "y: int",
-    "z==((z-Period(2,85,127))+Period(2,85,127))",
-    "y==x"
+    "k: date",
+    "a: int",
+    "k.year==2000",
+    "k.month==2",
+    "a==k.month"
   ]
 }
 """

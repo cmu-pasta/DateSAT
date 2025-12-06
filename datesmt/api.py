@@ -73,6 +73,24 @@ class DateSMTBuilder:
         """Add a symbolic date variable."""
         return self.solver.add_date_var(name)
 
+    def add_int_var(self, name: str) -> Any:
+        """Add a symbolic int variable compatible with the current implementation.
+        
+        In bitvector mode, creates a BitVec. In int mode, creates an Int.
+        """
+        if self.implementation == "bitvector":
+            from z3 import BitVec
+            from .symbolic_bitvector.bitwidths import LEGACY_BITS
+            return BitVec(name, LEGACY_BITS)
+        else:
+            from z3 import Int
+            return Int(name)
+
+    def add_bool_var(self, name: str) -> Any:
+        """Add a symbolic bool variable."""
+        from z3 import Bool
+        return Bool(name)
+
     def add_constraint(self, constraint: Any, description: str = "") -> None:
         """Add a constraint to the solver.
 
@@ -114,14 +132,17 @@ class DateSMTBuilder:
                 if name in date_var_names:
                     continue
                 
-                # Check if this is an Int or Bool variable
+                # Check if this is an Int, BitVec, or Bool variable
                 try:
                     value = model[decl]
                     if value is not None:
                         # Check the sort type
-                        from z3 import IntSort, BoolSort
+                        from z3 import IntSort, BoolSort, is_bv_sort
                         if decl.range() == IntSort():
                             int_values[name] = value.as_long()
+                        elif is_bv_sort(decl.range()):
+                            # BitVec variables - extract as signed long for int semantics
+                            int_values[name] = value.as_signed_long()
                         elif decl.range() == BoolSort():
                             bool_values[name] = bool(value)
                 except Exception:
