@@ -34,6 +34,10 @@ class ConstraintTransformer(Transformer):
             # Fallback for unexpected number of items
             return f"builder.add_constraint({' '.join(str(item) for item in items)})"
     
+    def bool_literal(self, items):
+        """Transform boolean literal True/False."""
+        return str(items[0])
+    
     def _transform_symbolic_date_comparison(self, left: str, op: str, right: str) -> str:
         """
         Transform comparisons involving symbolic Date() to constraint-based form.
@@ -252,6 +256,7 @@ class ConstraintParser:
         self.variable_types: Dict[str, str] = {}  # Maps variable name to type: 'date', 'int', or 'bool'
         
         # Define the grammar for constraint parsing
+        # Note: Implication (A -> B) is handled by regex in parse_constraint() before Lark parsing
         self.grammar = """
             ?constraint: expression comparison_op expression [COMMA description]
             
@@ -270,6 +275,7 @@ class ConstraintParser:
                    | parenthesized_expression
                    | property_access
                    | date_property_access
+                   | bool_literal
             
             parenthesized_expression: LPAR expression RPAR
             property_access: variable "." property_name
@@ -283,6 +289,8 @@ class ConstraintParser:
             variable: CNAME
             property_name: PROPERTY_NAME
             PROPERTY_NAME: "year" | "month" | "day"
+            bool_literal: BOOL_LITERAL
+            BOOL_LITERAL: "True" | "False"
             date_constructor: "Date" "(" expression "," expression "," expression ")"
             period_constructor: "Period" "(" number "," number "," number ")"
             description: ESCAPED_STRING
@@ -329,6 +337,22 @@ class ConstraintParser:
         # Check for invalid variable names that should raise ValueError
         if self._is_invalid_variable_name(constraint_str):
             raise ValueError(f"Could not parse constraint '{constraint_str}': Invalid variable name")
+
+        # Check for implication pattern: (condition) -> (result)
+        implication_match = re.match(r'^\((.+?)\)\s*->\s*\((.+?)\)$', constraint_str)
+        if implication_match:
+            antecedent = implication_match.group(1).strip()
+            consequent = implication_match.group(2).strip()
+            return f"builder.add_constraint(Implies({antecedent}, {consequent}))"
+        
+        # Check for boolean equality pattern: var==(comparison) or var!=(comparison)
+        # This handles cases like: applied==(a != k.month)
+        bool_eq_match = re.match(r'^([a-zA-Z_][a-zA-Z0-9_]*)\s*(==|!=)\s*\((.+?)\)$', constraint_str)
+        if bool_eq_match:
+            var_name = bool_eq_match.group(1)
+            op = bool_eq_match.group(2)
+            inner_expr = bool_eq_match.group(3).strip()
+            return f"builder.add_constraint({var_name} {op} ({inner_expr}))"
 
         try:
             # Parse using Lark
@@ -726,7 +750,7 @@ class ConstraintParser:
             ValueError: If any variable used in constraints is not explicitly declared
         """
         code_lines = [
-            "from z3 import Or, And, Not, Int, Bool",
+            "from z3 import Or, And, Not, Int, Bool, Implies",
             "from datesmt.enumeration_baseline import ConstraintWrapper",
             "builder = DateSMTBuilder()",
             "",
@@ -787,6 +811,17 @@ class ConstraintParser:
         # Check for undeclared variables that couldn't be inferred
         undeclared_vars = [var for var in all_variables if var not in variable_types]
         if undeclared_vars:
+            # Check for common mistakes: lowercase boolean literals
+            lowercase_bools = {'true': 'True', 'false': 'False'}
+            bool_mistakes = [var for var in undeclared_vars if var in lowercase_bools]
+            
+            if bool_mistakes:
+                corrections = [f"'{var}' should be '{lowercase_bools[var]}'" for var in bool_mistakes]
+                raise ValueError(
+                    f"Invalid boolean literal(s): {', '.join(corrections)}. "
+                    f"Python uses capitalized 'True' and 'False' for boolean values."
+                )
+            
             undeclared_str = ", ".join(sorted(undeclared_vars))
             raise ValueError(
                 f"Undeclared variables found in constraints: {undeclared_str}. "

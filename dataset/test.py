@@ -41,9 +41,11 @@ CONSTRAINT_JSON = r"""
   "constraints": [
     "k: date",
     "a: int",
+    "applied: bool",
     "k.year==2000",
-    "k.month==2",
-    "a==k.month"
+    "k.month=2",
+    "a!=k.month",
+    "applied== a != k.month"
   ]
 }
 """
