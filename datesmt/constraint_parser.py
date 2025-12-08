@@ -6,8 +6,7 @@ and convert them into executable DateSMTBuilder code using a context-free gramma
 """
 
 from typing import Any, Dict, List, Union
-from lark import Lark, Transformer, Token
-from .core import Date, Period
+from lark import Lark, Transformer
 import re
 
 
@@ -16,86 +15,115 @@ class ConstraintTransformer(Transformer):
     
     def constraint(self, items):
         """Transform a constraint into Python code."""
-        if len(items) == 3:
-            left, op, right = items
-            # Check if we need to transform symbolic Date() comparisons
-            transformed = self._transform_symbolic_date_comparison(left, op, right)
-            if transformed:
-                return f"builder.add_constraint({transformed})"
-            return f"builder.add_constraint({left} {op} {right})"
-        elif len(items) == 4:
-            left, op, right, description = items
-            # Check if we need to transform symbolic Date() comparisons
-            transformed = self._transform_symbolic_date_comparison(left, op, right)
-            if transformed:
-                return f"builder.add_constraint({transformed}, {description})"
-            return f"builder.add_constraint({left} {op} {right}, {description})"
-        else:
-            # Fallback for unexpected number of items
+        if len(items) < 3:
             return f"builder.add_constraint({' '.join(str(item) for item in items)})"
+        
+        left, op, right = items[0], items[1], items[2]
+        description = items[3] if len(items) > 3 else None
+        
+        # Check if we need to transform parametric Date() comparisons
+        # (Date constructors with variable arguments, e.g., Date(x, 2, 1))
+        transformed = self._transform_parametric_date_comparison(left, op, right)
+        expr = transformed if transformed else f"{left} {op} {right}"
+        
+        if description:
+            return f"builder.add_constraint({expr}, {description})"
+        return f"builder.add_constraint({expr})"
     
     def bool_literal(self, items):
         """Transform boolean literal True/False."""
         return str(items[0])
     
-    def _transform_symbolic_date_comparison(self, left: str, op: str, right: str) -> str:
+    def _extract_date_components(self, expr: str):
         """
-        Transform comparisons involving symbolic Date() to constraint-based form.
+        Extract year, month, day arguments from a Date(...) constructor expression.
         
-        Examples:
-        - d >= Date(x+1, 1, 1) -> component-wise comparison
-        - d == Date(x, 1, 2) -> d.year == x AND d.month == 1 AND d.day == 2
+        Args:
+            expr: An expression that may contain Date(year, month, day)
+            
+        Returns:
+            List of [year, month, day] argument strings, or None if not a valid Date()
+        """
+        # Find Date( and match balanced parentheses
+        date_start = expr.find('Date(')
+        if date_start == -1:
+            return None
+            
+        # Find the opening paren after Date
+        start = date_start + 5  # len("Date(")
+        paren_count = 0
+        args = []
+        current_arg = []
+        i = start
+            
+        while i < len(expr):
+            char = expr[i]
+            if char == '(':
+                paren_count += 1
+                current_arg.append(char)
+            elif char == ')':
+                if paren_count == 0:
+                    # This is the closing paren for Date()
+                    if current_arg:
+                        args.append(''.join(current_arg).strip())
+                    break
+                paren_count -= 1
+                current_arg.append(char)
+            elif char == ',' and paren_count == 0:
+                # This comma separates arguments
+                args.append(''.join(current_arg).strip())
+                current_arg = []
+            else:
+                current_arg.append(char)
+            i += 1
+            
+        if len(args) == 3:
+            return args
+        return None
+
+    @staticmethod
+    def _has_variable(expr: str) -> bool:
+        """
+        Check if expression contains a variable (not just a literal number).
+        
+        Used to determine if a Date() constructor is parametric.
+        """
+        expr = expr.strip()
+        # If it's just a number, it has no variable
+        if re.match(r'^-?\d+$', expr):
+            return False
+        # If it contains identifier characters, it has a variable
+        return bool(re.search(r'[a-zA-Z_][a-zA-Z0-9_]*', expr))
+
+    def _transform_parametric_date_comparison(self, left: str, op: str, right: str) -> str:
+        """
+        Transform comparisons involving parametric Date() constructors.
+        
+        A parametric Date() has one or more variable arguments, e.g., Date(x, 2, 1).
+        This is different from a date variable (e.g., `k` where `k: date`).
+        
+        Transforms:
+            k >= Date(x+1, 1, 1)  →  component-wise comparison on k.year, k.month, k.day
+            k == Date(x, 1, 2)   →  And(k.year == x, k.month == 1, k.day == 2)
+        
+        Args:
+            left: Left side of comparison (e.g., "k" or "Date(x, 2, 1)")
+            op: Comparison operator (==, !=, >=, <=, >, <)
+            right: Right side of comparison
+            
+        Returns:
+            Transformed constraint string, or None if no transformation needed
         """
         import re
         
-        # Helper to extract Date() components, handling nested parentheses
-        def extract_date_components(expr):
-            """Extract year, month, day from Date(...) expression."""
-            # Find Date( and match balanced parentheses
-            date_start = expr.find('Date(')
-            if date_start == -1:
-                return None
-            
-            # Find the opening paren after Date
-            start = date_start + 5  # len("Date(")
-            paren_count = 0
-            args = []
-            current_arg = []
-            i = start
-            
-            while i < len(expr):
-                char = expr[i]
-                if char == '(':
-                    paren_count += 1
-                    current_arg.append(char)
-                elif char == ')':
-                    if paren_count == 0:
-                        # This is the closing paren for Date()
-                        if current_arg:
-                            args.append(''.join(current_arg).strip())
-                        break
-                    paren_count -= 1
-                    current_arg.append(char)
-                elif char == ',' and paren_count == 0:
-                    # This comma separates arguments
-                    args.append(''.join(current_arg).strip())
-                    current_arg = []
-                else:
-                    current_arg.append(char)
-                i += 1
-            
-            if len(args) == 3:
-                return args
-            return None
-        
-        # Check if right side is a symbolic Date() constructor
-        date_components = extract_date_components(right)
+        # Check if right side is a Date() constructor
+        date_components = self._extract_date_components(right)
         date_var_expr = left.strip()
         swapped = False
         
         if not date_components:
-            # Check if left side is a symbolic Date() constructor
-            date_components = extract_date_components(left)
+            # Check if left side is a Date() constructor
+            date_components = self._extract_date_components(left)
             if date_components:
                 # Swap left and right, invert operator
                 date_var_expr = right.strip()
@@ -106,17 +134,8 @@ class ConstraintTransformer(Transformer):
         
         year_expr, month_expr, day_expr = date_components
         
-        # Check if any component is symbolic (not just a number)
-        def is_symbolic(expr):
-            expr = expr.strip()
-            # If it's just a number, it's not symbolic
-            if re.match(r'^-?\d+$', expr):
-                return False
-            # If it contains variables or operations, it's symbolic
-            return bool(re.search(r'[a-zA-Z_][a-zA-Z0-9_]*', expr))
-        
-        # If all components are concrete, no transformation needed
-        if not (is_symbolic(year_expr) or is_symbolic(month_expr) or is_symbolic(day_expr)):
+        # If all components are concrete (no variables), no transformation needed
+        if not (self._has_variable(year_expr) or self._has_variable(month_expr) or self._has_variable(day_expr)):
             return None
         
         # Extract the date variable name (handle property access like x.year)
@@ -140,11 +159,11 @@ class ConstraintTransformer(Transformer):
             # Less or equal: lexicographic comparison
             return f"Or({date_var}.year < {year_expr}, And({date_var}.year == {year_expr}, Or({date_var}.month < {month_expr}, And({date_var}.month == {month_expr}, {date_var}.day <= {day_expr}))))"
         elif op == ">":
-            # Greater: not <=
-            return f"Not(Or({date_var}.year < {year_expr}, And({date_var}.year == {year_expr}, Or({date_var}.month < {month_expr}, And({date_var}.month == {month_expr}, {date_var}.day <= {day_expr})))))"
+            # Greater: lexicographic comparison (year > OR (year == AND month >) OR (year == AND month == AND day >))
+            return f"Or({date_var}.year > {year_expr}, And({date_var}.year == {year_expr}, Or({date_var}.month > {month_expr}, And({date_var}.month == {month_expr}, {date_var}.day > {day_expr}))))"
         elif op == "<":
-            # Less: not >=
-            return f"Not(Or({date_var}.year > {year_expr}, And({date_var}.year == {year_expr}, Or({date_var}.month > {month_expr}, And({date_var}.month == {month_expr}, {date_var}.day >= {day_expr})))))"
+            # Less: lexicographic comparison (year < OR (year == AND month <) OR (year == AND month == AND day <))
+            return f"Or({date_var}.year < {year_expr}, And({date_var}.year == {year_expr}, Or({date_var}.month < {month_expr}, And({date_var}.month == {month_expr}, {date_var}.day < {day_expr}))))"
         
         return None
     
@@ -252,7 +271,6 @@ class ConstraintParser:
 
     def __init__(self):
         """Initialize the parser with Lark grammar."""
-        self.date_vars: Dict[str, Any] = {}
         self.variable_types: Dict[str, str] = {}  # Maps variable name to type: 'date', 'int', or 'bool'
         
         # Define the grammar for constraint parsing
@@ -674,22 +692,6 @@ class ConstraintParser:
                         f"'{right_expr}' (type: {right_type}). "
                         f"Only values of compatible types can be compared."
                     )
-    
-    def _get_expression_type(self, expr: str, variable_types: Dict[str, str]) -> str:
-        """Get the type of an expression based on variable declarations."""
-        # Check for property access (e.g., k.year, k.month, k.day)
-        prop_match = re.match(r'([a-zA-Z_][a-zA-Z0-9_]*)\.(?:year|month|day)$', expr)
-        if prop_match:
-            var_name = prop_match.group(1)
-            if var_name in variable_types and variable_types[var_name] == 'date':
-                return 'int'
-            return None
-        
-        # Check for simple variable
-        if expr in variable_types:
-            return variable_types[expr]
-        
-        return None
     
     def _get_full_expression_type(self, expr: str, variable_types: Dict[str, str]) -> str:
         """Get the type of a full expression including Date/Period constructors."""
