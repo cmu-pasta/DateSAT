@@ -14,17 +14,13 @@ class ConstraintTransformer(Transformer):
     """Transformer to convert Lark parse tree to Python code."""
     
     def top_level_constraint(self, items):
-        """Transform a top-level constraint (bool_expr with optional description)."""
+        """Transform a top-level constraint (bool_expr)."""
         bool_expr = items[0]
-        description = items[1] if len(items) > 1 else None
         
         # Check if bool_expr already has builder.add_constraint wrapper (from implication)
         if bool_expr.startswith("builder.add_constraint("):
-            # Already wrapped, just return it (can't add description to implication)
             return bool_expr
         
-        if description:
-            return f"builder.add_constraint({bool_expr}, {description})"
         return f"builder.add_constraint({bool_expr})"
     
     def implication(self, items):
@@ -277,9 +273,6 @@ class ConstraintTransformer(Transformer):
         """Transform string literal."""
         return str(items[0])
     
-    def description(self, items):
-        """Transform description string."""
-        return str(items[0])
 
 
 class ConstraintParser:
@@ -293,7 +286,7 @@ class ConstraintParser:
         self.grammar = """
             ?constraint: top_level_constraint
             
-            top_level_constraint: bool_expr [COMMA description]
+            top_level_constraint: bool_expr
             ?bool_expr: implication | comparison_expr
             implication: "(" bool_expr ")" IMPLIES "(" bool_expr ")"
             comparison_expr: expression comparison_op expression
@@ -323,7 +316,6 @@ class ConstraintParser:
             
             LPAR: "("
             RPAR: ")"
-            COMMA: ","
             DOT: "."
             
             variable: CNAME
@@ -333,7 +325,6 @@ class ConstraintParser:
             BOOL_LITERAL: "True" | "False"
             date_constructor: "Date" "(" expression "," expression "," expression ")"
             period_constructor: "Period" "(" number "," number "," number ")"
-            description: ESCAPED_STRING
             
             comparison_op: GTE | LTE | EQ | NE | GT | LT
             
@@ -349,7 +340,6 @@ class ConstraintParser:
             %import common.CNAME
             %import common.SIGNED_NUMBER
             %import common.WS
-            %import common.ESCAPED_STRING
             %ignore WS
         """
         
@@ -377,7 +367,7 @@ class ConstraintParser:
         # Check for invalid variable names that should raise ValueError
         if self._is_invalid_variable_name(constraint_str):
             raise ValueError(f"Could not parse constraint '{constraint_str}': Invalid variable name")
-
+            
         # Check for boolean equality pattern: var==(comparison) or var!=(comparison)
         # This handles cases like: applied==(a != k.month)
         bool_eq_match = re.match(r'^([a-zA-Z_][a-zA-Z0-9_]*)\s*(==|!=)\s*\((.+?)\)$', constraint_str)
@@ -879,7 +869,6 @@ class ConstraintParser:
                         parsed = self.parse_constraint(constraint_str)
                         # Extract the constraint expression from "builder.add_constraint(...)"
                         # The parsed result is like "builder.add_constraint(x >= Date(2000,2,28))"
-                        # or "builder.add_constraint(x >= Date(2000,2,28), 'description')"
                         # We need to extract "x >= Date(2000,2,28)"
                         # Use a more robust approach: find the content between add_constraint( and the matching )
                         # Handle nested parentheses by counting them
@@ -902,12 +891,6 @@ class ConstraintParser:
                             
                             if expr_end != -1:
                                 expr = parsed[start_idx:expr_end].strip()
-                                # Check if there's a description after (comma followed by string)
-                                # Look for pattern: expr, 'description')
-                                remaining = parsed[expr_end+1:].strip()
-                                if remaining.startswith(','):
-                                    # There's a description, but we already have the expr
-                                    pass
                                 constraint_exprs.append(expr)
                             else:
                                 # Fallback: use the original constraint string

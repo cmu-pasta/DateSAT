@@ -91,14 +91,12 @@ class DateSMTBuilder:
         from z3 import Bool
         return Bool(name)
 
-    def add_constraint(self, constraint: Any, description: str = "") -> None:
+    def add_constraint(self, constraint: Any) -> None:
         """Add a constraint to the solver.
 
         Accepts both Z3 BoolRef (for symbolic solvers) and ConstraintWrapper
         (for enumeration baseline).
         """
-        if description:
-            print(f"Added constraint: {description}")
         # Guard against None constraints
         if constraint is None:
             raise TypeError(

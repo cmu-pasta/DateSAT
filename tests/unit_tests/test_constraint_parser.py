@@ -151,21 +151,6 @@ def test_parse_constraint_incomplete_constructors(parser, constraint_with_incomp
 
 
 # -------------------------
-# Description handling
-# -------------------------
-
-@pytest.mark.parametrize("constraint_with_description,expected", [
-    ("x >= Date(2000, 1, 1), 'comment'", "builder.add_constraint(x >= Date(2000, 1, 1), 'comment')"),
-    ("y <= Date(2020, 12, 31), 'another comment'", "builder.add_constraint(y <= Date(2020, 12, 31), 'another comment')"),
-    ("z == Date(1999, 1, 1), 'test'", "builder.add_constraint(z == Date(1999, 1, 1), 'test')"),
-])
-def test_parse_constraint_with_descriptions(parser, constraint_with_description, expected):
-    """Test that comments are properly preserved as descriptions in constraints."""
-    result = parser.parse_constraint(constraint_with_description)
-    assert result == expected
-
-
-# -------------------------
 # Whitespace handling
 # -------------------------
 
