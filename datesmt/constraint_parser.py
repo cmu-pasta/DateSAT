@@ -13,22 +13,38 @@ import re
 class ConstraintTransformer(Transformer):
     """Transformer to convert Lark parse tree to Python code."""
     
-    def constraint(self, items):
-        """Transform a constraint into Python code."""
-        if len(items) < 3:
-            return f"builder.add_constraint({' '.join(str(item) for item in items)})"
+    def top_level_constraint(self, items):
+        """Transform a top-level constraint (bool_expr with optional description)."""
+        bool_expr = items[0]
+        description = items[1] if len(items) > 1 else None
         
-        left, op, right = items[0], items[1], items[2]
-        description = items[3] if len(items) > 3 else None
+        # Check if bool_expr already has builder.add_constraint wrapper (from implication)
+        if bool_expr.startswith("builder.add_constraint("):
+            # Already wrapped, just return it (can't add description to implication)
+            return bool_expr
+        
+        if description:
+            return f"builder.add_constraint({bool_expr}, {description})"
+        return f"builder.add_constraint({bool_expr})"
+    
+    def implication(self, items):
+        """Transform implication (A) -> (B) into Implies(A, B). Supports nesting."""
+        # items = [antecedent, IMPLIES token, consequent]
+        antecedent = items[0]
+        consequent = items[2]
+        # Return just the Implies expression, wrapping is done by top_level_constraint
+        return f"Implies({antecedent}, {consequent})"
+    
+    def comparison_expr(self, items):
+        """Transform a comparison expression (left op right)."""
+        left, op, right = items
         
         # Check if we need to transform parametric Date() comparisons
         # (Date constructors with variable arguments, e.g., Date(x, 2, 1))
         transformed = self._transform_parametric_date_comparison(left, op, right)
-        expr = transformed if transformed else f"{left} {op} {right}"
-        
-        if description:
-            return f"builder.add_constraint({expr}, {description})"
-        return f"builder.add_constraint({expr})"
+        if transformed:
+            return transformed
+        return f"{left} {op} {right}"
     
     def bool_literal(self, items):
         """Transform boolean literal True/False."""
@@ -274,9 +290,15 @@ class ConstraintParser:
         self.variable_types: Dict[str, str] = {}  # Maps variable name to type: 'date', 'int', or 'bool'
         
         # Define the grammar for constraint parsing
-        # Note: Implication (A -> B) is handled by regex in parse_constraint() before Lark parsing
         self.grammar = """
-            ?constraint: expression comparison_op expression [COMMA description]
+            ?constraint: top_level_constraint
+            
+            top_level_constraint: bool_expr [COMMA description]
+            ?bool_expr: implication | comparison_expr
+            implication: "(" bool_expr ")" IMPLIES "(" bool_expr ")"
+            comparison_expr: expression comparison_op expression
+            
+            IMPLIES: "->"
             
             ?expression: term
                        | expression "+" term -> add
@@ -356,13 +378,6 @@ class ConstraintParser:
         if self._is_invalid_variable_name(constraint_str):
             raise ValueError(f"Could not parse constraint '{constraint_str}': Invalid variable name")
 
-        # Check for implication pattern: (condition) -> (result)
-        implication_match = re.match(r'^\((.+?)\)\s*->\s*\((.+?)\)$', constraint_str)
-        if implication_match:
-            antecedent = implication_match.group(1).strip()
-            consequent = implication_match.group(2).strip()
-            return f"builder.add_constraint(Implies({antecedent}, {consequent}))"
-        
         # Check for boolean equality pattern: var==(comparison) or var!=(comparison)
         # This handles cases like: applied==(a != k.month)
         bool_eq_match = re.match(r'^([a-zA-Z_][a-zA-Z0-9_]*)\s*(==|!=)\s*\((.+?)\)$', constraint_str)

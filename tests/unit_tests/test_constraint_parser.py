@@ -791,6 +791,22 @@ def test_parse_constraint_implication(parser, constraint, expected_contains):
     assert "builder.add_constraint" in result
 
 
+@pytest.mark.parametrize("constraint,expected_contains", [
+    # (A -> B) -> C
+    ("((a == b) -> (c == d)) -> (e == f)", "Implies(Implies(a == b, c == d), e == f)"),
+    # A -> (B -> C)
+    ("(a == b) -> ((c == d) -> (e == f))", "Implies(a == b, Implies(c == d, e == f))"),
+    # Triple nesting
+    ("((a == b) -> ((c == d) -> (e == f))) -> (g == h)", 
+     "Implies(Implies(a == b, Implies(c == d, e == f)), g == h)"),
+])
+def test_parse_constraint_nested_implication(parser, constraint, expected_contains):
+    """Test parsing of nested implication syntax."""
+    result = parser.parse_constraint(constraint)
+    assert expected_contains in result
+    assert "builder.add_constraint" in result
+
+
 def test_implication_in_constraint_data(parser):
     """Test implication in full constraint data parsing."""
     constraint_data = {
@@ -810,6 +826,86 @@ def test_implication_in_constraint_data(parser):
     assert 'k = builder.add_date_var("k")' in result
     assert 'a = builder.add_int_var("a")' in result
     assert 'applied = builder.add_bool_var("applied")' in result
+
+
+def test_nested_implication_in_constraint_data(parser):
+    """Test nested implication in full constraint data parsing."""
+    constraint_data = {
+        "constraints": [
+            "a: int",
+            "b: int",
+            "c: int",
+            "d: int",
+            "e: int",
+            "f: int",
+            "((a == b) -> (c == d)) -> (e == f)"
+        ]
+    }
+    
+    result = parser.parse_constraint_data(constraint_data)
+    
+    assert "Implies(Implies(a == b, c == d), e == f)" in result
+
+
+@pytest.mark.parametrize("constraint,expected_contains", [
+    # Implication with property access
+    ("(k.year == 2000) -> (k.month == 2)", "Implies(k.year == 2000, k.month == 2)"),
+    ("(k.month > 6) -> (k.day <= 15)", "Implies(k.month > 6, k.day <= 15)"),
+    # Implication with date variable comparison
+    ("(a >= 10) -> (b <= 20)", "Implies(a >= 10, b <= 20)"),
+])
+def test_implication_with_property_access(parser, constraint, expected_contains):
+    """Test implication with property access expressions."""
+    result = parser.parse_constraint(constraint)
+    assert expected_contains in result
+    assert "builder.add_constraint" in result
+
+
+def test_deeply_nested_implication(parser):
+    """Test very deeply nested implications (4 levels)."""
+    constraint = "(((a == b) -> (c == d)) -> ((e == f) -> (g == h))) -> (i == j)"
+    result = parser.parse_constraint(constraint)
+    
+    # Should have multiple nested Implies
+    assert result.count("Implies") == 4
+    assert "builder.add_constraint" in result
+
+
+def test_implication_integration_with_solver(parser):
+    """Test that nested implications work with the actual solver."""
+    from datesmt.api import DateSMTBuilder
+    from datesmt.core import Date, Period
+    
+    constraint_data = {
+        "constraints": [
+            "a: int",
+            "b: int", 
+            "c: int",
+            "a == 1",
+            "b == 2",
+            # (a == 1) -> (b == 2) should be satisfied
+            "(a == 1) -> (b == 2)",
+            # Nested: if (a==1 -> b==2) then c == 3
+            "((a == 1) -> (b == 2)) -> (c == 3)"
+        ]
+    }
+    
+    code = parser.parse_constraint_data(constraint_data)
+    
+    builder = DateSMTBuilder(approach='alpha_beta', implementation='bitvector')
+    builder.enable_smtlib_print(False)
+    
+    exec_globals = {
+        'Date': Date,
+        'Period': Period,
+        'DateSMTBuilder': lambda: builder,
+    }
+    
+    exec(code, exec_globals)
+    result = builder.solve()
+    
+    # Should be satisfiable with c == 3
+    assert result['status'] == 'sat'
 
 
 # -------------------------
