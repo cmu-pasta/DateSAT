@@ -131,10 +131,9 @@ def test_parse_constraint_invalid_inputs(parser, invalid_constraint):
     "x >= Date(2000, 1, 1) == Date(2001, 1, 1)",  # Multiple operators
 ])
 def test_parse_constraint_multiple_operators(parser, constraint_with_multiple_operators):
-    """Test that constraints with multiple operators are handled (may not raise error)."""
-    # The current parser implementation may handle this by taking the first operator
-    result = parser.parse_constraint(constraint_with_multiple_operators)
-    assert "builder.add_constraint" in result
+    """Test that constraints with multiple operators raise ValueError."""
+    with pytest.raises(ValueError):
+        parser.parse_constraint(constraint_with_multiple_operators)
 
 
 @pytest.mark.parametrize("constraint_with_incomplete_constructors", [
@@ -144,10 +143,9 @@ def test_parse_constraint_multiple_operators(parser, constraint_with_multiple_op
     "x >= Period(1, 0, 0, 0)",  # Too many Period arguments
 ])
 def test_parse_constraint_incomplete_constructors(parser, constraint_with_incomplete_constructors):
-    """Test that incomplete constructors are handled (may not raise error)."""
-    # The current parser implementation may handle this by passing through the text
-    result = parser.parse_constraint(constraint_with_incomplete_constructors)
-    assert "builder.add_constraint" in result
+    """Test that incomplete constructors raise ValueError."""
+    with pytest.raises(ValueError):
+        parser.parse_constraint(constraint_with_incomplete_constructors)
 
 
 # -------------------------
@@ -374,12 +372,12 @@ def test_auto_extract_variables_complex_format2(parser):
     constraints = [
         "x_23 >= Date(2022, 1, 15)",
         "y_add_period <= Date(2022, 1, 15) + Period(0, 13, 40)",
-        "Z13 == Period(0, 1, 0) + Period(0, 1, 0)"
+        "Z13 == Period(0, 1, 0) + Period(0, 1, 0)"  # Invalid at runtime, but variables still extracted
     ]
     extracted = parser.extract_variables_from_constraints(constraints)
     # Variables are returned in alphabetical order
-    # Z13 should not be extracted because the constraint is invalid (period comparison)
-    assert extracted == ["x_23", "y_add_period"]
+    # All variables are extracted; invalid constraints will fail at runtime
+    assert extracted == ["Z13", "x_23", "y_add_period"]
 
 def test_auto_extract_variables_filters_keywords(parser):
     """Test that auto-extraction filters out keywords and constructors."""
@@ -390,24 +388,6 @@ def test_auto_extract_variables_filters_keywords(parser):
     ]
     extracted = parser.extract_variables_from_constraints(constraints)
     assert extracted == ["is_valid", "x", "y"]
-
-def test_auto_extract_variables_skips_invalid_period_comparisons(parser):
-    """Test that auto-extraction skips invalid period comparison constraints."""
-    constraints = [
-        "x >= Date(2000, 1, 1)",  # Valid: date comparison
-        "y == x + Period(0, 1, 0)",  # Valid: date + period = date
-        "y2 == Period(0, 1, 1) + x",  # Valid: period + date = date
-        "z == Period(0, 1, 0) + Period(0, 1, 0)",  # Invalid: period operation
-        "z1 == Period(0, 1, 0) - Period(0, 1, 0)",  # Invalid: period operation
-        "z2 == Period(0, 1, 0) * 3",  # Invalid: period multiplication
-        "z3 == 2 * Period(0, 1, 0)",  # Invalid: period multiplication
-        "w != Period(0, 2, 0)",  # Invalid: period comparison
-        "v == Period(0, 1, 0)"  # Invalid: period comparison
-    ]
-    extracted = parser.extract_variables_from_constraints(constraints)
-    # Should only extract variables from valid constraints
-    assert extracted == ["x", "y", "y2"]
-
 
 def test_parse_constraint_data_with_one_datevar(parser):
     """Test parsing constraint data with one date variable."""

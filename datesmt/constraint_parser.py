@@ -13,8 +13,8 @@ import re
 class ConstraintTransformer(Transformer):
     """Transformer to convert Lark parse tree to Python code."""
     
-    def top_level_constraint(self, items):
-        """Transform a top-level constraint (bool_expr)."""
+    def top_level_constraint(self, items) -> str:
+        """Transform a top-level constraint."""
         bool_expr = items[0]
         
         # Check if bool_expr already has builder.add_constraint wrapper (from implication)
@@ -23,7 +23,7 @@ class ConstraintTransformer(Transformer):
         
         return f"builder.add_constraint({bool_expr})"
     
-    def implication(self, items):
+    def implication(self, items) -> str:
         """Transform implication (A) -> (B) into Implies(A, B). Supports nesting."""
         # items = [antecedent, IMPLIES token, consequent]
         antecedent = items[0]
@@ -31,7 +31,7 @@ class ConstraintTransformer(Transformer):
         # Return just the Implies expression, wrapping is done by top_level_constraint
         return f"Implies({antecedent}, {consequent})"
     
-    def comparison_expr(self, items):
+    def comparison_expr(self, items) -> str:
         """Transform a comparison expression (left op right)."""
         left, op, right = items
         
@@ -42,11 +42,11 @@ class ConstraintTransformer(Transformer):
             return transformed
         return f"{left} {op} {right}"
     
-    def bool_literal(self, items):
+    def bool_literal(self, items) -> str:
         """Transform boolean literal True/False."""
         return str(items[0])
     
-    def _extract_date_components(self, expr: str):
+    def _extract_date_components(self, expr: str) -> List[str]:
         """
         Extract year, month, day arguments from a Date(...) constructor expression.
         
@@ -191,85 +191,92 @@ class ConstraintTransformer(Transformer):
         }
         return inversions.get(op, op)
     
-    def expression(self, items):
+    def expression(self, items) -> str:
         """Handle expression precedence."""
         if len(items) == 1:
             return items[0]
         # This handles operator precedence automatically
         return " ".join(str(item) for item in items)
     
-    def add(self, items):
+    def add(self, items) -> str:
         """Transform addition operation."""
         left, right = items
         return f"{left} + {right}"
     
-    def sub(self, items):
+    def sub(self, items) -> str:
         """Transform subtraction operation."""
         left, right = items
         return f"{left} - {right}"
     
-    def mul(self, items):
+    def mul(self, items) -> str:
         """Transform multiplication operation."""
         left, right = items
         return f"{left} * {right}"
     
-    def term(self, items):
+    def term(self, items) -> str:
         """Handle term precedence."""
         if len(items) == 1:
             return items[0]
         return " ".join(str(item) for item in items)
     
-    def factor(self, items):
+    def factor(self, items) -> str:
         """Handle factor grouping."""
         if len(items) == 1:
             return items[0]
         return " ".join(str(item) for item in items)
     
-    def parenthesized_expression(self, items):
+    def parenthesized_expression(self, items) -> str:
         """Transform parenthesized expression."""
         if len(items) == 3:
             return f"({items[1]})"
         return " ".join(str(item) for item in items)
     
-    def variable(self, items):
+    def parenthesized_bool_expr(self, items) -> str:
+        """Transform parenthesized boolean expression (comparison)."""
+        # items = [LPAR, comparison_expr, RPAR]
+        if len(items) == 3:
+            return f"({items[1]})"
+        return f"({items[0]})"
+    
+    def variable(self, items) -> str:
         """Transform variable reference."""
         return str(items[0])
     
-    def property_access(self, items):
+    def property_access(self, items) -> str:
         """Transform property access like x.year, x.month, x.day."""
         var_name, property_name = items
         return f"{var_name}.{property_name}"
     
-    def date_property_access(self, items):
+    def date_property_access(self, items) -> str:
         """Transform property access on Date constructor like Date(1991,2,3).month."""
         date_expr, property_name = items
         return f"{date_expr}.{property_name}"
     
-    def property_name(self, items):
+    def property_name(self, items) -> str:
         """Transform property name."""
         return str(items[0])
     
-    def date_constructor(self, items):
+    def date_constructor(self, items) -> str:
         """Transform Date constructor (may contain symbolic expressions)."""
         year, month, day = items
         return f"Date({year}, {month}, {day})"
     
-    def period_constructor(self, items):
+    def period_constructor(self, items) -> str:
         """Transform Period constructor."""
         years, months, days = items
         return f"Period({years}, {months}, {days})"
     
-    def comparison_op(self, items):
+    def comparison_op(self, items) -> str:
         """Transform comparison operator."""
         if not items:
             return ""
         return str(items[0])
     
-    def number(self, items):
+    def number(self, items) -> str:
         """Transform number literal."""
         return str(items[0])
     
-    def string(self, items):
+    def string(self, items) -> str:
         """Transform string literal."""
         return str(items[0])
     
@@ -306,11 +313,13 @@ class ConstraintParser:
                    | period_constructor
                    | number
                    | parenthesized_expression
+                   | parenthesized_bool_expr
                    | property_access
                    | date_property_access
                    | bool_literal
             
             parenthesized_expression: LPAR expression RPAR
+            parenthesized_bool_expr: LPAR comparison_expr RPAR
             property_access: variable "." property_name
             date_property_access: date_constructor "." property_name
             
@@ -343,20 +352,22 @@ class ConstraintParser:
             %ignore WS
         """
         
-        # Create the Lark parser
+        # Create the Lark parser with Earley algorithm to handle grammar ambiguity
+        # (LALR can't handle the ambiguity between parenthesized_bool_expr and implication)
         self.parser = Lark(
             self.grammar, 
-            parser='lalr', 
-            transformer=ConstraintTransformer(),
+            parser='earley',
+            ambiguity='resolve',
             start='constraint'
         )
+        self.transformer = ConstraintTransformer()
 
     def parse_constraint(self, constraint_str: str) -> str:
         """
         Parse a single constraint string and return the corresponding Python code.
 
         Args:
-            constraint_str: Constraint string like "x>=Date(2000,2,28)" or "x>=Date(2000,2,28), 'comment'"
+            constraint_str: Constraint string like "x>=Date(2000,2,28)"
 
         Returns:
             Python code string for the constraint
@@ -367,25 +378,12 @@ class ConstraintParser:
         # Check for invalid variable names that should raise ValueError
         if self._is_invalid_variable_name(constraint_str):
             raise ValueError(f"Could not parse constraint '{constraint_str}': Invalid variable name")
-            
-        # Check for boolean equality pattern: var==(comparison) or var!=(comparison)
-        # This handles cases like: applied==(a != k.month)
-        bool_eq_match = re.match(r'^([a-zA-Z_][a-zA-Z0-9_]*)\s*(==|!=)\s*\((.+?)\)$', constraint_str)
-        if bool_eq_match:
-            var_name = bool_eq_match.group(1)
-            op = bool_eq_match.group(2)
-            inner_expr = bool_eq_match.group(3).strip()
-            return f"builder.add_constraint({var_name} {op} ({inner_expr}))"
-
         try:
-            # Parse using Lark
-            result = self.parser.parse(constraint_str)
+            # Parse using Lark and apply transformer
+            tree = self.parser.parse(constraint_str)
+            result = self.transformer.transform(tree)
             return result
         except Exception as e:
-            # For certain cases, be more permissive and pass through the text
-            if self._should_pass_through(constraint_str, str(e)):
-                return f"builder.add_constraint({constraint_str})"
-            # Always raise ValueError for consistency with test expectations
             raise ValueError(f"Could not parse constraint '{constraint_str}': {e}")
     
     def _is_invalid_variable_name(self, constraint_str: str) -> bool:
@@ -421,38 +419,6 @@ class ConstraintParser:
         # Check for invalid variable names starting with digits like 123var
         if re.search(r'\b[0-9]+[a-zA-Z_][a-zA-Z0-9_]*\b', constraint_str):
             return True
-        return False
-    
-    def _should_pass_through(self, constraint_str: str, error_msg: str) -> bool:
-        """Check if the constraint should be passed through as text instead of raising an error."""
-        # Handle empty or whitespace-only strings
-        if not constraint_str or constraint_str.isspace():
-            return False
-        
-        # For multiple operators, pass through
-        if '>=' in constraint_str and constraint_str.count('>=') > 1:
-            return True
-        if '<=' in constraint_str and constraint_str.count('<=') > 1:
-            return True
-        if '==' in constraint_str and constraint_str.count('==') > 1:
-            return True
-        if '!=' in constraint_str and constraint_str.count('!=') > 1:
-            return True
-        if '>' in constraint_str and constraint_str.count('>') > 1:
-            return True
-        if '<' in constraint_str and constraint_str.count('<') > 1:
-            return True
-        
-        # For incomplete constructors, pass through
-        if 'Date(' in constraint_str and constraint_str.count(',') < 2:
-            return True
-        if 'Period(' in constraint_str and constraint_str.count(',') < 2:
-            return True
-        if 'Date(' in constraint_str and constraint_str.count(',') > 2:
-            return True
-        if 'Period(' in constraint_str and constraint_str.count(',') > 2:
-            return True
-        
         return False
 
     def extract_variable_declarations(self, constraints: List[Union[str, List[str]]]) -> Dict[str, str]:
@@ -521,7 +487,7 @@ class ConstraintParser:
 
     def extract_variables_from_constraints(self, constraints: List[Union[str, List[str]]]) -> List[str]:
         """
-        Extract all variable names from constraints (supports CNF format).
+        Extract all variable names from constraints.
         
         Args:
             constraints: List of constraint strings or lists of constraint strings (for OR clauses)
@@ -541,11 +507,6 @@ class ConstraintParser:
                 constraint_strings = [constraint_item]
             
             for constraint in constraint_strings:
-                # Check if this constraint is invalid (variable compared to period expression)
-                if self._is_invalid_period_comparison(constraint):
-                    print(f"Warning: Skipping invalid constraint '{constraint}' - period comparisons are not supported")
-                    continue
-                
                 # Remove property access patterns (var.property) to avoid
                 # extracting property names as variables
                 # Replace patterns like ".year", ".month", ".day" with empty string
@@ -567,7 +528,7 @@ class ConstraintParser:
         Infer variable types from their usage context in constraints.
         
         Variables used inside Date() or Period() constructors are inferred as 'int'.
-        Variables used in boolean contexts (comparisons with bool literals) are inferred as 'bool'.
+        For all other cases, users must explicitly declare variable types.
         
         Args:
             constraints: List of constraint strings or lists of constraint strings
@@ -609,53 +570,6 @@ class ConstraintParser:
                                 inferred_types[var_name] = 'int'
         
         return inferred_types
-    
-    def _is_invalid_period_comparison(self, constraint: str) -> bool:
-        """
-        Check if a constraint compares a variable to a period expression.
-        Such constraints are invalid because period variables are not supported.
-        
-        Args:
-            constraint: Constraint string to check
-            
-        Returns:
-            True if the constraint is invalid, False otherwise
-        """
-        # Check for invalid constraints that would result in Period or Bool types
-        # Invalid cases (should NOT create date variables):
-        # - Period ± Period = Period (e.g., z == Period(0, 1, 0) + Period(0, 1, 0))
-        # - Period × Int = Period (e.g., z == Period(0, 1, 0) * 3)
-        
-        # Valid cases (SHOULD create date variables):
-        # - Date ± Period = Date (e.g., y == x + Period(0, 1, 0), y2 == Period(0, 1, 1) + x)
-        # - Date ▷◁ Date = Bool
-        
-        # Pattern 1: variable op Period(...) directly (invalid： Period = Period)
-        direct_period_pattern = r'\b[a-zA-Z_][a-zA-Z0-9_]*\s*[=!<>]+\s*Period\([^)]*\)\s*$'
-        if re.search(direct_period_pattern, constraint):
-            return True
-            
-        # Pattern 2: variable op Period(...) + Period(...) (invalid: Period + Period = Period)
-        period_plus_period_pattern = r'\b[a-zA-Z_][a-zA-Z0-9_]*\s*[=!<>]+\s*Period\([^)]*\)\s*\+\s*Period\('
-        if re.search(period_plus_period_pattern, constraint):
-            return True
-            
-        # Pattern 2b: variable op Period(...) - Period(...) (invalid: Period - Period = Period)
-        period_minus_period_pattern = r'\b[a-zA-Z_][a-zA-Z0-9_]*\s*[=!<>]+\s*Period\([^)]*\)\s*-\s*Period\('
-        if re.search(period_minus_period_pattern, constraint):
-            return True
-            
-        # Pattern 3: variable op Period(...) * number (invalid: Period * Int = Period)
-        period_multiply_pattern = r'\b[a-zA-Z_][a-zA-Z0-9_]*\s*[=!<>]+\s*Period\([^)]*\)\s*\*\s*\d+'
-        if re.search(period_multiply_pattern, constraint):
-            return True
-            
-        # Pattern 4: variable op number * Period(...) (invalid: Int * Period = Period)
-        number_multiply_period_pattern = r'\b[a-zA-Z_][a-zA-Z0-9_]*\s*[=!<>]+\s*\d+\s*\*\s*Period\('
-        if re.search(number_multiply_period_pattern, constraint):
-            return True
-            
-        return False
 
     def _check_comparison_type_mismatches(
         self, 
