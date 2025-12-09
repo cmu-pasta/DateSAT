@@ -94,23 +94,40 @@ III. FORBIDDEN EXPRESSIONS
 - Undeclared variables (except int args to Date())
 
 ────────────────────────────────────────────────────────
-IV. CNF FORMAT RULES (CRITICAL)
+IV. CONSTRAINT FORMAT RULES (CRITICAL)
 ────────────────────────────────────────────────────────
-Output is a JSON object:
+Output is a JSON object with separate declarations and constraints:
 {
   "description": "...",
-  "constraints": [...]
+  "declarations": ["variable_name: type", ...],
+  "constraints": ["constraint expression", ...]
 }
 
 Where:
-- Top-level array = AND
-- A nested array = OR clause
-- Variable declarations appear as constraints
+- "declarations": List of variable declarations (e.g., "filing_date: date", "tax_year: int", "applied: bool")
+- "constraints": List of constraint strings (all constraints are ANDed together)
+- Each constraint is a full boolean expression
+- Use || or "or" for OR clauses within a constraint
+- Variable declarations MUST be in the "declarations" array, NOT in "constraints"
 
 Example:
-["k: date", "k >= Date(2020,1,1)"]  
-or  
-[ ["A <= B + Period(3,0,0)", "A <= C + Period(2,0,0)"], "B >= Date(2020,1,1)" ]
+{
+  "description": "Tax filing constraints",
+  "declarations": [
+    "filing_date: date",
+    "tax_year_start: date",
+    "tax_year_end: date",
+    "applied: bool",
+    "offset: int"
+  ],
+  "constraints": [
+    "filing_date >= Date(2024, 1, 1) && filing_date <= Date(2024, 12, 31)",
+    "tax_year_end >= tax_year_start",
+    "tax_year_end <= tax_year_start + Period(1, 0, 0)",
+    "(applied == True) -> (filing_date <= tax_year_end)",
+    "offset == tax_year_end.year - tax_year_start.year"
+  ]
+}
 
 ────────────────────────────────────────────────────────
 V. COMMON-KNOWLEDGE INFERENCE RULES
@@ -153,7 +170,8 @@ You MUST output **ONLY ONE** of the following:
 
 1. A JSON object with fields:
    - "description": short summary  
-   - "constraints": array of constraints or CNF clauses  
+   - "declarations": array of variable declarations (e.g., ["x: date", "y: int", "flag: bool"])
+   - "constraints": array of constraint expressions (e.g., ["x >= Date(2020,1,1)", "(a || b) && c"])
 
 2. The literal value:
    null  
@@ -173,9 +191,11 @@ Legal Text: "A claim for credit or refund must be filed within 3 years from the 
 Output:
 {
   "description": "Claim must be filed within 3 years of return filing",
-  "constraints": [
+  "declarations": [
     "claim_date: date",
-    "return_filing_date: date",
+    "return_filing_date: date"
+  ],
+  "constraints": [
     "claim_date >= return_filing_date",
     "claim_date <= return_filing_date + Period(3, 0, 0)"
   ]
@@ -186,10 +206,12 @@ Legal Text: "The estimated tax payment is due on the 15th day of the 4th month o
 Output:
 {
   "description": "Payment due on April 15 of the year after taxable year ends",
-  "constraints": [
+  "declarations": [
     "taxable_year_end: date",
     "payment_due: date",
-    "next_year: int",
+    "next_year: int"
+  ],
+  "constraints": [
     "next_year == taxable_year_end.year + 1",
     "payment_due == Date(next_year, 4, 15)"
   ]
@@ -200,10 +222,12 @@ Legal Text: "If the taxpayer elects to apply the credit, the election must be ma
 Output:
 {
   "description": "If credit election is made, it must occur before return due date",
-  "constraints": [
+  "declarations": [
     "credit_elected: bool",
     "election_date: date",
-    "return_due_date: date",
+    "return_due_date: date"
+  ],
+  "constraints": [
     "(credit_elected == True) -> (election_date <= return_due_date)"
   ]
 }
@@ -213,36 +237,43 @@ Legal Text: "The period of limitation shall be 3 years after the return was file
 Output:
 {
   "description": "Limitation period ends at the later of 3 years after filing or 2 years after payment",
-  "constraints": [
+  "declarations": [
     "filing_date: date",
     "payment_date: date",
-    "limitation_end: date",
+    "limitation_end: date"
+  ],
+  "constraints": [
     "limitation_end >= filing_date + Period(3, 0, 0)",
     "limitation_end >= payment_date + Period(2, 0, 0)",
-    [
-      "limitation_end == filing_date + Period(3, 0, 0)",
-      "limitation_end == payment_date + Period(2, 0, 0)"
-    ]
+    "(limitation_end == filing_date + Period(3, 0, 0)) || (limitation_end == payment_date + Period(2, 0, 0))"
   ]
 }
 """
 
-def _validate_constraints_with_parser(constraints: List) -> Tuple[bool, Optional[str]]:
+def _validate_constraints_with_parser(constraint_obj: Dict) -> Tuple[bool, Optional[str]]:
     """
     Validate constraints by actually parsing them with the ConstraintParser.
+    
+    Supports both new format (separate declarations/constraints) and old format (mixed).
+    
+    Args:
+        constraint_obj: Dictionary with 'constraints' and optionally 'declarations' fields
     
     Returns:
         Tuple of (is_valid, error_message).
         If valid, returns (True, None).
         If invalid, returns (False, error_message).
     """
+    constraints = constraint_obj.get("constraints", [])
+    declarations = constraint_obj.get("declarations", None)
+    
     if not constraints:
         return True, None
     
     try:
         parser = ConstraintParser()
         # generate_builder_code validates and parses all constraints
-        parser.generate_builder_code(constraints)
+        parser.generate_builder_code(constraints, declarations)
         return True, None
     except ValueError as e:
         return False, str(e)
@@ -505,11 +536,13 @@ def extract_constraints_with_llm(
                 continue
 
             # Validate constraints by parsing them
-            constraints_list = constraint_obj.get("constraints", [])
-            is_valid, parser_error = _validate_constraints_with_parser(constraints_list)
+            is_valid, parser_error = _validate_constraints_with_parser(constraint_obj)
             if not is_valid:
                 # Include the actual constraints in feedback so LLM knows what to fix
-                constraints_preview = json.dumps(constraints_list, indent=2)[:500]
+                constraints_preview = json.dumps(constraint_obj.get("constraints", []), indent=2)[:500]
+                if constraint_obj.get("declarations"):
+                    declarations_preview = json.dumps(constraint_obj.get("declarations", []), indent=2)[:500]
+                    constraints_preview = f"declarations: {declarations_preview}\nconstraints: {constraints_preview}"
                 msg = (
                     f"Previous response contains invalid constraints.\n"
                     f"Parser error: {parser_error}\n"

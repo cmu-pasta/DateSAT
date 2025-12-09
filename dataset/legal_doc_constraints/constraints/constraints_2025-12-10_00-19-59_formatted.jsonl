@@ -1,21 +1,24 @@
 {
-  "description": "Secretary must prescribe tax tables by Dec 15 each year for taxable years in succeeding calendar year, with various adjustments based on inflation indices",
-  "constraints": [
+  "description": "Constraints for tax table adjustments and marriage penalty phaseout",
+  "declarations": [
     "current_year: int",
-    "table_prescription_deadline: date",
-    "table_prescription_deadline == Date(current_year, 12, 15)",
+    "tables_prescription_date: date",
     "taxable_year_start: date",
-    "succeeding_year: int",
-    "succeeding_year == current_year + 1",
-    "taxable_year_start.year == succeeding_year",
-    "cpi_measurement_end: date",
-    "cpi_measurement_end == Date(current_year - 1, 8, 31)",
-    "ccpiu_measurement_end: date",
-    "ccpiu_measurement_end == Date(current_year - 1, 8, 31)",
+    "preceding_calendar_year_end: date",
+    "cpi_period_end: date",
     "ccpiu_publication_date: date",
-    "ccpiu_publication_date <= table_prescription_deadline",
-    "marriage_penalty_elimination_start: date",
-    "marriage_penalty_elimination_start == Date(2004, 1, 1)"
+    "ccpiu_initial_value_month: date",
+    "marriage_penalty_phaseout_start: date"
+  ],
+  "constraints": [
+    "tables_prescription_date <= Date(current_year, 12, 15)",
+    "taxable_year_start >= Date(current_year + 1, 1, 1)",
+    "taxable_year_start <= Date(current_year + 1, 12, 31)",
+    "preceding_calendar_year_end == Date(current_year - 1, 12, 31)",
+    "cpi_period_end == Date(current_year - 1, 8, 31)",
+    "ccpiu_initial_value_month == Date(current_year - 1, 8, 1)",
+    "ccpiu_publication_date >= ccpiu_initial_value_month",
+    "marriage_penalty_phaseout_start == Date(2004, 1, 1)"
   ],
   "provenance": {
     "hierarchy": {
@@ -37,28 +40,67 @@
 }
 
 {
-  "description": "Capital gain holding period requirements for qualified dividend income",
-  "constraints": [
-    "taxable_year_start: date",
+  "description": "Age and tax year constraints for child's unearned income",
+  "declarations": [
     "taxable_year_end: date",
-    "taxable_year_end >= taxable_year_start",
-    "taxable_year_end <= taxable_year_start + Period(1, 0, 0)",
-    "preceding_taxable_year_start: date",
-    "preceding_taxable_year_end: date",
-    "preceding_taxable_year_end >= preceding_taxable_year_start",
-    "preceding_taxable_year_end <= preceding_taxable_year_start + Period(1, 0, 0)",
-    "preceding_taxable_year_end < taxable_year_start",
+    "child_age: int",
+    "child_birth_date: date",
+    "parent_taxable_year_start: date",
+    "parent_taxable_year_end: date",
+    "child_taxable_year_start: date",
+    "child_taxable_year_end: date",
+    "parent_alive_at_year_end: bool",
+    "child_files_joint_return: bool",
+    "subsection_applies: bool",
+    "child_under_18: bool",
+    "child_meets_age_requirements: bool"
+  ],
+  "constraints": [
+    "child_taxable_year_end >= child_taxable_year_start",
+    "child_taxable_year_end <= child_taxable_year_start + Period(1, 0, 0)",
+    "parent_taxable_year_end >= parent_taxable_year_start",
+    "parent_taxable_year_end <= parent_taxable_year_start + Period(1, 0, 0)",
+    "child_age == taxable_year_end.year - child_birth_date.year",
+    "(child_birth_date.month > taxable_year_end.month) -> (child_age == child_age - 1)",
+    "(child_birth_date.month == taxable_year_end.month && child_birth_date.day > taxable_year_end.day) -> (child_age == child_age - 1)",
+    "child_under_18 == (child_age < 18)",
+    "(subsection_applies == True) -> (child_under_18 == True || child_meets_age_requirements == True)",
+    "(subsection_applies == True) -> (parent_alive_at_year_end == True)",
+    "(subsection_applies == True) -> (child_files_joint_return == False)",
+    "parent_taxable_year_end.year == child_taxable_year_end.year || parent_taxable_year_end.year + 1 == child_taxable_year_end.year"
+  ],
+  "provenance": {
+    "hierarchy": {
+      "title": 26,
+      "subtitle": null,
+      "chapter": null,
+      "subchapter": null,
+      "part": null,
+      "subpart": null,
+      "section": null
+    },
+    "subsection_path": "(s1)(g)",
+    "identifier": "/us/usc/t26/s1/g",
+    "original_text": "(g) Certain unearned income of children taxed as if parent’s income (1) In general In the case of any child to whom this subsection applies, the tax imposed by this section shall be equal to the greater of— (A) the tax imposed by this section without regard to this subsection, or (B) the sum of— (i) the tax which would be imposed by this section if the taxable income of such child for the taxable year were reduced by the net unearned income of such child, plus (ii) such child’s share of the allocable parental tax. (2) Child to whom subsection applies This subsection shall apply to any child for any taxable year if— (A) such child— (i) has not attained age 18 before the close of the taxable year, or (ii) (I) has attained age 18 before the close of the taxable year and meets the age requirements of section 152(c)(3) (determined without regard to subparagraph (B) thereof), and (II) whose earned income (as defined in section 911(d)(2)) for such taxable year does not exceed one-half of the amount of the individual’s support (within the meaning of section 152(c)(1)(D) after the application of section 152(f)(5) (without regard to subparagraph (A) thereof)) for such taxable year, (B) either parent of such child is alive at the close of the taxable year, and (C) such child does not file a joint return for the taxable year. (3) Allocable parental tax For purposes of this subsection— (A) In general The term “allocable parental tax” means the excess of— (i) the tax which would be imposed by this section on the parent’s taxable income if such income included the net unearned income of all children of the parent to whom this subsection applies, over (ii) the tax imposed by this section on the parent without regard to this subsection. For purposes of clause (i), net unearned income of all children of the parent shall not be taken into account in computing any exclusion, deduction, or credit of the parent. (B) Child’s share A child’s share of any allocable parental tax of a parent shall be equal to an amount which bears the same ratio to the total allocable parental tax as the child’s net unearned income bears to the aggregate net unearned income of all children of such parent to whom this subsection applies. (C) Special rule where parent has different taxable year Except as provided in regulations, if the parent does not have the same taxable year as the child, the allocable parental tax shall be determined on the basis of the taxable year of the parent ending in the child’s taxable year. (4) Net unearned income For purposes of this subsection— (A) In general The term “net unearned income” means the excess of— (i) the portion of the adjusted gross income for the taxable year which is not attributable to earned income (as defined in section 911(d)(2)), over (ii) the sum of— (I) the amount in effect for the taxable year under section 63(c)(5)(A) (relating to limitation on standard deduction in the case of certain dependents), plus (II) the greater of the amount described in subclause (I) or, if the child itemizes his deductions for the taxable year, the amount of the itemized deductions allowed by this chapter for the taxable year which are directly connected with the production of the portion of adjusted gross income referred to in clause (i). (B) Limitation based on taxable income The amount of the net unearned income for any taxable year shall not exceed the individual’s taxable income for such taxable year. (C) Treatment of distributions from qualified disability trusts For purposes of this subsection, in the case of any child who is a beneficiary of a qualified disability trust (as defined in section 642(b)(2)(C)(ii)), any amount included in the income of such child under sections 652 and 662 during a taxable year shall be considered earned income of such child for such taxable year. (5) Special rules for determining parent to whom subsection applies For purposes of this subsection, the parent whose taxable income shall be taken into account shall be— (A) in the case of parents who are not married (within the meaning of section 7703), the custodial parent (within the meaning of section 152(e)) of the child, and (B) in the case of married individuals filing separately, the individual with the greater taxable income. (6) Providing of parent’s TIN The parent of any child to whom this subsection applies for any taxable year shall provide the TIN of such parent to such child and such child shall include such TIN on the child’s return of tax imposed by this section for such taxable year. (7) Election to claim certain unearned income of child on parent’s return (A) In general If— (i) any child to whom this subsection applies has gross income for the taxable year only from interest and dividends (including Alaska Permanent Fund dividends), (ii) such gross income is more than the amount described in paragraph (4)(A)(ii)(I) and less than 10 times the amount so described, (iii) no estimated tax payments for such year are made in the name and TIN of such child, and no amount has been deducted and withheld under section 3406, and (iv) the parent of such child (as determined under paragraph (5)) elects the application of subparagraph (B), such child shall be treated (other than for purposes of this paragraph) as having no gross income for such year and shall not be required to file a return under section 6012. (B) Income included on parent’s return In the case of a parent making the election under this paragraph— (i) the gross income of each child to whom such election applies (to the extent the gross income of such child exceeds twice the amount described in paragraph (4)(A)(ii)(I)) shall be included in such parent’s gross income for the taxable year, (ii) the tax imposed by this section for such year with respect to such parent shall be the amount equal to the sum of— (I) the amount determined under this section after the application of clause (i), plus (II) for each such child, 10 percent of the lesser of the amount described in paragraph (4)(A)(ii)(I) or the excess of the gross income of such child over the amount so described, and (iii) any interest which is an item of tax preference under section 57(a)(5) of the child shall be treated as an item of tax preference of such parent (and not of such child). (C) Regulations The Secretary shall prescribe such regulations as may be necessary or appropriate to carry out the purposes of this paragraph.",
+    "heading": "Tax imposed"
+  },
+  "id": "2",
+  "parsed_id": "7"
+}
+
+{
+  "description": "Capital gains tax holding period requirements",
+  "declarations": [
+    "asset_acquisition_date: date",
+    "asset_sale_date: date",
+    "dividend_receipt_date: date",
     "stock_acquisition_date: date",
-    "stock_sale_date: date",
-    "is_qualified_dividend: bool",
-    "(is_qualified_dividend == True) -> (stock_sale_date >= stock_acquisition_date + Period(0, 0, 60))",
-    "dividend_payment_date: date",
-    "dividend_payment_date >= taxable_year_start",
-    "dividend_payment_date <= taxable_year_end",
-    "collectible_acquisition_date: date",
-    "collectible_sale_date: date",
-    "is_collectible_gain: bool",
-    "(is_collectible_gain == True) -> (collectible_sale_date >= collectible_acquisition_date + Period(1, 0, 0))"
+    "is_collectible: bool",
+    "is_qualified_dividend: bool"
+  ],
+  "constraints": [
+    "(is_collectible == True) -> (asset_sale_date >= asset_acquisition_date + Period(1, 0, 0))",
+    "(is_qualified_dividend == True) -> (dividend_receipt_date >= stock_acquisition_date + Period(0, 0, 60))"
   ],
   "provenance": {
     "hierarchy": {
@@ -80,22 +122,22 @@
 }
 
 {
-  "description": "Tax rate changes for different time periods and income brackets",
-  "constraints": [
+  "description": "Tax rate bracket constraints based on taxable years and inflation adjustments",
+  "declarations": [
     "taxable_year_start: date",
     "taxable_year_end: date",
+    "is_10_percent_bracket_applicable: bool",
+    "is_high_income_tax_applicable: bool",
+    "is_post_2003_inflation_adjustment: bool",
+    "is_post_2013_inflation_adjustment: bool"
+  ],
+  "constraints": [
     "taxable_year_end >= taxable_year_start",
     "taxable_year_end <= taxable_year_start + Period(1, 0, 0)",
-    "ten_percent_rate_applies: bool",
-    "(taxable_year_start > Date(2000, 12, 31)) -> (ten_percent_rate_applies == True)",
-    "coli_adjustment_year: int",
-    "(taxable_year_start.year > 2003) -> (coli_adjustment_year == 2002)",
-    "thirty_five_percent_rate_applies: bool",
-    "(taxable_year_start > Date(2012, 12, 31)) -> (thirty_five_percent_rate_applies == True)",
-    "inflation_adjustment_applies: bool",
-    "inflation_reference_year: int",
-    "(taxable_year_start.year > 2013) -> (inflation_adjustment_applies == True)",
-    "(inflation_adjustment_applies == True) -> (inflation_reference_year == 2012)"
+    "(is_10_percent_bracket_applicable == True) -> (taxable_year_start >= Date(2001, 1, 1))",
+    "(is_post_2003_inflation_adjustment == True) -> (taxable_year_start >= Date(2004, 1, 1))",
+    "(is_high_income_tax_applicable == True) -> (taxable_year_start >= Date(2013, 1, 1))",
+    "(is_post_2013_inflation_adjustment == True) -> (taxable_year_start >= Date(2014, 1, 1))"
   ],
   "provenance": {
     "hierarchy": {
@@ -114,5 +156,41 @@
   },
   "id": "4",
   "parsed_id": "9"
+}
+
+{
+  "description": "Tax modifications for taxable years beginning after 2017",
+  "declarations": [
+    "taxable_year_start: date",
+    "taxable_year_end: date",
+    "applies_post_2017: bool",
+    "applies_2018_only: bool",
+    "applies_post_2018: bool"
+  ],
+  "constraints": [
+    "taxable_year_end >= taxable_year_start",
+    "taxable_year_end <= taxable_year_start + Period(1, 0, 0)",
+    "applies_post_2017 == (taxable_year_start > Date(2017, 12, 31))",
+    "(taxable_year_start > Date(2017, 12, 31)) -> ((taxable_year_start < Date(2019, 1, 1)) -> (applies_2018_only == True))",
+    "(taxable_year_start > Date(2017, 12, 31)) -> ((taxable_year_start >= Date(2019, 1, 1)) -> (applies_2018_only == False))",
+    "applies_post_2018 == (taxable_year_start > Date(2018, 12, 31))"
+  ],
+  "provenance": {
+    "hierarchy": {
+      "title": 26,
+      "subtitle": null,
+      "chapter": null,
+      "subchapter": null,
+      "part": null,
+      "subpart": null,
+      "section": null
+    },
+    "subsection_path": "(s1)(j)",
+    "identifier": "/us/usc/t26/s1/j",
+    "original_text": "(j) Modifications for taxable years beginning after 2017 (1) In general In the case of a taxable year beginning after December 31, 2017 — (A) subsection (i) shall not apply, and (B) this section (other than subsection (i)) shall be applied as provided in paragraphs (2) through (6). (2) Rate tables (A) Married individuals filing joint returns and surviving spouses The following table shall be applied in lieu of the table contained in subsection (a): If taxable income is: The tax is: Not over $19,050 10% of taxable income. Over $19,050 but not over $77,400 $1,905, plus 12% of the excess over $19,050. Over $77,400 but not over $165,000 $8,907, plus 22% of the excess over $77,400. Over $165,000 but not over $315,000 $28,179, plus 24% of the excess over $165,000. Over $315,000 but not over $400,000 $64,179, plus 32% of the excess over $315,000. Over $400,000 but not over $600,000 $91,379, plus 35% of the excess over $400,000. Over $600,000 $161,379, plus 37% of the excess over $600,000. (B) Heads of households The following table shall be applied in lieu of the table contained in subsection (b): If taxable income is: The tax is: Not over $13,600 10% of taxable income. Over $13,600 but not over $51,800 $1,360, plus 12% of the excess over $13,600. Over $51,800 but not over $82,500 $5,944, plus 22% of the excess over $51,800. Over $82,500 but not over $157,500 $12,698, plus 24% of the excess over $82,500. Over $157,500 but not over $200,000 $30,698, plus 32% of the excess over $157,500. Over $200,000 but not over $500,000 $44,298, plus 35% of the excess over $200,000. Over $500,000 $149,298, plus 37% of the excess over $500,000. (C) Unmarried individuals other than surviving spouses and heads of households The following table shall be applied in lieu of the table contained in subsection (c): If taxable income is: The tax is: Not over $9,525 10% of taxable income. Over $9,525 but not over $38,700 $952.50, plus 12% of the excess over $9,525. Over $38,700 but not over $82,500 $4,453.50, plus 22% of the excess over $38,700. Over $82,500 but not over $157,500 $14,089.50, plus 24% of the excess over $82,500. Over $157,500 but not over $200,000 $32,089.50, plus 32% of the excess over $157,500. Over $200,000 but not over $500,000 $45,689.50, plus 35% of the excess over $200,000. Over $500,000 $150,689.50, plus 37% of the excess over $500,000. (D) Married individuals filing separate returns The following table shall be applied in lieu of the table contained in subsection (d): If taxable income is: The tax is: Not over $9,525 10% of taxable income. Over $9,525 but not over $38,700 $952.50, plus 12% of the excess over $9,525. Over $38,700 but not over $82,500 $4,453.50, plus 22% of the excess over $38,700. Over $82,500 but not over $157,500 $14,089.50, plus 24% of the excess over $82,500. Over $157,500 but not over $200,000 $32,089.50, plus 32% of the excess over $157,500. Over $200,000 but not over $300,000 $45,689.50, plus 35% of the excess over $200,000. Over $300,000 $80,689.50, plus 37% of the excess over $300,000. (E) Estates and trusts The following table shall be applied in lieu of the table contained in subsection (e): If taxable income is: The tax is: Not over $2,550 10% of taxable income. Over $2,550 but not over $9,150 $255, plus 24% of the excess over $2,550. Over $9,150 but not over $12,500 $1,839, plus 35% of the excess over $9,150. Over $12,500 $3,011.50, plus 37% of the excess over $12,500. (F) References to rate tables Any reference in this title to a rate of tax under subsection (c) shall be treated as a reference to the corresponding rate bracket under subparagraph (C) of this paragraph, except that the reference in section 3402(q)(1) to the third lowest rate of tax applicable under subsection (c) shall be treated as a reference to the fourth lowest rate of tax under subparagraph (C). (3) Adjustments (A) No adjustment in 2018 The tables contained in paragraph (2) shall apply without adjustment for taxable years beginning after December 31, 2017 , and before January 1, 2019 . (B) Subsequent years For taxable years beginning after December 31, 2018 , the Secretary shall prescribe tables which shall apply in lieu of the tables contained in paragraph (2) in the same manner as under paragraphs (1) and (2) of subsection (f) (applied without regard to clauses (i) and (ii) of subsection (f)(2)(A)), except that in prescribing such tables— (i) solely for purposes of determining the dollar amounts at which any rate bracket higher than 12 percent ends and at which any rate bracket higher than 22 percent begins, subsection (f)(3) shall be applied by substituting “calendar year 2017” for “calendar year 2016” in subparagraph (A)(ii) thereof, (ii) subsection (f)(7)(B) shall apply to any unmarried individual other than a surviving spouse or head of household, and (iii) subsection (f)(8) shall not apply. [(4) Repealed. Pub. L. 116–94, div. O, title V, § 501(a) , Dec. 20, 2019 , 133 Stat. 3180 ] (5) Application of current income tax brackets to capital gains brackets (A) In general Section 1(h)(1) shall be applied— (i) by substituting “below the maximum zero rate amount” for “which would (without regard to this paragraph) be taxed at a rate below 25 percent” in subparagraph (B)(i), and (ii) by substituting “below the maximum 15-percent rate amount” for “which would (without regard to this paragraph) be taxed at a rate below 39.6 percent” in subparagraph (C)(ii)(I). (B) Maximum amounts defined For purposes of applying section 1(h) with the modifications described in subparagraph (A)— (i) Maximum zero rate amount The maximum zero rate amount shall be— (I) in the case of a joint return or surviving spouse, $77,200, (II) in the case of an individual who is a head of household (as defined in section 2(b)), $51,700, (III) in the case of any other individual (other than an estate or trust), an amount equal to ½ of the amount in effect for the taxable year under subclause (I), and (IV) in the case of an estate or trust, $2,600. (ii) Maximum 15-percent rate amount The maximum 15-percent rate amount shall be— (I) in the case of a joint return or surviving spouse, $479,000 (½ such amount in the case of a married individual filing a separate return), (II) in the case of an individual who is the head of a household (as defined in section 2(b)), $452,400, (III) in the case of any other individual (other than an estate or trust), $425,800, and (IV) in the case of an estate or trust, $12,700. (C) Inflation adjustment In the case of any taxable year beginning after 2018, each of the dollar amounts in clauses (i) and (ii) of subparagraph (B) shall be increased by an amount equal to— (i) such dollar amount, multiplied by (ii) the cost-of-living adjustment determined under subsection (f)(3) for the calendar year in which the taxable year begins, determined by substituting “calendar year 2017” for “calendar year 2016” in subparagraph (A)(ii) thereof. If any increase under this subparagraph is not a multiple of $50, such increase shall be rounded to the next lowest multiple of $50. (6) Section 15 not to apply Section 15 shall not apply to any change in a rate of tax by reason of this subsection.",
+    "heading": "Tax imposed"
+  },
+  "id": "5",
+  "parsed_id": "10"
 }
 
