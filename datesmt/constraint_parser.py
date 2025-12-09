@@ -375,6 +375,9 @@ class ConstraintParser:
         # Remove whitespace
         constraint_str = constraint_str.strip()
 
+        # Check for common unsupported patterns and give helpful error messages
+        self._check_unsupported_patterns(constraint_str)
+
         # Check for invalid variable names that should raise ValueError
         if self._is_invalid_variable_name(constraint_str):
             raise ValueError(f"Could not parse constraint '{constraint_str}': Invalid variable name")
@@ -385,6 +388,22 @@ class ConstraintParser:
             return result
         except Exception as e:
             raise ValueError(f"Could not parse constraint '{constraint_str}': {e}")
+    
+    def _check_unsupported_patterns(self, constraint_str: str) -> None:
+        """Check for common unsupported patterns and raise helpful error messages."""
+        # Check for && operator
+        if '&&' in constraint_str:
+            raise ValueError(
+                f"'&&' operator is not supported. Use nested implications instead. "
+                f"For 'if A and B then C', write: (A) -> ((B) -> (C))"
+            )
+        
+        # Check for || operator
+        if '||' in constraint_str:
+            raise ValueError(
+                f"'||' operator is not supported. Use CNF format (OR clauses as nested lists) instead. "
+                f"For 'A or B', write: [[\"A\", \"B\"]]"
+            )
     
     def _is_invalid_variable_name(self, constraint_str: str) -> bool:
         """Check if the constraint contains invalid variable names."""
