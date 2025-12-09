@@ -414,9 +414,11 @@ class ConstraintParser:
 
             ?bool_atom: comparison_expr
                       | variable
+                      | not_expr
                       | LPAR bool_expr RPAR
 
             comparison_expr: expression comparison_op expression
+                          | bool_atom comparison_op bool_atom
 
             IMPLIES: "->"
             OR: "||" | "or" | "OR"

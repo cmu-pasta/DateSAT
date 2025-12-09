@@ -780,6 +780,83 @@ def test_boolean_operators_unsatisfiable_case(parser):
 
 
 # -------------------------
+# Boolean variable == boolean expression tests
+# -------------------------
+
+def test_bool_var_equals_bool_expr_simple(parser):
+    """Test boolean variable equals simple boolean expression."""
+    constraint = "flag == (a > b)"
+    result = parser.parse_constraint(constraint)
+    
+    assert "flag == (a > b)" in result
+    assert "builder.add_constraint" in result
+
+
+def test_bool_var_equals_bool_expr_with_and(parser):
+    """Test boolean variable equals boolean expression with AND."""
+    constraint = "applies_2018_only == (taxable_year_start > Date(2017, 12, 31) && taxable_year_start < Date(2019, 1, 1))"
+    result = parser.parse_constraint(constraint)
+    
+    assert "applies_2018_only == (taxable_year_start > Date(2017, 12, 31)" in result or "And(" in result
+    assert "builder.add_constraint" in result
+
+
+def test_bool_var_equals_bool_expr_with_or(parser):
+    """Test boolean variable equals boolean expression with OR."""
+    constraint = "is_valid == (x >= Date(2000, 1, 1) || y <= Date(2020, 12, 31))"
+    result = parser.parse_constraint(constraint)
+    
+    assert "is_valid == (" in result or "Or(" in result
+    assert "builder.add_constraint" in result
+
+
+def test_bool_var_equals_bool_expr_nested(parser):
+    """Test boolean variable equals nested boolean expression."""
+    constraint = "result == ((a > b) && (c > d) || (e < f))"
+    result = parser.parse_constraint(constraint)
+    
+    assert "result == (" in result or "And(" in result or "Or(" in result
+    assert "builder.add_constraint" in result
+
+
+def test_bool_var_equals_bool_expr_in_constraint_data(parser):
+    """Test boolean variable equals boolean expression in full constraint data."""
+    constraint_data = {
+        "declarations": [
+            "taxable_year_start: date",
+            "applies_2018_only: bool"
+        ],
+        "constraints": [
+            "applies_2018_only == (taxable_year_start > Date(2017, 12, 31) && taxable_year_start < Date(2019, 1, 1))"
+        ]
+    }
+    
+    result = parser.parse_constraint_data(constraint_data)
+    
+    assert "applies_2018_only = builder.add_bool_var" in result
+    assert "applies_2018_only == (" in result or "And(" in result
+    assert "builder.add_constraint" in result
+
+
+def test_bool_var_equals_bool_expr_with_implication(parser):
+    """Test boolean variable equals boolean expression containing implication."""
+    constraint = "flag == ((a > b) -> (c > d))"
+    result = parser.parse_constraint(constraint)
+    
+    assert "flag == (" in result or "Implies(" in result
+    assert "builder.add_constraint" in result
+
+
+def test_bool_var_equals_bool_expr_with_not(parser):
+    """Test boolean variable equals boolean expression with NOT."""
+    constraint = "is_valid == !(x == Date(2000, 1, 1))"
+    result = parser.parse_constraint(constraint)
+    
+    assert "is_valid == (" in result or "Not(" in result
+    assert "builder.add_constraint" in result
+
+
+# -------------------------
 # Property access tests (.year, .month, .day)
 # -------------------------
 
