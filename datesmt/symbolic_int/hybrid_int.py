@@ -96,6 +96,23 @@ class DateVar:
             self._ensure_ymd()
         return self._day_var
 
+    # Alias properties for compatibility with parser-generated code
+    # The parser generates code like "x.year == y" which expects .year attribute
+    @property
+    def year(self) -> ArithRef:
+        """Alias for year_var for compatibility with parser-generated code."""
+        return self.year_var
+
+    @property
+    def month(self) -> ArithRef:
+        """Alias for month_var for compatibility with parser-generated code."""
+        return self.month_var
+
+    @property
+    def day(self) -> ArithRef:
+        """Alias for day_var for compatibility with parser-generated code."""
+        return self.day_var
+
     def to_concrete_date(self, model: ModelRef) -> Date:
         if self._ymd_consistent and self._ymd_exists:
             y = model.evaluate(self._year_var, model_completion=True).as_long()

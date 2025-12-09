@@ -66,7 +66,21 @@ def run_constraint_with_approach(
                 "DateSMTBuilder": create_builder,
             }
 
-            exec(constraint_code, exec_globals)
+            try:
+                exec(constraint_code, exec_globals)
+            except AttributeError as e:
+                # Check if error is due to unsupported variable types (bool/int)
+                error_msg = str(e)
+                if "add_bool_var" in error_msg or "add_int_var" in error_msg:
+                    # Enumeration baseline doesn't support bool/int variables
+                    result["status"] = "not_applicable"
+                    result["error_message"] = f"Enumeration baseline does not support bool/int variables: {error_msg}"
+                    result["solution"] = None
+                    result["smtlib"] = None
+                    print(f"Not applicable: Enumeration baseline doesn't support bool/int variables")
+                    return result
+                # Re-raise if it's a different AttributeError
+                raise
 
             # Get the solver from the executed code
             builder = exec_globals.get("result") or exec_globals.get("builder")
@@ -164,9 +178,30 @@ def run_constraints_file(
     output_dir: str,
     timeout_ms: int = TIMEOUT_MS,
 ):
-    # Load constraints
-    with open(constraints_file, "r") as f:
-        constraints = json.load(f)
+    # Load constraints - support both JSON and JSONL formats
+    constraints_file_path = Path(constraints_file)
+    
+    if constraints_file_path.suffix == ".jsonl":
+        # JSONL format: one JSON object per line
+        constraints = []
+        with open(constraints_file, "r") as f:
+            for line_num, line in enumerate(f, 1):
+                line = line.strip()
+                if not line:  # Skip empty lines
+                    continue
+                try:
+                    constraint = json.loads(line)
+                    constraints.append(constraint)
+                except json.JSONDecodeError as e:
+                    print(f"Warning: Skipping invalid JSON on line {line_num} of {constraints_file}: {e}")
+                    continue
+    else:
+        # JSON format: single JSON array/object
+        with open(constraints_file, "r") as f:
+            constraints = json.load(f)
+            # If it's a single object, wrap it in a list
+            if isinstance(constraints, dict):
+                constraints = [constraints]
 
     print(f"Loaded {len(constraints)} constraints from {constraints_file}")
     print(f"Output directory: {output_dir}")
@@ -264,13 +299,21 @@ def main():
         #     / "constraints.json",
         #     "output_dir": SCRIPT_DIR / "grammar_constraints" / "results",
         # },
+        #{
+        #    "name": "LLM Generated Constraints",
+        #    "constraints_file": SCRIPT_DIR
+        #    / "llm_constraints"
+        #    / "constraints"
+        #    / "constraints.json",
+        #    "output_dir": SCRIPT_DIR / "llm_constraints" / "results",
+        #},
         {
-            "name": "LLM Generated Constraints",
+            "name": "Legal Document Constraints",
             "constraints_file": SCRIPT_DIR
-            / "llm_constraints"
+            / "legal_doc_constraints"
             / "constraints"
-            / "constraints.json",
-            "output_dir": SCRIPT_DIR / "llm_constraints" / "results",
+            / "constraints.jsonl",
+            "output_dir": SCRIPT_DIR / "legal_doc_constraints" / "results",
         },
     ]
 
