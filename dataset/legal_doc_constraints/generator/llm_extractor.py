@@ -1,7 +1,7 @@
 """
 LLM-based extraction of date/time constraints from legal text (Title 26).
 
-Uses LLM to extract meaningful constraints from legal text and add common knowledge
+Uses LLM to extract realistic constraints from legal text and add common knowledge
 assumptions (e.g., marriage date constraints based on birthdays).
 
 Processing:
@@ -9,7 +9,6 @@ Processing:
 - Supports ID range specification (e.g., --id-range 1-50)
 - Each record is sent individually to the LLM
 - Very long text (>50k chars by default) is truncated to avoid context window limits
-- Automatically generates coverage tags based on constraint content
 """
 
 import argparse
@@ -19,282 +18,312 @@ import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
+import re
 
-# Add dataset to path for llm.py import
+# Add repo root to path for imports
 REPO_ROOT = Path(__file__).resolve().parents[3]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from dataset.llm import LLMClient
-import re
+from datesmt.constraint_parser import ConstraintParser
 
-DATE_PATTERN = re.compile(r"Date\(([^)]*)\)")
-PERIOD_PATTERN = re.compile(r"Period\(([^)]*)\)")
-INT_COMPARE_PATTERN = re.compile(
-    r"\b([A-Za-z_][A-Za-z0-9_]*)\s*(==|!=|<=|>=|<|>)\s*([+-]?\d+)\b"
-)
-
-
-def _flatten_constraints(constraints: List) -> List[str]:
-    flat: List[str] = []
-    for item in constraints:
-        if isinstance(item, list):
-            flat.extend(_flatten_constraints(item))
-        else:
-            flat.append(item)
-    return flat
-
-
-def _find_invalid_date_period(constraints: List) -> Tuple[bool, Optional[str]]:
-    def _is_valid_numeric(arg: str) -> bool:
-        return bool(re.fullmatch(r"[+-]?\d+", arg.strip()))
-
-    for constraint in _flatten_constraints(constraints):
-        for pattern in (DATE_PATTERN, PERIOD_PATTERN):
-            for match in pattern.finditer(constraint):
-                args = [arg.strip() for arg in match.group(1).split(",")]
-                if len(args) != 3:
-                    return True, constraint
-                for arg in args:
-                    if not _is_valid_numeric(arg):
-                        return True, constraint
-        # Also reject integer variable comparisons like "calendar_year > 2003"
-        # DateSMT DSL does not support standalone integer variables, so any
-        # identifier compared directly to a numeric literal is invalid.
-        if INT_COMPARE_PATTERN.search(constraint):
-            return True, constraint
-    return False, None
-
-
-def _generate_coverage_tags(constraints: List) -> List[str]:
-    """Generate coverage tags based on constraint content."""
-    tags = ["tax_law"]  # All legal constraints get this tag
-
-    # Flatten constraints (handle CNF format)
-    constraint_strings = []
-    for item in constraints:
-        if isinstance(item, list):
-            # OR clause - check all alternatives
-            constraint_strings.extend(item)
-        else:
-            constraint_strings.append(item)
-
-    # Check for period operations
-    has_year_period = False
-    has_month_period = False
-    has_day_period = False
-    has_multiple_periods = False
-
-    for constraint_str in constraint_strings:
-        # Check for Period operations
-        if "Period(" in constraint_str:
-            # Extract period components
-            period_match = re.search(r'Period\((-?\d+),\s*(-?\d+),\s*(-?\d+)\)', constraint_str)
-            if period_match:
-                years, months, days = map(int, period_match.groups())
-                if years != 0:
-                    has_year_period = True
-                if months != 0:
-                    has_month_period = True
-                if days != 0:
-                    has_day_period = True
-
-                # Check if multiple non-zero components
-                non_zero = sum(1 for x in [years, months, days] if x != 0)
-                if non_zero > 1:
-                    has_multiple_periods = True
-
-    # Add period-related tags
-    if has_year_period and has_day_period:
-        tags.append("year_vs_days")
-    if has_month_period and has_day_period:
-        tags.append("month_vs_days")
-    if has_multiple_periods:
-        tags.append("multi_period")
-
-    # Check for OR clauses (alternatives)
-    has_or_clause = any(isinstance(item, list) and len(item) > 1 for item in constraints)
-    if has_or_clause:
-        tags.append("alternative")
-
-    # Check for leap year dates (February 29 or dates around Feb 28/29)
-    for constraint_str in constraint_strings:
-        if re.search(r'Date\([^,]+,\s*2,\s*(28|29)\)', constraint_str):
-            tags.append("leap_year")
-            break
-
-    # Check for end-of-month patterns (dates with day 28, 29, 30, 31)
-    for constraint_str in constraint_strings:
-        if re.search(r'Date\([^,]+,\s*\d+,\s*(28|29|30|31)\)', constraint_str):
-            tags.append("eom")
-            break
-
-    return tags
 
 # System prompt for legal document constraint extraction
-LEGAL_EXTRACTION_PROMPT = """You are an expert in converting legal temporal clauses from Title 26 (Internal Revenue Code) into date constraints.
+LEGAL_EXTRACTION_PROMPT = """You are an expert in temporal reasoning, specializing in converting legal clauses from the U.S. Internal Revenue Code (Title 26) into precise DateSMT constraints.
 
-GOAL
-Extract date/period constraints from legal textt. You should add common knowledge constraints that are logically implied but not explicitly stated in the text as well.
+Your task:  
+Given a passage of legal text, extract all explicit and logically required date/period constraints and express them in the DateSMT DSL.  
+You must output ONLY valid JSON following the schema below.
 
-RULES & OPERATIONS
-- Use ONLY dates variables or concrete dates and concrete calendar periods (no times, time zones, or DST).
-- Valid date range: 1900-03-01 to 2100-02-28 (simple leap-year rules apply).
-- Allowed operations (Date can be a variable or a concrete date):
-  • Date ± Period → Date
-  • Period ± Period → Period
-  • Period * Int → Period
-  • Date ▷◁ Date (▷◁ ∈ {==, !=, <, <=, >, >=})
-- FORBIDDEN: Period comparisons (Period ▷◁ Period). Compare dates after adding periods instead.
+────────────────────────────────────────────────────────
+I. DSL TYPES & DECLARATIONS
+────────────────────────────────────────────────────────
+Variable types (can be declared as symbolic):
+- date: symbolic date variable (e.g., "filing_date: date")
+- int: symbolic integer variable (e.g., "tax_year: int")
+- bool: symbolic boolean variable (e.g., "is_married: bool")
 
-CONSTRAINT SYNTAX - CRITICAL RULES
-- Constructors: Date(year, month, day), Period(years, months, days)
-  * Date() constructor ONLY accepts concrete integers (e.g., Date(2020, 12, 31))
-  * Date() CANNOT accept variables as parameters (e.g., Date(calendar_year, 12, 15) is INVALID)
-  * To use a variable year/month/day, create a date variable and use constraints to relate it to concrete dates
-    * Example: To express “end of the same year as X”, use date variables and Period arithmetic instead of Date(X.year(), 12, 31), e.g.:
-    - current_year_end >= current_year_start
-    - current_year_end <= current_year_start + Period(1, 0, 0) + Period(0, 0, 1)
-    - current_year_end == current_year_start + Period(0, 11, 30)
-- Date Variables: Use meaningful names (e.g., filing_date, payment_date, assessment_date, close_of_year, claim_date, marriage_date, spouse_birthday, individual_birthday)
-  * Date variables are used directly in constraints (e.g., filing_date >= Date(2020, 1, 1))
-  * Date variables can be compared to concrete dates or other date variables
+Constructors (concrete values only, NOT variable types):
+- Date(year, month, day): concrete date OR with int variables (e.g., Date(2020, 1, 15) or Date(year_val, 1, 15))
+- Period(years, months, days): concrete period ONLY (e.g., Period(3, 0, 0)) — NO symbolic period variables
 
-CONSTRAINT FORMAT (CNF - Conjunctive Normal Form)
-The "constraints" field supports Conjunctive Normal Form (CNF) where:
-- Each element can be a string (single constraint) or a list of strings (OR clause)
-- All top-level constraints are ANDed together
-- Lists of strings are ORed together
+Rules:
+- All variables must be declared before use, except integers appearing only as arguments to Date().
+- Declarations must be SEPARATE constraint strings, NOT inside other constraints.
+  WRONG: "(A) -> (x: bool)"
+  RIGHT: "x: bool", "(A) -> (x == True)"
+- Period() ONLY accepts concrete integers — you CANNOT create symbolic period variables
+- Use parentheses () to group expressions and avoid ambiguity:
+  WRONG: "a + b * c" (ambiguous)
+  RIGHT: "(a + b) * c" or "a + (b * c)"
+  WRONG: "A -> B -> C" (chained, invalid)
+  RIGHT: "(A) -> ((B) -> (C))" (nested, valid)
 
-Examples:
-- Simple AND: ["filing_date >= Date(2020, 1, 1)", "claim_date <= filing_date + Period(3, 0, 0)"]
-  → (filing_date >= Date(2020, 1, 1)) AND (claim_date <= filing_date + Period(3, 0, 0))
+────────────────────────────────────────────────────────
+II. ALLOWED OPERATIONS
+────────────────────────────────────────────────────────
+Date arithmetic:
+- Date ± Period → Date  
+- Date ▷◁ Date (▷◁ ∈ {==, !=, <, <=, >, >=})
 
-- With OR clause: [["claim_date <= filing_date + Period(3, 0, 0)", "claim_date <= payment_date + Period(2, 0, 0)"], "filing_date >= Date(2020, 1, 1)"]
-  → ((claim_date <= filing_date + Period(3, 0, 0)) OR (claim_date <= payment_date + Period(2, 0, 0))) AND (filing_date >= Date(2020, 1, 1))
+Period:
+- Period ± Period → Period  
+- Period * Int → Period  
 
-Use OR clauses when the legal text has alternatives like "either X or Y" or "whichever is later/earlier".
+Integers:
+- Int ± Int → Int  
+- Int * Int → Int  
+- Accessors: k.year, k.month, k.day → int
 
-You must actively reason about what temporal constraints are appropriate based on the legal text. Do NOT automatically add constraints for entities that are not mentioned in the text.
+Booleans:
+- Bool == Bool  
+- Use True/False literals  
+- Implication: (A) -> (B)
+- Nested implication for "if A and B then C": (A) -> ((B) -> (C))
 
-RULES FOR ADDING COMMON KNOWLEDGE CONSTRAINTS:
-1. **Only add constraints for entities/events actually mentioned in the text**
-   - If the text mentions "married individual" or "spouse", you may infer marriage-related constraints
-   - If the text mentions "filing", you may infer filing_date constraints
-   - If the text mentions "taxable year", you may infer tax year boundary constraints
-   - DO NOT add constraints for entities that are not mentioned (e.g., don't add marriage_date constraints if the text only talks about tax rates)
+────────────────────────────────────────────────────────
+III. FORBIDDEN EXPRESSIONS
+────────────────────────────────────────────────────────
+- Period ▷◁ Period  (compare dates after applying periods instead)
+- Boolean arithmetic (bool + int, bool * bool, etc.)
+- And(), Or(), Not() functions — use CNF clauses and implications instead
+- && and || operators — use nested implications or CNF format instead
+- Chained implications like (A) -> (B) -> (C) — use nested: (A) -> ((B) -> (C))
+- Dates outside 1900-03-01 to 2100-02-28
+- Undeclared variables (except int args to Date())
 
-2. **Reason about what temporal relationships are necessary**
-   - What dates/periods are explicitly mentioned in the text?
-   - What temporal relationships between these dates are required by the legal provision?
-   - What common knowledge constraints are necessary for the provision to make temporal sense?
-   - Only add constraints that are logically required for the legal provision to be meaningful
-
-3. **Examples of appropriate reasoning:**
-   - If text mentions "married individual filing jointly" → marriage must occur before filing, so add: marriage_date <= filing_date
-   - If text mentions "taxable year" → tax year has boundaries, so add: taxable_year_end >= taxable_year_start, taxable_year_end <= taxable_year_start + Period(1, 0, 0) + Period(0, 0, 1)
-   - If text mentions "filing" and "taxable year" → filing typically occurs after tax year ends, so add: filing_date >= taxable_year_end
-   - If text mentions "spouse" → marriage cannot occur before birthdays, so add: marriage_date >= spouse_birthday, marriage_date >= individual_birthday
-   - If text only mentions tax rates without dates → focus on tax year boundaries, not marriage dates
-
-4. **What NOT to do:**
-   - Don't add marriage_date constraints if the text doesn't mention marriage, spouse, or married individuals
-   - Don't add constraints for entities that aren't relevant to the legal provision
-   - Don't add constraints just because they're "common knowledge" - they must be relevant to THIS text
-
-5. **When to add common knowledge constraints:**
-   - Only when the entities are mentioned in the text
-   - Only when the temporal relationship is necessary for the legal provision to make sense
-   - When the constraint helps express the temporal logic of the provision
-
-CONTEXT AWARENESS
-- Understand what the constraint actually means in legal context
-- Use appropriate variable names that reflect the legal concept
-- Combine related constraints from the same clause when they form a logical set
-- Handle conditional logic: "If X, then Y must occur within Z period"
-- Handle alternatives: "Either within 3 years OR within 2 years of payment" → use OR clause
-- Extract concrete dates when mentioned (e.g., "January 1, 2020")
-- For symbolic events (e.g., "filing_date", "close of taxable year"), use descriptive variable names
-
-OUTPUT FORMAT
-You MUST output ONLY valid JSON. Do NOT include any explanatory text, reasoning, or commentary before or after the JSON.
-Output ONLY one of the following:
-1. A JSON object with "description" and "constraints" fields
-2. The literal value: null
-
-OUTPUT SCHEMA
-Return a JSON object (not an array):
+────────────────────────────────────────────────────────
+IV. CONSTRAINT FORMAT RULES (CRITICAL)
+────────────────────────────────────────────────────────
+Output is a JSON object with separate declarations and constraints:
 {
-  "description": "Brief explanation of the constraint set",
-  "constraints": ["constraint1", "constraint2", ...] or [["or_constraint1", "or_constraint2"], "and_constraint1", ...]
+  "description": "...",
+  "declarations": ["variable_name: type", ...],
+  "constraints": ["constraint expression", ...]
 }
 
-GENERAL RULES SUMMARY
-- Extract ALL explicit temporal constraints from the legal text
-- REASON about what temporal constraints are appropriate based on what's actually in the text
-- Only add constraints for entities/events that are mentioned or clearly implied in the legal text
-- For entities mentioned in the text, infer necessary temporal relationships
-- DO NOT add constraints for entities not mentioned (e.g., don't add marriage_date if text only discusses tax rates)
-- AVOID returning null unless the text contains absolutely NO date/time/period references whatsoever
-- Be logical and context-aware - only add constraints that are necessary for THIS legal provision
-- Use concrete dates when available, symbolic variables for events
-- Use OR clauses (lists) when the legal text has alternatives
+Where:
+- "declarations": List of variable declarations (e.g., "filing_date: date", "tax_year: int", "applied: bool")
+- "constraints": List of constraint strings (all constraints are ANDed together)
+- Each constraint is a full boolean expression
+- Use || or "or" for OR clauses within a constraint
+- Variable declarations MUST be in the "declarations" array, NOT in "constraints"
 
-EXAMPLES
-
-Example 1: Simple deadline constraint
-Legal Text: "A claim for credit or refund of an overpayment must be filed within 3 years from the time the return was filed."
-Output:
+Example:
 {
-  "description": "Claim for refund must be filed within 3 years of return filing",
+  "description": "Tax filing constraints",
+  "declarations": [
+    "filing_date: date",
+    "tax_year_start: date",
+    "tax_year_end: date",
+    "applied: bool",
+    "offset: int"
+  ],
   "constraints": [
-    "claim_date <= filing_date + Period(3, 0, 0)",
-    "claim_date >= filing_date"
+    "filing_date >= Date(2024, 1, 1) && filing_date <= Date(2024, 12, 31)",
+    "tax_year_end >= tax_year_start",
+    "tax_year_end <= tax_year_start + Period(1, 0, 0)",
+    "(applied == True) -> (filing_date <= tax_year_end)",
+    "offset == tax_year_end.year - tax_year_start.year"
   ]
 }
 
-Example 2: Marriage-related constraint with common knowledge
-Legal Text: "The spouse is considered as spouse if the marriage date should be on or before December 31 of the taxable year."
+────────────────────────────────────────────────────────
+V. COMMON-KNOWLEDGE INFERENCE RULES
+────────────────────────────────────────────────────────
+You may actively infer and add **implicit** temporal constraints, but ONLY when:
+
+1. The entity is explicitly mentioned  
+   Examples: “taxable year”, “married individual”, “return filed”, “claim”, “spouse”
+
+2. The temporal relationship is REQUIRED for the statute to make sense  
+   Examples:
+   - Filing must occur after the taxable year ends  
+   - Joint filing requires marriage to occur on or before filing_date  
+   - Taxable year has boundaries:
+        taxable_year_end >= taxable_year_start  
+        taxable_year_end <= taxable_year_start + Period(1,0,0)
+
+3. The inference is minimal and legally necessary  
+   Do NOT infer unrelated facts (e.g., do not introduce birthdays unless spouse/individual is mentioned).
+
+4. NEVER introduce new actors not present in the text.  
+   (No marriage_date if the text doesn’t mention marriage.)
+
+────────────────────────────────────────────────────────
+VI. EXTRACTION LOGIC
+────────────────────────────────────────────────────────
+For each legal passage:
+1. Identify explicit dates, deadlines, periods, temporal phrases.
+2. Introduce variables with clear, context-specific names.
+3. Encode all explicit temporal relations.
+4. Add only those implicit constraints required for legal coherence.
+5. Convert conditional language to implication.
+6. Convert alternatives to OR clauses.
+7. Use property accessors when needed (k.year == 2020).
+
+────────────────────────────────────────────────────────
+VII. OUTPUT REQUIREMENTS (STRICT)
+────────────────────────────────────────────────────────
+You MUST output **ONLY ONE** of the following:
+
+1. A JSON object with fields:
+   - "description": short summary  
+   - "declarations": array of variable declarations (e.g., ["x: date", "y: int", "flag: bool"])
+   - "constraints": array of constraint expressions (e.g., ["x >= Date(2020,1,1)", "(a || b) && c"])
+
+2. The literal value:
+   null  
+   (Only when the passage contains *no* date, time, period, or temporal semantics.)
+
+No explanations.  
+No reasoning.  
+No comments.  
+No text before or after the JSON.
+
+────────────────────────────────────────────────────────
+VIII. EXAMPLES (for reference)
+────────────────────────────────────────────────────────
+
+Example 1: Deadline with Period arithmetic
+Legal Text: "A claim for credit or refund must be filed within 3 years from the time the return was filed."
 Output:
 {
-  "description": "Spouse qualification requires marriage by end of taxable year, plus common knowledge that marriage cannot occur before birthdays",
+  "description": "Claim must be filed within 3 years of return filing",
+  "declarations": [
+    "claim_date: date",
+    "return_filing_date: date"
+  ],
   "constraints": [
-    "marriage_date <= taxable_year_end",
-    "marriage_date >= spouse_birthday",
-    "marriage_date >= individual_birthday",
-    "taxable_year_end >= taxable_year_start",
-    "taxable_year_end <= taxable_year_start + Period(1, 0, 0)"
+    "claim_date >= return_filing_date",
+    "claim_date <= return_filing_date + Period(3, 0, 0)"
   ]
 }
 
-Example 3: Effective date constraint
-Legal Text: "This section applies to taxable years beginning after December 31, 2020."
+Example 2: Property access + symbolic Date constructor
+Legal Text: "The estimated tax payment is due on the 15th day of the 4th month of the following taxable year."
 Output:
 {
-  "description": "Section applies to taxable years beginning after December 31, 2020",
+  "description": "Payment due on April 15 of the year after taxable year ends",
+  "declarations": [
+    "taxable_year_end: date",
+    "payment_due: date",
+    "next_year: int"
+  ],
   "constraints": [
-    "taxable_year_start >= Date(2021, 1, 1)",
-    "taxable_year_end >= taxable_year_start"
+    "next_year == taxable_year_end.year + 1",
+    "payment_due == Date(next_year, 4, 15)"
   ]
 }
 
-Example 4: Inferring constraints from context (no explicit dates)
-Legal Text: "(a) Married individuals filing joint returns... There is hereby imposed on the taxable income of every married individual... a tax determined in accordance with the following table..."
-Reasoning: The text mentions "married individual" and "taxable income", which implies:
-- Marriage must occur before filing (to file jointly, you must be married)
-- Filing relates to taxable year (tax is imposed on taxable income)
-- Tax year has boundaries
+Example 3: Boolean flag with implication
+Legal Text: "If the taxpayer elects to apply the credit, the election must be made before the due date of the return."
 Output:
 {
-  "description": "Married individuals filing joint returns - temporal constraints based on entities mentioned",
+  "description": "If credit election is made, it must occur before return due date",
+  "declarations": [
+    "credit_elected: bool",
+    "election_date: date",
+    "return_due_date: date"
+  ],
   "constraints": [
-    "marriage_date <= filing_date",
-    "filing_date >= taxable_year_end",
-    "taxable_year_end >= taxable_year_start",
-    "taxable_year_end <= taxable_year_start + Period(1, 0, 0) + Period(0, 0, 1)"
+    "(credit_elected == True) -> (election_date <= return_due_date)"
+  ]
+}
+
+Example 4: OR clause for alternatives
+Legal Text: "The period of limitation shall be 3 years after the return was filed, or 2 years after the tax was paid, whichever is later."
+Output:
+{
+  "description": "Limitation period ends at the later of 3 years after filing or 2 years after payment",
+  "declarations": [
+    "filing_date: date",
+    "payment_date: date",
+    "limitation_end: date"
+  ],
+  "constraints": [
+    "limitation_end >= filing_date + Period(3, 0, 0)",
+    "limitation_end >= payment_date + Period(2, 0, 0)",
+    "(limitation_end == filing_date + Period(3, 0, 0)) || (limitation_end == payment_date + Period(2, 0, 0))"
   ]
 }
 """
+
+def _validate_constraints_with_parser(constraint_obj: Dict) -> Tuple[bool, Optional[str]]:
+    """
+    Validate constraints by actually parsing them with the ConstraintParser.
+    
+    Supports both new format (separate declarations/constraints) and old format (mixed).
+    
+    Args:
+        constraint_obj: Dictionary with 'constraints' and optionally 'declarations' fields
+    
+    Returns:
+        Tuple of (is_valid, error_message).
+        If valid, returns (True, None).
+        If invalid, returns (False, error_message).
+    """
+    constraints = constraint_obj.get("constraints", [])
+    declarations = constraint_obj.get("declarations", None)
+    
+    if not constraints:
+        return True, None
+    
+    try:
+        parser = ConstraintParser()
+        # generate_builder_code validates and parses all constraints
+        parser.generate_builder_code(constraints, declarations)
+        return True, None
+    except ValueError as e:
+        return False, str(e)
+    except Exception as e:
+        return False, f"Parser error: {str(e)}"
+
+
+def _handle_validation_error(
+    feedback_msg: str,
+    feedback_type: str,
+    record_id: str,
+    attempt: int,
+    max_retries: int,
+    log_file,
+    error_details: Optional[Dict] = None,
+) -> Tuple[str, bool]:
+    """
+    Handle a validation error during constraint extraction.
+    
+    Returns:
+        Tuple of (feedback_message, should_return_none).
+        If should_return_none is True, the caller should return None.
+    """
+    if log_file:
+        feedback_log = {
+            "record_id": record_id,
+            "timestamp": datetime.now().isoformat(),
+            "attempt": attempt,
+            "feedback_type": feedback_type,
+            "feedback": feedback_msg,
+        }
+        if error_details:
+            feedback_log.update(error_details)
+        log_file.write(json.dumps(feedback_log, ensure_ascii=False) + "\n")
+        log_file.flush()
+    
+    if attempt == max_retries:
+        if log_file:
+            error_log = {
+                "record_id": record_id,
+                "timestamp": datetime.now().isoformat(),
+                "error": feedback_type,
+            }
+            if error_details:
+                error_log.update(error_details)
+            log_file.write(json.dumps(error_log, ensure_ascii=False) + "\n")
+            log_file.flush()
+        return feedback_msg, True  # should return None
+    
+    return feedback_msg, False  # should continue
 
 
 def extract_constraints_with_llm(
@@ -344,8 +373,6 @@ def extract_constraints_with_llm(
         "- Output ONLY valid JSON (either a constraint object or null)\n"
         "- Do NOT include any explanatory text, reasoning, or commentary\n"
         "- REASON about what entities are mentioned in the text and what temporal relationships are necessary\n"
-        "- Only add constraints for entities/events actually mentioned or clearly implied in the text\n"
-        "- Do NOT add constraints for entities not mentioned (e.g., don't add marriage_date if text only discusses tax rates)\n"
         "- Only return null if the text contains absolutely NO date/time/period references whatsoever\n"
     )
 
@@ -466,33 +493,19 @@ def extract_constraints_with_llm(
                     except json.JSONDecodeError:
                         constraint_obj = None
 
-            # If still no success, maybe retry
+            # If still no success, retry with feedback
+            record_id = record.get("id", "unknown")
+            
             if constraint_obj is None:
-                last_feedback = (
+                msg = (
                     f"Previous response was not valid JSON (parse error: {parse_error}). "
                     "You must output ONLY a JSON object with 'description' and 'constraints', or null."
                 )
-                if log_file:
-                    feedback_log = {
-                        "record_id": record.get("id", "unknown"),
-                        "timestamp": datetime.now().isoformat(),
-                        "attempt": attempt,
-                        "feedback_type": "parse_error",
-                        "feedback": last_feedback,
-                    }
-                    log_file.write(json.dumps(feedback_log, ensure_ascii=False) + "\n")
-                    log_file.flush()
-                if attempt == max_retries:
-                    if log_file:
-                        error_log = {
-                            "record_id": record.get("id", "unknown"),
-                            "timestamp": datetime.now().isoformat(),
-                            "error": "JSON parsing failed",
-                            "parse_error": parse_error,
-                            "response_preview": resp[:1000] if resp else "Empty response",
-                        }
-                        log_file.write(json.dumps(error_log, ensure_ascii=False) + "\n")
-                        log_file.flush()
+                last_feedback, should_return = _handle_validation_error(
+                    msg, "json_parse_error", record_id, attempt, max_retries, log_file,
+                    {"parse_error": parse_error, "response_preview": resp[:1000] if resp else "Empty"}
+                )
+                if should_return:
                     return None
                 continue
 
@@ -500,104 +513,47 @@ def extract_constraints_with_llm(
             if constraint_obj is None:
                 return {"_status": "no_constraints"}
 
-            # Validate structure
+            # Validate structure: must be a dict
             if not isinstance(constraint_obj, dict):
-                last_feedback = (
-                    "Previous response was not a JSON object. "
-                    "You must return a JSON object with 'description' and 'constraints', or null."
+                msg = "Previous response was not a JSON object. You must return a JSON object with 'description' and 'constraints', or null."
+                last_feedback, should_return = _handle_validation_error(
+                    msg, "not_dict", record_id, attempt, max_retries, log_file,
+                    {"response_type": str(type(constraint_obj))}
                 )
-                if log_file:
-                    feedback_log = {
-                        "record_id": record.get("id", "unknown"),
-                        "timestamp": datetime.now().isoformat(),
-                        "attempt": attempt,
-                        "feedback_type": "not_dict",
-                        "feedback": last_feedback,
-                    }
-                    log_file.write(json.dumps(feedback_log, ensure_ascii=False) + "\n")
-                    log_file.flush()
-                if attempt == max_retries:
-                    if log_file:
-                        error_log = {
-                            "record_id": record.get("id", "unknown"),
-                            "timestamp": datetime.now().isoformat(),
-                            "error": "Response is not a dictionary",
-                            "response_type": str(type(constraint_obj)),
-                            "response_preview": str(constraint_obj)[:500],
-                        }
-                        log_file.write(json.dumps(error_log, ensure_ascii=False) + "\n")
-                        log_file.flush()
+                if should_return:
                     return None
                 continue
 
+            # Validate structure: must have 'constraints' field
             if "constraints" not in constraint_obj:
-                last_feedback = (
-                    "Previous response was missing the 'constraints' field. "
-                    "You must include a 'constraints' array in the JSON object."
+                msg = "Previous response was missing the 'constraints' field. You must include a 'constraints' array."
+                last_feedback, should_return = _handle_validation_error(
+                    msg, "missing_constraints", record_id, attempt, max_retries, log_file,
+                    {"response_keys": list(constraint_obj.keys())}
                 )
-                if log_file:
-                    feedback_log = {
-                        "record_id": record.get("id", "unknown"),
-                        "timestamp": datetime.now().isoformat(),
-                        "attempt": attempt,
-                        "feedback_type": "missing_constraints_field",
-                        "feedback": last_feedback,
-                    }
-                    log_file.write(json.dumps(feedback_log, ensure_ascii=False) + "\n")
-                    log_file.flush()
-                if attempt == max_retries:
-                    if log_file:
-                        error_log = {
-                            "record_id": record.get("id", "unknown"),
-                            "timestamp": datetime.now().isoformat(),
-                            "error": "Response missing 'constraints' field",
-                            "response_keys": list(constraint_obj.keys())
-                            if isinstance(constraint_obj, dict)
-                            else None,
-                            "response_preview": json.dumps(constraint_obj, indent=2)[
-                                :500
-                            ],
-                        }
-                        log_file.write(json.dumps(error_log, ensure_ascii=False) + "\n")
-                        log_file.flush()
+                if should_return:
                     return None
                 continue
 
-            # Remove coverage_tags if present (we don't generate them for legal documents)
-            if "coverage_tags" in constraint_obj:
-                del constraint_obj["coverage_tags"]
-
-            # Validate Date/Period constructors to ensure only numeric literals
-            invalid, offending = _find_invalid_date_period(
-                constraint_obj.get("constraints", [])
-            )
-            if invalid:
-                last_feedback = (
-                    "Previous response used invalid Date(...) or Period(...) constructors. "
-                    f"The offending constraint was: {offending}. "
-                    "All arguments to Date(...) and Period(...) must be plain integer literals."
+            # Validate constraints by parsing them
+            is_valid, parser_error = _validate_constraints_with_parser(constraint_obj)
+            if not is_valid:
+                # Include the actual constraints in feedback so LLM knows what to fix
+                constraints_preview = json.dumps(constraint_obj.get("constraints", []), indent=2)[:500]
+                if constraint_obj.get("declarations"):
+                    declarations_preview = json.dumps(constraint_obj.get("declarations", []), indent=2)[:500]
+                    constraints_preview = f"declarations: {declarations_preview}\nconstraints: {constraints_preview}"
+                msg = (
+                    f"Previous response contains invalid constraints.\n"
+                    f"Parser error: {parser_error}\n"
+                    f"Your constraints were:\n{constraints_preview}\n"
+                    f"Please fix the invalid constraint(s)."
                 )
-                if log_file:
-                    feedback_log = {
-                        "record_id": record.get("id", "unknown"),
-                        "timestamp": datetime.now().isoformat(),
-                        "attempt": attempt,
-                        "feedback_type": "invalid_date_period",
-                        "feedback": last_feedback,
-                        "invalid_constraint": offending,
-                    }
-                    log_file.write(json.dumps(feedback_log, ensure_ascii=False) + "\n")
-                    log_file.flush()
-                if attempt == max_retries:
-                    if log_file:
-                        error_log = {
-                            "record_id": record.get("id", "unknown"),
-                            "timestamp": datetime.now().isoformat(),
-                            "error": "Invalid Date/Period constructor usage",
-                            "invalid_constraint": offending,
-                        }
-                        log_file.write(json.dumps(error_log, ensure_ascii=False) + "\n")
-                        log_file.flush()
+                last_feedback, should_return = _handle_validation_error(
+                    msg, "parser_error", record_id, attempt, max_retries, log_file,
+                    {"parse_error": parser_error}
+                )
+                if should_return:
                     return None
                 continue
 
@@ -619,25 +575,15 @@ def extract_constraints_with_llm(
             return constraint_obj
 
         except Exception as e:
-            last_feedback = (
-                f"Previous attempt raised an exception on our side: {e}. "
-                "Regenerate a clean JSON constraint object that strictly follows the rules."
+            msg = f"Previous attempt raised an exception: {e}. Regenerate a clean JSON constraint object."
+            last_feedback, should_return = _handle_validation_error(
+                msg, "exception", record.get("id", "unknown"), attempt, max_retries, log_file,
+                {"exception_type": type(e).__name__, "error_message": str(e)}
             )
-            if attempt == max_retries:
-                if log_file:
-                    error_log = {
-                        "record_id": record.get("id", "unknown"),
-                        "timestamp": datetime.now().isoformat(),
-                        "error": "Exception during processing",
-                        "exception_type": type(e).__name__,
-                        "error_message": str(e),
-                    }
-                    log_file.write(json.dumps(error_log, ensure_ascii=False) + "\n")
-                    log_file.flush()
+            if should_return:
                 print(f"Error processing clause {record.get('id', 'unknown')}: {e}")
                 return None
 
-    # If we somehow exit the loop without returning
     return None
 
 

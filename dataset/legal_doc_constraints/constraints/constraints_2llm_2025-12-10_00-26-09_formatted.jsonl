@@ -1,18 +1,19 @@
 {
-  "description": "Temporal constraints for tax table prescriptions, cost-of-living adjustments, and marriage penalty elimination",
+  "description": "Tax table adjustment timing and inflation indexing constraints",
+  "declarations": [
+    "current_year: int",
+    "prescription_deadline: date",
+    "taxable_year_start: date",
+    "cpi_measurement_end: date",
+    "marriage_penalty_elimination_date: date",
+    "is_post_2003: bool"
+  ],
   "constraints": [
-    "prescription_date <= Date(1993, 12, 15)",
-    "prescription_date <= calendar_year_end",
-    "calendar_year_end >= calendar_year_start",
-    "calendar_year_end <= calendar_year_start + Period(1, 0, 0)",
-    "taxable_year_start >= calendar_year_end",
-    "taxable_year_start < calendar_year_end + Period(1, 0, 0)",
-    "taxable_year_end >= taxable_year_start",
-    "taxable_year_end <= taxable_year_start + Period(1, 0, 0)",
-    "preceding_calendar_year_end < calendar_year_start",
-    "preceding_calendar_year_end >= preceding_calendar_year_start",
-    "preceding_calendar_year_end <= preceding_calendar_year_start + Period(1, 0, 0)",
-    "marriage_penalty_elimination_date >= Date(2003, 12, 31)"
+    "prescription_deadline == Date(current_year, 12, 15)",
+    "taxable_year_start == Date(current_year + 1, 1, 1)",
+    "cpi_measurement_end == Date(current_year - 1, 8, 31)",
+    "marriage_penalty_elimination_date == Date(2003, 12, 31)",
+    "(is_post_2003 == True) -> (taxable_year_start > marriage_penalty_elimination_date)"
   ],
   "provenance": {
     "hierarchy": {
@@ -34,16 +35,31 @@
 }
 
 {
-  "description": "Temporal constraints related to child's age and taxable year for kiddie tax rules",
+  "description": "Tax rules for unearned income of children",
+  "declarations": [
+    "child_taxable_year_start: date",
+    "child_taxable_year_end: date",
+    "parent_taxable_year_start: date",
+    "parent_taxable_year_end: date",
+    "child_birth_date: date",
+    "child_age_18_date: date",
+    "parent_alive: bool",
+    "child_files_joint_return: bool",
+    "subsection_applies: bool",
+    "parent_election_made: bool"
+  ],
   "constraints": [
-    [
-      "child_birthday + Period(18, 0, 0) > taxable_year_end",
-      "child_meets_age_requirements == true"
-    ],
-    "parent_alive_date >= taxable_year_end",
-    "taxable_year_end >= taxable_year_start",
-    "taxable_year_end <= taxable_year_start + Period(1, 0, 0)",
-    "child_birthday <= taxable_year_end"
+    "child_taxable_year_end >= child_taxable_year_start",
+    "child_taxable_year_end <= child_taxable_year_start + Period(1, 0, 0)",
+    "parent_taxable_year_end >= parent_taxable_year_start",
+    "parent_taxable_year_end <= parent_taxable_year_start + Period(1, 0, 0)",
+    "child_age_18_date == child_birth_date + Period(18, 0, 0)",
+    "(subsection_applies == True) -> ((child_age_18_date > child_taxable_year_end) || (child_age_18_date <= child_taxable_year_end))",
+    "(subsection_applies == True) -> (parent_alive == True)",
+    "(subsection_applies == True) -> (child_files_joint_return == False)",
+    "(parent_election_made == True) -> (subsection_applies == True)",
+    "parent_taxable_year_end <= child_taxable_year_end",
+    "parent_taxable_year_end > child_taxable_year_start"
   ],
   "provenance": {
     "hierarchy": {
@@ -65,16 +81,32 @@
 }
 
 {
-  "description": "Temporal constraints related to capital gains taxation",
+  "description": "Constraints for capital gains tax calculation and qualified dividend income",
+  "declarations": [
+    "taxable_year_start: date",
+    "taxable_year_end: date",
+    "asset_acquisition_date: date",
+    "asset_sale_date: date",
+    "dividend_received_date: date",
+    "stock_acquisition_date: date",
+    "stock_sale_date: date",
+    "surrogate_foreign_corp_date: date",
+    "enactment_date: date",
+    "is_long_term_asset: bool",
+    "is_qualified_dividend: bool"
+  ],
   "constraints": [
     "taxable_year_end >= taxable_year_start",
     "taxable_year_end <= taxable_year_start + Period(1, 0, 0)",
-    "capital_asset_acquisition_date <= capital_asset_sale_date - Period(1, 0, 0)",
-    "capital_asset_acquisition_date <= taxable_year_end",
-    "capital_asset_sale_date <= taxable_year_end",
-    "dividend_receipt_date >= taxable_year_start",
-    "dividend_receipt_date <= taxable_year_end",
-    "stock_acquisition_date <= dividend_receipt_date - Period(0, 0, 60)"
+    "asset_sale_date >= taxable_year_start",
+    "asset_sale_date <= taxable_year_end",
+    "(is_long_term_asset == True) -> (asset_sale_date >= asset_acquisition_date + Period(1, 0, 0))",
+    "dividend_received_date >= taxable_year_start",
+    "dividend_received_date <= taxable_year_end",
+    "(is_qualified_dividend == True) -> (stock_sale_date >= stock_acquisition_date + Period(0, 0, 60))",
+    "(is_qualified_dividend == True) -> (stock_acquisition_date <= dividend_received_date - Period(0, 0, 60))",
+    "(is_qualified_dividend == True) -> (stock_sale_date >= dividend_received_date + Period(0, 0, 60))",
+    "(surrogate_foreign_corp_date > enactment_date) -> (is_qualified_dividend == False)"
   ],
   "provenance": {
     "hierarchy": {
@@ -96,23 +128,24 @@
 }
 
 {
-  "description": "Temporal constraints for tax rate brackets based on specific calendar years",
+  "description": "Tax rate bracket constraints for different time periods",
+  "declarations": [
+    "taxable_year_start: date",
+    "taxable_year_end: date",
+    "apply_10_percent_rate: bool",
+    "apply_35_percent_rate: bool",
+    "calendar_year: int",
+    "adjustment_year_10_percent: int",
+    "adjustment_year_35_percent: int"
+  ],
   "constraints": [
-    "taxable_year_start > Date(2000, 12, 31)",
     "taxable_year_end >= taxable_year_start",
     "taxable_year_end <= taxable_year_start + Period(1, 0, 0)",
-    [
-      "calendar_year > Date(2003, 12, 31)",
-      "calendar_year <= Date(2003, 12, 31)"
-    ],
-    [
-      "taxable_year_start > Date(2012, 12, 31)",
-      "taxable_year_start <= Date(2012, 12, 31)"
-    ],
-    [
-      "calendar_year > Date(2013, 12, 31)",
-      "calendar_year <= Date(2013, 12, 31)"
-    ]
+    "calendar_year == taxable_year_start.year",
+    "(taxable_year_start > Date(2000, 12, 31)) -> (apply_10_percent_rate == True)",
+    "(calendar_year > 2003) -> (adjustment_year_10_percent == 2002)",
+    "(taxable_year_start > Date(2012, 12, 31)) -> (apply_35_percent_rate == True)",
+    "(calendar_year > 2013) -> (adjustment_year_35_percent == 2012)"
   ],
   "provenance": {
     "hierarchy": {
@@ -134,20 +167,19 @@
 }
 
 {
-  "description": "Temporal constraints for tax modifications applicable to taxable years beginning after 2017",
+  "description": "Tax rate modifications for taxable years beginning after 2017",
+  "declarations": [
+    "taxable_year_start: date",
+    "taxable_year_end: date",
+    "apply_new_rates: bool",
+    "apply_adjustments: bool"
+  ],
   "constraints": [
-    "taxable_year_start > Date(2017, 12, 31)",
-    [
-      "taxable_year_start >= Date(2018, 1, 1)",
-      "taxable_year_start < Date(2019, 1, 1)",
-      "no_adjustment_applies == true"
-    ],
-    [
-      "taxable_year_start >= Date(2019, 1, 1)",
-      "subsequent_year_rules_apply == true"
-    ],
     "taxable_year_end >= taxable_year_start",
-    "taxable_year_end <= taxable_year_start + Period(1, 0, 0) - Period(0, 0, 1)"
+    "taxable_year_end <= taxable_year_start + Period(1, 0, 0)",
+    "(taxable_year_start > Date(2017, 12, 31)) -> (apply_new_rates == True)",
+    "(taxable_year_start > Date(2017, 12, 31) && taxable_year_start < Date(2019, 1, 1)) -> (apply_adjustments == False)",
+    "(taxable_year_start > Date(2018, 12, 31)) -> (apply_adjustments == True)"
   ],
   "provenance": {
     "hierarchy": {

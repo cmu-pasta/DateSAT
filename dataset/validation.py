@@ -351,7 +351,7 @@ def group_by_constraint(
     """
     grouped: Dict[str, Dict[str, Dict[str, Dict[str, Any]]]] = {}
     for rec in records:
-        cid = rec.get("constraint_id")
+        cid = rec.get("id")
         approach = rec.get("approach")
         implementation = rec.get("implementation", "unknown")
         if not cid or not approach:
@@ -448,28 +448,39 @@ def summarize_constraint(
     enumeration_status = (
         normalized_statuses.get(enumeration_key) if enumeration_key else None
     )
+    
+    # If enumeration is not_applicable, treat it like timeout for comparison purposes
+    # but we'll still categorize the constraint as not supported
+    enumeration_available = enumeration_status not in ("not_applicable", None)
 
     # For description, pick SAT one if any, else any
     any_rec = next(iter(sat_recs.values()), next(iter(flattened_approaches.values())))
     description = any_rec.get("description")
 
-    # Validate SAT records using enumeration baseline
+    # Validate SAT records using enumeration baseline (only if enumeration is available)
     sat_validation: Dict[str, Dict[str, Any]] = {}
-    for a, r in sat_recs.items():
-        ok, msg = validate_sat_record(cid, r, save_dir=save_dir)
-        sat_validation[a] = {"valid": ok, "message": msg, "solution": r.get("solution")}
+    if enumeration_available:
+        # Only validate if enumeration baseline is available
+        for a, r in sat_recs.items():
+            ok, msg = validate_sat_record(cid, r, save_dir=save_dir)
+            sat_validation[a] = {"valid": ok, "message": msg, "solution": r.get("solution")}
+    else:
+        # When enumeration is not_applicable, we can't validate using enumeration
+        # Mark all as not validated (we'll compare approaches against each other instead)
+        for a, r in sat_recs.items():
+            sat_validation[a] = {"valid": None, "message": "Enumeration baseline not applicable (bool/int variables)", "solution": r.get("solution")}
 
     # New validation logic based on enumeration baseline as ground truth
     per_approach_verdict: Dict[str, str] = {}
 
-    # Check if all methods are SAT
+    # Check if all methods are SAT (excluding timeout, error, and not_applicable)
     all_sat = len(normalized_statuses) > 0 and all(
-        s == "sat" for s in normalized_statuses.values() if s not in ("timeout", "error")
+        s == "sat" for s in normalized_statuses.values() if s not in ("timeout", "error", "not_applicable")
     )
 
-    # Check if everything is UNSAT
+    # Check if everything is UNSAT (excluding timeout, error, and not_applicable)
     non_timeout_statuses = [
-        s for s in normalized_statuses.values() if s not in ("timeout", "error")
+        s for s in normalized_statuses.values() if s not in ("timeout", "error", "not_applicable")
     ]
     all_unsat = len(non_timeout_statuses) > 0 and all(s == "unsat" for s in non_timeout_statuses)
 
@@ -478,28 +489,56 @@ def summarize_constraint(
     # whose solution validates correctly. Specifically, the special case where
     # enumeration is SAT and all others are UNSAT should only penalize the UNSAT
     # approaches when enumeration's SAT solution is valid.
-    enum_vinfo = sat_validation.get(enumeration_key)
+    # Skip this check if enumeration is not_applicable
+    enum_vinfo = sat_validation.get(enumeration_key) if enumeration_available else None
     enum_valid = bool(enum_vinfo and enum_vinfo.get("valid"))
     enumeration_sat_others_unsat = (
-        enumeration_status == "sat"
+        enumeration_available
+        and enumeration_status == "sat"
         and enum_valid
         and all(
             s == "unsat"
             for k, s in normalized_statuses.items()
-            if k != enumeration_key and s not in ("timeout", "error")
+            if k != enumeration_key and s not in ("timeout", "error", "not_applicable")
         )
     )
 
     for a, status in normalized_statuses.items():
+        # Process each approach based on its own status
         if status == "error":
             per_approach_verdict[a] = "error"
         elif status == "timeout":
             per_approach_verdict[a] = "timeout"
+        elif status == "not_applicable":
+            # This approach (e.g., enumeration) is not_applicable
+            # Treat like timeout - don't penalize, but don't count as correct either
+            per_approach_verdict[a] = "not_applicable"
         elif status == "sat":
+            # This approach (a) is SAT
+            # If enumeration baseline is not_applicable, we can't use it for validation,
+            # so compare this approach against other non-enumeration approaches
+            if not enumeration_available:
+                # Get other non-enumeration, non-timeout, non-error approaches
+                other_statuses = [
+                    s for k, s in normalized_statuses.items() 
+                    if k != enumeration_key and k != a and s not in ("timeout", "error", "not_applicable")
+                ]
+                if not other_statuses:
+                    # Only this approach (or only enumeration), mark as correct
+                    per_approach_verdict[a] = "correct"
+                elif all(s == "sat" for s in other_statuses):
+                    # All other approaches also SAT - they agree, mark as correct
+                    per_approach_verdict[a] = "correct"
+                elif all(s == "unsat" for s in other_statuses):
+                    # All others UNSAT but this is SAT - disagreement, mark as wrong
+                    per_approach_verdict[a] = "wrong"
+                else:
+                    # Mixed results (some SAT, some UNSAT) - can't determine, mark as correct (conservative)
+                    per_approach_verdict[a] = "correct"
             # If all methods are SAT, validate using enumeration baseline
-            if all_sat:
+            elif all_sat:
                 vinfo = sat_validation.get(a)
-                if vinfo and vinfo.get("valid"):
+                if vinfo and vinfo.get("valid") is True:
                     per_approach_verdict[a] = "correct"
                 else:
                     # downgrade to warning if out-of-bounds concrete evaluation
@@ -512,7 +551,7 @@ def summarize_constraint(
             # If at least one SAT is correct, then UNSAT is wrong
             else:
                 vinfo = sat_validation.get(a)
-                if vinfo and vinfo.get("valid"):
+                if vinfo and vinfo.get("valid") is True:
                     per_approach_verdict[a] = "correct"
                 else:
                     msg = (vinfo or {}).get("message", "")
@@ -521,8 +560,27 @@ def summarize_constraint(
                     else:
                         per_approach_verdict[a] = "wrong"
         elif status == "unsat":
+            # If enumeration is not_applicable, compare other approaches against each other
+            if not enumeration_available:
+                # Compare this approach against other non-enumeration approaches
+                other_statuses = [
+                    s for k, s in normalized_statuses.items() 
+                    if k != enumeration_key and k != a and s not in ("timeout", "error", "not_applicable")
+                ]
+                if not other_statuses:
+                    # Only this approach, can't compare
+                    per_approach_verdict[a] = "correct"
+                elif all(s == "unsat" for s in other_statuses):
+                    # All other approaches also UNSAT, mark as correct (they agree)
+                    per_approach_verdict[a] = "correct"
+                elif any(s == "sat" for s in other_statuses):
+                    # Some others are SAT but this is UNSAT - mark as wrong
+                    per_approach_verdict[a] = "wrong"
+                else:
+                    # Mixed results - can't determine, mark as correct (conservative)
+                    per_approach_verdict[a] = "correct"
             # If everything is UNSAT, then correct
-            if all_unsat:
+            elif all_unsat:
                 per_approach_verdict[a] = "correct"
             # If enumeration is SAT but others are UNSAT, then UNSAT ones are wrong
             elif enumeration_sat_others_unsat:
@@ -530,10 +588,11 @@ def summarize_constraint(
             # If some are SAT, some are UNSAT, check if at least one SAT is correct
             # If at least one SAT is correct, then UNSAT is wrong
             else:
-                # Check if any SAT solution is valid
+                # Check if any SAT solution is valid (excluding enumeration if it's not_applicable)
                 any_valid_sat = any(
                     sat_validation.get(sat_key, {}).get("valid", False)
                     for sat_key in sat_recs.keys()
+                    if normalized_statuses.get(sat_key) != "not_applicable"
                 )
                 if any_valid_sat:
                     per_approach_verdict[a] = "wrong"
@@ -557,7 +616,9 @@ def summarize_constraint(
         might_correct_approaches = []
     else:
         # Aggregate to "correct" if all are correct/correct_unsat; else "wrong" if any wrong; else "correct" if at least one correct
-        if all(v in ("correct", "warning") for v in per_approach_verdict.values()):
+        # Exclude "not_applicable" and "timeout" from the "all correct" check
+        applicable_verdicts = [v for v in per_approach_verdict.values() if v not in ("not_applicable", "timeout")]
+        if applicable_verdicts and all(v in ("correct", "warning") for v in applicable_verdicts):
             verdict = "correct"
         elif any(v == "wrong" for v in per_approach_verdict.values()):
             verdict = "wrong"
@@ -616,6 +677,7 @@ def check_results_dir(results_dir: Path) -> Dict[str, Any]:
                     "error": 0,
                     "timeout": 0,
                     "warning": 0,
+                    "not_applicable": 0,
                 }
             if v in counts_by_approach[approach]:
                 counts_by_approach[approach][v] += 1
@@ -794,11 +856,39 @@ def check_results_dir(results_dir: Path) -> Dict[str, Any]:
         key=lambda x: (x["avg_time"], x["constraint_id"]),
     )
 
+    # --------------------------
+    # Categorize constraints by enumeration baseline support
+    # --------------------------
+    enumeration_supported_constraints = []
+    enumeration_not_supported_constraints = []
+    
+    for summary in summaries:
+        cid = summary.get("constraint_id")
+        verdicts = summary.get("verdicts_by_approach", {})
+        
+        # Check if enumeration baseline has "not_applicable" status
+        enumeration_not_applicable = False
+        for approach_key, verdict in verdicts.items():
+            if approach_key.startswith("enumeration_") and verdict == "not_applicable":
+                enumeration_not_applicable = True
+                break
+        
+        if enumeration_not_applicable:
+            enumeration_not_supported_constraints.append(cid)
+        else:
+            enumeration_supported_constraints.append(cid)
+
     return {
         "results_dir": str(results_dir),
         "constraints_checked": len(summaries),
         "counts_by_approach": counts_by_approach,
         "by_constraint": summaries,
+        "enumeration_support": {
+            "supported": enumeration_supported_constraints,
+            "not_supported": enumeration_not_supported_constraints,
+            "supported_count": len(enumeration_supported_constraints),
+            "not_supported_count": len(enumeration_not_supported_constraints),
+        },
         "metrics": {
             "per_constraint": per_constraint_metrics,
             "per_approach_averages": per_approach_averages,

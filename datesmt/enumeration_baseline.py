@@ -14,7 +14,6 @@ import time
 from .core import Date, Period
 
 
-
 class ConstraintWrapper:
     """Wrapper for deferred constraint evaluation."""
 
@@ -67,6 +66,54 @@ class ConstraintWrapper:
         raise TypeError(
             "Constraint objects are not truthy. Add them to the solver via add_constraint()."
         )
+
+
+# Module-level wrapper functions for Z3 boolean operators that work with ConstraintWrapper objects
+def _wrap_constraint_for_enumeration(constraint: Any) -> ConstraintWrapper:
+    """Wrap a constraint in ConstraintWrapper if it's not already wrapped."""
+    if isinstance(constraint, ConstraintWrapper):
+        return constraint
+    elif isinstance(constraint, bool):
+        return ConstraintWrapper(lambda: constraint)
+    elif callable(constraint):
+        return ConstraintWrapper(constraint)
+    else:
+        # Try to convert to bool
+        return ConstraintWrapper(lambda: bool(constraint))
+
+
+def Or_enumeration(*args) -> ConstraintWrapper:
+    """Wrapper for Z3's Or() that works with enumeration baseline ConstraintWrapper objects."""
+    wrapped_args = [_wrap_constraint_for_enumeration(arg) for arg in args]
+    return ConstraintWrapper(
+        func=lambda: any(c.evaluate() for c in wrapped_args),
+        or_constraints=wrapped_args
+    )
+
+
+def And_enumeration(*args) -> ConstraintWrapper:
+    """Wrapper for Z3's And() that works with enumeration baseline ConstraintWrapper objects."""
+    wrapped_args = [_wrap_constraint_for_enumeration(arg) for arg in args]
+    return ConstraintWrapper(
+        func=lambda: all(c.evaluate() for c in wrapped_args)
+    )
+
+
+def Not_enumeration(arg) -> ConstraintWrapper:
+    """Wrapper for Z3's Not() that works with enumeration baseline ConstraintWrapper objects."""
+    wrapped_arg = _wrap_constraint_for_enumeration(arg)
+    return ConstraintWrapper(
+        func=lambda: not wrapped_arg.evaluate()
+    )
+
+
+def Implies_enumeration(antecedent, consequent) -> ConstraintWrapper:
+    """Wrapper for Z3's Implies() that works with enumeration baseline ConstraintWrapper objects."""
+    wrapped_antecedent = _wrap_constraint_for_enumeration(antecedent)
+    wrapped_consequent = _wrap_constraint_for_enumeration(consequent)
+    return ConstraintWrapper(
+        func=lambda: not wrapped_antecedent.evaluate() or wrapped_consequent.evaluate()
+    )
 
 
 class EnumerationDateVar:
@@ -253,6 +300,60 @@ class EnumerationSolver:
 
     def add_constraint(self, constraint: Any) -> None:
         self.constraints.append(constraint)
+    
+    def Or(self, *args) -> ConstraintWrapper:
+        """Wrapper for Z3's Or() that creates a ConstraintWrapper with or_constraints."""
+        return Or_enumeration(*args)
+    
+    def And(self, *args) -> ConstraintWrapper:
+        """Wrapper for Z3's And() that creates a ConstraintWrapper."""
+        return And_enumeration(*args)
+    
+    def Not(self, arg) -> ConstraintWrapper:
+        """Wrapper for Z3's Not() that creates a ConstraintWrapper."""
+        return Not_enumeration(arg)
+    
+    def Implies(self, antecedent, consequent) -> ConstraintWrapper:
+        """Wrapper for Z3's Implies() that creates a ConstraintWrapper."""
+        return Implies_enumeration(antecedent, consequent)
+    
+    def get_execution_context(self) -> Dict[str, Any]:
+        """Get execution context dictionary for running generated constraint code.
+        
+        This sets up Or, And, Not, Implies to use the enumeration baseline's
+        wrapper functions instead of Z3's functions, so boolean operators work
+        correctly with ConstraintWrapper objects.
+        
+        Returns:
+            Dictionary suitable for use as exec_globals when executing generated code
+        """
+        import builtins
+        from .core import Date, Period
+        
+        # Create a mock z3 module with our wrapper functions
+        class MockZ3:
+            Or = self.Or
+            And = self.And
+            Not = self.Not
+            Implies = self.Implies
+            Int = lambda *args: None  # Not used by enumeration baseline
+            Bool = lambda *args: None  # Not used by enumeration baseline
+        
+        # Override __import__ to return our mock z3 module
+        original_import = builtins.__import__
+        def mock_import(name, *args, **kwargs):
+            if name == 'z3':
+                return MockZ3()
+            return original_import(name, *args, **kwargs)
+        
+        return {
+            'Date': Date,
+            'Period': Period,
+            'DateSMTBuilder': lambda: self,
+            'builder': self,
+            'result': self,
+            '__builtins__': {**builtins.__dict__, '__import__': mock_import},
+        }
 
     def check(self) -> str:
         try:

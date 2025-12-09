@@ -13,6 +13,32 @@ import re
 class ConstraintTransformer(Transformer):
     """Transformer to convert Lark parse tree to Python code."""
     
+    @staticmethod
+    def _strip_unnecessary_parens(expr: str) -> str:
+        """Strip unnecessary parentheses from an expression."""
+        expr = expr.strip()
+        # Remove outer parentheses if they wrap a simple expression
+        if expr.startswith('(') and expr.endswith(')'):
+            inner = expr[1:-1].strip()
+            # Count parentheses to ensure we're removing matching outer ones
+            paren_count = 0
+            for char in inner:
+                if char == '(':
+                    paren_count += 1
+                elif char == ')':
+                    paren_count -= 1
+                    if paren_count < 0:
+                        # Unmatched closing paren, don't strip
+                        return expr
+            if paren_count == 0:
+                # All parentheses are matched, safe to strip
+                return inner
+        return expr
+    
+    def constraint(self, items) -> str:
+        """Transform constraint (top level)."""
+        return self.top_level_constraint(items)
+    
     def top_level_constraint(self, items) -> str:
         """Transform a top-level constraint."""
         bool_expr = items[0]
@@ -24,12 +50,60 @@ class ConstraintTransformer(Transformer):
         return f"builder.add_constraint({bool_expr})"
     
     def implication(self, items) -> str:
-        """Transform implication (A) -> (B) into Implies(A, B). Supports nesting."""
-        # items = [antecedent, IMPLIES token, consequent]
-        antecedent = items[0]
-        consequent = items[2]
-        # Return just the Implies expression, wrapping is done by top_level_constraint
-        return f"Implies({antecedent}, {consequent})"
+        """Transform implication A -> B into Implies(A, B)."""
+        # Earley parser might include the -> token, filter it out
+        filtered = [item for item in items if str(item) != '->']
+        if len(filtered) == 2:
+            left = self._strip_unnecessary_parens(str(filtered[0]))
+            right = self._strip_unnecessary_parens(str(filtered[1]))
+            return f"Implies({left}, {right})"
+        # Fallback: use first two items
+        left = self._strip_unnecessary_parens(str(items[0]))
+        right = self._strip_unnecessary_parens(str(items[-1]))
+        return f"Implies({left}, {right})"
+
+    def or_op(self, items) -> str:
+        """Transform OR operation A || B into Or(A, B)."""
+        # Earley parser might include the operator token, filter it out
+        filtered = [item for item in items if str(item) not in ('||', 'or', 'OR')]
+        if len(filtered) == 2:
+            left = self._strip_unnecessary_parens(str(filtered[0]))
+            right = self._strip_unnecessary_parens(str(filtered[1]))
+            return f"Or({left}, {right})"
+        # Fallback: use first two items
+        left = self._strip_unnecessary_parens(str(items[0]))
+        right = self._strip_unnecessary_parens(str(items[-1]))
+        return f"Or({left}, {right})"
+
+    def and_op(self, items) -> str:
+        """Transform AND operation A && B into And(A, B)."""
+        # Earley parser might include the operator token, filter it out
+        filtered = [item for item in items if str(item) not in ('&&', 'and', 'AND')]
+        if len(filtered) == 2:
+            left = self._strip_unnecessary_parens(str(filtered[0]))
+            right = self._strip_unnecessary_parens(str(filtered[1]))
+            return f"And({left}, {right})"
+        # Fallback: use first two items
+        left = self._strip_unnecessary_parens(str(items[0]))
+        right = self._strip_unnecessary_parens(str(items[-1]))
+        return f"And({left}, {right})"
+
+    def not_op(self, items) -> str:
+        """Transform NOT operation !A / not A into Not(A)."""
+        # items = [NOT token, not_expr] or [not_expr] if NOT token is stripped
+        filtered = [item for item in items if str(item) not in ('!', 'not', 'NOT')]
+        if filtered:
+            expr = self._strip_unnecessary_parens(str(filtered[0]))
+            return f"Not({expr})"
+        expr = self._strip_unnecessary_parens(str(items[-1]))
+        return f"Not({expr})"
+    
+    def bool_atom(self, items) -> str:
+        """Transform boolean atom (comparison, variable, bool literal, or parenthesized bool expr)."""
+        # Handle parenthesized expressions: LPAR bool_expr RPAR
+        if len(items) == 3 and str(items[0]) == '(' and str(items[2]) == ')':
+            return f"({items[1]})"
+        return items[0]
     
     def comparison_expr(self, items) -> str:
         """Transform a comparison expression (left op right)."""
@@ -200,18 +274,39 @@ class ConstraintTransformer(Transformer):
     
     def add(self, items) -> str:
         """Transform addition operation."""
-        left, right = items
-        return f"{left} + {right}"
+        # Earley parser might include the + token, filter it out
+        filtered = [item for item in items if str(item) != '+']
+        if len(filtered) == 2:
+            return f"{filtered[0]} + {filtered[1]}"
+        # Fallback: use first two items
+        return f"{items[0]} + {items[-1]}"
     
     def sub(self, items) -> str:
         """Transform subtraction operation."""
-        left, right = items
-        return f"{left} - {right}"
+        # Earley parser might include the - token, filter it out
+        filtered = [item for item in items if str(item) != '-']
+        if len(filtered) == 2:
+            return f"{filtered[0]} - {filtered[1]}"
+        # Fallback: use first two items
+        return f"{items[0]} - {items[-1]}"
     
     def mul(self, items) -> str:
         """Transform multiplication operation."""
-        left, right = items
-        return f"{left} * {right}"
+        # Earley parser might include the * token, filter it out
+        filtered = [item for item in items if str(item) != '*']
+        if len(filtered) == 2:
+            return f"{filtered[0]} * {filtered[1]}"
+        # Fallback: use first two items
+        return f"{items[0]} * {items[-1]}"
+    
+    def div(self, items) -> str:
+        """Transform division operation."""
+        # Earley parser might include the / token, filter it out
+        filtered = [item for item in items if str(item) != '/']
+        if len(filtered) == 2:
+            return f"{filtered[0]} / {filtered[1]}"
+        # Fallback: use first two items
+        return f"{items[0]} / {items[-1]}"
     
     def term(self, items) -> str:
         """Handle term precedence."""
@@ -223,6 +318,10 @@ class ConstraintTransformer(Transformer):
         """Handle factor grouping."""
         if len(items) == 1:
             return items[0]
+        # Handle parenthesized expressions: LPAR expr RPAR or LPAR comparison_expr RPAR
+        # Lark passes [LPAR_token, transformed_expr, RPAR_token], so we wrap the middle item
+        if len(items) == 3:
+            return f"({items[1]})"
         return " ".join(str(item) for item in items)
     
     def parenthesized_expression(self, items) -> str:
@@ -244,12 +343,16 @@ class ConstraintTransformer(Transformer):
     
     def property_access(self, items) -> str:
         """Transform property access like x.year, x.month, x.day."""
-        var_name, property_name = items
+        # items = [variable, DOT, property_name] - DOT is ignored
+        var_name = items[0]
+        property_name = items[2]
         return f"{var_name}.{property_name}"
     
     def date_property_access(self, items) -> str:
         """Transform property access on Date constructor like Date(1991,2,3).month."""
-        date_expr, property_name = items
+        # items = [date_constructor, DOT, property_name] - DOT is ignored
+        date_expr = items[0]
+        property_name = items[2]
         return f"{date_expr}.{property_name}"
     
     def property_name(self, items) -> str:
@@ -289,44 +392,67 @@ class ConstraintParser:
         """Initialize the parser with Lark grammar."""
         self.variable_types: Dict[str, str] = {}  # Maps variable name to type: 'date', 'int', or 'bool'
         
-        # Define the grammar for constraint parsing
-        self.grammar = """
-            ?constraint: top_level_constraint
-            
+        # Define the grammar for constraint parsing (LALR, precedence: NOT > AND > OR > IMPLIES)
+        self.grammar = r"""
+            constraint: top_level_constraint
+
             top_level_constraint: bool_expr
-            ?bool_expr: implication | comparison_expr
-            implication: "(" bool_expr ")" IMPLIES "(" bool_expr ")"
+
+            ?bool_expr: implication
+
+            ?implication: or_expr IMPLIES bool_expr -> implication
+                        | or_expr
+
+            ?or_expr: and_expr OR or_expr -> or_op
+                    | and_expr
+
+            ?and_expr: not_expr AND and_expr -> and_op
+                     | not_expr
+
+            ?not_expr: NOT not_expr -> not_op
+                     | bool_atom
+
+            ?bool_atom: comparison_expr
+                      | variable
+                      | not_expr
+                      | LPAR bool_expr RPAR
+
             comparison_expr: expression comparison_op expression
-            
+                          | bool_atom comparison_op bool_atom
+
             IMPLIES: "->"
-            
+            OR: "||" | "or" | "OR"
+            AND: "&&" | "and" | "AND"
+            NOT: "!" | "not" | "NOT"
+            PLUS: "+"
+            MINUS: "-"
+            STAR: "*"
+            SLASH: "/"
+            LPAR: "("
+            RPAR: ")"
+            DOT: "."
+
             ?expression: term
-                       | expression "+" term -> add
-                       | expression "-" term -> sub
-            
+                       | expression PLUS term   -> add
+                       | expression MINUS term  -> sub
+
             ?term: factor
-                 | term "*" factor -> mul
-                 | term "/" factor -> div
-            
+                 | term STAR factor  -> mul
+                 | term SLASH factor -> div
+
             ?factor: variable
                    | date_constructor
                    | period_constructor
                    | number
-                   | parenthesized_expression
-                   | parenthesized_bool_expr
                    | property_access
                    | date_property_access
                    | bool_literal
-            
-            parenthesized_expression: LPAR expression RPAR
-            parenthesized_bool_expr: LPAR comparison_expr RPAR
-            property_access: variable "." property_name
-            date_property_access: date_constructor "." property_name
-            
-            LPAR: "("
-            RPAR: ")"
-            DOT: "."
-            
+                   | LPAR expression RPAR
+                   | LPAR comparison_expr RPAR
+
+            property_access: variable DOT property_name
+            date_property_access: date_constructor DOT property_name
+
             variable: CNAME
             property_name: PROPERTY_NAME
             PROPERTY_NAME: "year" | "month" | "day"
@@ -334,31 +460,29 @@ class ConstraintParser:
             BOOL_LITERAL: "True" | "False"
             date_constructor: "Date" "(" expression "," expression "," expression ")"
             period_constructor: "Period" "(" number "," number "," number ")"
-            
+
             comparison_op: GTE | LTE | EQ | NE | GT | LT
-            
+
             GTE: ">="
             LTE: "<="
             EQ: "=="
             NE: "!="
             GT: ">"
             LT: "<"
-            
+
             number: SIGNED_NUMBER
-            
+
             %import common.CNAME
             %import common.SIGNED_NUMBER
             %import common.WS
             %ignore WS
         """
-        
-        # Create the Lark parser with Earley algorithm to handle grammar ambiguity
-        # (LALR can't handle the ambiguity between parenthesized_bool_expr and implication)
+
+        # Create the Lark parser with Earley algorithm (handles ambiguities better)
         self.parser = Lark(
-            self.grammar, 
-            parser='earley',
-            ambiguity='resolve',
-            start='constraint'
+            self.grammar,
+            parser="earley",
+            start="constraint",
         )
         self.transformer = ConstraintTransformer()
 
@@ -421,13 +545,13 @@ class ConstraintParser:
             return True
         return False
 
-    def extract_variable_declarations(self, constraints: List[Union[str, List[str]]]) -> Dict[str, str]:
+    def extract_variable_declarations(self, constraints: List[str]) -> Dict[str, str]:
         """
         Extract variable declarations from constraints.
         Looks for patterns like "x: date", "y: int", "z: bool".
         
         Args:
-            constraints: List of constraint strings or lists of constraint strings
+            constraints: List of constraint strings
             
         Returns:
             Dictionary mapping variable names to their types ('date', 'int', or 'bool')
@@ -437,30 +561,23 @@ class ConstraintParser:
         # where type is date, int, or bool
         declaration_pattern = r'^\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*:\s*(date|int|bool)\s*$'
         
-        for constraint_item in constraints:
-            # Handle both string and list formats
-            if isinstance(constraint_item, list):
-                constraint_strings = constraint_item
-            else:
-                constraint_strings = [constraint_item]
-            
-            for constraint in constraint_strings:
-                constraint = constraint.strip()
-                match = re.match(declaration_pattern, constraint, re.IGNORECASE)
-                if match:
-                    var_name = match.group(1)
-                    var_type = match.group(2).lower()  # Normalize to lowercase
-                    if var_type in ['date', 'int', 'bool']:
-                        declarations[var_name] = var_type
+        for constraint in constraints:
+            constraint = constraint.strip()
+            match = re.match(declaration_pattern, constraint, re.IGNORECASE)
+            if match:
+                var_name = match.group(1)
+                var_type = match.group(2).lower()  # Normalize to lowercase
+                if var_type in ['date', 'int', 'bool']:
+                    declarations[var_name] = var_type
         
         return declarations
 
-    def filter_declarations_from_constraints(self, constraints: List[Union[str, List[str]]]) -> List[Union[str, List[str]]]:
+    def filter_declarations_from_constraints(self, constraints: List[str]) -> List[str]:
         """
         Filter out variable declarations from the constraints list.
         
         Args:
-            constraints: List of constraint strings or lists of constraint strings
+            constraints: List of constraint strings
             
         Returns:
             Filtered list with declarations removed
@@ -468,62 +585,43 @@ class ConstraintParser:
         filtered = []
         declaration_pattern = r'^\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*:\s*(date|int|bool)\s*$'
         
-        for constraint_item in constraints:
-            if isinstance(constraint_item, list):
-                # Filter each item in the list
-                filtered_list = []
-                for constraint in constraint_item:
-                    constraint = constraint.strip()
-                    if not re.match(declaration_pattern, constraint, re.IGNORECASE):
-                        filtered_list.append(constraint)
-                if filtered_list:  # Only add non-empty lists
-                    filtered.append(filtered_list)
-            else:
-                constraint = constraint_item.strip()
-                if not re.match(declaration_pattern, constraint, re.IGNORECASE):
-                    filtered.append(constraint)
+        for constraint in constraints:
+            constraint = constraint.strip()
+            if not re.match(declaration_pattern, constraint, re.IGNORECASE):
+                filtered.append(constraint)
         
         return filtered
 
-    def extract_variables_from_constraints(self, constraints: List[Union[str, List[str]]]) -> List[str]:
+    def extract_variables_from_constraints(self, constraints: List[str]) -> List[str]:
         """
         Extract all variable names from constraints.
         
         Args:
-            constraints: List of constraint strings or lists of constraint strings (for OR clauses)
+            constraints: List of constraint strings
             
         Returns:
             Sorted list of unique variable names found in constraints
         """
         variables = set()
         
-        for constraint_item in constraints:
-            # Handle both string and list formats
-            if isinstance(constraint_item, list):
-                # OR clause: extract variables from each constraint in the list
-                constraint_strings = constraint_item
-            else:
-                # Single constraint
-                constraint_strings = [constraint_item]
-            
-            for constraint in constraint_strings:
-                # Remove property access patterns (var.property) to avoid
-                # extracting property names as variables
-                # Replace patterns like ".year", ".month", ".day" with empty string
-                cleaned_constraint = re.sub(r'\.(?:year|month|day)\b', '', constraint)
-                    
-                # Find all potential variable names using regex
-                # This matches CNAME pattern: [a-zA-Z_][a-zA-Z0-9_]*
-                var_matches = re.findall(r'\b[a-zA-Z_][a-zA-Z0-9_]*\b', cleaned_constraint)
+        for constraint in constraints:
+            # Remove property access patterns (var.property) to avoid
+            # extracting property names as variables
+            # Replace patterns like ".year", ".month", ".day" with empty string
+            cleaned_constraint = re.sub(r'\.(?:year|month|day)\b', '', constraint)
                 
-                for match in var_matches:
-                    # Filter out keywords and constructors
-                    if match not in ['Date', 'Period', 'and', 'or', 'not', 'True', 'False']:
-                        variables.add(match)
+            # Find all potential variable names using regex
+            # This matches CNAME pattern: [a-zA-Z_][a-zA-Z0-9_]*
+            var_matches = re.findall(r'\b[a-zA-Z_][a-zA-Z0-9_]*\b', cleaned_constraint)
+            
+            for match in var_matches:
+                # Filter out keywords and constructors
+                if match not in ['Date', 'Period', 'And', 'Or', 'Not', 'Implies', 'and', 'or', 'not', 'True', 'False']:
+                    variables.add(match)
         
         return sorted(list(variables))
     
-    def infer_variable_types_from_context(self, constraints: List[Union[str, List[str]]]) -> Dict[str, str]:
+    def infer_variable_types_from_context(self, constraints: List[str]) -> Dict[str, str]:
         """
         Infer variable types from their usage context in constraints.
         
@@ -531,49 +629,38 @@ class ConstraintParser:
         For all other cases, users must explicitly declare variable types.
         
         Args:
-            constraints: List of constraint strings or lists of constraint strings
+            constraints: List of constraint strings
             
         Returns:
             Dictionary mapping inferred variable names to their types
         """
         inferred_types = {}
         
-        for constraint_item in constraints:
-            # Handle both string and list formats
-            if isinstance(constraint_item, list):
-                constraint_strings = constraint_item
-            else:
-                constraint_strings = [constraint_item]
-            
-            for constraint in constraint_strings:
-                # Find variables inside Date() constructor arguments
-                # Pattern: Date(arg1, arg2, arg3) where args can be expressions with variables
-                date_pattern = r'Date\s*\(\s*([^,)]+)\s*,\s*([^,)]+)\s*,\s*([^,)]+)\s*\)'
-                date_matches = re.finditer(date_pattern, constraint)
-                for match in date_matches:
-                    for arg in [match.group(1), match.group(2), match.group(3)]:
-                        # Extract variable names from each argument
-                        var_names = re.findall(r'\b[a-zA-Z_][a-zA-Z0-9_]*\b', arg)
-                        for var_name in var_names:
-                            if var_name not in ['Date', 'Period', 'and', 'or', 'not', 'True', 'False']:
+        for constraint in constraints:
+            # Find variables inside Date() constructor arguments
+            # Pattern: Date(arg1, arg2, arg3) where args can be expressions with variables
+            date_pattern = r'Date\s*\(\s*([^,)]+)\s*,\s*([^,)]+)\s*,\s*([^,)]+)\s*\)'
+            date_matches = re.finditer(date_pattern, constraint)
+            for match in date_matches:
+                for arg in [match.group(1), match.group(2), match.group(3)]:
+                    # Extract variable names from each argument
+                    # But exclude variables that are part of property access (e.g., taxable_year_end.year)
+                    # We only want variables used directly, not via property access
+                    var_names = re.findall(r'\b[a-zA-Z_][a-zA-Z0-9_]*\b', arg)
+                    for var_name in var_names:
+                        if var_name not in ['Date', 'Period', 'And', 'Or', 'Not', 'Implies', 'and', 'or', 'not', 'True', 'False', 'year', 'month', 'day']:
+                            # Check if this variable appears as part of a property access pattern
+                            # e.g., if arg contains "taxable_year_end.year", we should NOT infer taxable_year_end as int
+                            property_access_pattern = rf'\b{re.escape(var_name)}\s*\.\s*(?:year|month|day)\b'
+                            if not re.search(property_access_pattern, arg):
                                 inferred_types[var_name] = 'int'
-                
-                # Find variables inside Period() constructor arguments
-                period_pattern = r'Period\s*\(\s*([^,)]+)\s*,\s*([^,)]+)\s*,\s*([^,)]+)\s*\)'
-                period_matches = re.finditer(period_pattern, constraint)
-                for match in period_matches:
-                    for arg in [match.group(1), match.group(2), match.group(3)]:
-                        # Extract variable names from each argument
-                        var_names = re.findall(r'\b[a-zA-Z_][a-zA-Z0-9_]*\b', arg)
-                        for var_name in var_names:
-                            if var_name not in ['Date', 'Period', 'and', 'or', 'not', 'True', 'False']:
-                                inferred_types[var_name] = 'int'
+    
         
         return inferred_types
 
     def _check_comparison_type_mismatches(
         self, 
-        constraints: List[Union[str, List[str]]], 
+        constraints: List[str], 
         variable_types: Dict[str, str]
     ) -> None:
         """
@@ -581,13 +668,7 @@ class ConstraintParser:
         
         For example, comparing an int variable with a bool variable is invalid.
         """
-        for constraint_item in constraints:
-            if isinstance(constraint_item, list):
-                constraint_strings = constraint_item
-            else:
-                constraint_strings = [constraint_item]
-            
-            for constraint in constraint_strings:
+        for constraint in constraints:
                 # Find comparison operator and split
                 comp_match = re.search(r'(==|!=|>=|<=|>|<)', constraint)
                 if not comp_match:
@@ -648,21 +729,28 @@ class ConstraintParser:
 
     def generate_builder_code(
         self,
-        constraints: List[Union[str, List[str]]],
+        constraints: List[str],
+        declarations: List[str] = None,
     ) -> str:
         """
         Generate complete DateSMTBuilder code from structured constraint data.
-        Supports CNF (Conjunctive Normal Form) format where constraints can be:
-        - A string: single constraint (e.g., "x >= Date(2000,2,28)")
-        - A list of strings: OR clause (e.g., ["x >= Date(2000,2,28)", "x <= Date(2000,2,29)"])
         
-        All top-level constraints are ANDed together.
+        Each constraint is a full boolean expression that can include:
+        - Comparisons: x >= Date(2000,2,28)
+        - Boolean operators: && (and), || (or), ! (not)
+        - Implications: (A) -> (B)
+        - Nested expressions: ((a || b) || c) || d
         
-        Also supports variable declarations like "x: date", "y: int", "z: bool".
-        All variables used in constraints must be explicitly declared.
+        All constraints in the list are ANDed together.
+        
+        Variable declarations can be provided separately via the `declarations` parameter,
+        or mixed in with constraints (backward compatibility). All variables used in constraints
+        must be explicitly declared.
 
         Args:
-            constraints: List of constraint strings or lists of constraint strings (for OR clauses)
+            constraints: List of constraint strings (each is a full boolean expression)
+            declarations: Optional list of variable declarations like ["x: date", "y: int"].
+                         If provided, declarations are not extracted from constraints.
 
         Returns:
             Complete Python code string
@@ -672,31 +760,21 @@ class ConstraintParser:
         """
         code_lines = [
             "from z3 import Or, And, Not, Int, Bool, Implies",
-            "from datesmt.enumeration_baseline import ConstraintWrapper",
             "builder = DateSMTBuilder()",
             "",
-            "# Helper function for OR constraints that works with both Z3 and enumeration baseline",
-            "def _or_constraints(*constraints):",
-            "    # Check if we're using Z3 (BoolRef) or enumeration baseline (ConstraintWrapper)",
-            "    from z3 import BoolRef",
-            "    if any(isinstance(c, BoolRef) for c in constraints):",
-            "        # Z3 mode: use Z3's Or",
-            "        return Or(*constraints)",
-            "    else:",
-            "        # Enumeration baseline mode: create OR ConstraintWrapper",
-            "        constraint_list = list(constraints)",
-            "        return ConstraintWrapper(",
-            "            lambda: any(c.evaluate() if hasattr(c, 'evaluate') else bool(c) for c in constraint_list),",
-            "            or_constraints=constraint_list",
-            "        )",
         ]
 
-        # First, extract variable declarations
-        variable_types = self.extract_variable_declarations(constraints)
-        self.variable_types = variable_types
+        # Extract variable declarations
+        if declarations is not None:
+            # New format: declarations provided separately
+            variable_types = self.extract_variable_declarations(declarations)
+            filtered_constraints = constraints  # No need to filter, constraints don't contain declarations
+        else:
+            # Old format: declarations mixed with constraints (backward compatibility)
+            variable_types = self.extract_variable_declarations(constraints)
+            filtered_constraints = self.filter_declarations_from_constraints(constraints)
         
-        # Filter out declarations from constraints
-        filtered_constraints = self.filter_declarations_from_constraints(constraints)
+        self.variable_types = variable_types
         
         # Auto-extract variables from remaining constraints
         all_variables = self.extract_variables_from_constraints(filtered_constraints)
@@ -765,62 +843,10 @@ class ConstraintParser:
                 code_lines.append(f'{var_name} = builder.add_bool_var("{var_name}")')
 
         # Add constraints (using filtered constraints without declarations)
-        for constraint_item in filtered_constraints:
-            if isinstance(constraint_item, list):
-                # OR clause: parse each constraint and combine with _or_constraints()
-                if len(constraint_item) == 0:
-                    continue
-                elif len(constraint_item) == 1:
-                    # Single constraint in list, treat as regular constraint
-                    constraint_code = self.parse_constraint(constraint_item[0])
-                    code_lines.append(constraint_code)
-                else:
-                    # Multiple constraints: combine with _or_constraints()
-                    # We need to evaluate each constraint expression and pass the actual constraint objects
-                    constraint_exprs = []
-                    for constraint_str in constraint_item:
-                        # Parse each constraint to get the expression
-                        parsed = self.parse_constraint(constraint_str)
-                        # Extract the constraint expression from "builder.add_constraint(...)"
-                        # The parsed result is like "builder.add_constraint(x >= Date(2000,2,28))"
-                        # We need to extract "x >= Date(2000,2,28)"
-                        # Use a more robust approach: find the content between add_constraint( and the matching )
-                        # Handle nested parentheses by counting them
-                        start_idx = parsed.find('builder.add_constraint(')
-                        if start_idx != -1:
-                            start_idx += len('builder.add_constraint(')
-                            # Find the matching closing paren, handling nested parentheses
-                            paren_count = 0
-                            i = start_idx
-                            expr_end = -1
-                            while i < len(parsed):
-                                if parsed[i] == '(':
-                                    paren_count += 1
-                                elif parsed[i] == ')':
-                                    if paren_count == 0:
-                                        expr_end = i
-                                        break
-                                    paren_count -= 1
-                                i += 1
-                            
-                            if expr_end != -1:
-                                expr = parsed[start_idx:expr_end].strip()
-                                constraint_exprs.append(expr)
-                            else:
-                                # Fallback: use the original constraint string
-                                constraint_exprs.append(constraint_str)
-                        else:
-                            # Fallback: use the original constraint string
-                            constraint_exprs.append(constraint_str)
-                    
-                    # Combine with _or_constraints() and add as single constraint
-                    # Each constraint expression will be evaluated to get the actual constraint object
-                    or_expr = "_or_constraints(" + ", ".join(constraint_exprs) + ")"
-                    code_lines.append(f"builder.add_constraint({or_expr})")
-            else:
-                # Single constraint string
-                constraint_code = self.parse_constraint(constraint_item)
-                code_lines.append(constraint_code)
+        # Each constraint is a full boolean expression - parse and add directly
+        for constraint_str in filtered_constraints:
+            constraint_code = self.parse_constraint(constraint_str)
+            code_lines.append(constraint_code)
 
         # Add result assignment
         code_lines.append("result = builder")
@@ -829,18 +855,50 @@ class ConstraintParser:
 
     def parse_constraint_data(self, constraint_data: Dict[str, Any]) -> str:
         """
-        Parse constraint data in the new format and return executable code.
-        Supports CNF format where constraints can be strings or lists of strings.
+        Parse constraint data and return executable code.
+        
+        Supports two formats:
+        1. New format (recommended): Separate 'declarations' and 'constraints' fields
+           {
+             "declarations": ["x: date", "y: int"],
+             "constraints": ["x >= Date(2000,2,28)", "(a || b) && c"]
+           }
+        
+        2. Old format (backward compatible): Declarations mixed with constraints
+           {
+             "constraints": ["x: date", "x >= Date(2000,2,28)", "(a || b) && c"]
+           }
+        
+        Each constraint is a full boolean expression that can include:
+        - Comparisons: x >= Date(2000,2,28)
+        - Boolean operators: && (and), || (or), ! (not)
+        - Implications: (A) -> (B)
+        - Nested expressions: ((a || b) || c) || d
+        
+        All constraints in the list are ANDed together.
 
         Args:
-            constraint_data: Dictionary with 'constraints' field containing:
-                - List of strings: ["x >= Date(2000,2,28)", "x <= Date(2000,3,1)"]
-                - List of mixed: [["x >= Date(2000,2,28)", "x <= Date(2000,2,29)"], "x != Date(2000,3,1)"]
-                The first format results in: (x >= Date(2000,2,28)) AND (x <= Date(2000,3,1))
-                The second format results in: ((x >= Date(2000,2,28)) OR (x <= Date(2000,2,29))) AND (x != Date(2000,3,1))
+            constraint_data: Dictionary with:
+                - 'constraints': List of constraint strings (required)
+                - 'declarations': Optional list of variable declarations (new format)
 
         Returns:
             Executable Python code string
         """
         constraints = constraint_data.get('constraints', [])
-        return self.generate_builder_code(constraints)
+        declarations = constraint_data.get('declarations', None)
+        
+        # Ensure constraints is a list of strings (no nested lists)
+        for constraint in constraints:
+            if isinstance(constraint, list):
+                raise ValueError("Nested lists are not supported. Each constraint must be a string with boolean operators.")
+        
+        # If declarations provided, ensure it's also a list of strings
+        if declarations is not None:
+            for declaration in declarations:
+                if isinstance(declaration, list):
+                    raise ValueError("Nested lists are not supported. Each declaration must be a string like 'x: date'.")
+                if not isinstance(declaration, str):
+                    raise ValueError(f"Invalid declaration format: {declaration}. Expected string like 'x: date'.")
+        
+        return self.generate_builder_code(constraints, declarations)

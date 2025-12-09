@@ -101,6 +101,23 @@ class DateVar:
             self._ensure_ymd()
         return self._day_var
 
+    # Alias properties for compatibility with parser-generated code
+    # The parser generates code like "x.year == y" which expects .year attribute
+    @property
+    def year(self) -> BitVecRef:
+        """Alias for year_var for compatibility with parser-generated code."""
+        return self.year_var
+
+    @property
+    def month(self) -> BitVecRef:
+        """Alias for month_var for compatibility with parser-generated code."""
+        return self.month_var
+
+    @property
+    def day(self) -> BitVecRef:
+        """Alias for day_var for compatibility with parser-generated code."""
+        return self.day_var
+
     def _ensure_ymd(self) -> None:
         if self._ymd_exists:
             return

@@ -1,22 +1,27 @@
 {
-  "description": "Constraints for tax table prescription timing and application periods",
+  "description": "Constraints for tax table prescriptions and adjustments",
+  "declarations": [
+    "current_year: int",
+    "prescription_deadline: date",
+    "taxable_year_start: date",
+    "preceding_calendar_year_end: date",
+    "succeeding_calendar_year_start: date",
+    "cpi_period_end: date",
+    "ccpiu_publication_date: date",
+    "ccpiu_august_value_date: date",
+    "marriage_penalty_elimination_start: date"
+  ],
   "constraints": [
-    "initial_prescription_date <= Date(1993, 12, 15)",
-    "subsequent_prescription_date > initial_prescription_date",
-    "subsequent_prescription_date <= Date(2100, 12, 15)",
-    "taxable_year_2003_end == Date(2003, 12, 31)",
-    "post_2003_taxable_year_start > taxable_year_2003_end",
-    "prescription_date_year_end >= initial_prescription_date",
-    "prescription_date_year_end <= initial_prescription_date + Period(0, 0, 31)",
-    "subsequent_year_start > prescription_date_year_end",
-    "subsequent_year_start <= prescription_date_year_end + Period(0, 1, 15)",
-    "cpi_measurement_end_1992 == Date(1992, 8, 31)",
-    "cpi_measurement_end_1993 == Date(1993, 8, 31)",
-    "cpi_measurement_end_2016 == Date(2016, 8, 31)",
-    "preceding_year_end < subsequent_prescription_date",
-    "preceding_year_end >= subsequent_prescription_date - Period(1, 0, 0)",
-    "preceding_year_cpi_measurement_end <= preceding_year_end",
-    "preceding_year_cpi_measurement_end >= preceding_year_end - Period(0, 4, 0)"
+    "prescription_deadline == Date(current_year, 12, 15)",
+    "preceding_calendar_year_end == Date(current_year - 1, 12, 31)",
+    "succeeding_calendar_year_start == Date(current_year + 1, 1, 1)",
+    "taxable_year_start >= succeeding_calendar_year_start",
+    "taxable_year_start < succeeding_calendar_year_start + Period(1, 0, 0)",
+    "cpi_period_end == Date(current_year - 1, 8, 31)",
+    "ccpiu_august_value_date == Date(current_year - 1, 8, 31)",
+    "ccpiu_publication_date > ccpiu_august_value_date",
+    "marriage_penalty_elimination_start == Date(2003, 12, 31)",
+    "taxable_year_start > marriage_penalty_elimination_start"
   ],
   "provenance": {
     "hierarchy": {
@@ -38,20 +43,30 @@
 }
 
 {
-  "description": "Constraints for taxation of unearned income of children based on age and taxable year relationships",
+  "description": "Age and timing constraints for taxation of children's unearned income",
+  "declarations": [
+    "child_age: int",
+    "taxable_year_end: date",
+    "child_taxable_year_start: date",
+    "child_taxable_year_end: date",
+    "parent_taxable_year_start: date",
+    "parent_taxable_year_end: date",
+    "parent_alive: bool",
+    "files_joint_return: bool",
+    "subsection_applies: bool",
+    "age_requirement_met: bool",
+    "parent_child_same_year: bool"
+  ],
   "constraints": [
+    "(subsection_applies == True) -> (child_age < 18 || age_requirement_met == True)",
+    "(subsection_applies == True) -> (parent_alive == True)",
+    "(subsection_applies == True) -> (files_joint_return == False)",
     "child_taxable_year_end >= child_taxable_year_start",
-    "child_taxable_year_end == child_taxable_year_start + Period(0, 11, 30)",
-    "child_birthday <= child_taxable_year_end",
+    "child_taxable_year_end <= child_taxable_year_start + Period(1, 0, 0)",
     "parent_taxable_year_end >= parent_taxable_year_start",
-    "parent_taxable_year_end == parent_taxable_year_start + Period(0, 11, 30)",
-    "parent_alive_status_date == child_taxable_year_end",
-    [
-      "child_birthday + Period(18, 0, 0) > child_taxable_year_end",
-      "child_birthday + Period(18, 0, 0) <= child_taxable_year_end"
-    ],
-    "parent_taxable_year_end >= child_taxable_year_start",
-    "parent_taxable_year_end <= child_taxable_year_end"
+    "parent_taxable_year_end <= parent_taxable_year_start + Period(1, 0, 0)",
+    "(parent_child_same_year == False) -> (parent_taxable_year_end <= child_taxable_year_end)",
+    "(parent_child_same_year == False) -> (parent_taxable_year_end >= child_taxable_year_start)"
   ],
   "provenance": {
     "hierarchy": {
@@ -73,22 +88,18 @@
 }
 
 {
-  "description": "Constraints for capital gains taxation and qualified dividend income",
+  "description": "Capital gains holding period requirements",
+  "declarations": [
+    "asset_acquisition_date: date",
+    "asset_sale_date: date",
+    "dividend_received_date: date",
+    "stock_acquisition_date: date",
+    "is_collectible: bool",
+    "is_qualified_dividend: bool"
+  ],
   "constraints": [
-    "taxable_year_start + Period(0, 11, 30) == taxable_year_end",
-    "preceding_taxable_year_end + Period(0, 0, 1) == taxable_year_start",
-    "preceding_taxable_year_start + Period(0, 11, 30) == preceding_taxable_year_end",
-    "capital_asset_acquisition_date + Period(1, 0, 0) < capital_asset_sale_date",
-    "dividend_received_date >= taxable_year_start",
-    "dividend_received_date <= taxable_year_end",
-    "stock_acquisition_date + Period(0, 0, 60) <= dividend_received_date",
-    "enactment_date <= Date(2100, 2, 28)",
-    "enactment_date >= Date(1900, 3, 1)",
-    "corporation_status_determination_date == taxable_year_start",
-    [
-      "corporation_status_determination_date == preceding_taxable_year_start",
-      "corporation_status_determination_date == taxable_year_start"
-    ]
+    "(is_collectible == True) -> (asset_sale_date >= asset_acquisition_date + Period(1, 0, 0))",
+    "(is_qualified_dividend == True) -> (dividend_received_date >= stock_acquisition_date + Period(0, 0, 60))"
   ],
   "provenance": {
     "hierarchy": {
@@ -110,18 +121,20 @@
 }
 
 {
-  "description": "Temporal constraints for tax rate brackets and adjustments after 2000",
+  "description": "Tax rate bracket constraints for different time periods",
+  "declarations": [
+    "taxable_year_start: date",
+    "is_10_percent_bracket_applicable: bool",
+    "is_25_28_33_percent_brackets_applicable: bool",
+    "is_35_percent_bracket_applicable: bool",
+    "cpi_adjustment_year_10_percent: int",
+    "cpi_adjustment_year_35_percent: int"
+  ],
   "constraints": [
-    "taxable_year_start > Date(2000, 12, 31)",
-    "initial_bracket_adjustment_year_start >= Date(2003, 1, 1)",
-    "initial_bracket_adjustment_year_start <= Date(2100, 1, 1)",
-    "initial_bracket_adjustment_year_start == initial_bracket_adjustment_year_end - Period(0, 11, 30)",
-    "cost_of_living_reference_year_for_initial_bracket == Date(2002, 1, 1)",
-    "high_income_bracket_taxable_year_start > Date(2012, 12, 31)",
-    "high_income_bracket_adjustment_year_start >= Date(2013, 1, 1)",
-    "high_income_bracket_adjustment_year_start <= Date(2100, 1, 1)",
-    "high_income_bracket_adjustment_year_start == high_income_bracket_adjustment_year_end - Period(0, 11, 30)",
-    "cost_of_living_reference_year_for_high_income_bracket == Date(2012, 1, 1)"
+    "(is_10_percent_bracket_applicable == True) -> (taxable_year_start > Date(2000, 12, 31))",
+    "cpi_adjustment_year_10_percent == 2002",
+    "(is_35_percent_bracket_applicable == True) -> (taxable_year_start > Date(2012, 12, 31))",
+    "cpi_adjustment_year_35_percent == 2012"
   ],
   "provenance": {
     "hierarchy": {
@@ -143,17 +156,20 @@
 }
 
 {
-  "description": "Temporal constraints for tax rate modifications for taxable years beginning after 2017",
+  "description": "Tax modifications for taxable years beginning after 2017",
+  "declarations": [
+    "taxable_year_start: date",
+    "taxable_year_end: date",
+    "applies_post_2017: bool",
+    "applies_2018_only: bool",
+    "applies_post_2018: bool"
+  ],
   "constraints": [
-    "taxable_year_start > Date(2017, 12, 31)",
-    [
-      "taxable_year_start > Date(2017, 12, 31)",
-      "taxable_year_start < Date(2019, 1, 1)"
-    ],
-    "taxable_year_start > Date(2018, 12, 31)",
-    "adjustment_calendar_year == Date(2017, 1, 1)",
-    "repeal_date == Date(2019, 12, 20)",
-    "inflation_adjustment_applicable_year > Date(2018, 12, 31)"
+    "taxable_year_end >= taxable_year_start",
+    "taxable_year_end <= taxable_year_start + Period(1, 0, 0)",
+    "applies_post_2017 == (taxable_year_start > Date(2017, 12, 31))",
+    "applies_2018_only == (taxable_year_start > Date(2017, 12, 31) && taxable_year_start < Date(2019, 1, 1))",
+    "applies_post_2018 == (taxable_year_start > Date(2018, 12, 31))"
   ],
   "provenance": {
     "hierarchy": {

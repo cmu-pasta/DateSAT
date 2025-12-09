@@ -110,7 +110,6 @@ def test_parse_constraint_variable_names(parser, constraint, expected):
 # -------------------------
 
 @pytest.mark.parametrize("invalid_constraint", [
-    "x",  # No comparison operator
     "x >= ",  # Incomplete constraint
     ">= Date(2000, 1, 1)",  # Missing left side
     "x >=",  # Missing right side
@@ -174,16 +173,12 @@ def test_generate_builder_code_basic(parser):
 
     result = parser.generate_builder_code(constraints)
 
-    # Helper function is always included now, but not used for simple constraints
-    assert "from z3 import Or" in result
-    assert "def _or_constraints" in result
+    assert "from z3 import Or, And, Not" in result
     assert 'x = builder.add_date_var("x")' in result
     assert 'y = builder.add_date_var("y")' in result
     assert "builder.add_constraint(x >= Date(2000, 1, 1))" in result
     assert "builder.add_constraint(y <= Date(2020, 12, 31))" in result
     assert "result = builder" in result
-    # Should not use _or_constraints for simple constraints (only in definition)
-    assert result.count("_or_constraints(") == 1  # Only in function definition
 
 def test_generate_builder_code_empty(parser):
     """Test builder code generation with empty inputs."""
@@ -191,9 +186,7 @@ def test_generate_builder_code_empty(parser):
 
     result = parser.generate_builder_code(constraints)
 
-    # Helper function is always included now
-    assert "from z3 import Or" in result
-    assert "def _or_constraints" in result
+    assert "from z3 import Or, And, Not" in result
     assert "builder = DateSMTBuilder()" in result
     assert "result = builder" in result
 
@@ -203,16 +196,31 @@ def test_generate_builder_code_empty(parser):
 # -------------------------
 
 def test_parse_constraint_data_basic(parser):
-    """Test parsing constraint data with declared variables."""
+    """Test parsing constraint data with separate declarations and constraints."""
+    constraint_data = {
+        "declarations": ["x: date", "y: date"],
+        "constraints": ["x >= Date(2000, 1, 1)", "y <= Date(2020, 12, 31)"]
+    }
+
+    result = parser.parse_constraint_data(constraint_data)
+
+    assert "from z3 import Or, And, Not" in result
+    assert 'x = builder.add_date_var("x")' in result
+    assert 'y = builder.add_date_var("y")' in result
+    assert "builder.add_constraint(x >= Date(2000, 1, 1))" in result
+    assert "builder.add_constraint(y <= Date(2020, 12, 31))" in result
+    assert "result = builder" in result
+
+
+def test_parse_constraint_data_backward_compatible(parser):
+    """Test backward compatibility with old format (declarations mixed with constraints)."""
     constraint_data = {
         "constraints": ["x: date", "y: date", "x >= Date(2000, 1, 1)", "y <= Date(2020, 12, 31)"]
     }
 
     result = parser.parse_constraint_data(constraint_data)
 
-    # Helper function is always included now
-    assert "from z3 import Or" in result
-    assert "def _or_constraints" in result
+    assert "from z3 import Or, And, Not" in result
     assert 'x = builder.add_date_var("x")' in result
     assert 'y = builder.add_date_var("y")' in result
     assert "builder.add_constraint(x >= Date(2000, 1, 1))" in result
@@ -226,9 +234,7 @@ def test_parse_constraint_data_missing_keys(parser):
 
     result = parser.parse_constraint_data(constraint_data)
 
-    # Helper function is always included now
-    assert "from z3 import Or" in result
-    assert "def _or_constraints" in result
+    assert "from z3 import Or, And, Not" in result
     assert "builder = DateSMTBuilder()" in result
     assert "result = builder" in result
 
@@ -241,9 +247,7 @@ def test_parse_constraint_data_with_periods(parser):
 
     result = parser.parse_constraint_data(constraint_data)
 
-    # Helper function is always included now
-    assert "from z3 import Or" in result
-    assert "def _or_constraints" in result
+    assert "from z3 import Or, And, Not" in result
     assert 'x = builder.add_date_var("x")' in result
     assert "builder.add_constraint(x + Period(0, 1, 1) >= Date(2000, 1, 1))" in result
     assert "result = builder" in result
@@ -397,9 +401,7 @@ def test_parse_constraint_data_with_one_datevar(parser):
 
     result = parser.parse_constraint_data(constraint_data)
 
-    # Helper function is always included now
-    assert "from z3 import Or" in result
-    assert "def _or_constraints" in result
+    assert "from z3 import Or, And, Not" in result
     assert 'x = builder.add_date_var("x")' in result
     assert "builder.add_constraint(x >= Date(2000, 2, 28))" in result
     assert "builder.add_constraint(x <= Date(2000, 3, 1))" in result
@@ -413,9 +415,7 @@ def test_parse_constraint_data_with_multiple_datevar(parser):
 
     result = parser.parse_constraint_data(constraint_data)
 
-    # Helper function is always included now
-    assert "from z3 import Or" in result
-    assert "def _or_constraints" in result
+    assert "from z3 import Or, And, Not" in result
     assert 'x = builder.add_date_var("x")' in result
     assert 'y = builder.add_date_var("y")' in result
     assert "builder.add_constraint(x >= Date(2000, 2, 28))" in result
@@ -424,180 +424,251 @@ def test_parse_constraint_data_with_multiple_datevar(parser):
 
 
 # -------------------------
-# CNF (Conjunctive Normal Form) tests
+# Boolean operators tests (&&, ||, !, and, or, not)
 # -------------------------
 
-def test_generate_builder_code_cnf_simple_or(parser):
-    """Test CNF format with a simple OR clause."""
-    constraints = [
-        "x: date",
-        ["x >= Date(2000, 2, 28)", "x <= Date(2000, 2, 29)"],
-        "x != Date(2000, 3, 1)"
-    ]
-
-    result = parser.generate_builder_code(constraints)
-
-    # Check that the result contains the helper function and OR constraint
-    assert "from z3 import Or" in result
-    assert "from datesmt.enumeration_baseline import ConstraintWrapper" in result
-    assert "def _or_constraints" in result
-    # Should use _or_constraints for the OR clause (2 calls: definition + usage)
-    assert result.count("_or_constraints(") >= 2
-    # Check that both constraints are in the OR expression
-    assert "x >= Date(2000, 2, 28)" in result or "x >= Date(2000,2,28)" in result
-    assert "x <= Date(2000, 2, 29)" in result or "x <= Date(2000,2,29)" in result
-    assert "x != Date(2000, 3, 1)" in result or "x != Date(2000,3,1)" in result
-    assert 'x = builder.add_date_var("x")' in result
+@pytest.mark.parametrize("constraint,expected_pattern", [
+    ("a && b", "And(a, b)"),
+    ("a and b", "And(a, b)"),
+    ("a || b", "Or(a, b)"),
+    ("a or b", "Or(a, b)"),
+    ("!a", "Not(a)"),
+    ("not a", "Not(a)"),
+])
+def test_parse_constraint_boolean_operators(parser, constraint, expected_pattern):
+    """Test parsing of boolean operators."""
+    result = parser.parse_constraint(constraint)
+    assert expected_pattern in result
+    assert "builder.add_constraint" in result
 
 
-def test_generate_builder_code_cnf_mixed(parser):
-    """Test CNF format with mixed AND and OR constraints."""
+@pytest.mark.parametrize("constraint,expected_pattern", [
+    ("(a || b) && c", "And(Or(a, b), c)"),
+    ("a && (b || c)", "And(a, Or(b, c))"),
+    ("!a || b", "Or(Not(a), b)"),
+    ("a && !b", "And(a, Not(b))"),
+])
+def test_parse_constraint_boolean_precedence(parser, constraint, expected_pattern):
+    """Test that boolean operators follow correct precedence: NOT > AND > OR."""
+    result = parser.parse_constraint(constraint)
+    assert expected_pattern in result
+
+
+@pytest.mark.parametrize("constraint,expected_pattern", [
+    ("((a || b) || c) || d", "Or(Or(Or(a, b), c), d)"),
+    ("(a && b) && (c && d)", "And(And(a, b), And(c, d))"),
+    ("!(!a)", "Not(Not(a))"),
+    ("((a || b) && c) || d", "Or(And(Or(a, b), c), d)"),
+])
+def test_parse_constraint_nested_boolean(parser, constraint, expected_pattern):
+    """Test parsing of deeply nested boolean expressions."""
+    result = parser.parse_constraint(constraint)
+    assert expected_pattern in result
+
+
+@pytest.mark.parametrize("constraint,expected_pattern", [
+    ("(a >= Date(2000, 1, 1)) && (b <= Date(2000, 12, 31))", "And(a >= Date(2000, 1, 1), b <= Date(2000, 12, 31))"),
+    ("(x > Date(2020, 1, 1)) || (y < Date(2019, 12, 31))", "Or(x > Date(2020, 1, 1), y < Date(2019, 12, 31))"),
+    ("!(a == Date(2000, 1, 1))", "Not(a == Date(2000, 1, 1))"),
+])
+def test_parse_constraint_boolean_with_comparisons(parser, constraint, expected_pattern):
+    """Test boolean operators with date comparisons."""
+    result = parser.parse_constraint(constraint)
+    assert expected_pattern in result
+
+
+@pytest.mark.parametrize("constraint,expected_pattern", [
+    ("(a) -> (b)", "Implies(a, b)"),
+    ("(a && b) -> (c)", "Implies(And(a, b), c)"),
+    ("(a) -> (b || c)", "Implies(a, Or(b, c))"),
+    ("(a) -> ((b) -> (c))", "Implies(a, Implies(b, c))"),
+])
+def test_parse_constraint_implication_with_boolean(parser, constraint, expected_pattern):
+    """Test implication operator with boolean expressions."""
+    result = parser.parse_constraint(constraint)
+    assert expected_pattern in result
+
+
+def test_generate_builder_code_with_boolean_operators(parser):
+    """Test generating builder code with boolean operators."""
     constraints = [
         "x: date",
         "y: date",
-        "x >= Date(2000, 1, 1)",
-        ["x <= Date(2000, 2, 28)", "x >= Date(2000, 3, 1)"],
-        "y == x + Period(0, 1, 0)"
+        "flag: bool",
+        "(x >= Date(2000, 1, 1)) && (x <= Date(2000, 12, 31))",
+        "(y > Date(2020, 1, 1)) || (flag == True)"
     ]
 
     result = parser.generate_builder_code(constraints)
 
-    # Check that all constraints are present (with flexible spacing)
-    assert "x >= Date(2000, 1, 1)" in result or "x >= Date(2000,1,1)" in result
-    assert "x <= Date(2000, 2, 28)" in result or "x <= Date(2000,2,28)" in result
-    assert "x >= Date(2000, 3, 1)" in result or "x >= Date(2000,3,1)" in result
-    assert "y == x + Period(0, 1, 0)" in result or "y == x + Period(0,1,0)" in result
-    # Should use _or_constraints for the OR clause (2 calls: definition + usage)
-    assert result.count("_or_constraints(") >= 2
+    assert "from z3 import Or, And, Not" in result
+    assert "And(" in result
+    assert "Or(" in result
     assert 'x = builder.add_date_var("x")' in result
     assert 'y = builder.add_date_var("y")' in result
+    assert 'flag = builder.add_bool_var("flag")' in result
+    assert "builder.add_constraint(And(" in result
+    assert "builder.add_constraint(Or(" in result
 
 
-def test_generate_builder_code_cnf_single_item_or(parser):
-    """Test CNF format with a single-item OR clause (should be treated as regular constraint)."""
-    constraints = [
-        "x: date",
-        ["x >= Date(2000, 2, 28)"],
-        "x != Date(2000, 3, 1)"
-    ]
-
-    result = parser.generate_builder_code(constraints)
-
-    # Single-item OR should be treated as regular constraint
-    assert "x >= Date(2000, 2, 28)" in result or "x >= Date(2000,2,28)" in result
-    assert "x != Date(2000, 3, 1)" in result or "x != Date(2000,3,1)" in result
-    # Should not use _or_constraints for single-item list (only in definition)
-    assert result.count("_or_constraints(") == 1  # Only in function definition
-
-
-def test_parse_constraint_data_cnf_format(parser):
-    """Test parsing constraint data with CNF format."""
+def test_parse_constraint_data_with_boolean_operators(parser):
+    """Test parsing constraint data with boolean operators."""
     constraint_data = {
+        "declarations": ["x: date", "flag: bool"],
         "constraints": [
-            "x: date",
-            ["x >= Date(2000, 2, 28)", "x <= Date(2000, 2, 29)"],
-            "x != Date(2000, 3, 1)"
+            "(x >= Date(2000, 1, 1)) && (flag == True)"
         ]
     }
 
     result = parser.parse_constraint_data(constraint_data)
 
-    # Check that CNF format is properly handled
-    # Should use _or_constraints for the OR clause (2 calls: definition + usage)
-    assert result.count("_or_constraints(") >= 2
-    # Check constraints are present (with flexible spacing)
-    assert "x >= Date(2000, 2, 28)" in result or "x >= Date(2000,2,28)" in result
-    assert "x <= Date(2000, 2, 29)" in result or "x <= Date(2000,2,29)" in result
-    assert "x != Date(2000, 3, 1)" in result or "x != Date(2000,3,1)" in result
+    assert "And(" in result
     assert 'x = builder.add_date_var("x")' in result
+    assert 'flag = builder.add_bool_var("flag")' in result
 
 
-def test_extract_variables_from_constraints_cnf(parser):
-    """Test variable extraction from CNF format constraints."""
+def test_extract_variables_from_constraints_with_boolean(parser):
+    """Test variable extraction from constraints with boolean operators."""
     constraints = [
-        ["x >= Date(2000, 2, 28)", "y <= Date(2000, 2, 29)"],
-        "z != Date(2000, 3, 1)"
+        "(x >= Date(2000, 1, 1)) && (y <= Date(2000, 12, 31))",
+        "(a || b) -> (c)"
     ]
 
     extracted = parser.extract_variables_from_constraints(constraints)
-    assert sorted(extracted) == ["x", "y", "z"]
+    assert sorted(extracted) == ["a", "b", "c", "x", "y"]
 
 
-def test_extract_variables_from_constraints_cnf_nested(parser):
-    """Test variable extraction from complex CNF format with multiple OR clauses."""
-    constraints = [
-        ["x >= Date(2000, 2, 28)", "x <= Date(2000, 2, 29)"],
-        ["y >= Date(2000, 1, 1)", "y <= Date(2000, 1, 31)"],
-        "z == x + Period(0, 1, 0)"
-    ]
-
-    extracted = parser.extract_variables_from_constraints(constraints)
-    assert sorted(extracted) == ["x", "y", "z"]
-
-
-def test_generate_builder_code_backward_compatible(parser):
-    """Test that simple list of strings works with declarations."""
-    constraints = ["x: date", "x >= Date(2000, 2, 28)", "x <= Date(2000, 3, 1)"]
-
-    result = parser.generate_builder_code(constraints)
-
-    # Should work with declarations - constraints are added directly, not via OR
-    assert "builder.add_constraint(x >= Date(2000, 2, 28))" in result
-    assert "builder.add_constraint(x <= Date(2000, 3, 1))" in result
-    assert 'x = builder.add_date_var("x")' in result
-    # Helper function is included but not used for simple constraints
-    assert "_or_constraints(" not in result or result.count("_or_constraints(") == 1  # Only in definition
-
-
-# -------------------------
-# Integration tests for CNF format with actual solvers
-# -------------------------
-
-def test_cnf_format_with_enumeration_baseline(parser):
-    """Test that CNF format works with enumeration baseline solver."""
-    from datesmt.enumeration_baseline import EnumerationSolver
-    from datesmt.core import Date
+def test_nested_boolean_expressions_complex(parser):
+    """Test complex nested boolean expressions."""
+    constraint = "((a || b) && (c || d)) || (!e && f)"
+    result = parser.parse_constraint(constraint)
     
+    # Should parse without error and contain boolean operators
+    assert "Or(" in result or "And(" in result or "Not(" in result
+    assert "builder.add_constraint" in result
+
+
+def test_boolean_operators_with_property_access(parser):
+    """Test boolean operators with property access."""
+    constraint = "(k.year == 2020) && (k.month >= 1) && (k.month <= 12)"
+    result = parser.parse_constraint(constraint)
+    
+    assert "And(" in result
+    assert "k.year" in result
+    assert "k.month" in result
+
+
+def test_boolean_operators_mixed_syntax(parser):
+    """Test mixing &&/|| with and/or syntax."""
+    constraint = "(a && b) || (c and d)"
+    result = parser.parse_constraint(constraint)
+    
+    assert "Or(" in result
+    assert "And(" in result
+
+
+def test_nested_lists_rejected(parser):
+    """Test that nested lists (old CNF format) are rejected."""
     constraint_data = {
         "constraints": [
             "x: date",
-            ["x >= Date(2000, 2, 28)", "x <= Date(2000, 2, 29)"],
-            "x != Date(2000, 3, 1)"
+            ["x >= Date(2000, 2, 28)", "x <= Date(2000, 2, 29)"]  # Nested list
         ]
     }
     
-    code = parser.parse_constraint_data(constraint_data)
-    
-    # Execute the code with enumeration solver
-    enumeration_solver = EnumerationSolver()
-    exec_globals = {
-        'Date': Date,
-        'Period': __import__('datesmt.core', fromlist=['Period']).Period,
-        'DateSMTBuilder': lambda: enumeration_solver,
-        'builder': enumeration_solver,
-        'result': enumeration_solver,
-    }
-    
-    exec(code, exec_globals)
-    
-    # Solve and verify
-    result = enumeration_solver.solve()
-    assert result['status'] in ['sat', 'unsat']  # Should be valid
-    if result['status'] == 'sat':
-        # If satisfiable, verify the solution satisfies the constraints
-        assert 'dates' in result
-        assert len(result['dates']) > 0
+    with pytest.raises(ValueError, match="Nested lists are not supported"):
+        parser.parse_constraint_data(constraint_data)
 
 
-def test_cnf_format_with_z3_solvers(parser):
-    """Test that CNF format works with Z3-based solvers (int and bitvector)."""
+def test_boolean_operators_with_arithmetic(parser):
+    """Test boolean operators with arithmetic expressions."""
+    constraint = "(x.year + 1 == 2020) && (y.month - 1 >= 0)"
+    result = parser.parse_constraint(constraint)
+    
+    assert "And(" in result
+    assert "x.year + 1 == 2020" in result or "x.year+1==2020" in result
+    assert "y.month - 1 >= 0" in result or "y.month-1>=0" in result
+
+
+def test_boolean_operators_with_period_arithmetic(parser):
+    """Test boolean operators with Period arithmetic."""
+    constraint = "(x + Period(1, 0, 0) >= Date(2020, 1, 1)) || (y - Period(0, 1, 0) <= Date(2019, 12, 31))"
+    result = parser.parse_constraint(constraint)
+    
+    assert "Or(" in result
+    assert "Period(1, 0, 0)" in result or "Period(1,0,0)" in result
+
+
+def test_complex_nested_boolean_expression(parser):
+    """Test a very complex nested boolean expression."""
+    constraint = "((a || b) && (c || d)) || ((!e) && (f || g))"
+    result = parser.parse_constraint(constraint)
+    
+    # Should parse successfully
+    assert "Or(" in result
+    assert "And(" in result
+    assert "Not(" in result
+    assert "builder.add_constraint" in result
+
+
+def test_boolean_operators_precedence_complex(parser):
+    """Test complex precedence scenarios."""
+    # NOT should bind tighter than AND, which binds tighter than OR
+    constraint = "!a && b || c && !d"
+    result = parser.parse_constraint(constraint)
+    
+    # Should parse as: ((!a) && b) || (c && (!d))
+    assert "Or(" in result
+    assert "And(" in result
+    assert "Not(" in result
+
+
+def test_or_without_parentheses(parser):
+    """Test OR operator without parentheses around comparisons."""
+    constraint = "x >= Date(2000, 2, 28) || x <= Date(2000, 2, 29)"
+    result = parser.parse_constraint(constraint)
+    
+    # Should parse as: Or(x >= Date(2000, 2, 28), x <= Date(2000, 2, 29))
+    assert "Or(" in result
+    assert "x >= Date(2000, 2, 28)" in result or "x>=Date(2000,2,28)" in result
+    assert "x <= Date(2000, 2, 29)" in result or "x<=Date(2000,2,29)" in result
+
+
+def test_and_without_parentheses(parser):
+    """Test AND operator without parentheses around comparisons."""
+    constraint = "x >= Date(2000, 1, 1) && x <= Date(2000, 12, 31)"
+    result = parser.parse_constraint(constraint)
+    
+    # Should parse as: And(x >= Date(2000, 1, 1), x <= Date(2000, 12, 31))
+    assert "And(" in result
+    assert "x >= Date(2000, 1, 1)" in result or "x>=Date(2000,1,1)" in result
+    assert "x <= Date(2000, 12, 31)" in result or "x<=Date(2000,12,31)" in result
+
+
+def test_mixed_operators_without_parentheses(parser):
+    """Test mixed boolean operators without parentheses."""
+    constraint = "a >= Date(2000, 1, 1) && b <= Date(2000, 12, 31) || c == Date(2001, 1, 1)"
+    result = parser.parse_constraint(constraint)
+    
+    # Should parse as: Or(And(a >= Date(2000, 1, 1), b <= Date(2000, 12, 31)), c == Date(2001, 1, 1))
+    # OR has lower precedence than AND, so AND binds first
+    assert "Or(" in result
+    assert "And(" in result
+
+
+# -------------------------
+# Integration tests for boolean operators with actual solvers
+# -------------------------
+
+def test_boolean_operators_with_z3_solvers(parser):
+    """Test that boolean operators work with Z3-based solvers (int and bitvector)."""
     from datesmt.api import DateSMTBuilder
     from datesmt.core import Date
     
     constraint_data = {
         "constraints": [
             "x: date",
-            ["x >= Date(2000, 2, 28)", "x <= Date(2000, 2, 29)"],
+            "(x >= Date(2000, 2, 28)) || (x <= Date(2000, 2, 29))",
             "x != Date(2000, 3, 1)"
         ]
     }
@@ -616,6 +687,10 @@ def test_cnf_format_with_z3_solvers(parser):
                 'DateSMTBuilder': lambda: builder,
                 'builder': builder,
                 'result': builder,
+                'Or': __import__('z3', fromlist=['Or']).Or,
+                'And': __import__('z3', fromlist=['And']).And,
+                'Not': __import__('z3', fromlist=['Not']).Not,
+                'Implies': __import__('z3', fromlist=['Implies']).Implies,
             }
             
             try:
@@ -624,12 +699,13 @@ def test_cnf_format_with_z3_solvers(parser):
                 assert result['status'] in ['sat', 'unsat', 'timeout']  # Should be valid
             except Exception as e:
                 # Some approaches might not support all constraint types, that's okay
-                # But CNF format itself should be parseable
-                assert "CNF" not in str(e) or "OR" not in str(e), f"CNF format error in {approach}/{implementation}: {e}"
+                # But boolean operators should be parseable
+                assert "boolean" not in str(e).lower() or "operator" not in str(e).lower(), \
+                    f"Boolean operator error in {approach}/{implementation}: {e}"
 
 
-def test_cnf_format_satisfiable_case(parser):
-    """Test a satisfiable CNF constraint case."""
+def test_boolean_operators_satisfiable_case(parser):
+    """Test a satisfiable boolean operator constraint case."""
     from datesmt.api import DateSMTBuilder
     from datesmt.core import Date
     
@@ -638,7 +714,7 @@ def test_cnf_format_satisfiable_case(parser):
     constraint_data = {
         "constraints": [
             "x: date",
-            ["x >= Date(2000, 2, 28)", "x <= Date(2000, 2, 29)"],
+            "(x >= Date(2000, 2, 28)) || (x <= Date(2000, 2, 29))",
             "x != Date(2000, 3, 1)"
         ]
     }
@@ -664,8 +740,8 @@ def test_cnf_format_satisfiable_case(parser):
     assert result['status'] in ['sat', 'unsat']  # Either is valid, but likely SAT
 
 
-def test_cnf_format_unsatisfiable_case(parser):
-    """Test an unsatisfiable CNF constraint case."""
+def test_boolean_operators_unsatisfiable_case(parser):
+    """Test an unsatisfiable boolean operator constraint case."""
     from datesmt.api import DateSMTBuilder
     from datesmt.core import Date
     
@@ -673,7 +749,7 @@ def test_cnf_format_unsatisfiable_case(parser):
     constraint_data = {
         "constraints": [
             "x: date",
-            ["x == Date(2000, 2, 28)", "x == Date(2000, 2, 29)"],
+            "(x == Date(2000, 2, 28)) || (x == Date(2000, 2, 29))",
             "x == Date(2000, 3, 1)"
         ]
     }
@@ -690,6 +766,10 @@ def test_cnf_format_unsatisfiable_case(parser):
         'DateSMTBuilder': lambda: builder,
         'builder': builder,
         'result': builder,
+        'Or': __import__('z3', fromlist=['Or']).Or,
+        'And': __import__('z3', fromlist=['And']).And,
+        'Not': __import__('z3', fromlist=['Not']).Not,
+        'Implies': __import__('z3', fromlist=['Implies']).Implies,
     }
     
     exec(code, exec_globals)
@@ -697,6 +777,83 @@ def test_cnf_format_unsatisfiable_case(parser):
     
     # Should be unsatisfiable
     assert result['status'] in ['sat', 'unsat']  # Either is valid, but likely UNSAT
+
+
+# -------------------------
+# Boolean variable == boolean expression tests
+# -------------------------
+
+def test_bool_var_equals_bool_expr_simple(parser):
+    """Test boolean variable equals simple boolean expression."""
+    constraint = "flag == (a > b)"
+    result = parser.parse_constraint(constraint)
+    
+    assert "flag == (a > b)" in result
+    assert "builder.add_constraint" in result
+
+
+def test_bool_var_equals_bool_expr_with_and(parser):
+    """Test boolean variable equals boolean expression with AND."""
+    constraint = "applies_2018_only == (taxable_year_start > Date(2017, 12, 31) && taxable_year_start < Date(2019, 1, 1))"
+    result = parser.parse_constraint(constraint)
+    
+    assert "applies_2018_only == (taxable_year_start > Date(2017, 12, 31)" in result or "And(" in result
+    assert "builder.add_constraint" in result
+
+
+def test_bool_var_equals_bool_expr_with_or(parser):
+    """Test boolean variable equals boolean expression with OR."""
+    constraint = "is_valid == (x >= Date(2000, 1, 1) || y <= Date(2020, 12, 31))"
+    result = parser.parse_constraint(constraint)
+    
+    assert "is_valid == (" in result or "Or(" in result
+    assert "builder.add_constraint" in result
+
+
+def test_bool_var_equals_bool_expr_nested(parser):
+    """Test boolean variable equals nested boolean expression."""
+    constraint = "result == ((a > b) && (c > d) || (e < f))"
+    result = parser.parse_constraint(constraint)
+    
+    assert "result == (" in result or "And(" in result or "Or(" in result
+    assert "builder.add_constraint" in result
+
+
+def test_bool_var_equals_bool_expr_in_constraint_data(parser):
+    """Test boolean variable equals boolean expression in full constraint data."""
+    constraint_data = {
+        "declarations": [
+            "taxable_year_start: date",
+            "applies_2018_only: bool"
+        ],
+        "constraints": [
+            "applies_2018_only == (taxable_year_start > Date(2017, 12, 31) && taxable_year_start < Date(2019, 1, 1))"
+        ]
+    }
+    
+    result = parser.parse_constraint_data(constraint_data)
+    
+    assert "applies_2018_only = builder.add_bool_var" in result
+    assert "applies_2018_only == (" in result or "And(" in result
+    assert "builder.add_constraint" in result
+
+
+def test_bool_var_equals_bool_expr_with_implication(parser):
+    """Test boolean variable equals boolean expression containing implication."""
+    constraint = "flag == ((a > b) -> (c > d))"
+    result = parser.parse_constraint(constraint)
+    
+    assert "flag == (" in result or "Implies(" in result
+    assert "builder.add_constraint" in result
+
+
+def test_bool_var_equals_bool_expr_with_not(parser):
+    """Test boolean variable equals boolean expression with NOT."""
+    constraint = "is_valid == !(x == Date(2000, 1, 1))"
+    result = parser.parse_constraint(constraint)
+    
+    assert "is_valid == (" in result or "Not(" in result
+    assert "builder.add_constraint" in result
 
 
 # -------------------------
@@ -775,10 +932,8 @@ def test_parse_constraint_nested_implication(parser, constraint, expected_contai
 def test_implication_in_constraint_data(parser):
     """Test implication in full constraint data parsing."""
     constraint_data = {
+        "declarations": ["k: date", "a: int", "applied: bool"],
         "constraints": [
-            "k: date",
-            "a: int",
-            "applied: bool",
             "k.year == 2000",
             "a == k.month",
             "(a == 2) -> (applied == True)"
@@ -796,13 +951,8 @@ def test_implication_in_constraint_data(parser):
 def test_nested_implication_in_constraint_data(parser):
     """Test nested implication in full constraint data parsing."""
     constraint_data = {
+        "declarations": ["a: int", "b: int", "c: int", "d: int", "e: int", "f: int"],
         "constraints": [
-            "a: int",
-            "b: int",
-            "c: int",
-            "d: int",
-            "e: int",
-            "f: int",
             "((a == b) -> (c == d)) -> (e == f)"
         ]
     }
