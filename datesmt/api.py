@@ -73,14 +73,30 @@ class DateSMTBuilder:
         """Add a symbolic date variable."""
         return self.solver.add_date_var(name)
 
-    def add_constraint(self, constraint: Any, description: str = "") -> None:
+    def add_int_var(self, name: str) -> Any:
+        """Add a symbolic int variable compatible with the current implementation.
+        
+        In bitvector mode, creates a BitVec. In int mode, creates an Int.
+        """
+        if self.implementation == "bitvector":
+            from z3 import BitVec
+            from .symbolic_bitvector.bitwidths import LEGACY_BITS
+            return BitVec(name, LEGACY_BITS)
+        else:
+            from z3 import Int
+            return Int(name)
+
+    def add_bool_var(self, name: str) -> Any:
+        """Add a symbolic bool variable."""
+        from z3 import Bool
+        return Bool(name)
+
+    def add_constraint(self, constraint: Any) -> None:
         """Add a constraint to the solver.
 
         Accepts both Z3 BoolRef (for symbolic solvers) and ConstraintWrapper
         (for enumeration baseline).
         """
-        if description:
-            print(f"Added constraint: {description}")
         # Guard against None constraints
         if constraint is None:
             raise TypeError(
@@ -96,9 +112,54 @@ class DateSMTBuilder:
             print(self.to_smt2())
         result = self.solver.solve()
         if result["status"] == "sat":
+            # Extract Int and Bool variables from the Z3 model
+            model = self.solver.model()
+            int_values = {}
+            bool_values = {}
+            
+            # Get all declarations from the model
+            # First, get all date variable names to exclude their internal components
+            date_var_names = set(self.solver.date_vars.keys())
+            
+            for decl in model.decls():
+                name = decl.name()
+                # Skip internal date variable components (they end with _year, _month, _day, _months, _beta, _days)
+                if any(name.endswith(suffix) for suffix in ['_year', '_month', '_day', '_months', '_beta', '_days']):
+                    continue
+                # Skip if this is a date variable (we already have it in result["dates"])
+                if name in date_var_names:
+                    continue
+                
+                # Check if this is an Int, BitVec, or Bool variable
+                try:
+                    value = model[decl]
+                    if value is not None:
+                        # Check the sort type
+                        from z3 import IntSort, BoolSort, is_bv_sort
+                        if decl.range() == IntSort():
+                            int_values[name] = value.as_long()
+                        elif is_bv_sort(decl.range()):
+                            # BitVec variables - extract as signed long for int semantics
+                            int_values[name] = value.as_signed_long()
+                        elif decl.range() == BoolSort():
+                            bool_values[name] = bool(value)
+                except Exception:
+                    # Skip if we can't extract the value
+                    pass
+            
+            # Add Int and Bool values to result
+            if int_values:
+                result["ints"] = int_values
+            if bool_values:
+                result["bools"] = bool_values
+            
             print(f"✅ SATISFIABLE:")
             for name, date in result["dates"].items():
                 print(f"  {name} = {date}")
+            for name, value in result.get("ints", {}).items():
+                print(f"  {name} = {value}")
+            for name, value in result.get("bools", {}).items():
+                print(f"  {name} = {value}")
         else:
             print("❌ UNSATISFIABLE")
         return result

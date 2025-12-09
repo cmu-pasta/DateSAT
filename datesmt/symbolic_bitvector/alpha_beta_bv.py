@@ -8,8 +8,8 @@ as (months, days) since an epoch.
 from typing import Union, Tuple, List
 from z3 import (
     And,
-    ArithRef,
     BitVec,
+    BitVecRef,
     BitVecVal,
     BoolRef,
     CheckSatResult,
@@ -39,11 +39,11 @@ _EPOCH_MONTH = 3
 _EPOCH_LINEAR = _EPOCH_YEAR * 12 + _EPOCH_MONTH  # 12*2000 + 3
 
 
-def months_since_epoch_from_ym(y, m) -> ArithRef:
+def months_since_epoch_from_ym(y, m) -> BitVecRef:
     """Z3-pure: compute months-since-epoch (alpha) from year/month."""
     return (y * BitVecVal(12, LEGACY_BITS) + m) - _EPOCH_LINEAR
 
-def ym_from_months_since_epoch(alpha) -> Tuple[ArithRef, ArithRef]:
+def ym_from_months_since_epoch(alpha) -> Tuple[BitVecRef, BitVecRef]:
     """Z3-pure inverse: decode (year, month) from alpha months-since-epoch."""
     k = alpha + _EPOCH_LINEAR
     y = (k - BitVecVal(1, LEGACY_BITS)) / BitVecVal(12, LEGACY_BITS)
@@ -68,6 +68,25 @@ class DateVar:
 
     def __str__(self) -> str:
         return f"DateVar({self.name})"
+
+    @property
+    def year(self) -> BitVecRef:
+        """Get symbolic year component (decodes from months_var)."""
+        y, _ = ym_from_months_since_epoch(self.months_var)
+        return y
+
+    @property
+    def month(self) -> BitVecRef:
+        """Get symbolic month component (decodes from months_var)."""
+        _, m = ym_from_months_since_epoch(self.months_var)
+        return m
+
+    @property
+    def day(self) -> BitVecRef:
+        """Get symbolic day component (beta_var + 1, since beta is 0-based)."""
+        from z3 import BitVecVal
+        from .bitwidths import LEGACY_BITS
+        return self.beta_var + BitVecVal(1, LEGACY_BITS)
 
     def to_concrete_date(self, model: ModelRef) -> Date:
         """Convert Z3 model to concrete Date using (alpha, beta)."""

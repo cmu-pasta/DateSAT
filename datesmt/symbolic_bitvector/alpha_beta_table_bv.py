@@ -118,6 +118,26 @@ class DateVar:
     def __str__(self) -> str:
         return f"DateVar({self.name})"
 
+    @property
+    def year(self) -> BitVecRef:
+        """Get symbolic year component (decodes from months_var)."""
+        k = self.months_var + _EPOCH_LINEAR
+        y = (k - BitVecVal(1, LEGACY_BITS)) / BitVecVal(12, LEGACY_BITS)
+        return y
+
+    @property
+    def month(self) -> BitVecRef:
+        """Get symbolic month component (decodes from months_var)."""
+        k = self.months_var + _EPOCH_LINEAR
+        y = (k - BitVecVal(1, LEGACY_BITS)) / BitVecVal(12, LEGACY_BITS)
+        m = k - y * BitVecVal(12, LEGACY_BITS)
+        return m
+
+    @property
+    def day(self) -> BitVecRef:
+        """Get symbolic day component (beta_var + 1, since beta is 0-based)."""
+        return self.beta_var + BitVecVal(1, LEGACY_BITS)
+
     def to_concrete_date(self, model: ModelRef) -> Date:
         """Convert Z3 model to concrete Date using (alpha, beta)."""
         alpha_val = model.evaluate(self.months_var, model_completion=True).as_signed_long()

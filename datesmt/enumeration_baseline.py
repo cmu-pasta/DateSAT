@@ -18,9 +18,8 @@ from .core import Date, Period
 class ConstraintWrapper:
     """Wrapper for deferred constraint evaluation."""
 
-    def __init__(self, func, description: str = "", var_ref=None, concrete_value=None, rhs_ref=None, or_constraints=None):
+    def __init__(self, func, var_ref=None, concrete_value=None, rhs_ref=None, or_constraints=None):
         self.func = func
-        self.description = description
         self.var_ref = var_ref
         self.concrete_value = concrete_value
         self.rhs_ref = rhs_ref  # For equality constraints: x == expr, store expr here
@@ -252,7 +251,7 @@ class EnumerationSolver:
             self.date_vars[name].set_value(year, month, day)
         return self.date_vars[name]
 
-    def add_constraint(self, constraint: Any, description: str = "") -> None:
+    def add_constraint(self, constraint: Any) -> None:
         self.constraints.append(constraint)
 
     def check(self) -> str:
