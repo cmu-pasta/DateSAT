@@ -657,6 +657,56 @@ class ConstraintParser:
     
         
         return inferred_types
+    
+    def infer_date_component_bounds(self, constraints: List[str]) -> Dict[str, str]:
+        """
+        Infer which Date() component position each integer variable is used in.
+        
+        This allows us to automatically add appropriate bounds constraints:
+        - Position 1 (year): 1900 <= var <= 2100
+        - Position 2 (month): 1 <= var <= 12
+        - Position 3 (day): 1 <= var <= 31
+        
+        Args:
+            constraints: List of constraint strings
+            
+        Returns:
+            Dictionary mapping variable names to their component type ('year', 'month', 'day', or 'mixed')
+            'mixed' means the variable is used in multiple positions
+        """
+        component_usage = {}  # var_name -> set of component types
+        
+        for constraint in constraints:
+            # Find Date() constructors and their arguments
+            date_pattern = r'Date\s*\(\s*([^,)]+)\s*,\s*([^,)]+)\s*,\s*([^,)]+)\s*\)'
+            date_matches = re.finditer(date_pattern, constraint)
+            
+            for match in date_matches:
+                args = [match.group(1), match.group(2), match.group(3)]
+                component_types = ['year', 'month', 'day']
+                
+                for arg, component_type in zip(args, component_types):
+                    # Extract variable names from this argument
+                    var_names = re.findall(r'\b[a-zA-Z_][a-zA-Z0-9_]*\b', arg)
+                    for var_name in var_names:
+                        if var_name not in ['Date', 'Period', 'And', 'Or', 'Not', 'Implies', 'and', 'or', 'not', 'True', 'False', 'year', 'month', 'day']:
+                            # Check if this is a property access (should skip)
+                            property_access_pattern = rf'\b{re.escape(var_name)}\s*\.\s*(?:year|month|day)\b'
+                            if not re.search(property_access_pattern, arg):
+                                # This variable is used in this component position
+                                if var_name not in component_usage:
+                                    component_usage[var_name] = set()
+                                component_usage[var_name].add(component_type)
+        
+        # Convert sets to single strings, or 'mixed' if used in multiple positions
+        result = {}
+        for var_name, components in component_usage.items():
+            if len(components) == 1:
+                result[var_name] = list(components)[0]
+            else:
+                result[var_name] = 'mixed'
+        
+        return result
 
     def _check_comparison_type_mismatches(
         self, 
@@ -831,6 +881,9 @@ class ConstraintParser:
         # Check for type mismatches in comparisons (e.g., int == bool)
         self._check_comparison_type_mismatches(filtered_constraints, variable_types)
         
+        # Infer bounds for integer variables used in Date() constructors
+        component_bounds = self.infer_date_component_bounds(filtered_constraints)
+        
         # Add variable declarations
         for var_name, var_type in sorted(variable_types.items()):
             if var_type == 'date':
@@ -841,9 +894,29 @@ class ConstraintParser:
                 code_lines.append(f'{var_name} = builder.add_int_var("{var_name}")')
             elif var_type == 'bool':
                 code_lines.append(f'{var_name} = builder.add_bool_var("{var_name}")')
+        
+        # Add natural bounds constraints for integer variables used in Date() constructors
+        code_lines.append("")
+        code_lines.append("# Automatic bounds for Date() component variables")
+        for var_name, component_type in sorted(component_bounds.items()):
+            if component_type == 'year':
+                code_lines.append(f'builder.add_constraint({var_name} >= 1900)')
+                code_lines.append(f'builder.add_constraint({var_name} <= 2100)')
+            elif component_type == 'month':
+                code_lines.append(f'builder.add_constraint({var_name} >= 1)')
+                code_lines.append(f'builder.add_constraint({var_name} <= 12)')
+            elif component_type == 'day':
+                code_lines.append(f'builder.add_constraint({var_name} >= 1)')
+                code_lines.append(f'builder.add_constraint({var_name} <= 31)')
+            elif component_type == 'mixed':
+                # Variable used in multiple positions - use most restrictive bounds
+                code_lines.append(f'# Warning: {var_name} used in multiple Date() positions - using conservative bounds')
+                code_lines.append(f'builder.add_constraint({var_name} >= 1)')
+                code_lines.append(f'builder.add_constraint({var_name} <= 2100)')
 
         # Add constraints (using filtered constraints without declarations)
         # Each constraint is a full boolean expression - parse and add directly
+        code_lines.append("")
         for constraint_str in filtered_constraints:
             constraint_code = self.parse_constraint(constraint_str)
             code_lines.append(constraint_code)

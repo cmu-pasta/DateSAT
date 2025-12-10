@@ -26,8 +26,9 @@ except ImportError:
     pass
 
 # Default models for each provider
-DEFAULT_OPENAI_MODEL = "gpt-3.5-turbo"
-DEFAULT_ANTHROPIC_MODEL = "claude-3-7-sonnet-latest"
+DEFAULT_OPENAI_MODEL = "gpt-5.1"
+DEFAULT_ANTHROPIC_MODEL = "claude-4-5-sonnet-latest"
+# TODO: Thinking parameter? Thinking low medium high?
 
 
 def _strip_code_fences(s: str) -> str:
