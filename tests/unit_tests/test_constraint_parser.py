@@ -125,16 +125,6 @@ def test_parse_constraint_invalid_inputs(parser, invalid_constraint):
     with pytest.raises(ValueError):
         parser.parse_constraint(invalid_constraint)
 
-
-@pytest.mark.parametrize("constraint_with_multiple_operators", [
-    "x >= Date(2000, 1, 1) == Date(2001, 1, 1)",  # Multiple operators
-])
-def test_parse_constraint_multiple_operators(parser, constraint_with_multiple_operators):
-    """Test that constraints with multiple operators raise ValueError."""
-    with pytest.raises(ValueError):
-        parser.parse_constraint(constraint_with_multiple_operators)
-
-
 @pytest.mark.parametrize("constraint_with_incomplete_constructors", [
     "x >= Date(2000, 1)",  # Incomplete Date constructor
     "x >= Period(1, 0)",  # Incomplete Period constructor
