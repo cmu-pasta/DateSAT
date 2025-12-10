@@ -3,7 +3,7 @@ Pure-Python constraint validation for solved assignments.
 
 This module executes generated constraint code using a lightweight builder that
 supports date, int, and bool variables, and then evaluates all constraints
-against a provided concrete solution (no solving / enumeration).
+against a provided concrete solution (no solving capability).
 """
 
 from typing import Any, Dict, Optional, Tuple, Union

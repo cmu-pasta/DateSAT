@@ -18,7 +18,7 @@ import builtins
 
 
 # Module-level wrapper functions for Z3 boolean operators that work with ConstraintWrapper objects
-def _wrap_constraint_for_enumeration(constraint: Any) -> ConstraintWrapper:
+def _wrap_constraint_for_enumeration(constraint: Any) -> "ConstraintWrapper":
     """Wrap a constraint in ConstraintWrapper if it's not already wrapped."""
     if isinstance(constraint, ConstraintWrapper):
         return constraint
@@ -31,7 +31,7 @@ def _wrap_constraint_for_enumeration(constraint: Any) -> ConstraintWrapper:
         return ConstraintWrapper(lambda: bool(constraint))
 
 
-def Or_enumeration(*args) -> ConstraintWrapper:
+def Or_enumeration(*args) -> "ConstraintWrapper":
     """Wrapper for Z3's Or() that works with enumeration baseline ConstraintWrapper objects."""
     wrapped_args = [_wrap_constraint_for_enumeration(arg) for arg in args]
     return ConstraintWrapper(
@@ -40,7 +40,7 @@ def Or_enumeration(*args) -> ConstraintWrapper:
     )
 
 
-def And_enumeration(*args) -> ConstraintWrapper:
+def And_enumeration(*args) -> "ConstraintWrapper":
     """Wrapper for Z3's And() that works with enumeration baseline ConstraintWrapper objects."""
     wrapped_args = [_wrap_constraint_for_enumeration(arg) for arg in args]
     return ConstraintWrapper(
@@ -48,7 +48,7 @@ def And_enumeration(*args) -> ConstraintWrapper:
     )
 
 
-def Not_enumeration(arg) -> ConstraintWrapper:
+def Not_enumeration(arg) -> "ConstraintWrapper":
     """Wrapper for Z3's Not() that works with enumeration baseline ConstraintWrapper objects."""
     wrapped_arg = _wrap_constraint_for_enumeration(arg)
     return ConstraintWrapper(
@@ -56,7 +56,7 @@ def Not_enumeration(arg) -> ConstraintWrapper:
     )
 
 
-def Implies_enumeration(antecedent, consequent) -> ConstraintWrapper:
+def Implies_enumeration(antecedent, consequent) -> "ConstraintWrapper":
     """Wrapper for Z3's Implies() that works with enumeration baseline ConstraintWrapper objects."""
     wrapped_antecedent = _wrap_constraint_for_enumeration(antecedent)
     wrapped_consequent = _wrap_constraint_for_enumeration(consequent)
