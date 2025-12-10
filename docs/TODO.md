@@ -10,7 +10,6 @@ DateSMT
 [X] Use bit vector? - Added
 [X] Further reduce bit width?
 [X] Dynamic bit width? - No
-[ ] BitVector/Int hybrid approach?
 [X] Think about hybrid method: do we need lazy approach?
 [X] Update hybrid method: lazy on both ymd and epoch
 [X] Think about cases where bitvector is slower? (div/mod)
@@ -97,7 +96,7 @@ General
 [X] Flatten data from llm_constraints_generator?
 [X] Fix CI so that do not run unit tests when push, only when raising PR
 [X] Accept timeout for enumeration baseline unit tests
-[ ] Rename baseline encoding into naive encoding
+[X] Rename baseline encoding into naive encoding
 
 Legal
 [ ] Add how to download raw_data to README.md (figure out how to "push" title26.xml)
