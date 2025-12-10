@@ -257,6 +257,8 @@ class EnumerationDateVar:
             result_var.set_value(result.year, result.month, result.day)
         return result_var
 
+
+
     def __sub__(self, other: Period) -> "EnumerationDateVar":
         if not isinstance(other, Period):
             raise TypeError(f"Cannot subtract {type(other)} from EnumerationDateVar")
@@ -273,6 +275,56 @@ class EnumerationDateVar:
             result = Date.from_python_date(result_date)
             result_var.set_value(result.year, result.month, result.day)
         return result_var
+
+    # Expose year/month/day components for constraint building (date-only support)
+    @property
+    def year(self) -> "EnumerationDateComponent":
+        return EnumerationDateComponent(self, "year")
+
+    @property
+    def month(self) -> "EnumerationDateComponent":
+        return EnumerationDateComponent(self, "month")
+
+    @property
+    def day(self) -> "EnumerationDateComponent":
+        return EnumerationDateComponent(self, "day")
+
+
+class EnumerationDateComponent:
+    """Int-like view for a date component (year/month/day) used only in date constraints."""
+
+    def __init__(self, parent: EnumerationDateVar, attr: str):
+        self.parent = parent
+        self.attr = attr
+
+    def _compare(self, op: str, other: int):
+        def compare():
+            d = self.parent.get_value()
+            if d is None:
+                return False
+            lhs = getattr(d, self.attr)
+            return getattr(lhs, f"__{op}__")(other)
+
+        return compare
+
+    def __eq__(self, other: int) -> ConstraintWrapper:  # type: ignore[override]
+        return ConstraintWrapper(self._compare("eq", int(other)))
+
+    def __ne__(self, other: int) -> ConstraintWrapper:  # type: ignore[override]
+        return ConstraintWrapper(self._compare("ne", int(other)))
+
+    def __lt__(self, other: int) -> ConstraintWrapper:
+        return ConstraintWrapper(self._compare("lt", int(other)))
+
+    def __le__(self, other: int) -> ConstraintWrapper:
+        return ConstraintWrapper(self._compare("le", int(other)))
+
+    def __gt__(self, other: int) -> ConstraintWrapper:
+        return ConstraintWrapper(self._compare("gt", int(other)))
+
+    def __ge__(self, other: int) -> ConstraintWrapper:
+        return ConstraintWrapper(self._compare("ge", int(other)))
+
 
 
 class EnumerationSolver:
@@ -336,8 +388,8 @@ class EnumerationSolver:
             And = self.And
             Not = self.Not
             Implies = self.Implies
-            Int = lambda *args: None  # Not used by enumeration baseline
-            Bool = lambda *args: None  # Not used by enumeration baseline
+            Int = lambda *args: None  # Not used by enumeration baseline solving
+            Bool = lambda *args: None  # Not used by enumeration baseline solving
         
         # Override __import__ to return our mock z3 module
         original_import = builtins.__import__
@@ -353,6 +405,10 @@ class EnumerationSolver:
             'builder': self,
             'result': self,
             '__builtins__': {**builtins.__dict__, '__import__': mock_import},
+            'And': self.And,
+            'Or': self.Or,
+            'Not': self.Not,
+            'Implies': self.Implies,
         }
 
     def check(self) -> str:
@@ -406,14 +462,15 @@ class EnumerationSolver:
         if not var_names:
             return {} if self._evaluate_constraints({}) else None
 
-        # Ensure any referenced vars exist (for intermediate lazy nodes)
+        # Ensure any referenced date vars exist (for intermediate lazy nodes)
         for c in self.constraints:
             if isinstance(c, ConstraintWrapper):
-                if c.var_ref is not None and c.var_ref.name not in self.date_vars:
-                    self.date_vars[c.var_ref.name] = c.var_ref
-                if c.rhs_ref is not None and isinstance(c.rhs_ref, EnumerationDateVar):
-                    if c.rhs_ref.name not in self.date_vars:
-                        self.date_vars[c.rhs_ref.name] = c.rhs_ref
+                targets = c.or_constraints if c.or_constraints is not None else [c]
+                for sub_c in targets:
+                    if sub_c.var_ref is not None and isinstance(sub_c.var_ref, EnumerationDateVar):
+                        self.date_vars.setdefault(sub_c.var_ref.name, sub_c.var_ref)
+                    if sub_c.rhs_ref is not None and isinstance(sub_c.rhs_ref, EnumerationDateVar):
+                        self.date_vars.setdefault(sub_c.rhs_ref.name, sub_c.rhs_ref)
 
         # Get all base variables (skip intermediate lazy nodes)
         # NO BINDING OPTIMIZATION - enumerate all base variables
@@ -484,29 +541,22 @@ class EnumerationSolver:
             for c in self.constraints:
                 if isinstance(c, ConstraintWrapper):
                     # Handle OR constraints - check all sub-constraints
-                    if c.or_constraints is not None:
-                        for sub_c in c.or_constraints:
-                            if sub_c.var_ref is not None and sub_c.var_ref.name not in self.date_vars:
-                                self.date_vars[sub_c.var_ref.name] = sub_c.var_ref
-                            if sub_c.rhs_ref is not None and isinstance(sub_c.rhs_ref, EnumerationDateVar):
-                                if sub_c.rhs_ref.name not in self.date_vars:
-                                    self.date_vars[sub_c.rhs_ref.name] = sub_c.rhs_ref
-                    else:
-                        if c.var_ref is not None and c.var_ref.name not in self.date_vars:
-                            self.date_vars[c.var_ref.name] = c.var_ref
-                        if c.rhs_ref is not None and isinstance(c.rhs_ref, EnumerationDateVar):
-                            if c.rhs_ref.name not in self.date_vars:
-                                self.date_vars[c.rhs_ref.name] = c.rhs_ref
+                    targets = c.or_constraints if c.or_constraints is not None else [c]
+                    for sub_c in targets:
+                        if sub_c.var_ref is not None and isinstance(sub_c.var_ref, EnumerationDateVar):
+                            self.date_vars.setdefault(sub_c.var_ref.name, sub_c.var_ref)
+                        if sub_c.rhs_ref is not None and isinstance(sub_c.rhs_ref, EnumerationDateVar):
+                            self.date_vars.setdefault(sub_c.rhs_ref.name, sub_c.rhs_ref)
 
             # Reset lazy nodes so they recompute from base values
-            for name, var in list(self.date_vars.items()):
+            for _, var in list(self.date_vars.items()):
                 if hasattr(var, '_lazy_op'):
                     var._hard_reset_value()  # ★
 
             # Set all base variable values for this assignment
-            for name, d in assignment.items():
-                if name in self.date_vars:
-                    self.date_vars[name].set_value(d.year, d.month, d.day)
+            for name, val in assignment.items():
+                if name in self.date_vars and isinstance(val, Date):
+                    self.date_vars[name].set_value(val.year, val.month, val.day)
 
             # Evaluate
             for c in self.constraints:

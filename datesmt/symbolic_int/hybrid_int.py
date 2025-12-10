@@ -131,8 +131,14 @@ class DateVar:
         self._month_var = Int(f"{self.name}_month")
         self._day_var = Int(f"{self.name}_day")
         self._ymd_exists = True
-        # Add validity constraints, but do NOT link to epoch automatically
+        # Add validity constraints
         self.ctx._add_date_constraints(self)
+        # Link YMD to epoch: When YMD is materialized, it becomes the source of truth
+        # Add constraint: epoch_var == days_since_epoch_from_ymd(year_var, month_var, day_var)
+        self.ctx.solver.add(self.epoch_var == days_since_epoch_from_ymd(self._year_var, self._month_var, self._day_var))
+        # Update consistency flags: YMD is now the consistent representation
+        self._ymd_consistent = True
+        self._epoch_consistent = False
 
     def _epoch_expr(self) -> ArithRef:
         """Return an epoch-days expression consistent with current state (lazy).

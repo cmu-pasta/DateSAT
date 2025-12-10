@@ -42,6 +42,7 @@ def run_constraint_with_approach(
         # New format fields (copied directly from input)
         "id": constraint_id,
         "constraints": constraint_data.get("constraints", []),
+        "declarations": constraint_data.get("declarations", []),
         # Execution metadata
         "approach": approach,
         "implementation": implementation,
@@ -57,33 +58,28 @@ def run_constraint_with_approach(
         # Handle enumeration baseline differently (it doesn't use DateSMTBuilder)
         if approach == "enumeration":
             # Create EnumerationSolver directly
-            def create_builder():
-                return EnumerationSolver(timeout_ms=timeout_ms)
-
-            exec_globals = {
-                "Date": Date,
-                "Period": Period,
-                "DateSMTBuilder": create_builder,
-            }
+            solver = EnumerationSolver(timeout_ms=timeout_ms)
+            exec_globals = solver.get_execution_context()
 
             try:
                 exec(constraint_code, exec_globals)
             except AttributeError as e:
-                # Check if error is due to unsupported variable types (bool/int)
                 error_msg = str(e)
+                # Treat unhandled add_bool_var/add_int_var as not supported
                 if "add_bool_var" in error_msg or "add_int_var" in error_msg:
-                    # Enumeration baseline doesn't support bool/int variables
                     result["status"] = "not_applicable"
-                    result["error_message"] = f"Enumeration baseline does not support bool/int variables: {error_msg}"
+                    result["error_message"] = (
+                        "Enumeration baseline does not support these variable types: "
+                        f"{error_msg}"
+                    )
                     result["solution"] = None
                     result["smtlib"] = None
-                    print(f"Not applicable: Enumeration baseline doesn't support bool/int variables")
+                    print("Not applicable: Enumeration baseline doesn't support bool/int variables")
                     return result
-                # Re-raise if it's a different AttributeError
                 raise
 
             # Get the solver from the executed code
-            builder = exec_globals.get("result") or exec_globals.get("builder")
+            builder = exec_globals.get("result") or exec_globals.get("builder") or solver
             if not builder:
                 raise RuntimeError("Constraint code did not create a solver")
 
@@ -146,7 +142,15 @@ def run_constraint_with_approach(
                 # Best-effort; ignore probing errors
                 pass
 
-        result["solution"] = solve_result.get("dates", {})
+        # Include all variable types in the stored solution
+        solution_dates = solve_result.get("dates", {}) or {}
+        solution_ints = solve_result.get("ints", {}) or {}
+        solution_bools = solve_result.get("bools", {}) or {}
+        merged_solution = {}
+        merged_solution.update({k: str(v) for k, v in solution_dates.items()})
+        merged_solution.update({k: v for k, v in solution_ints.items()})
+        merged_solution.update({k: v for k, v in solution_bools.items()})
+        result["solution"] = merged_solution
 
         if result["status"] == "sat":
             print(f"✅ Solution found:")
@@ -369,20 +373,41 @@ def main():
                 print(f"Error: Results directory not found: {results_dir}")
                 continue
 
-            summary = check_results_dir(results_dir)
+            summary_supported = check_results_dir(
+                results_dir, enumeration_filter="supported"
+            )
 
-            # Save analysis results
-            analysis_output = results_dir / "checked_summary.json"
+            # Save analysis results for constraints supported by enumeration baseline
+            analysis_output = results_dir / "checked_summary_with_baseline.json"
             with open(analysis_output, "w", encoding="utf-8") as f:
-                json.dump(summary, f, indent=2, sort_keys=False)
+                json.dump(summary_supported, f, indent=2, sort_keys=False)
 
             print(f"\nAnalysis complete!")
-            print(f"Checked {summary['constraints_checked']} constraints")
+            print(
+                f"Checked {summary_supported['constraints_checked']} constraints "
+                "(enumeration supported)"
+            )
             print(f"Analysis results saved to: {analysis_output}")
 
-            # Print summary statistics
-            counts = summary["counts_by_approach"]
-            print(f"\nSummary by approach:")
+            # If there are constraints the enumeration baseline does not support,
+            # save their stats separately.
+            enum_support = summary_supported.get("enumeration_support", {})
+            not_supported_count = enum_support.get("not_supported_count", 0)
+            if not_supported_count:
+                unsupported_summary = check_results_dir(
+                    results_dir, enumeration_filter="not_supported"
+                )
+                unsupported_output = results_dir / "checked_summary_without_baseline.json"
+                with open(unsupported_output, "w", encoding="utf-8") as f:
+                    json.dump(unsupported_summary, f, indent=2, sort_keys=False)
+                print(
+                    f"Constraints without enumeration support: {not_supported_count} "
+                    f"(saved to: {unsupported_output})"
+                )
+
+            # Print summary statistics for supported constraints
+            counts = summary_supported["counts_by_approach"]
+            print(f"\nSummary by approach (enumeration supported constraints):")
             for approach, counts_dict in counts.items():
                 total = sum(counts_dict.values())
                 correct = counts_dict.get("correct", 0)

@@ -123,11 +123,16 @@ class DateSMTBuilder:
             
             for decl in model.decls():
                 name = decl.name()
-                # Skip internal date variable components (they end with _year, _month, _day, _months, _beta, _days)
-                if any(name.endswith(suffix) for suffix in ['_year', '_month', '_day', '_months', '_beta', '_days']):
-                    continue
                 # Skip if this is a date variable (we already have it in result["dates"])
                 if name in date_var_names:
+                    continue
+                # Skip internal date variable components (date_var_name + suffix)
+                is_date_component = False
+                for date_var in date_var_names:
+                    if any(name == f"{date_var}{suffix}" for suffix in ['_year', '_month', '_day', '_months', '_beta', '_days']):
+                        is_date_component = True
+                        break
+                if is_date_component:
                     continue
                 
                 # Check if this is an Int, BitVec, or Bool variable
