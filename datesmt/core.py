@@ -78,15 +78,14 @@ class Date:
                 and self.month == other.month
                 and self.day == other.day
             )
-        else:
-            raise TypeError(f"Cannot compare Date with {type(other)}")
+        # Let Python try the reflected comparison (e.g., DateVar.__eq__)
+        return NotImplemented
 
     def __ne__(self, other: "Date") -> bool:
         """Check if two dates are not equal."""
         if isinstance(other, Date):
             return not self.__eq__(other)
-        else:
-            raise TypeError(f"Cannot compare Date with {type(other)}")
+        return NotImplemented
 
     def to_python_date(self) -> date:
         """Convert to Python date object."""

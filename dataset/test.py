@@ -37,17 +37,30 @@ from datesmt.constraint_parser import ConstraintParser
 # Paste a single JSON constraint object here (one from *_constraints*.jsonl)
 CONSTRAINT_JSON = r"""
 {
-  "id": "grammar-10",
-  "constraints": [
-    "k: date",
-    "a: int",
-    "applied: bool",
-    "k.year==2000",
-    "k.month=2",
-    "a!=k.month",
-    "applied== a != k.month"
-  ]
-}
+    "id": "grammar-7",
+    "declarations": [
+      "B4: bool",
+      "B7: bool",
+      "D1: date",
+      "D2: date",
+      "D3: date",
+      "D6: date",
+      "D7: date",
+      "I3: int",
+      "I6: int",
+      "I7: int",
+      "I9: int"
+    ],
+    "constraints": [
+      "(B4 == False) -> (D2 < (Date(2099,11,9) - Period(6,4,6)))",
+      "I9 == 7 || I3 != 31",
+      "(B7 != False) -> (Date(2022,7,14) + (Period(4,9,2) + Period(3,6,4) * 7) == ((D6 + Period(2,0,9)) - (Period(8,9,9) + (Period(0,5,2) * 0))) - Period(0,6,8))",
+      "I6 >= 29",
+      "D3 != D6",
+      "D7 != D1 || I9 >= I7"
+    ],
+    "size": 6
+  }
 """
 
 
