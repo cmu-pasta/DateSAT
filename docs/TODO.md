@@ -97,7 +97,8 @@ General
     [ ] dataset/
         [ ] run_benchmarks.py
         [ ] validation.py
-        [ ] llm.py
+        [X] llm.py
+        [ ] legal_doc_constraints/
 [X] Clean up existing doc
 [X] Add READMEs
 [X] Add documentation for each method

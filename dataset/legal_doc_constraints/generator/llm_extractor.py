@@ -1,8 +1,7 @@
 """
 LLM-based extraction of date/time constraints from legal text (Title 26).
 
-Uses LLM to extract realistic constraints from legal text and add common knowledge
-assumptions (e.g., marriage date constraints based on birthdays).
+Uses LLM to extract realistic constraints from legal text and common knowledge assumptions.
 
 Processing:
 - Processes records from filtered.jsonl
@@ -33,7 +32,7 @@ from datesmt.constraint_parser import ConstraintParser
 LEGAL_EXTRACTION_PROMPT = """You are an expert in temporal reasoning, specializing in converting legal clauses from the U.S. Internal Revenue Code (Title 26) into precise DateSMT constraints.
 
 Your task:  
-Given a passage of legal text, extract all explicit and logically required date/period constraints and express them in the DateSMT DSL.  
+Given a passage of legal text, extract all explicit and logically required date/period constraints and express them in the DateSMT DSL specified below.  
 You must output ONLY valid JSON following the schema below.
 
 ────────────────────────────────────────────────────────
@@ -53,7 +52,7 @@ Rules:
 - Declarations must be SEPARATE constraint strings, NOT inside other constraints.
   WRONG: "(A) -> (x: bool)"
   RIGHT: "x: bool", "(A) -> (x == True)"
-- Period() ONLY accepts concrete integers — you CANNOT create symbolic period variables
+- Period() ONLY accepts concrete integers — you CANNOT create symbolic period variables.
 - Use parentheses () to group expressions and avoid ambiguity:
   WRONG: "a + b * c" (ambiguous)
   RIGHT: "(a + b) * c" or "a + (b * c)"
@@ -61,7 +60,7 @@ Rules:
   RIGHT: "(A) -> ((B) -> (C))" (nested, valid)
 
 ────────────────────────────────────────────────────────
-II. ALLOWED OPERATIONS
+II. DateSMT DSL ALLOWED OPERATIONS
 ────────────────────────────────────────────────────────
 Date arithmetic:
 - Date ± Period → Date  
@@ -79,15 +78,17 @@ Integers:
 Booleans:
 - Bool == Bool  
 - Use True/False literals  
+- Logical operators: && (and), || (or), ! (not)
 - Implication: (A) -> (B)
 - Nested implication for "if A and B then C": (A) -> ((B) -> (C))
+- Complex expressions: (A && B) || C, !(A || B), etc.
 
 ────────────────────────────────────────────────────────
 III. FORBIDDEN EXPRESSIONS
 ────────────────────────────────────────────────────────
 - Period ▷◁ Period  (compare dates after applying periods instead)
 - Boolean arithmetic (bool + int, bool * bool, etc.)
-- And(), Or(), Not() functions — use CNF clauses and implications instead
+- Function-style And(), Or(), Not() — use operators &&, ||, ! instead
 - Chained implications like (A) -> (B) -> (C) — use nested: (A) -> ((B) -> (C))
 - Dates outside 1900-03-01 to 2100-02-28
 - Undeclared variables (except int args to Date())
