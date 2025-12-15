@@ -1,27 +1,16 @@
 """
-High-recall detection of candidate date/time constraints in Title 26.
-
-This script implements step (3)–(5) of the legal_doc_constraints pipeline:
-
-3. Define what counts as a "date/time constraint"
-   - Deadlines, waiting periods, limitation periods
-   - Effective dates / applicability windows
-   - Durations and recurring temporal patterns (e.g., "for each taxable year")
-
-4. Build a library of temporal patterns
-   - Lexical triggers ("within", "not later than", "for each taxable year", ...)
-   - Numeric + unit patterns ("within 3 years", "30 days after", ...)
-   - Tax-specific temporal terms ("taxable year", "calendar quarter", ...)
-
-5. Run a candidate extraction pass
-   - For each parsed element, apply regex-based temporal patterns
-   - If any hits, mark as a candidate date/time constraint and
-     store matched spans and trigger phrases as metadata.
+Detection of candidate date/time constraints in Title 26.
 
 By default, this script reads the parsed elements from:
     dataset/legal_doc_constraints/processed_data/parsed.jsonl
 and writes candidate constraints to:
     dataset/legal_doc_constraints/processed_data/filtered.jsonl
+
+Filtering logic:
+- Records must contain temporal keywords/patterns (period keywords, relation keywords, 
+  tax anchors, effective cues, or date patterns)
+- Records must have MORE THAN the minimum number of unique matched patterns (default: 5)
+- Configure the threshold with --min-patterns flag
 """
 
 import argparse
@@ -58,9 +47,9 @@ RELATION_KEYWORDS = [
     r"\bbefore\b",
     r"\bprior\s+to\b",
     #r"\bfollowing\b",
-    r"\bpreceding\b",
-    r"\bbeginning\b",
-    r"\bending\b",
+    #r"\bpreceding\b",
+    #r"\bbeginning\b",
+    #r"\bending\b",
     r"\bduring\b",
     r"\bbetween\b",
     r"\bfrom\b.*\bto\b",
@@ -224,6 +213,12 @@ def main():
         help="Output JSONL file path "
         "(default: dataset/legal_doc_constraints/processed_data/filtered.jsonl)",
     )
+    parser.add_argument(
+        "--min-patterns",
+        type=int,
+        default=5,
+        help="Minimum number of unique matched patterns required to keep a record (default: 5)",
+    )
 
     args = parser.parse_args()
 
@@ -249,6 +244,7 @@ def main():
 
     print(f"Detecting temporal clauses in {input_path}...")
     print(f"Output: {output_path}")
+    print(f"Minimum unique matched patterns required: {args.min_patterns}")
 
     total = 0
     candidates = 0
@@ -264,6 +260,11 @@ def main():
                 # Preserve ALL fields from parsed record and add detection metadata
                 text = record.get("text", "")
                 hits = detect_temporal_hits(text)
+                
+                # Check if the number of unique matched patterns meets the threshold
+                num_patterns = len(hits["matched_patterns"])
+                if num_patterns <= args.min_patterns:
+                    continue
                 
                 # Create output record preserving all original fields
                 output_record = dict(record)  # Explicit copy to ensure all fields preserved

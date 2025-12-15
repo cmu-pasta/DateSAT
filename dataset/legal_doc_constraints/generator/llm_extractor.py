@@ -1,8 +1,7 @@
 """
 LLM-based extraction of date/time constraints from legal text (Title 26).
 
-Uses LLM to extract realistic constraints from legal text and add common knowledge
-assumptions (e.g., marriage date constraints based on birthdays).
+Uses LLM to extract realistic constraints from legal text and common knowledge assumptions.
 
 Processing:
 - Processes records from filtered.jsonl
@@ -30,87 +29,98 @@ from datesmt.constraint_parser import ConstraintParser
 
 
 # System prompt for legal document constraint extraction
-LEGAL_EXTRACTION_PROMPT = """You are an expert in temporal reasoning, specializing in converting legal clauses from the U.S. Internal Revenue Code (Title 26) into precise DateSMT constraints.
+LEGAL_EXTRACTION_PROMPT = """You are an expert in temporal reasoning. Convert legal clauses from the U.S. Internal Revenue Code (Title 26) into precise DateSMT constraints.
 
-Your task:  
-Given a passage of legal text, extract all explicit and logically required date/period constraints and express them in the DateSMT DSL.  
-You must output ONLY valid JSON following the schema below.
+TASK: Extract all explicit and logically required date/period constraints from legal text and express them in the DateSMT DSL below. Output ONLY valid JSON.
 
-────────────────────────────────────────────────────────
-I. DateSMT DSL TYPES & DECLARATIONS
-────────────────────────────────────────────────────────
-Variable types (can be declared as symbolic):
-- date: symbolic date variable (e.g., "filing_date: date")
-- int: symbolic integer variable (e.g., "tax_year: int")
-- bool: symbolic boolean variable (e.g., "is_married: bool")
+═══════════════════════════════════════════════════════════════════
+I. TYPE SYSTEM
+═══════════════════════════════════════════════════════════════════
 
-Constructors (concrete values only, NOT variable types):
-- Date(year, month, day): concrete date OR with int variables (e.g., Date(2020, 1, 15) or Date(year_val, 1, 15))
-- Period(years, months, days): concrete period ONLY (e.g., Period(3, 0, 0)) — NO symbolic period variables
+SYMBOLIC VARIABLE TYPES (declare in "declarations" array):
+  • date    — symbolic date variable          Example: "filing_date: date"
+  • int     — symbolic integer variable       Example: "tax_year: int"
+  • bool    — symbolic boolean variable       Example: "is_married: bool"
 
-Rules:
-- All variables must be declared before use, except integers appearing only as arguments to Date().
-- Declarations must be SEPARATE constraint strings, NOT inside other constraints.
-  WRONG: "(A) -> (x: bool)"
-  RIGHT: "x: bool", "(A) -> (x == True)"
-- Period() ONLY accepts concrete integers — you CANNOT create symbolic period variables
-- Use parentheses () to group expressions and avoid ambiguity:
-  WRONG: "a + b * c" (ambiguous)
-  RIGHT: "(a + b) * c" or "a + (b * c)"
-  WRONG: "A -> B -> C" (chained, invalid)
-  RIGHT: "(A) -> ((B) -> (C))" (nested, valid)
+CONCRETE CONSTRUCTORS (use in "constraints" array):
+  • Date(year, month, day)     — concrete date with literals or int variables
+                                 Examples: Date(2020, 1, 15) or Date(year_val, 1, 15) or Date(x+1, 1, 15)
+  • Period(years, months, days) — concrete period with integer literals ONLY
+                                 Example: Period(3, 0, 0)
+                                 FORBIDDEN: Period(n, 0, 0) where n is symbolic
 
-────────────────────────────────────────────────────────
+DECLARATION RULES:
+  - All variables must be declared before use (except int args to Date())
+  - Declarations go in "declarations" array, NOT in "constraints"
+  - - WRONG: "(A) -> (x: bool)"
+  - - RIGHT: Declare "x: bool" in declarations, then use "(A) -> (x == True)" in constraints
+
+═══════════════════════════════════════════════════════════════════
 II. ALLOWED OPERATIONS
-────────────────────────────────────────────────────────
-Date arithmetic:
-- Date ± Period → Date  
-- Date ▷◁ Date (▷◁ ∈ {==, !=, <, <=, >, >=})
+═══════════════════════════════════════════════════════════════════
 
-Period:
-- Period ± Period → Period  
-- Period * Int → Period  
+DATE OPERATIONS:
+  • Date ± Period → Date
+  • Date comparison: ==, !=, <, <=, >, >=
+  • Property access: date_var.year, date_var.month, date_var.day → int
 
-Integers:
-- Int ± Int → Int  
-- Int * Int → Int  
-- Accessors: k.year, k.month, k.day → int
+PERIOD OPERATIONS:
+  • Period ± Period → Period
+  • Period * int → Period
 
-Booleans:
-- Bool == Bool  
-- Use True/False literals  
-- Implication: (A) -> (B)
-- Nested implication for "if A and B then C": (A) -> ((B) -> (C))
+INTEGER OPERATIONS:
+  • Arithmetic: +, -, *, **, // (int division), % (modulo)
+  • Comparison: ==, !=, <, <=, >, >=
 
-────────────────────────────────────────────────────────
+BOOLEAN OPERATIONS:
+  • Comparison: == (use True/False literals)
+  • Logical: && (and), || (or), ! (not)
+  • Implication: (A) -> (B)
+  • Nested implication: (A) -> ((B) -> (C))  for "if A and B then C"
+
+PARENTHESIZATION (REQUIRED):
+  - Use parentheses to group expressions and avoid ambiguity
+  - - WRONG: "a + b * c"       (ambiguous precedence)
+  - - RIGHT: "(a + b) * c"     (explicit grouping)
+  - - WRONG: "A -> B -> C"     (chained implication, invalid)
+  - - RIGHT: "(A) -> ((B) -> (C))"  (nested implication, valid)
+
+═══════════════════════════════════════════════════════════════════
 III. FORBIDDEN EXPRESSIONS
-────────────────────────────────────────────────────────
-- Period ▷◁ Period  (compare dates after applying periods instead)
-- Boolean arithmetic (bool + int, bool * bool, etc.)
-- And(), Or(), Not() functions — use CNF clauses and implications instead
-- Chained implications like (A) -> (B) -> (C) — use nested: (A) -> ((B) -> (C))
-- Dates outside 1900-03-01 to 2100-02-28
-- Undeclared variables (except int args to Date())
+═══════════════════════════════════════════════════════════════════
+  ✗ Period comparisons (Period ▷◁ Period)  — compare dates after applying the period arithmetic instead
+  ✗ Floating-point division (Int / Int)    — use // for integer division
+  ✗ Boolean arithmetic (bool + int, etc.)
+  ✗ Function-style operators: And(), Or(), Not()  — use &&, ||, ! operators
+  ✗ Chained implications: (A) -> (B) -> (C)  — use nested: (A) -> ((B) -> (C))
+  ✗ Dates outside 1900-03-01 to 2100-02-28
+  ✗ Undeclared variables (except int args to Date())
+  ✗ Symbolic period variables
 
-────────────────────────────────────────────────────────
-IV. CONSTRAINT FORMAT RULES (CRITICAL)
-────────────────────────────────────────────────────────
-Output is a JSON object with separate declarations and constraints:
-{
-  "description": "...",
-  "declarations": ["variable_name: type", ...],
-  "constraints": ["constraint expression", ...]
-}
+═══════════════════════════════════════════════════════════════════
+IV. OUTPUT FORMAT (STRICT)
+═══════════════════════════════════════════════════════════════════
 
-Where:
-- "declarations": List of variable declarations (e.g., "filing_date: date", "tax_year: int", "applied: bool")
-- "constraints": List of constraint strings (all constraints are ANDed together)
-- Each constraint is a full boolean expression
-- Use || or "or" or "OR" for OR clauses within a constraint
-- Use && or "and" or "AND" for AND clauses within a constraint
-- Variable declarations MUST be in the "declarations" array, NOT in "constraints"
+OUTPUT ONE OF:
 
-Example:
+1. JSON object with this structure:
+   {
+     "description": "brief summary of constraints",
+     "declarations": ["var_name: type", ...],
+     "constraints": ["constraint_expr", ...]
+   }
+
+2. The literal: null
+   (ONLY when text has NO date/time/period/temporal semantics)
+
+RULES:
+  • "declarations" — variable declarations, one per string
+  • "constraints" — constraint expressions (all ANDed together)
+  • Use && for AND, || for OR within a single constraint
+  • NO explanations, reasoning, comments, or extra text
+  • NO text before or after the JSON
+
+EXAMPLE STRUCTURE:
 {
   "description": "Tax filing constraints",
   "declarations": [
@@ -129,62 +139,42 @@ Example:
   ]
 }
 
-────────────────────────────────────────────────────────
-V. COMMON-KNOWLEDGE INFERENCE RULES
-────────────────────────────────────────────────────────
-You may actively infer and add **implicit** temporal constraints, but ONLY when:
+═══════════════════════════════════════════════════════════════════
+V. INFERENCE RULES
+═══════════════════════════════════════════════════════════════════
 
-1. The entity is explicitly mentioned  
-   Examples: “taxable year”, “married individual”, “return filed”, “claim”, “spouse”
+You may infer implicit temporal constraints ONLY when ALL of:
 
-2. The temporal relationship is REQUIRED for the statute to make sense  
+1. Entity is explicitly mentioned in text
+   Examples: "taxable year", "married individual", "return filed", "claim", "spouse"
+
+2. Temporal relationship is logically required for statute to make sense
    Examples:
-   - Filing must occur after the taxable year ends  
-   - Joint filing requires marriage to occur on or before filing_date  
-   - Taxable year has boundaries:
-        taxable_year_end >= taxable_year_start  
-        taxable_year_end <= taxable_year_start + Period(1,0,0)
+   • Filing must occur after taxable year ends
+   • Joint filing requires marriage on or before filing_date
+   • Taxable year boundaries:
+       taxable_year_end >= taxable_year_start
+       taxable_year_end <= taxable_year_start + Period(1, 0, 0)
 
-3. The inference is minimal and legally necessary  
-   Do NOT infer unrelated facts (e.g., do not introduce birthdays unless spouse/individual is mentioned).
+3. Inference is minimal and necessary
+   • Do NOT infer unrelated facts
+   • Do NOT introduce entities not in text (e.g., no marriage_date unless marriage is mentioned)
 
-4. NEVER introduce new actors not present in the text.  
-   (No marriage_date if the text doesn’t mention marriage.)
+═══════════════════════════════════════════════════════════════════
+VI. EXTRACTION STEPS
+═══════════════════════════════════════════════════════════════════
 
-────────────────────────────────────────────────────────
-VI. EXTRACTION LOGIC
-────────────────────────────────────────────────────────
-For each legal passage:
-1. Identify explicit dates, deadlines, periods, temporal phrases.
-2. Introduce variables with clear, context-specific names.
-3. Encode all explicit temporal relations.
-4. Add only those implicit constraints required for legal coherence.
-5. Convert conditional language to implication.
-6. Convert alternatives to OR clauses.
-7. Use property accessors when needed (k.year == 2020).
+1. Identify explicit dates, deadlines, periods, temporal phrases
+2. Create variables with clear, context-specific names
+3. Encode explicit temporal relations
+4. Add minimal implicit constraints required for legal coherence
+5. Convert conditional language → implication: (condition) -> (consequence)
+6. Convert alternatives → OR: (option1) || (option2)
+7. Use property accessors when needed: date_var.year, date_var.month, date_var.day
 
-────────────────────────────────────────────────────────
-VII. OUTPUT REQUIREMENTS (STRICT)
-────────────────────────────────────────────────────────
-You MUST output **ONLY ONE** of the following:
-
-1. A JSON object with fields:
-   - "description": short summary  
-   - "declarations": array of variable declarations (e.g., ["x: date", "y: int", "flag: bool"])
-   - "constraints": array of constraint expressions (e.g., ["x >= Date(2020,1,1)", "(a || b) && c"])
-
-2. The literal value:
-   null  
-   (Only when the passage contains *no* date, time, period, or temporal semantics.)
-
-No explanations.  
-No reasoning.  
-No comments.  
-No text before or after the JSON.
-
-────────────────────────────────────────────────────────
-VIII. EXAMPLES (for reference)
-────────────────────────────────────────────────────────
+═══════════════════════════════════════════════════════════════════
+VII. EXAMPLES
+═══════════════════════════════════════════════════════════════════
 
 Example 1: Deadline with Period arithmetic
 Legal Text: "A claim for credit or refund must be filed within 3 years from the time the return was filed."
@@ -363,9 +353,6 @@ def extract_constraints_with_llm(
 
     base_user_prompt = (
         f"Extract date/period constraints from this legal text from Title 26 (Internal Revenue Code):\n\n"
-        f"Section Heading: {heading}\n"
-        f"Subsection Path: {subsection_path if subsection_path else 'N/A'}\n"
-        f"Identifier: {identifier}\n\n"
         f"Legal Text:\n{text}\n\n"
         "Extract ALL explicit temporal constraints and REASON about what temporal constraints "
         "are appropriate based on the legal text.\n\n"
