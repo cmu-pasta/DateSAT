@@ -112,21 +112,39 @@ def main():
         # Import validation function
         from dataset.validation import check_results_dir
 
-        summary = check_results_dir(results_dir)
+        summary = check_results_dir(results_dir, enumeration_filter="supported")
 
-        # Save analysis results
+        # Save analysis results (enumeration-supported constraints)
         analysis_output = results_dir / "checked_summary.json"
         with open(analysis_output, "w", encoding="utf-8") as f:
             json.dump(summary, f, indent=2, sort_keys=False)
 
         print(f"\nAnalysis complete!")
-        print(f"Checked {summary['constraints_checked']} constraints")
+        print(
+            f"Checked {summary['constraints_checked']} constraints "
+            "(enumeration supported)"
+        )
         print(f"Analysis results saved to: {analysis_output}")
+
+        # Also save stats for constraints not supported by enumeration baseline
+        enum_support = summary.get("enumeration_support", {})
+        not_supported_count = enum_support.get("not_supported_count", 0)
+        if not_supported_count:
+            unsupported_summary = check_results_dir(
+                results_dir, enumeration_filter="not_supported"
+            )
+            unsupported_output = results_dir / "checked_summary_not_supported.json"
+            with open(unsupported_output, "w", encoding="utf-8") as f:
+                json.dump(unsupported_summary, f, indent=2, sort_keys=False)
+            print(
+                f"Constraints without enumeration support: {not_supported_count} "
+                f"(saved to: {unsupported_output})"
+            )
 
         # Print summary statistics
         counts = summary.get('counts_by_approach', {})
         if counts:
-            print(f"\nSummary by approach:")
+            print(f"\nSummary by approach (enumeration supported constraints):")
             for approach, counts_dict in counts.items():
                 total = sum(counts_dict.values())
                 correct = counts_dict.get('correct', 0)

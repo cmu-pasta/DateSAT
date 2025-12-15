@@ -54,10 +54,7 @@ Generate constraints covering:
   2) End-of-month rollovers (30 vs 31 vs 28/29) → tag: "eom"
   3) Year vs day contrasts (1 year ≠ 365/366 days) → tag: "year_vs_days"
   4) Month vs day contrasts (+1 month ≠ +31 days) → tag: "month_vs_days"
-  5) Addition and subtraction chains (x + Period(...) + Period(...)) → tag: "chain_ops"
-  6) Addition and subtraction chains with brackets (x - (Period(...) + Period(...))) → tag: "chain_ops_brackets"
-  7) Inequality windows (tight ranges for UNSAT, wide for SAT) → tag: "ineq_window"
-  8) Multi-variable relations (x, y, z with different periods) → tag: "multi_var"
+  5) Symbolic date variables (x, y, z) → tag: "symbolic_date_vars" # TODO: update this prompt!!
 - Aim for ~70% satisfiable constraints.
 
 OUTPUT SCHEMA (STRICT)

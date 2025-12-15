@@ -37,7 +37,7 @@ Given a passage of legal text, extract all explicit and logically required date/
 You must output ONLY valid JSON following the schema below.
 
 ────────────────────────────────────────────────────────
-I. DSL TYPES & DECLARATIONS
+I. DateSMT DSL TYPES & DECLARATIONS
 ────────────────────────────────────────────────────────
 Variable types (can be declared as symbolic):
 - date: symbolic date variable (e.g., "filing_date: date")
@@ -88,7 +88,6 @@ III. FORBIDDEN EXPRESSIONS
 - Period ▷◁ Period  (compare dates after applying periods instead)
 - Boolean arithmetic (bool + int, bool * bool, etc.)
 - And(), Or(), Not() functions — use CNF clauses and implications instead
-- && and || operators — use nested implications or CNF format instead
 - Chained implications like (A) -> (B) -> (C) — use nested: (A) -> ((B) -> (C))
 - Dates outside 1900-03-01 to 2100-02-28
 - Undeclared variables (except int args to Date())
@@ -107,7 +106,8 @@ Where:
 - "declarations": List of variable declarations (e.g., "filing_date: date", "tax_year: int", "applied: bool")
 - "constraints": List of constraint strings (all constraints are ANDed together)
 - Each constraint is a full boolean expression
-- Use || or "or" for OR clauses within a constraint
+- Use || or "or" or "OR" for OR clauses within a constraint
+- Use && or "and" or "AND" for AND clauses within a constraint
 - Variable declarations MUST be in the "declarations" array, NOT in "constraints"
 
 Example:

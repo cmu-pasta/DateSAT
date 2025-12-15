@@ -18,6 +18,7 @@ if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
 from datesmt.enumeration_baseline import EnumerationSolver, EnumerationDateVar, ConstraintWrapper
+from datesmt.constraint_validator import validate_constraint_solution
 from datesmt.constraint_parser import ConstraintParser
 from datesmt.core import Date, Period
 
@@ -86,104 +87,63 @@ def execute_constraint_code(
         validated_constraints_str: The original constraint strings that were validated (not SMT-LIB)
     """
     try:
-        # For validation, we use EnumerationSolver which evaluates constraints in Python
-        # We don't need SMT-LIB - we validate using Python date arithmetic
-        enumeration_solver = EnumerationSolver()
-
-        # Parse and create concrete variables with solution values
+        # Parse solution values into proper types (Date/int/bool) for the validator
+        parsed_solution: Dict[str, Union[Date, int, bool]] = {}
+        
         for var_name, var_value in solution.items():
-            var_value = var_value.strip()
+            if isinstance(var_value, str):
+                var_value = var_value.strip()
+                
+                # Try to parse as Date
+                try:
+                    date_obj = parse_date_string(var_value)
+                    parsed_solution[var_name] = date_obj
+                    continue
+                except ValueError:
+                    pass
 
-            # Try to parse as Date
-            try:
-                date_obj = parse_date_string(var_value)
-                enumeration_solver.add_date_var(
-                    var_name, date_obj.year, date_obj.month, date_obj.day
-                )
-                continue
-            except ValueError:
-                pass
+                # Try to parse as Period (skip for now, periods not in solutions)
+                try:
+                    y, m, d = parse_period_string(var_value)
+                    # For concrete validation, we don't need to store period values
+                    continue
+                except ValueError:
+                    pass
 
-            # Try to parse as Period
-            try:
-                y, m, d = parse_period_string(var_value)
-                # For concrete validation, we don't need to create period variables
-                # since we removed PeriodVar support. We'll handle periods directly.
-                continue
-            except ValueError:
-                pass
+                # Try bool
+                lv = var_value.lower()
+                if lv in ("true", "false", "1", "0", "yes", "no", "y", "n", "t", "f"):
+                    parsed_solution[var_name] = lv in ("true", "1", "yes", "y", "t")
+                    continue
 
-            return False, f"Could not parse variable {var_name} value: {var_value}", None
+                # Try int
+                try:
+                    parsed_solution[var_name] = int(var_value)
+                    continue
+                except ValueError:
+                    pass
 
-        # Re-execute the constraint code with enumeration solver and solution values
-        # This will populate enumeration_solver.constraints with the constraints
-        exec_globals_concrete = {
-            'Date': Date,
-            'Period': Period,
-            'DateSMTBuilder': lambda: enumeration_solver,
-            'result': enumeration_solver,
-            'builder': enumeration_solver,
-        }
+                return False, f"Could not parse variable {var_name} value: {var_value}", None
+            else:
+                # Already parsed (int/bool/Date)
+                parsed_solution[var_name] = var_value
 
-        # Execute constraint code to build constraints with enumeration solver
-        exec(constraint_code, exec_globals_concrete)
-
-        # Get the original constraint strings that were validated (if available)
+        # Build validated constraints string from original data (if present)
         validated_constraints_str = None
         if constraint_data and constraint_data.get("constraints"):
-            # Save the original constraint strings that were validated
-            # Handle CNF format: convert lists to readable format
             constraint_strs = []
             for constraint_item in constraint_data.get("constraints", []):
                 if isinstance(constraint_item, list):
-                    # OR clause: format as (c1 OR c2 OR ...)
                     constraint_strs.append("(" + " OR ".join(constraint_item) + ")")
                 else:
                     constraint_strs.append(constraint_item)
             validated_constraints_str = "\n".join(constraint_strs)
 
-        # Evaluate each constraint and check if all are satisfied
-        # EnumerationSolver uses ConstraintWrapper objects for deferred evaluation
-        failed_constraints = []
-        solution_dict = {}
-        for var_name, var_value in solution.items():
-            var_value = var_value.strip()
-            try:
-                date_obj = parse_date_string(var_value)
-                solution_dict[var_name] = Date(date_obj.year, date_obj.month, date_obj.day)
-            except ValueError:
-                pass
-
-        # Use the validate_solution method which handles ConstraintWrapper evaluation
-        if not enumeration_solver.validate_solution(solution_dict):
-            # Get more details about which constraints failed
-            for i, constraint in enumerate(enumeration_solver.constraints):
-                try:
-                    if isinstance(constraint, bool):
-                        if not constraint:
-                            failed_constraints.append(f"Constraint {i+1}: {constraint}")
-                    elif isinstance(constraint, ConstraintWrapper):
-                        if not constraint.evaluate():
-                            failed_constraints.append(f"Constraint {i+1}: {constraint.description or 'constraint'}")
-                    elif callable(constraint):
-                        if not constraint():
-                            failed_constraints.append(f"Constraint {i+1}: callable")
-                    else:
-                        try:
-                            result = bool(constraint)
-                            if not result:
-                                failed_constraints.append(f"Constraint {i+1}: {constraint}")
-                        except (TypeError, ValueError):
-                            pass
-                except Exception as e:
-                    failed_constraints.append(f"Constraint {i+1}: Evaluation error - {str(e)}")
-
-            if failed_constraints:
-                return False, f"Solution does not satisfy constraints: {', '.join(failed_constraints)}", validated_constraints_str
-            else:
-                return False, "Solution does not satisfy constraints", validated_constraints_str
-
-        return True, "Solution validated successfully with enumeration baseline", validated_constraints_str
+        # Evaluate using the pure-Python validator (supports date/bool/int)
+        ok, msg = validate_constraint_solution(constraint_code, parsed_solution)
+        if ok:
+            return True, "Solution validated successfully", validated_constraints_str
+        return False, f"Constraint execution failed: {msg}", validated_constraints_str
 
     except Exception as e:
         return False, f"Error during constraint execution: {str(e)}", None
@@ -219,7 +179,11 @@ def validate_solution_with_concrete(
         return False, "Empty solution", None
 
     # Convert new format to executable code
-    constraint_code = _get_constraint_code(constraint_data)
+    try:
+        constraint_code = _get_constraint_code(constraint_data)
+    except ValueError as e:
+        # Likely undeclared variables or unsupported constructs
+        return False, f"Validation not supported: {e}", None
 
     # Convert solution to string format if needed
     string_solution = {}
@@ -234,6 +198,10 @@ def validate_solution_with_concrete(
             string_solution[var_name] = (
                 f"Period({var_value.years}, {var_value.months}, {var_value.days})"
             )
+        elif isinstance(var_value, bool):
+            string_solution[var_name] = "True" if var_value else "False"
+        elif isinstance(var_value, int):
+            string_solution[var_name] = str(var_value)
         else:
             return False, f"Unknown variable type for {var_name}: {type(var_value)}", None
 
@@ -385,6 +353,7 @@ def validate_sat_record(
     # Construct constraint data from new format fields for validation
     constraint_data = {
         "constraints": rec.get("constraints", []),
+        "declarations": rec.get("declarations", []),
         "coverage_tags": rec.get("coverage_tags", []),
     }
 
@@ -459,16 +428,11 @@ def summarize_constraint(
 
     # Validate SAT records using enumeration baseline (only if enumeration is available)
     sat_validation: Dict[str, Dict[str, Any]] = {}
-    if enumeration_available:
-        # Only validate if enumeration baseline is available
-        for a, r in sat_recs.items():
-            ok, msg = validate_sat_record(cid, r, save_dir=save_dir)
-            sat_validation[a] = {"valid": ok, "message": msg, "solution": r.get("solution")}
-    else:
-        # When enumeration is not_applicable, we can't validate using enumeration
-        # Mark all as not validated (we'll compare approaches against each other instead)
-        for a, r in sat_recs.items():
-            sat_validation[a] = {"valid": None, "message": "Enumeration baseline not applicable (bool/int variables)", "solution": r.get("solution")}
+    # Always validate SAT records using the Python validator (no dependence on
+    # enumeration baseline availability).
+    for a, r in sat_recs.items():
+        ok, msg = validate_sat_record(cid, r, save_dir=save_dir)
+        sat_validation[a] = {"valid": ok, "message": msg, "solution": r.get("solution")}
 
     # New validation logic based on enumeration baseline as ground truth
     per_approach_verdict: Dict[str, str] = {}
@@ -514,51 +478,33 @@ def summarize_constraint(
             # Treat like timeout - don't penalize, but don't count as correct either
             per_approach_verdict[a] = "not_applicable"
         elif status == "sat":
-            # This approach (a) is SAT
-            # If enumeration baseline is not_applicable, we can't use it for validation,
-            # so compare this approach against other non-enumeration approaches
-            if not enumeration_available:
-                # Get other non-enumeration, non-timeout, non-error approaches
-                other_statuses = [
-                    s for k, s in normalized_statuses.items() 
-                    if k != enumeration_key and k != a and s not in ("timeout", "error", "not_applicable")
-                ]
-                if not other_statuses:
-                    # Only this approach (or only enumeration), mark as correct
-                    per_approach_verdict[a] = "correct"
-                elif all(s == "sat" for s in other_statuses):
-                    # All other approaches also SAT - they agree, mark as correct
-                    per_approach_verdict[a] = "correct"
-                elif all(s == "unsat" for s in other_statuses):
-                    # All others UNSAT but this is SAT - disagreement, mark as wrong
+            # Prefer concrete validation result if available
+            vinfo = sat_validation.get(a)
+            msg = (vinfo or {}).get("message", "")
+            if vinfo and vinfo.get("valid") is True:
+                per_approach_verdict[a] = "correct"
+            elif vinfo and vinfo.get("valid") is False:
+                if isinstance(msg, str) and "Date outside allowed range" in msg:
+                    per_approach_verdict[a] = "warning"
+                else:
+                    per_approach_verdict[a] = "wrong"
+            else:
+                # Fallback to status-based heuristics
+                if not enumeration_available:
+                    other_statuses = [
+                        s for k, s in normalized_statuses.items()
+                        if k != enumeration_key and k != a and s not in ("timeout", "error", "not_applicable")
+                    ]
+                    if not other_statuses or all(s == "sat" for s in other_statuses):
+                        per_approach_verdict[a] = "correct"
+                    elif all(s == "unsat" for s in other_statuses):
+                        per_approach_verdict[a] = "wrong"
+                    else:
+                        per_approach_verdict[a] = "correct"
+                elif all_sat:
                     per_approach_verdict[a] = "wrong"
                 else:
-                    # Mixed results (some SAT, some UNSAT) - can't determine, mark as correct (conservative)
-                    per_approach_verdict[a] = "correct"
-            # If all methods are SAT, validate using enumeration baseline
-            elif all_sat:
-                vinfo = sat_validation.get(a)
-                if vinfo and vinfo.get("valid") is True:
-                    per_approach_verdict[a] = "correct"
-                else:
-                    # downgrade to warning if out-of-bounds concrete evaluation
-                    msg = (vinfo or {}).get("message", "")
-                    if isinstance(msg, str) and "Date outside allowed range" in msg:
-                        per_approach_verdict[a] = "warning"
-                    else:
-                        per_approach_verdict[a] = "wrong"
-            # If some are SAT, some are UNSAT, check if SAT ones are correct
-            # If at least one SAT is correct, then UNSAT is wrong
-            else:
-                vinfo = sat_validation.get(a)
-                if vinfo and vinfo.get("valid") is True:
-                    per_approach_verdict[a] = "correct"
-                else:
-                    msg = (vinfo or {}).get("message", "")
-                    if isinstance(msg, str) and "Date outside allowed range" in msg:
-                        per_approach_verdict[a] = "warning"
-                    else:
-                        per_approach_verdict[a] = "wrong"
+                    per_approach_verdict[a] = "wrong"
         elif status == "unsat":
             # If enumeration is not_applicable, compare other approaches against each other
             if not enumeration_available:
@@ -640,7 +586,9 @@ def summarize_constraint(
     }
 
 
-def check_results_dir(results_dir: Path) -> Dict[str, Any]:
+def check_results_dir(
+    results_dir: Path, enumeration_filter: Optional[str] = None
+) -> Dict[str, Any]:
     """
     Comprehensive analysis of results directory with validation and metrics.
 
@@ -649,6 +597,10 @@ def check_results_dir(results_dir: Path) -> Dict[str, Any]:
 
     Args:
         results_dir: Directory containing result JSON files
+        enumeration_filter: If "supported", only include constraints where the
+            enumeration baseline is applicable. If "not_supported", only include
+            constraints where enumeration baseline reports not_applicable. If
+            None (default), include all constraints.
 
     Returns:
         Dictionary with comprehensive analysis results including:
@@ -657,6 +609,11 @@ def check_results_dir(results_dir: Path) -> Dict[str, Any]:
         - Metrics (SMT-LIB lines, execution times)
         - Per-constraint summaries
     """
+    if enumeration_filter not in (None, "supported", "not_supported"):
+        raise ValueError(
+            "enumeration_filter must be one of None, 'supported', or 'not_supported'"
+        )
+
     records = load_results_files(results_dir)
     grouped = group_by_constraint(records)
 
@@ -665,9 +622,66 @@ def check_results_dir(results_dir: Path) -> Dict[str, Any]:
     save_dir = results_dir / "smt2_assertion"
     save_dir.mkdir(parents=True, exist_ok=True)
 
+    # Build summaries for every constraint first so we can filter later
     for cid, approaches in sorted(grouped.items(), key=lambda kv: kv[0]):
         summary = summarize_constraint(cid, approaches, save_dir=save_dir)
         summaries.append(summary)
+
+    # Categorize constraints by enumeration baseline support
+    enumeration_supported_constraints: List[str] = []
+    enumeration_not_supported_constraints: List[str] = []
+
+    for summary in summaries:
+        cid = summary.get("constraint_id")
+        verdicts = summary.get("verdicts_by_approach", {})
+
+        enumeration_not_applicable = any(
+            approach_key.startswith("enumeration_") and verdict == "not_applicable"
+            for approach_key, verdict in verdicts.items()
+        )
+
+        if enumeration_not_applicable:
+            enumeration_not_supported_constraints.append(cid)
+        else:
+            enumeration_supported_constraints.append(cid)
+
+    # Decide which constraints to keep based on enumeration_filter
+    if enumeration_filter == "supported":
+        included_constraint_ids = set(enumeration_supported_constraints)
+        filter_mode = "supported"
+    elif enumeration_filter == "not_supported":
+        included_constraint_ids = set(enumeration_not_supported_constraints)
+        filter_mode = "not_supported"
+    else:
+        included_constraint_ids = {s.get("constraint_id") for s in summaries}
+        filter_mode = "all"
+
+    filtered_summaries = [
+        s for s in summaries if s.get("constraint_id") in included_constraint_ids
+    ]
+
+    # If we're focusing on constraints where enumeration is not supported,
+    # drop enumeration_* approach details from the per-constraint summaries so we
+    # don't emit stats for not_applicable enumeration runs.
+    if filter_mode == "not_supported":
+        cleaned_summaries: List[Dict[str, Any]] = []
+        for summary in filtered_summaries:
+            cleaned = dict(summary)
+            # Strip enumeration_* entries from nested maps
+            for key in ("approach_statuses", "sat_validation", "verdicts_by_approach"):
+                if key in cleaned and isinstance(cleaned[key], dict):
+                    cleaned[key] = {
+                        k: v for k, v in cleaned[key].items() if not k.startswith("enumeration_")
+                    }
+            # Remove enumeration entries from wrong_approaches / might_correct_approaches
+            for key in ("wrong_approaches", "might_correct_approaches"):
+                if key in cleaned and isinstance(cleaned[key], list):
+                    cleaned[key] = [k for k in cleaned[key] if not str(k).startswith("enumeration_")]
+            cleaned_summaries.append(cleaned)
+        filtered_summaries = cleaned_summaries
+
+    # Recompute counts using the filtered subset
+    for summary in filtered_summaries:
         per = summary.get("verdicts_by_approach", {})
         for approach, v in per.items():
             if approach not in counts_by_approach:
@@ -679,8 +693,19 @@ def check_results_dir(results_dir: Path) -> Dict[str, Any]:
                     "warning": 0,
                     "not_applicable": 0,
                 }
+            # Only track not_applicable for enumeration_* approaches; DateSMT methods
+            # shouldn't produce this status.
+            if v == "not_applicable" and not approach.startswith("enumeration_"):
+                continue
             if v in counts_by_approach[approach]:
                 counts_by_approach[approach][v] += 1
+
+    # For the not_supported view, strip the not_applicable bucket from
+    # non-enumeration approaches entirely so it doesn't appear in output.
+    if filter_mode == "not_supported":
+        for approach in list(counts_by_approach.keys()):
+            if not approach.startswith("enumeration_"):
+                counts_by_approach[approach].pop("not_applicable", None)
 
     # --------------------------
     # Metrics: constraint lines and execution time
@@ -713,14 +738,19 @@ def check_results_dir(results_dir: Path) -> Dict[str, Any]:
     implementation_counts: Dict[str, int] = {}
 
     for cid, appr_map in grouped.items():
+        if cid not in included_constraint_ids:
+            continue
+
         entries = []
         for approach, implementations in appr_map.items():
+            # For the not_supported view, skip enumeration_* approaches entirely
+            if filter_mode == "not_supported" and approach.startswith("enumeration_"):
+                continue
             for implementation, rec in implementations.items():
                 smt_path = rec.get("smtlib_file")
                 lines = _smt2_lines(smt_path)
                 t = float(rec.get("execution_time") or 0.0)
 
-                # Create composite key for approach + implementation
                 composite_key = f"{approach}_{implementation}"
                 entries.append(
                     {
@@ -732,12 +762,14 @@ def check_results_dir(results_dir: Path) -> Dict[str, Any]:
                     }
                 )
 
-                # Update approach-level metrics using composite key (approach_implementation)
-                approach_line_sum[composite_key] = approach_line_sum.get(composite_key, 0) + lines
-                approach_time_sum[composite_key] = approach_time_sum.get(composite_key, 0.0) + t
+                approach_line_sum[composite_key] = (
+                    approach_line_sum.get(composite_key, 0) + lines
+                )
+                approach_time_sum[composite_key] = (
+                    approach_time_sum.get(composite_key, 0.0) + t
+                )
                 approach_counts[composite_key] = approach_counts.get(composite_key, 0) + 1
 
-                # Update implementation-level metrics
                 implementation_line_sum[implementation] = (
                     implementation_line_sum.get(implementation, 0) + lines
                 )
@@ -856,33 +888,12 @@ def check_results_dir(results_dir: Path) -> Dict[str, Any]:
         key=lambda x: (x["avg_time"], x["constraint_id"]),
     )
 
-    # --------------------------
-    # Categorize constraints by enumeration baseline support
-    # --------------------------
-    enumeration_supported_constraints = []
-    enumeration_not_supported_constraints = []
-    
-    for summary in summaries:
-        cid = summary.get("constraint_id")
-        verdicts = summary.get("verdicts_by_approach", {})
-        
-        # Check if enumeration baseline has "not_applicable" status
-        enumeration_not_applicable = False
-        for approach_key, verdict in verdicts.items():
-            if approach_key.startswith("enumeration_") and verdict == "not_applicable":
-                enumeration_not_applicable = True
-                break
-        
-        if enumeration_not_applicable:
-            enumeration_not_supported_constraints.append(cid)
-        else:
-            enumeration_supported_constraints.append(cid)
-
     return {
         "results_dir": str(results_dir),
-        "constraints_checked": len(summaries),
+        "constraints_checked": len(filtered_summaries),
         "counts_by_approach": counts_by_approach,
-        "by_constraint": summaries,
+        "by_constraint": filtered_summaries,
+        "enumeration_filter": filter_mode,
         "enumeration_support": {
             "supported": enumeration_supported_constraints,
             "not_supported": enumeration_not_supported_constraints,

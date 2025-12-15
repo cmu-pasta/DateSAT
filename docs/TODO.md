@@ -63,6 +63,8 @@ Evaluation
 [X] Make a universal llm client code
 [ ] Verify that timeout now don't save as unsat, but as timeout
 [ ] Enable parallel runs
+[ ] Update llm.py to use the correct model and enable thinking mode
+[ ] Update llm_constraints prompt and get the new constraints data
 
 General
 [X] Organize repo (Angel)
@@ -73,6 +75,8 @@ General
         [X] concrete.py
         [X] core.py
         [X] constraint_parser.py
+        [ ] constraint_validator.py
+        [X] enumeration_baseline.py
         [X] symbolic_int/
             [X] baseline
             [X] epoch_days
@@ -85,11 +89,15 @@ General
             [X] hybrid
             [X] alpha_beta
             [X] alpha_beta_table
-    [ ] tests/
+    [X] tests/
         [X] core_data_structures/
             [X] test_date.py
             [X] test_period.py
         [X] test_constraint_parser.py
+    [ ] dataset/
+        [ ] run_benchmarks.py
+        [ ] validation.py
+        [ ] llm.py
 [X] Clean up existing doc
 [X] Add READMEs
 [X] Add documentation for each method
@@ -100,3 +108,6 @@ General
 
 Legal
 [ ] Add how to download raw_data to README.md (figure out how to "push" title26.xml)
+[ ] Update filter keyword list, add min num of keyword, filter out more constraints
+[ ] Random select 200, record ids that got selected
+[ ] Cleanup code for reuse for software
