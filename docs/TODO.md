@@ -98,7 +98,10 @@ General
         [ ] run_benchmarks.py
         [ ] validation.py
         [X] llm.py
-        [ ] legal_doc_constraints/
+        [X] legal_doc_constraints/
+            [X] llm_extractor.py
+            [X] filter.py
+            [X] parse.py
 [X] Clean up existing doc
 [X] Add READMEs
 [X] Add documentation for each method
@@ -109,6 +112,6 @@ General
 
 Legal
 [ ] Add how to download raw_data to README.md (figure out how to "push" title26.xml)
-[ ] Update filter keyword list, add min num of keyword, filter out more constraints
-[ ] Random select 200, record ids that got selected
-[ ] Cleanup code for reuse for software
+[X] Update filter keyword list, add min num of keyword, filter out more constraints
+[ ] Random select 200? (now with 10 min patterns we can ~290)
+[X] Cleanup code for reuse for software

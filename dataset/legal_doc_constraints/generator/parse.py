@@ -4,23 +4,27 @@ Parse Title 26 XML (Title 26, U.S. Code) into structured JSONL format.
 This script:
 - Loads the fixed raw XML file for Title 26 from ``raw_data/title26.xml``.
 - Walks the USLM XML hierarchy (subtitle, chapter, subchapter, part, subpart, section).
-- Extracts section metadata plus body text at the level of
-  ``section`` / ``subsection`` / ``paragraph`` / ``subparagraph`` / ``clause``.
+- Extracts records at **section and subsection level only**:
+  * For sections with subsections: processes each subsection separately
+  * For sections without subsections: processes the entire section as one record
+  * Within each subsection/section: combines ALL nested content (paragraphs, subparagraphs, clauses) into one text block
 - Normalizes the text (removing page headers/footers and editorial notes while
   preserving legal numbering and internal citations).
 
 The output is a JSONL file at:
-    ``processed_data/parsed/sections.jsonl``
+    ``processed_data/parsed.jsonl``
 
-Each line is a JSON object for **one element** (section/subsection/paragraph/etc.) with:
-- ``id``: Stable identifier for the element (derived from USC hierarchy).
-- ``section_id``: Human-readable section id (e.g., ``"26 USC § 6501"``).
+Each line is a JSON object for **one section or subsection** with:
+- ``id``: Sequential numeric identifier (as string).
 - ``hierarchy``: Object describing title / subtitle / chapter / subchapter / part / subpart / section.
 - ``subsection_path``: String like ``"(a)(1)(A)"`` (empty for main section text).
 - ``heading``: Section heading/title.
+- ``element_type``: Either ``"section"`` or ``"subsection"``.
+- ``identifier``: Full USLM identifier path.
 - ``raw_text``: Full text of the element before normalization/cleanup.
-- ``text``: Normalized text (headers/footers/notes removed, whitespace cleaned).
-- ``element_type``: One of ``section``, ``subsection``, ``paragraph``, ``subparagraph``, ``clause``.
+- ``text``: Normalized text (headers/footers/notes removed, whitespace cleaned, all nested content combined).
+
+A formatted version is automatically generated at ``processed_data/parsed_formatted.jsonl``.
 """
 
 import json

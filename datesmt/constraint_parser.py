@@ -299,14 +299,32 @@ class ConstraintTransformer(Transformer):
         # Fallback: use first two items
         return f"{items[0]} * {items[-1]}"
     
-    def div(self, items) -> str:
-        """Transform division operation."""
-        # Earley parser might include the / token, filter it out
-        filtered = [item for item in items if str(item) != '/']
+    def floordiv(self, items) -> str:
+        """Transform floor division operation."""
+        # Earley parser might include the // token, filter it out
+        filtered = [item for item in items if str(item) != '//']
         if len(filtered) == 2:
-            return f"{filtered[0]} / {filtered[1]}"
+            return f"{filtered[0]} // {filtered[1]}"
         # Fallback: use first two items
-        return f"{items[0]} / {items[-1]}"
+        return f"{items[0]} // {items[-1]}"
+    
+    def mod(self, items) -> str:
+        """Transform modulo operation."""
+        # Earley parser might include the % token, filter it out
+        filtered = [item for item in items if str(item) != '%']
+        if len(filtered) == 2:
+            return f"{filtered[0]} % {filtered[1]}"
+        # Fallback: use first two items
+        return f"{items[0]} % {items[-1]}"
+    
+    def pow(self, items) -> str:
+        """Transform exponentiation operation."""
+        # Earley parser might include the ** token, filter it out
+        filtered = [item for item in items if str(item) != '**']
+        if len(filtered) == 2:
+            return f"{filtered[0]} ** {filtered[1]}"
+        # Fallback: use first two items
+        return f"{items[0]} ** {items[-1]}"
     
     def term(self, items) -> str:
         """Handle term precedence."""
@@ -427,7 +445,9 @@ class ConstraintParser:
             PLUS: "+"
             MINUS: "-"
             STAR: "*"
-            SLASH: "/"
+            FLOORDIV: "//"
+            MOD: "%"
+            POW: "**"
             LPAR: "("
             RPAR: ")"
             DOT: "."
@@ -436,9 +456,13 @@ class ConstraintParser:
                        | expression PLUS term   -> add
                        | expression MINUS term  -> sub
 
-            ?term: factor
-                 | term STAR factor  -> mul
-                 | term SLASH factor -> div
+            ?term: power
+                 | term STAR power     -> mul
+                 | term FLOORDIV power -> floordiv
+                 | term MOD power      -> mod
+            
+            ?power: factor
+                  | factor POW power -> pow
 
             ?factor: variable
                    | date_constructor
