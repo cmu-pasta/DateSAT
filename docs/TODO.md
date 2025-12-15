@@ -113,5 +113,6 @@ General
 Legal
 [ ] Add how to download raw_data to README.md (figure out how to "push" title26.xml)
 [X] Update filter keyword list, add min num of keyword, filter out more constraints
+[ ] Update id to legal-
 [ ] Random select 200? (now with 10 min patterns we can ~290)
 [X] Cleanup code for reuse for software
