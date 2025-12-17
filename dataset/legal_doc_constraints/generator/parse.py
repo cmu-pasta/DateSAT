@@ -3,8 +3,7 @@ Parse Title 26 XML (Title 26, U.S. Code) into structured JSONL format.
 
 This script:
 - Loads the fixed raw XML file for Title 26 from ``raw_data/title26.xml``.
-- Walks the USLM XML hierarchy (subtitle, chapter, subchapter, part, subpart, section).
-- Extracts records at **section and subsection level only**:
+- Walks the USLM XML structure and extracts records at **section and subsection level only**:
   * For sections with subsections: processes each subsection separately
   * For sections without subsections: processes the entire section as one record
   * Within each subsection/section: combines ALL nested content (paragraphs, subparagraphs, clauses) into one text block
@@ -16,8 +15,6 @@ The output is a JSONL file at:
 
 Each line is a JSON object for **one section or subsection** with:
 - ``id``: Sequential numeric identifier (as string).
-- ``hierarchy``: Object describing title / subtitle / chapter / subchapter / part / subpart / section.
-- ``subsection_path``: String like ``"(a)(1)(A)"`` (empty for main section text).
 - ``heading``: Section heading/title.
 - ``element_type``: Either ``"section"`` or ``"subsection"``.
 - ``identifier``: Full USLM identifier path.
@@ -184,7 +181,7 @@ def extract_identifier(elem: ET.Element) -> Optional[str]:
 
 def parse_identifier(identifier: str) -> Dict:
     """
-    Parse a USLM identifier into hierarchy and subsection path.
+    Parse a USLM identifier to extract section information.
 
     Example identifier:
         /us/usc/t26/stA/ch1/schB/ptI/spt2/s6511/a/1/A
@@ -193,16 +190,6 @@ def parse_identifier(identifier: str) -> Dict:
     {
         "title": 26,
         "section": "6511",
-        "hierarchy": {
-            "title": 26,
-            "subtitle": "A",
-            "chapter": "1",
-            "subchapter": "B",
-            "part": "I",
-            "subpart": "2",
-            "section": "6511",
-        },
-        "subsection_path": "(a)(1)(A)",
         "section_id": "26 USC § 6511",
     }
     """
@@ -210,16 +197,6 @@ def parse_identifier(identifier: str) -> Dict:
     result = {
         "title": 26,
         "section": None,
-        "hierarchy": {
-            "title": 26,
-            "subtitle": None,
-            "chapter": None,
-            "subchapter": None,
-            "part": None,
-            "subpart": None,
-            "section": None,
-        },
-        "subsection_path": "",
         "section_id": "26 USC § ?",
     }
 
@@ -234,35 +211,17 @@ def parse_identifier(identifier: str) -> Dict:
         return result
 
     i = t_index + 1
-    hierarchy = result["hierarchy"].copy()
-
-    code_map = {
-        "st": "subtitle",
-        "ch": "chapter",
-        "sch": "subchapter",
-        "pt": "part",
-        "spt": "subpart",
-    }
 
     section = None
 
-    # Parse hierarchy codes until we hit section ("s") or run out
+    # Parse until we hit section ("s")
     while i < len(parts):
         tok = parts[i]
-        if tok in code_map and i + 1 < len(parts):
-            hierarchy[code_map[tok]] = parts[i + 1]
-            i += 2
-            continue
         if tok == "s" and i + 1 < len(parts):
             section = parts[i + 1]
-            hierarchy["section"] = section
-            i += 2
             break
-        # Unexpected token – stop early
-        break
-
-    path_tokens = parts[i:]
-    subsection_path = "".join(f"({p})" for p in path_tokens)
+        # Skip other hierarchy tokens
+        i += 1
 
     section_id = f"26 USC § {section}" if section is not None else "26 USC § ?"
 
@@ -270,8 +229,6 @@ def parse_identifier(identifier: str) -> Dict:
         {
             "title": 26,
             "section": section,
-            "hierarchy": hierarchy,
-            "subsection_path": subsection_path,
             "section_id": section_id,
         }
     )
@@ -316,6 +273,11 @@ def iter_element_records(xml_path: Path):
             # Process each subsection (combining all content within it)
             for subsection_elem in subsections:
                 identifier = extract_identifier(subsection_elem) or section_identifier
+                
+                # Skip records without valid identifiers (editorial content)
+                if not identifier:
+                    continue
+                
                 id_info = parse_identifier(identifier)
                 
                 # Extract all text from subsection, INCLUDING nested paragraphs/subparagraphs/clauses
@@ -328,8 +290,6 @@ def iter_element_records(xml_path: Path):
                 count += 1
                 yield {
                     "id": str(count),
-                    "hierarchy": id_info["hierarchy"],
-                    "subsection_path": id_info["subsection_path"],
                     "heading": section_heading,
                     "element_type": "subsection",
                     "identifier": identifier,
@@ -339,6 +299,11 @@ def iter_element_records(xml_path: Path):
         else:
             # Section has no subsections - process the section itself
             identifier = extract_identifier(section_elem) or section_identifier
+            
+            # Skip records without valid identifiers (editorial content)
+            if not identifier:
+                continue
+            
             id_info = parse_identifier(identifier)
             
             raw_text = get_raw_text_content(section_elem)
@@ -350,8 +315,6 @@ def iter_element_records(xml_path: Path):
             count += 1
             yield {
                 "id": str(count),
-                "hierarchy": id_info["hierarchy"],
-                "subsection_path": id_info["subsection_path"],
                 "heading": section_heading,
                 "element_type": "section",
                 "identifier": identifier,

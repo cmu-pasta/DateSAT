@@ -4,7 +4,7 @@ LLM-based extraction of date/time constraints from legal text (Title 26).
 Uses LLM to extract realistic constraints from legal text and common knowledge assumptions.
 
 Processing:
-- Processes records from filtered.jsonl
+- Processes records from selected.jsonl
 - Supports ID range specification (e.g., --id-range 1-50)
 - Each record is sent individually to the LLM
 - Very long text (>50k chars by default) is truncated to avoid context window limits
@@ -347,8 +347,6 @@ def extract_constraints_with_llm(
 
     # Build user prompt with context
     heading = record.get("heading", "")
-    hierarchy = record.get("hierarchy", {})
-    subsection_path = record.get("subsection_path", "")
     identifier = record.get("identifier", "")
 
     base_user_prompt = (
@@ -386,7 +384,6 @@ def extract_constraints_with_llm(
                     "attempt": attempt,
                     "input": {
                         "heading": heading,
-                        "subsection_path": subsection_path,
                         "identifier": identifier,
                         "text_preview": text[:500] + "..." if len(text) > 500 else text,
                         "text_length": len(text),
@@ -546,8 +543,6 @@ def extract_constraints_with_llm(
 
             # Success: add provenance and return
             constraint_obj["provenance"] = {
-                "hierarchy": hierarchy,
-                "subsection_path": subsection_path,
                 "identifier": identifier,
                 "original_text": text,
                 "heading": heading,
@@ -558,6 +553,9 @@ def extract_constraints_with_llm(
 
             if "parsed_id" in record:
                 constraint_obj["parsed_id"] = record["parsed_id"]
+            
+            if "filtered_id" in record:
+                constraint_obj["filtered_id"] = record["filtered_id"]
 
             return constraint_obj
 
@@ -597,7 +595,7 @@ def main():
         "-i",
         type=str,
         default=None,
-        help="Input JSONL file (default: dataset/legal_doc_constraints/processed_data/filtered.jsonl)",
+        help="Input JSONL file (default: dataset/legal_doc_constraints/processed_data/selected.jsonl)",
     )
     parser.add_argument(
         "--output",
@@ -653,8 +651,8 @@ def main():
     if args.input:
         input_path = Path(args.input)
     else:
-        # Default filtered.jsonl
-        input_path = root_dir / "processed_data" / "filtered.jsonl"
+        # Default selected.jsonl
+        input_path = root_dir / "processed_data" / "selected.jsonl"
 
     if not input_path.exists():
         raise FileNotFoundError(f"Input file not found: {input_path}")
@@ -701,7 +699,24 @@ def main():
     with open(input_path, "r", encoding="utf-8") as f_in:
         for line in f_in:
             record = json.loads(line)
-            record_id = int(record.get("id", 0))
+            record_id_raw = record.get("id", "0")
+            
+            # Try to parse as integer for ID range filtering
+            # Supports both integer IDs (e.g., "123") and string IDs (e.g., "legal-1")
+            try:
+                record_id = int(record_id_raw)
+            except (ValueError, TypeError):
+                # If ID is not an integer (e.g., "legal-1"), extract numeric part if possible
+                if isinstance(record_id_raw, str):
+                    # Try to extract trailing number (e.g., "legal-1" -> 1)
+                    match = re.search(r'-(\d+)$', record_id_raw)
+                    if match:
+                        record_id = int(match.group(1))
+                    else:
+                        # No numeric part, set to 0 and skip ID range check
+                        record_id = 0
+                else:
+                    record_id = 0
             
             # Check ID range if specified
             if args.id_range:
@@ -726,7 +741,7 @@ def main():
                     no_constraints += 1
                     if not args.skip_errors:
                         print(
-                            f"Info: No constraints found for record ID {record_id} "
+                            f"Info: No constraints found for record ID {record_id_raw} "
                             "(LLM determined no temporal constraints exist)"
                         )
                 else:
@@ -735,7 +750,7 @@ def main():
             else:
                 failed += 1
                 if not args.skip_errors:
-                    print(f"Warning: Failed to extract constraints from record ID {record_id} (parsing error or exception)")
+                    print(f"Warning: Failed to extract constraints from record ID {record_id_raw} (parsing error or exception)")
 
             if total % 10 == 0:
                 print(f"Processed {total} records, extracted {extracted}, no constraints {no_constraints}, failed {failed}")

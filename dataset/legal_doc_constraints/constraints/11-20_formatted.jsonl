@@ -1,0 +1,379 @@
+{
+  "description": "State unemployment fund contribution credit timing and certification period constraints",
+  "declarations": [
+    "taxable_year_start: date",
+    "taxable_year_end: date",
+    "certification_period_end: date",
+    "certification_period_start: date",
+    "contribution_payment_date: date",
+    "return_filing_deadline: date",
+    "paid_on_time: bool",
+    "correction_case: bool",
+    "erroneous_payment_date: date",
+    "deemed_payment_date: date",
+    "entitled_to_cease_paying: bool",
+    "return_filed_date: date",
+    "is_trustee_without_fault: bool",
+    "year_val: int"
+  ],
+  "constraints": [
+    "taxable_year_end >= taxable_year_start",
+    "taxable_year_end <= taxable_year_start + Period(1, 0, 0)",
+    "year_val == taxable_year_end.year",
+    "certification_period_end == Date(year_val, 10, 31)",
+    "certification_period_start == certification_period_end - Period(1, 0, 0) + Period(0, 0, 1)",
+    "(correction_case == False) -> (deemed_payment_date == contribution_payment_date)",
+    "(correction_case == True && entitled_to_cease_paying == False) -> (deemed_payment_date == erroneous_payment_date)",
+    "(correction_case == True && entitled_to_cease_paying == True) -> (deemed_payment_date == return_filed_date)",
+    "(paid_on_time == True) -> (deemed_payment_date <= return_filing_deadline)",
+    "(paid_on_time == False) -> (deemed_payment_date > return_filing_deadline)"
+  ],
+  "provenance": {
+    "identifier": "/us/usc/t26/s3302/a",
+    "original_text": "(a) Contributions to State unemployment funds (1) The taxpayer may, to the extent provided in this subsection and subsection (c), credit against the tax imposed by section 3301 the amount of contributions paid by him into an unemployment fund maintained during the taxable year under the unemployment compensation law of a State which is certified as provided in section 3304 for the 12-month period ending on October 31 of such year. (2) The credit shall be permitted against the tax for the taxable year only for the amount of contributions paid with respect to such taxable year. (3) The credit against the tax for any taxable year shall be permitted only for contributions paid on or before the last day upon which the taxpayer is required under section 6071 to file a return for such year; except that credit shall be permitted for contributions paid after such last day, but such credit shall not exceed 90 percent of the amount which would have been allowable as credit on account of such contributions had they been paid on or before such last day. (4) Upon the payment of contributions into the unemployment fund of a State which are required under the unemployment compensation law of that State with respect to remuneration on the basis of which, prior to such payment into the proper fund, the taxpayer erroneously paid an amount as contributions under another unemployment compensation law, the payment into the proper fund shall, for purposes of credit against the tax, be deemed to have been made at the time of the erroneous payment. If, by reason of such other law, the taxpayer was entitled to cease paying contributions with respect to services subject to such other law, the payment into the proper fund shall, for purposes of credit against the tax, be deemed to have been made on the date the return for the taxable year was filed under section 6071. (5) In the case of wages paid by the trustee of an estate under title 11 of the United States Code, if the failure to pay contributions on time was without fault by the trustee, paragraph (3) shall be applied by substituting “100 percent” for “90 percent”.",
+    "heading": "Credits against tax"
+  },
+  "id": "legal-11",
+  "parsed_id": "4423",
+  "filtered_id": "693"
+}
+
+{
+  "description": "Tax payment deadlines with 14-day offsets from period ends, special September rules, and weekend/holiday adjustments",
+  "declarations": [
+    "triggering_event_date: date",
+    "semimonthly_period_end: date",
+    "standard_payment_due: date",
+    "quarter_end: date",
+    "quarterly_payment_due: date",
+    "year_end: date",
+    "annual_payment_due: date",
+    "september_period_start: date",
+    "september_period_end: date",
+    "september_payment_due: date",
+    "sept_year: int",
+    "september_safe_harbor_start: date",
+    "september_safe_harbor_end: date",
+    "non_eft_september_period_end: date",
+    "non_eft_september_due: date",
+    "original_due_date: date",
+    "adjusted_due_date: date"
+  ],
+  "constraints": [
+    "standard_payment_due == semimonthly_period_end + Period(0, 0, 14)",
+    "triggering_event_date <= semimonthly_period_end",
+    "quarterly_payment_due == quarter_end + Period(0, 0, 14)",
+    "(quarter_end.month == 3 && quarter_end.day == 31) || (quarter_end.month == 6 && quarter_end.day == 30) || (quarter_end.month == 9 && quarter_end.day == 30) || (quarter_end.month == 12 && quarter_end.day == 31)",
+    "annual_payment_due == year_end + Period(0, 0, 14)",
+    "year_end.month == 12 && year_end.day == 31",
+    "september_period_start == Date(sept_year, 9, 16)",
+    "september_period_end == Date(sept_year, 9, 26)",
+    "september_payment_due == Date(sept_year, 9, 29)",
+    "september_safe_harbor_start == Date(sept_year, 9, 1)",
+    "september_safe_harbor_end == Date(sept_year, 9, 15)",
+    "non_eft_september_period_end == Date(sept_year, 9, 25)",
+    "non_eft_september_due == Date(sept_year, 9, 28)",
+    "adjusted_due_date <= original_due_date"
+  ],
+  "provenance": {
+    "identifier": "/us/usc/t26/s5061/d",
+    "original_text": "(d) Time for collecting tax on distilled spirits, wines, and beer (1) In general Except as otherwise provided in this subsection, in the case of distilled spirits, wines, and beer to which this part applies (other than subsection (b) of this section) which are withdrawn under bond for deferred payment of tax, the last day for payment of such tax shall be the 14th day after the last day of the semimonthly period during which the withdrawal occurs. (2) Imported articles In the case of distilled spirits, wines, and beer which are imported into the United States (other than in bulk containers)— (A) In general The last day for payment of tax shall be the 14th day after the last day of the semimonthly period during which the article is entered into the customs territory of the United States. (B) Special rule for entry for warehousing Except as provided in subparagraph (D), in the case of an entry for warehousing, the last day for payment of tax shall not be later than the 14th day after the last day of the semimonthly period during which the article is removed from the 1st such warehouse. (C) Foreign trade zones Except as provided in subparagraph (D) and in regulations prescribed by the Secretary, articles brought into a foreign trade zone shall, notwithstanding any other provision of law, be treated for purposes of this subsection as if such zone were a single customs warehouse. (D) Exception for articles destined for export Subparagraphs (B) and (C) shall not apply to any article which is shown to the satisfaction of the Secretary to be destined for export. (3) Distilled spirits, wines, and beer brought into the United States from Puerto Rico In the case of distilled spirits, wines, and beer which are brought into the United States (other than in bulk containers) from Puerto Rico, the last day for payment of tax shall be the 14th day after the last day of the semimonthly period during which the article is brought into the United States. (4) Taxpayers liable for taxes of not more than $50,000 (A) In general (i) More than $1,000 and not more than $50,000 in taxes Except as provided in clause (ii), in the case of any taxpayer who reasonably expects to be liable for not more than $50,000 in taxes imposed with respect to distilled spirits, wines, and beer under subparts A, C, and D and section 7652 for the calendar year and who was liable for not more than $50,000 in such taxes in the preceding calendar year, the last day for the payment of tax on withdrawals, removals, and entries (and articles brought into the United States from Puerto Rico) shall be the 14th day after the last day of the calendar quarter during which the action giving rise to the imposition of such tax occurs. (ii) Not more than $1,000 in taxes In the case of any taxpayer who reasonably expects to be liable for not more than $1,000 in taxes imposed with respect to distilled spirits, wines, and beer under subparts A, C, and D and section 7652 for the calendar year and who was liable for not more than $1,000 in such taxes in the preceding calendar year, the last day for the payment of tax on withdrawals, removals, and entries (and articles brought into the United States from Puerto Rico) shall be the 14th day after the last day of the calendar year. (B) No application after limit exceeded (i) Exceeds $50,000 limit Subparagraph (A)(i) shall not apply to any taxpayer for any portion of the calendar year following the first date on which the aggregate amount of tax due under subparts A, C, and D and section 7652 from such taxpayer during such calendar year exceeds $50,000, and any tax under such subparts which has not been paid on such date shall be due on the 14th day after the last day of the semimonthly period in which such date occurs. (ii) Exceeds $1,000 limit Subparagraph (A)(ii) shall not apply to any taxpayer for any portion of the calendar year following the first date on which the aggregate amount of tax due under subparts A, C, and D and section 7652 from such taxpayer during such calendar year exceeds $1,000, and any tax under such subparts which has not been paid on such date shall be due on the 14th day after the last day of the calendar quarter in which such date occurs. (C) Calendar quarter For purposes of this paragraph, the term “calendar quarter” means the three-month period ending on March 31, June 30, September 30, or December 31. (5) Special rule for tax due in September (A) In general Notwithstanding the preceding provisions of this subsection, the taxes on distilled spirits, wines, and beer for the period beginning on September 16 and ending on September 26 shall be paid not later than September 29. (B) Safe harbor The requirement of subparagraph (A) shall be treated as met if the amount paid not later than September 29 is not less than 11 ⁄ 15 of the taxes on distilled spirits, wines, and beer for the period beginning on September 1 and ending on September 15. (C) Taxpayers not required to use electronic funds transfer In the case of payments not required to be made by electronic funds transfer, subparagraphs (A) and (B) shall be applied by substituting “September 25” for “September 26”, “September 28” for “September 29”, and “⅔” for “ 11 ⁄ 15 ”. (6) Special rule where due date falls on Saturday, Sunday, or holiday Notwithstanding section 7503, if, but for this paragraph, the due date under this subsection for payment of tax would fall on a Saturday, Sunday, or a legal holiday (within the meaning of section 7503), such due date shall be the immediately preceding day which is not a Saturday, Sunday, or such a holiday (or the immediately following day where the due date described in paragraph (5) falls on a Sunday).",
+    "heading": "Method of collecting tax"
+  },
+  "id": "legal-12",
+  "parsed_id": "5287",
+  "filtered_id": "759"
+}
+
+{
+  "description": "Retired pay accrual start date and service duration thresholds",
+  "declarations": [
+    "retired_pay_start_date: date",
+    "salary_cease_date: date",
+    "service_start_date: date",
+    "retirement_date: date",
+    "has_ten_years_service: bool",
+    "fractional_months: int"
+  ],
+  "constraints": [
+    "retired_pay_start_date == salary_cease_date + Period(0, 0, 1)",
+    "retirement_date >= service_start_date",
+    "salary_cease_date >= retirement_date",
+    "(has_ten_years_service == True) -> (retirement_date >= service_start_date + Period(10, 0, 0))",
+    "(has_ten_years_service == False) -> (retirement_date < service_start_date + Period(10, 0, 0))",
+    "fractional_months >= 0 && fractional_months < 12"
+  ],
+  "provenance": {
+    "identifier": "/us/usc/t26/s7447A/d",
+    "original_text": "(d) Retired pay (1) In general Any individual who retires pursuant to subsection (a) and elects under subsection (e) to receive retired pay under this subsection shall receive retired pay during any period of retirement from service as a special trial judge at a rate which bears the same ratio to the rate of the salary payable to a special trial judge during such period as— (A) the number of years such individual has served as special trial judge bears to, (B) 15, except that the rate of such retired pay shall not be more than the rate of such salary for such period. (2) Retirement upon disability Any individual who retires pursuant to subsection (b) and elects under subsection (e) to receive retired pay under this subsection shall receive retired pay during any period of retirement from service as a special trial judge— (A) at a rate equal to the rate of the salary payable to a special trial judge during such period, if the individual had at least 10 years of service as a special trial judge before retirement, and (B) at a rate equal to ½ the rate described in subparagraph (A), if the individual had fewer than 10 years of service as a special trial judge before retirement. (3) Beginning date and payment Retired pay under this subsection shall begin to accrue on the day following the date on which the individual’s salary as a special trial judge ceases to accrue, and shall continue to accrue during the remainder of such individual’s life. Retired pay under this subsection shall be paid in the same manner as the salary of a special trial judge. (4) Partial years In computing the rate of the retired pay for an individual to whom paragraph (1) applies, any portion of the aggregate number of years such individual has served as a special trial judge which is a fractional part of 1 year shall be eliminated if it is less than 6 months, or shall be counted as a full year if it is 6 months or more. (5) Recalled service In computing the rate of the retired pay for an individual to whom paragraph (1) applies, any period during which such individual performs services under subsection (c) on a substantially full-time basis shall be treated as a period during which such individual has served as a special trial judge.",
+    "heading": "Retirement for special trial judges"
+  },
+  "id": "legal-13",
+  "parsed_id": "7443",
+  "filtered_id": "914"
+}
+
+{
+  "description": "Wash sale rule: acquisition must be within 30 days before or after sale",
+  "declarations": [
+    "sale_date: date",
+    "acquisition_date: date"
+  ],
+  "constraints": [
+    "acquisition_date >= sale_date - Period(0, 0, 30)",
+    "acquisition_date <= sale_date + Period(0, 0, 30)"
+  ],
+  "provenance": {
+    "identifier": "/us/usc/t26/s1091/a",
+    "original_text": "(a) Disallowance of loss deduction In the case of any loss claimed to have been sustained from any sale or other disposition of shares of stock or securities where it appears that, within a period beginning 30 days before the date of such sale or disposition and ending 30 days after such date, the taxpayer has acquired (by purchase or by an exchange on which the entire amount of gain or loss was recognized by law), or has entered into a contract or option so to acquire, substantially identical stock or securities, then no deduction shall be allowed under section 165 unless the taxpayer is a dealer in stock or securities and the loss is sustained in a transaction made in the ordinary course of such business. For purposes of this section, the term “stock or securities” shall, except as provided in regulations, include contracts or options to acquire or sell stock or securities.",
+    "heading": "Loss from wash sales of stock or securities"
+  },
+  "id": "legal-14",
+  "parsed_id": "3428",
+  "filtered_id": "559"
+}
+
+{
+  "description": "Clean electricity investment credit temporal constraints including 60-day guidance rule and domestic content construction date tiers",
+  "declarations": [
+    "construction_begin_date: date",
+    "guidance_publish_date: date",
+    "qualifies_for_60day_rule: bool",
+    "domestic_content_tier_1: bool",
+    "domestic_content_tier_2: bool",
+    "domestic_content_tier_3: bool",
+    "domestic_content_tier_4: bool"
+  ],
+  "constraints": [
+    "(qualifies_for_60day_rule == True) -> (construction_begin_date < guidance_publish_date + Period(0, 0, 60))",
+    "(domestic_content_tier_1 == True) -> (construction_begin_date < Date(2025, 6, 16))",
+    "(domestic_content_tier_2 == True) -> ((construction_begin_date >= Date(2025, 6, 16)) && (construction_begin_date < Date(2026, 1, 1)))",
+    "(domestic_content_tier_3 == True) -> ((construction_begin_date >= Date(2026, 1, 1)) && (construction_begin_date <= Date(2026, 12, 31)))",
+    "(domestic_content_tier_4 == True) -> (construction_begin_date > Date(2026, 12, 31))",
+    "(domestic_content_tier_1 == True) || (domestic_content_tier_2 == True) || (domestic_content_tier_3 == True) || (domestic_content_tier_4 == True)",
+    "(domestic_content_tier_1 == True) -> ((domestic_content_tier_2 == False) && (domestic_content_tier_3 == False) && (domestic_content_tier_4 == False))",
+    "(domestic_content_tier_2 == True) -> ((domestic_content_tier_1 == False) && (domestic_content_tier_3 == False) && (domestic_content_tier_4 == False))",
+    "(domestic_content_tier_3 == True) -> ((domestic_content_tier_1 == False) && (domestic_content_tier_2 == False) && (domestic_content_tier_4 == False))",
+    "(domestic_content_tier_4 == True) -> ((domestic_content_tier_1 == False) && (domestic_content_tier_2 == False) && (domestic_content_tier_3 == False))"
+  ],
+  "provenance": {
+    "identifier": "/us/usc/t26/s48E/a",
+    "original_text": "(a) Investment credit for qualified property (1) In general For purposes of section 46, the clean electricity investment credit for any taxable year is an amount equal to the applicable percentage of the qualified investment for such taxable year with respect to— (A) any qualified facility, and (B) any energy storage technology. (2) Applicable percentage (A) Qualified facilities Subject to paragraph (3)— (i) Base rate In the case of any qualified facility which is not described in subclause (I) or (II) of clause (ii) and does not satisfy the requirements described in subclause (III) of such clause, the applicable percentage shall be 6 percent. (ii) Alternative rate In the case of any qualified facility— (I) with a maximum net output of less than 1 megawatt (as measured in alternating current), (II) the construction of which begins prior to the date that is 60 days after the Secretary publishes guidance with respect to the requirements of paragraphs (3) and (4) of subsection (d), or (III) which— (aa) satisfies the requirements of subsection (d)(3), and (bb) with respect to the construction of such facility, satisfies the requirements of subsection (d)(4), the applicable percentage shall be 30 percent. (B) Energy storage technology Subject to paragraph (3)— (i) Base rate In the case of any energy storage technology which is not described in subclause (I) or (II) of clause (ii) and does not satisfy the requirements described in subclause (III) of such clause, the applicable percentage shall be 6 percent. (ii) Alternative rate In the case of any energy storage technology— (I) with a capacity of less than 1 megawatt, (II) the construction of which begins prior to the date that is 60 days after the Secretary publishes guidance with respect to the requirements of paragraphs (3) and (4) of subsection (d), or (III) which— (aa) satisfies the requirements of subsection (d)(3), and (bb) with respect to the construction of such property, satisfies the requirements of subsection (d)(4), the applicable percentage shall be 30 percent. (3) Increase in credit rate in certain cases (A) Energy communities (i) In general In the case of any qualified investment with respect to a qualified facility or with respect to energy storage technology which is placed in service within an energy community (as defined in section 45(b)(11)(B), as applied without regard to clause (iv) thereof), for purposes of applying paragraph (2) with respect to such property or investment, the applicable percentage shall be increased by the applicable credit rate increase. (ii) Applicable credit rate increase For purposes of clause (i), the applicable credit rate increase shall be an amount equal to— (I) in the case of any qualified investment with respect to a qualified facility described in paragraph (2)(A)(i) or with respect to energy storage technology described in paragraph (2)(B)(i), 2 percentage points, and (II) in the case of any qualified investment with respect to a qualified facility described in paragraph (2)(A)(ii) or with respect to energy storage technology described in paragraph (2)(B)(ii), 10 percentage points. (B) Domestic content Rules similar to the rules of section 48(a)(12) shall apply, except that, for purposes of subparagraph (B) of such section and the application of rules similar to the rules of section 45(b)(9)(B), the adjusted percentage (as determined under section 45(b)(9)(C)) shall be determined as follows: (i) In the case of any qualified investment with respect to any qualified facility or energy storage technology the construction of which begins before June 16, 2025 , 40 percent (or, in the case of a qualified facility which is an offshore wind facility, 20 percent). (ii) In the case of any qualified investment with respect to any qualified facility or energy storage technology the construction of which begins on or after June 16, 2025 , and before January 1, 2026 , 45 percent (or, in the case of a qualified facility which is an offshore wind facility, 27.5 percent). (iii) In the case of any qualified investment with respect to any qualified facility or energy storage technology the construction of which begins during calendar year 2026, 50 percent (or, in the case of a qualified facility which is an offshore wind facility, 35 percent). (iv) In the case of any qualified investment with respect to any qualified facility or energy storage technology the construction of which begins after December 31, 2026 , 55 percent.",
+    "heading": "Clean electricity investment credit"
+  },
+  "id": "legal-15",
+  "parsed_id": "485",
+  "filtered_id": "90"
+}
+
+{
+  "description": "S corporation election timing rules under IRC 1362(b)",
+  "declarations": [
+    "election_date: date",
+    "target_year_start: date",
+    "target_year_end: date",
+    "preceding_year_start: date",
+    "preceding_year_end: date",
+    "following_year_start: date",
+    "following_year_end: date",
+    "deadline_target_year: date",
+    "deadline_following_year: date",
+    "short_year_deadline: date",
+    "treated_as_following_year: bool",
+    "requirements_met_before_election: bool",
+    "all_shareholders_consented: bool",
+    "is_short_taxable_year: bool",
+    "reasonable_cause_found: bool",
+    "treated_as_timely: bool"
+  ],
+  "constraints": [
+    "target_year_end >= target_year_start",
+    "target_year_end <= target_year_start + Period(1, 0, 0)",
+    "preceding_year_end >= preceding_year_start",
+    "preceding_year_end <= preceding_year_start + Period(1, 0, 0)",
+    "following_year_end >= following_year_start",
+    "following_year_end <= following_year_start + Period(1, 0, 0)",
+    "preceding_year_end < target_year_start",
+    "following_year_start > target_year_end",
+    "deadline_target_year == target_year_start + Period(0, 2, 14)",
+    "deadline_following_year == following_year_start + Period(0, 2, 14)",
+    "short_year_deadline == target_year_start + Period(0, 2, 15)",
+    "(is_short_taxable_year == True) -> (target_year_end <= target_year_start + Period(0, 2, 15))",
+    "((election_date >= target_year_start) && (election_date <= deadline_target_year) && ((requirements_met_before_election == False) || (all_shareholders_consented == False))) -> (treated_as_following_year == True)",
+    "((election_date > deadline_target_year) && (election_date <= deadline_following_year)) -> (treated_as_following_year == True)",
+    "((is_short_taxable_year == True) && (election_date <= short_year_deadline)) -> (treated_as_timely == True)",
+    "(reasonable_cause_found == True) -> (treated_as_timely == True)"
+  ],
+  "provenance": {
+    "identifier": "/us/usc/t26/s1362/b",
+    "original_text": "(b) When made (1) In general An election under subsection (a) may be made by a small business corporation for any taxable year— (A) at any time during the preceding taxable year, or (B) at any time during the taxable year and on or before the 15th day of the 3d month of the taxable year. (2) Certain elections made during 1st 2½ months treated as made for next taxable year If— (A) an election under subsection (a) is made for any taxable year during such year and on or before the 15th day of the 3d month of such year, but (B) either— (i) on 1 or more days in such taxable year before the day on which the election was made the corporation did not meet the requirements of subsection (b) of section 1361, or (ii) 1 or more of the persons who held stock in the corporation during such taxable year and before the election was made did not consent to the election, then such election shall be treated as made for the following taxable year. (3) Election made after 1st 2½ months treated as made for following taxable year If— (A) a small business corporation makes an election under subsection (a) for any taxable year, and (B) such election is made after the 15th day of the 3d month of the taxable year and on or before the 15th day of the 3rd month of the following taxable year, then such election shall be treated as made for the following taxable year. (4) Taxable years of 2½ months or less For purposes of this subsection, an election for a taxable year made not later than 2 months and 15 days after the first day of the taxable year shall be treated as timely made during such year. (5) Authority to treat late elections, etc., as timely If— (A) an election under subsection (a) is made for any taxable year (determined without regard to paragraph (3)) after the date prescribed by this subsection for making such election for such taxable year or no such election is made for any taxable year, and (B) the Secretary determines that there was reasonable cause for the failure to timely make such election, the Secretary may treat such an election as timely made for such taxable year (and paragraph (3) shall not apply).",
+    "heading": "Election; revocation; termination"
+  },
+  "id": "legal-16",
+  "parsed_id": "3753",
+  "filtered_id": "605"
+}
+
+{
+  "description": "Large bank disqualification year constraints and 4-year adjustment spread beginning after Dec 31, 1986",
+  "declarations": [
+    "disqualification_year_start: date",
+    "preceding_year_start: date",
+    "year_2_start: date",
+    "year_3_start: date",
+    "year_4_start: date"
+  ],
+  "constraints": [
+    "disqualification_year_start > Date(1986, 12, 31)",
+    "preceding_year_start < disqualification_year_start",
+    "year_2_start == disqualification_year_start + Period(1, 0, 0)",
+    "year_3_start == year_2_start + Period(1, 0, 0)",
+    "year_4_start == year_3_start + Period(1, 0, 0)"
+  ],
+  "provenance": {
+    "identifier": "/us/usc/t26/s585/c",
+    "original_text": "(c) Section not to apply to large banks (1) In general In the case of a large bank, this section shall not apply (and no deduction shall be allowed under any other provision of this subtitle for any addition to a reserve for bad debts). (2) Large banks For purposes of this subsection, a bank is a large bank if, for the taxable year (or for any preceding taxable year beginning after December 31, 1986 )— (A) the average adjusted bases of all assets of such bank exceeded $500,000,000, or (B) such bank was a member of a parent-subsidiary controlled group and the average adjusted bases of all assets of such group exceeded $500,000,000. (3) 4-year spread of adjustments (A) In general Except as provided in paragraph (4), in the case of any bank which for its last taxable year before the disqualification year maintained a reserve for bad debts— (i) the provisions of this subsection shall be treated as a change in the method of accounting of such bank for the disqualification year, (ii) such change shall be treated as having been made with the consent of the Secretary, and (iii) the net amount of adjustments required by section 481(a) to be taken into account by the taxpayer shall be taken into account in each of the 4 taxable years beginning with the disqualification year with— (I) the amount taken into account for the 1st of such taxable years being the greater of 10 percent of such net amount or such higher percentage of such net amount as the taxpayer may elect, and (II) the amount taken into account in each of the 3 succeeding taxable years being equal to the applicable fraction (determined in accordance with the following table for the taxable year involved) of the portion of such net amount not taken into account under subclause (I). The applicable If the case of the— fraction is— 1st succeeding year 2 ⁄ 9 2nd succeeding year ⅓ 3rd succeeding year 4 ⁄ 9 . (B) Suspension of recapture for taxable year for which bank is financially troubled (i) In general In the case of a bank which is a financially troubled bank for any taxable year— (I) no adjustment shall be taken into account under subparagraph (A) for such taxable year, and (II) such taxable year shall be disregarded in determining whether any other taxable year is a taxable year for which an adjustment is required to be taken into account under subparagraph (A) or the amount of such adjustment. (ii) Exception for elective recapture for 1st year Clause (i) shall not apply to the 1st taxable year referred to in subparagraph (A)(iii)(I) if the taxpayer elects a higher percentage in accordance with such subparagraph. (iii) Financially troubled bank For purposes of clause (i), the term “financially troubled bank” means any bank if, for the taxable year, the nonperforming loan percentage of such bank exceeds 75 percent. (iv) Nonperforming loan percentage For purposes of clause (iii), the term “nonperforming loan percentage” means the percentage determined by dividing— (I) the sum of the outstanding balances of nonperforming loans of the bank as of the close of each quarter of the taxable year, by (II) the sum of the amounts of equity of the bank as of the close of each such quarter. In the case of a bank which is a member of a parent-subsidiary controlled group for the taxable year, the preceding sentence shall be applied with respect to such group. (v) Other definitions For purposes of this subparagraph— (I) Nonperforming loans The term “nonperforming loan” means any loan which is considered to be nonperforming by the primary Federal regulatory agency with respect to the bank. (II) Equity The term “equity” means the equity of the bank as determined for Federal regulatory purposes. (C) Coordination with estimated tax payments For purposes of applying section 6655(e)(2)(A)(i) with respect to any installment, the determination under subparagraph (B) of whether an adjustment is required to be taken into account under subparagraph (A) shall be made as of the last day prescribed for payment of such installment. (4) Elective cut-off method If a bank makes an election under this paragraph for the disqualification year— (A) the provisions of this subsection shall not be treated as a change in the method of accounting of the taxpayer for purposes of section 481, (B) the taxpayer shall continue to maintain its reserve for loans held by the bank as of the 1st day of the disqualification year and charge against such reserve any losses resulting from loans held by the bank as of such 1st day, and (C) no deduction shall be allowed under this section (or any other provision of this subtitle) for any addition to such reserve for the disqualification year or any subsequent taxable year. If the amount of the reserve referred to in subparagraph (B) as of the close of any taxable year exceeds the outstanding balance (as of such time) of the loans referred to in subparagraph (B), such excess shall be included in gross income for such taxable year. (5) Definitions For purposes of this subsection— (A) Parent-subsidiary controlled group The term “parent-subsidiary controlled group” means any controlled group of corporations described in section 1563(a)(1). In determining the average adjusted bases of assets held by such a group, interests held by one member of such group in another member of such group shall be disregarded. (B) Disqualification year The term “disqualification year” means, with respect to any bank, the 1st taxable year beginning after December 31, 1986 , for which such bank was a large bank if such bank maintained a reserve for bad debts for the preceding taxable year. (C) Election made by each member In the case of a parent-subsidiary controlled group, any election under this section shall be made separately by each member of such group.",
+    "heading": "Reserves for losses on loans of banks"
+  },
+  "id": "legal-17",
+  "parsed_id": "2422",
+  "filtered_id": "433"
+}
+
+{
+  "description": "Temporal constraints for acquisitions, dispositions, measurement periods, and reimbursements in research credit calculations",
+  "declarations": [
+    "acquisition_date: date",
+    "acquisition_year_start: date",
+    "acquisition_year_end: date",
+    "disposition_date: date",
+    "disposition_year_start: date",
+    "disposition_year_end: date",
+    "credit_determination_year_start: date",
+    "measurement_period_end: date",
+    "reimbursement_date: date",
+    "reimbursement_occurs: bool",
+    "calendar_year_start: date",
+    "calendar_year_end: date",
+    "org_taxable_year_start: date"
+  ],
+  "constraints": [
+    "acquisition_date >= acquisition_year_start",
+    "acquisition_date <= acquisition_year_end",
+    "acquisition_year_end >= acquisition_year_start",
+    "acquisition_year_end <= acquisition_year_start + Period(1, 0, 0)",
+    "disposition_date >= disposition_year_start",
+    "disposition_date <= disposition_year_end",
+    "disposition_year_end >= disposition_year_start",
+    "disposition_year_end <= disposition_year_start + Period(1, 0, 0)",
+    "measurement_period_end < credit_determination_year_start",
+    "(reimbursement_occurs == True) -> (reimbursement_date > disposition_year_end)",
+    "(reimbursement_occurs == True) -> (reimbursement_date <= disposition_year_end + Period(3, 0, 0))",
+    "calendar_year_end >= calendar_year_start",
+    "calendar_year_end <= calendar_year_start + Period(1, 0, 0)",
+    "org_taxable_year_start >= calendar_year_start",
+    "org_taxable_year_start <= calendar_year_end"
+  ],
+  "provenance": {
+    "identifier": "/us/usc/t26/s41/f",
+    "original_text": "(f) Special rules For purposes of this section— (1) Aggregation of expenditures (A) Controlled group of corporations In determining the amount of the credit under this section— (i) all members of the same controlled group of corporations shall be treated as a single taxpayer, and (ii) the credit (if any) allowable by this section to each such member shall be determined on a proportionate basis to its share of the aggregate of the qualified research expenses, basic research payments, and amounts paid or incurred to energy research consortiums, taken into account by such controlled group for purposes of this section. (B) Common control Under regulations prescribed by the Secretary, in determining the amount of the credit under this section— (i) all trades or businesses (whether or not incorporated) which are under common control shall be treated as a single taxpayer, and (ii) the credit (if any) allowable by this section to each such person shall be determined on a proportionate basis to its share of the aggregate of the qualified research expenses, basic research payments, and amounts paid or incurred to energy research consortiums, taken into account by all such persons under common control for purposes of this section. The regulations prescribed under this subparagraph shall be based on principles similar to the principles which apply in the case of subparagraph (A). (2) Allocations (A) Pass-thru in the case of estates and trusts Under regulations prescribed by the Secretary, rules similar to the rules of subsection (d) of section 52 shall apply. (B) Allocation in the case of partnerships In the case of partnerships, the credit shall be allocated among partners under regulations prescribed by the Secretary. (3) Adjustments for certain acquisitions, etc. Under regulations prescribed by the Secretary— (A) Acquisitions (i) In general If a person acquires the major portion of either a trade or business or a separate unit of a trade or business (hereinafter in this paragraph referred to as the “acquired business”) of another person (hereinafter in this paragraph referred to as the “predecessor”), then the amount of qualified research expenses paid or incurred by the acquiring person during the measurement period shall be increased by the amount determined under clause (ii), and the gross receipts of the acquiring person for such period shall be increased by the amount determined under clause (iii). (ii) Amount determined with respect to qualified research expenses The amount determined under this clause is— (I) for purposes of applying this section for the taxable year in which such acquisition is made, the acquisition year amount, and (II) for purposes of applying this section for any taxable year after the taxable year in which such acquisition is made, the qualified research expenses paid or incurred by the predecessor with respect to the acquired business during the measurement period. (iii) Amount determined with respect to gross receipts The amount determined under this clause is the amount which would be determined under clause (ii) if “the gross receipts of” were substituted for “the qualified research expenses paid or incurred by” each place it appears in clauses (ii) and (iv). (iv) Acquisition year amount For purposes of clause (ii), the acquisition year amount is the amount equal to the product of— (I) the qualified research expenses paid or incurred by the predecessor with respect to the acquired business during the measurement period, and (II) the number of days in the period beginning on the date of the acquisition and ending on the last day of the taxable year in which the acquisition is made, divided by the number of days in the acquiring person’s taxable year. (v) Special rules for coordinating taxable years In the case of an acquiring person and a predecessor whose taxable years do not begin on the same date— (I) each reference to a taxable year in clauses (ii) and (iv) shall refer to the appropriate taxable year of the acquiring person, (II) the qualified research expenses paid or incurred by the predecessor, and the gross receipts of the predecessor, during each taxable year of the predecessor any portion of which is part of the measurement period shall be allocated equally among the days of such taxable year, (III) the amount of such qualified research expenses taken into account under clauses (ii) and (iv) with respect to a taxable year of the acquiring person shall be equal to the total of the expenses attributable under subclause (II) to the days occurring during such taxable year, and (IV) the amount of such gross receipts taken into account under clause (iii) with respect to a taxable year of the acquiring person shall be equal to the total of the gross receipts attributable under subclause (II) to the days occurring during such taxable year. (vi) Measurement period For purposes of this subparagraph, the term “measurement period” means, with respect to the taxable year of the acquiring person for which the credit is determined, any period of the acquiring person preceding such taxable year which is taken into account for purposes of determining the credit for such year. (B) Dispositions If the predecessor furnished to the acquiring person such information as is necessary for the application of subparagraph (A), then, for purposes of applying this section for any taxable year ending after such disposition, the amount of qualified research expenses paid or incurred by, and the gross receipts of, the predecessor during the measurement period (as defined in subparagraph (A)(vi), determined by substituting “predecessor” for “acquiring person” each place it appears) shall be reduced by— (i) in the case of the taxable year in which such disposition is made, an amount equal to the product of— (I) the qualified research expenses paid or incurred by, or gross receipts of, the predecessor with respect to the acquired business during the measurement period (as so defined and so determined), and (II) the number of days in the period beginning on the date of acquisition (as determined for purposes of subparagraph (A)(iv)(II)) and ending on the last day of the taxable year of the predecessor in which the disposition is made, divided by the number of days in the taxable year of the predecessor, and (ii) in the case of any taxable year ending after the taxable year in which such disposition is made, the amount described in clause (i)(I). (C) Certain reimbursements taken into account in determining fixed-base percentage If during any of the 3 taxable years following the taxable year in which a disposition to which subparagraph (B) applies occurs, the disposing taxpayer (or a person with whom the taxpayer is required to aggregate expenditures under paragraph (1)) reimburses the acquiring person (or a person required to so aggregate expenditures with such person) for research on behalf of the taxpayer, then the amount of qualified research expenses of the taxpayer for the taxable years taken into account in computing the fixed-base percentage shall be increased by the lesser of— (i) the amount of the decrease under subparagraph (B) which is allocable to taxable years so taken into account, or (ii) the product of the number of taxable years so taken into account, multiplied by the amount of the reimbursement described in this subparagraph. (4) Short taxable years In the case of any short taxable year, qualified research expenses and gross receipts shall be annualized in such circumstances and under such methods as the Secretary may prescribe by regulation. (5) Controlled group of corporations The term “controlled group of corporations” has the same meaning given to such term by section 1563(a), except that— (A) “more than 50 percent” shall be substituted for “at least 80 percent” each place it appears in section 1563(a)(1), and (B) the determination shall be made without regard to subsections (a)(4) and (e)(3)(C) of section 1563. (6) Energy research consortium (A) In general The term “energy research consortium” means any organization— (i) which is— (I) described in section 501(c)(3) and is exempt from tax under section 501(a) and is organized and operated primarily to conduct energy research, or (II) organized and operated primarily to conduct energy research in the public interest (within the meaning of section 501(c)(3)), (ii) which is not a private foundation, (iii) to which at least 5 unrelated persons paid or incurred during the calendar year in which the taxable year of the organization begins amounts (including as contributions) to such organization for energy research, and (iv) to which no single person paid or incurred (including as contributions) during such calendar year an amount equal to more than 50 percent of the total amounts received by such organization during such calendar year for energy research. (B) Treatment of persons All persons treated as a single employer under subsection (a) or (b) of section 52 shall be treated as related persons for purposes of subparagraph (A)(iii) and as a single person for purposes of subparagraph (A)(iv). (C) Foreign research For purposes of subsection (a)(3), amounts paid or incurred for any energy research conducted outside the United States, the Commonwealth of Puerto Rico, or any possession of the United States shall not be taken into account. (D) Denial of double benefit Any amount taken into account under subsection (a)(3) shall not be taken into account under paragraph (1) or (2) of subsection (a). (E) Energy research The term “energy research” does not include any research which is not qualified research.",
+    "heading": "Credit for increasing research activities"
+  },
+  "id": "legal-18",
+  "parsed_id": "244",
+  "filtered_id": "33"
+}
+
+{
+  "description": "Research credit base amount calculations with 4 preceding taxable years, historical period (1984-1988), and start-up company dates",
+  "declarations": [
+    "credit_year_start: date",
+    "credit_year_end: date",
+    "preceding_year_1_start: date",
+    "preceding_year_1_end: date",
+    "preceding_year_2_start: date",
+    "preceding_year_2_end: date",
+    "preceding_year_3_start: date",
+    "preceding_year_3_end: date",
+    "preceding_year_4_start: date",
+    "preceding_year_4_end: date",
+    "historical_period_year_start: date",
+    "is_in_historical_period: bool",
+    "first_qualifying_year_start: date",
+    "is_startup: bool",
+    "startup_fixed_base_year_1_start: date",
+    "applies_startup_rules: bool",
+    "simplified_credit_preceding_year_1_start: date",
+    "simplified_credit_preceding_year_1_end: date",
+    "simplified_credit_preceding_year_2_start: date",
+    "simplified_credit_preceding_year_2_end: date",
+    "simplified_credit_preceding_year_3_start: date",
+    "simplified_credit_preceding_year_3_end: date",
+    "uses_simplified_credit: bool"
+  ],
+  "constraints": [
+    "credit_year_end >= credit_year_start",
+    "credit_year_end <= credit_year_start + Period(1, 0, 0)",
+    "preceding_year_1_end >= preceding_year_1_start",
+    "preceding_year_1_end <= preceding_year_1_start + Period(1, 0, 0)",
+    "preceding_year_2_end >= preceding_year_2_start",
+    "preceding_year_2_end <= preceding_year_2_start + Period(1, 0, 0)",
+    "preceding_year_3_end >= preceding_year_3_start",
+    "preceding_year_3_end <= preceding_year_3_start + Period(1, 0, 0)",
+    "preceding_year_4_end >= preceding_year_4_start",
+    "preceding_year_4_end <= preceding_year_4_start + Period(1, 0, 0)",
+    "preceding_year_1_end <= credit_year_start",
+    "preceding_year_2_end <= preceding_year_1_start",
+    "preceding_year_3_end <= preceding_year_2_start",
+    "preceding_year_4_end <= preceding_year_3_start",
+    "(is_in_historical_period == True) -> (historical_period_year_start > Date(1983, 12, 31) && historical_period_year_start < Date(1989, 1, 1))",
+    "(is_startup == True) -> (first_qualifying_year_start > Date(1983, 12, 31))",
+    "(applies_startup_rules == True) -> (startup_fixed_base_year_1_start > Date(1993, 12, 31))",
+    "(uses_simplified_credit == True) -> (simplified_credit_preceding_year_1_end >= simplified_credit_preceding_year_1_start)",
+    "(uses_simplified_credit == True) -> (simplified_credit_preceding_year_1_end <= simplified_credit_preceding_year_1_start + Period(1, 0, 0))",
+    "(uses_simplified_credit == True) -> (simplified_credit_preceding_year_2_end >= simplified_credit_preceding_year_2_start)",
+    "(uses_simplified_credit == True) -> (simplified_credit_preceding_year_2_end <= simplified_credit_preceding_year_2_start + Period(1, 0, 0))",
+    "(uses_simplified_credit == True) -> (simplified_credit_preceding_year_3_end >= simplified_credit_preceding_year_3_start)",
+    "(uses_simplified_credit == True) -> (simplified_credit_preceding_year_3_end <= simplified_credit_preceding_year_3_start + Period(1, 0, 0))",
+    "(uses_simplified_credit == True) -> (simplified_credit_preceding_year_1_end <= credit_year_start)",
+    "(uses_simplified_credit == True) -> (simplified_credit_preceding_year_2_end <= simplified_credit_preceding_year_1_start)",
+    "(uses_simplified_credit == True) -> (simplified_credit_preceding_year_3_end <= simplified_credit_preceding_year_2_start)"
+  ],
+  "provenance": {
+    "identifier": "/us/usc/t26/s41/c",
+    "original_text": "(c) Base amount (1) In general The term “base amount” means the product of— (A) the fixed-base percentage, and (B) the average annual gross receipts of the taxpayer for the 4 taxable years preceding the taxable year for which the credit is being determined (hereinafter in this subsection referred to as the “credit year”). (2) Minimum base amount In no event shall the base amount be less than 50 percent of the qualified research expenses for the credit year. (3) Fixed-base percentage (A) In general Except as otherwise provided in this paragraph, the fixed-base percentage is the percentage which the aggregate qualified research expenses of the taxpayer for taxable years beginning after December 31, 1983 , and before January 1, 1989 , is of the aggregate gross receipts of the taxpayer for such taxable years. (B) Start-up companies (i) Taxpayers to which subparagraph applies The fixed-base percentage shall be determined under this subparagraph if— (I) the first taxable year in which a taxpayer had both gross receipts and qualified research expenses begins after December 31, 1983 , or (II) there are fewer than 3 taxable years beginning after December 31, 1983 , and before January 1, 1989 , in which the taxpayer had both gross receipts and qualified research expenses. (ii) Fixed-base percentage In a case to which this subparagraph applies, the fixed-base percentage is— (I) 3 percent for each of the taxpayer’s 1st 5 taxable years beginning after December 31, 1993 , for which the taxpayer has qualified research expenses, (II) in the case of the taxpayer’s 6th such taxable year, ⅙ of the percentage which the aggregate qualified research expenses of the taxpayer for the 4th and 5th such taxable years is of the aggregate gross receipts of the taxpayer for such years, (III) in the case of the taxpayer’s 7th such taxable year, ⅓ of the percentage which the aggregate qualified research expenses of the taxpayer for the 5th and 6th such taxable years is of the aggregate gross receipts of the taxpayer for such years, (IV) in the case of the taxpayer’s 8th such taxable year, ½ of the percentage which the aggregate qualified research expenses of the taxpayer for the 5th, 6th, and 7th such taxable years is of the aggregate gross receipts of the taxpayer for such years, (V) in the case of the taxpayer’s 9th such taxable year, ⅔ of the percentage which the aggregate qualified research expenses of the taxpayer for the 5th, 6th, 7th, and 8th such taxable years is of the aggregate gross receipts of the taxpayer for such years, (VI) in the case of the taxpayer’s 10th such taxable year, ⅚ of the percentage which the aggregate qualified research expenses of the taxpayer for the 5th, 6th, 7th, 8th, and 9th such taxable years is of the aggregate gross receipts of the taxpayer for such years, and (VII) for taxable years thereafter, the percentage which the aggregate qualified research expenses for any 5 taxable years selected by the taxpayer from among the 5th through the 10th such taxable years is of the aggregate gross receipts of the taxpayer for such selected years. (iii) Treatment of de minimis amounts of gross receipts and qualified research expenses The Secretary may prescribe regulations providing that de minimis amounts of gross receipts and qualified research expenses shall be disregarded under clauses (i) and (ii). (C) Maximum fixed-base percentage In no event shall the fixed-base percentage exceed 16 percent. (D) Rounding The percentages determined under subparagraphs (A) and (B)(ii) shall be rounded to the nearest 1/100th of 1 percent. (4) Election of alternative simplified credit (A) In general At the election of the taxpayer, the credit determined under subsection (a)(1) shall be equal to 14 percent of so much of the qualified research expenses for the taxable year as exceeds 50 percent of the average qualified research expenses for the 3 taxable years preceding the taxable year for which the credit is being determined. (B) Special rule in case of no qualified research expenses in any of 3 preceding taxable years (i) Taxpayers to which subparagraph applies The credit under this paragraph shall be determined under this subparagraph if the taxpayer has no qualified research expenses in any one of the 3 taxable years preceding the taxable year for which the credit is being determined. (ii) Credit rate The credit determined under this subparagraph shall be equal to 6 percent of the qualified research expenses for the taxable year. (C) Election An election under this paragraph shall apply to the taxable year for which made and all succeeding taxable years unless revoked with the consent of the Secretary. (5) Consistent treatment of expenses required (A) In general Notwithstanding whether the period for filing a claim for credit or refund has expired for any taxable year taken into account in determining the fixed-base percentage, the qualified research expenses taken into account in computing such percentage shall be determined on a basis consistent with the determination of qualified research expenses for the credit year. (B) Prevention of distortions The Secretary may prescribe regulations to prevent distortions in calculating a taxpayer’s qualified research expenses or gross receipts caused by a change in accounting methods used by such taxpayer between the current year and a year taken into account in computing such taxpayer’s fixed-base percentage. (6) Gross receipts For purposes of this subsection, gross receipts for any taxable year shall be reduced by returns and allowances made during the taxable year. In the case of a foreign corporation, there shall be taken into account only gross receipts which are effectively connected with the conduct of a trade or business within the United States, the Commonwealth of Puerto Rico, or any possession of the United States.",
+    "heading": "Credit for increasing research activities"
+  },
+  "id": "legal-19",
+  "parsed_id": "241",
+  "filtered_id": "31"
+}
+
+{
+  "description": "Property placed in service during taxable year, with short-term lease exception (less than 6 months)",
+  "declarations": [
+    "property_placed_in_service_date: date",
+    "taxable_year_start: date",
+    "taxable_year_end: date",
+    "has_lease: bool",
+    "lease_start: date",
+    "lease_end: date",
+    "is_short_term_lease: bool"
+  ],
+  "constraints": [
+    "property_placed_in_service_date >= taxable_year_start && property_placed_in_service_date <= taxable_year_end",
+    "taxable_year_end >= taxable_year_start",
+    "taxable_year_end <= taxable_year_start + Period(1, 0, 0)",
+    "(has_lease == True) -> (lease_end >= lease_start)",
+    "(has_lease == True && is_short_term_lease == True) -> (lease_end < lease_start + Period(0, 6, 0))"
+  ],
+  "provenance": {
+    "identifier": "/us/usc/t26/s50/b",
+    "original_text": "(b) Certain property not eligible No credit shall be determined under this subpart with respect to— (1) Property used outside United States (A) In general Except as provided in subparagraph (B), no credit shall be determined under this subpart with respect to any property which is used predominantly outside the United States. (B) Exceptions Subparagraph (A) shall not apply to any property described in section 168(g)(4). (2) Property used for lodging No credit shall be determined under this subpart with respect to any property which is used predominantly to furnish lodging or in connection with the furnishing of lodging. The preceding sentence shall not apply to— (A) nonlodging commercial facilities which are available to persons not using the lodging facilities on the same basis as they are available to persons using the lodging facilities; (B) property used by a hotel or motel in connection with the trade or business of furnishing lodging where the predominant portion of the accommodations is used by transients; (C) a certified historic structure to the extent of that portion of the basis which is attributable to qualified rehabilitation expenditures; and (D) any energy property. (3) Property used by certain tax-exempt organization No credit shall be determined under this subpart with respect to any property used by an organization (other than a cooperative described in section 521) which is exempt from the tax imposed by this chapter unless such property is used predominantly in an unrelated trade or business the income of which is subject to tax under section 511. If the property is debt-financed property (as defined in section 514(b)), the amount taken into account for purposes of determining the amount of the credit under this subpart with respect to such property shall be that percentage of the amount (which but for this paragraph would be so taken into account) which is the same percentage as is used under section 514(a), for the year the property is placed in service, in computing the amount of gross income to be taken into account during such taxable year with respect to such property. If any qualified rehabilitated building is used by the tax-exempt organization pursuant to a lease, this paragraph shall not apply for purposes of determining the amount of the rehabilitation credit. (4) Property used by governmental units or foreign persons or entities (A) In general No credit shall be determined under this subpart with respect to any property used— (i) by the United States, any State or political subdivision thereof, any possession of the United States, or any agency or instrumentality of any of the foregoing, or (ii) by any foreign person or entity (as defined in section 168(h)(2)(C)), but only with respect to property to which section 168(h)(2)(A)(iii) applies (determined after the application of section 168(h)(2)(B)). (B) Exception for short-term leases This paragraph and paragraph (3) shall not apply to any property by reason of use under a lease with a term of less than 6 months (determined under section 168(i)(3)). (C) Exception for qualified rehabilitated buildings leased to governments, etc. If any qualified rehabilitated building is leased to a governmental unit (or a foreign person or entity) this paragraph shall not apply for purposes of determining the rehabilitation credit with respect to such building. (D) Special rules for partnerships, etc. For purposes of this paragraph and paragraph (3), rules similar to the rules of paragraphs (5) and (6) of section 168(h) shall apply. (E) Cross reference For special rules for the application of this paragraph and paragraph (3), see section 168(h).",
+    "heading": "Other special rules"
+  },
+  "id": "legal-20",
+  "parsed_id": "499",
+  "filtered_id": "96"
+}
+
