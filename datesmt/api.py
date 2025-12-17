@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Union
 
 from z3 import BoolRef
 
-from .core import Date, Period
+from .core import Date, Period, _UnboundedDate
 
 
 class DateSMTBuilder:

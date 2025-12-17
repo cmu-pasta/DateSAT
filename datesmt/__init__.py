@@ -5,7 +5,7 @@ This package provides implementations for expressing and solving date constraint
 """
 
 from .api import DateSMTBuilder
-from .core import Date, Period
+from .core import Date, Period, _UnboundedDate
 
 # Import bitvector implementations
 from .symbolic_bitvector.naive_bv import NaiveSolver as BitVectorNaiveSolver

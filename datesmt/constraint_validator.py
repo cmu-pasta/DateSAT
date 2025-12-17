@@ -10,7 +10,7 @@ from typing import Any, Dict, Optional, Tuple, Union
 from dateutil.relativedelta import relativedelta
 import datetime
 
-from .core import Date, Period
+from .core import Date, Period, _UnboundedDate
 from .enumeration_baseline import (
     ConstraintWrapper,
     Or_enumeration,
@@ -18,27 +18,6 @@ from .enumeration_baseline import (
     Not_enumeration,
     Implies_enumeration,
 )
-
-
-class _UnboundedDate:
-    """
-    Wrapper for Python datetime that provides Date-like interface but without bounds checking.
-    Used during validation when date arithmetic goes outside Date-SMT's supported range.
-    """
-    def __init__(self, py_date: datetime.date):
-        self._py_date = py_date
-        self.year = py_date.year
-        self.month = py_date.month
-        self.day = py_date.day
-    
-    def to_python_date(self) -> datetime.date:
-        return self._py_date
-    
-    def __repr__(self) -> str:
-        return f"Date({self.year}, {self.month}, {self.day})"
-    
-    def __str__(self) -> str:
-        return f"Date({self.year}, {self.month}, {self.day})"
 
 
 class EvalDateVar:
@@ -104,9 +83,18 @@ class EvalDateVar:
         )
 
     def __eq__(self, other: Union[Date, "EvalDateVar"]) -> ConstraintWrapper:  # type: ignore[override]
+        if isinstance(other, _UnboundedDate):
+            raise ValueError(
+                f"Cannot constrain date variable to equal Date({other.year}, {other.month}, {other.day}) "
+                f"which is outside the allowed range [1900-03-01..2100-02-28]. "
+                f"This constraint is always unsatisfiable."
+            )
         return self._cmp("eq", other)
 
     def __ne__(self, other: Union[Date, "EvalDateVar"]) -> ConstraintWrapper:  # type: ignore[override]
+        if isinstance(other, _UnboundedDate):
+            # Date variable can never equal an out-of-range date, so != is always true
+            return ConstraintWrapper(lambda: True)
         return self._cmp("ne", other)
 
     def __lt__(self, other: Union[Date, "EvalDateVar"]) -> ConstraintWrapper:

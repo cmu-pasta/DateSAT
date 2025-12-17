@@ -29,7 +29,7 @@ from z3 import (
     sat,
 )
 from ..symbolic_int.alpha_beta_table_int import build_dim_dbm_48_from_epoch
-from ..core import Date, Period
+from ..core import Date, Period, _UnboundedDate
 from .bitwidths import LEGACY_BITS
 # Epoch constants as Python ints for table construction and concrete decoding
 _EPOCH_YEAR = 2000
@@ -151,7 +151,7 @@ class DateVar:
 
     def __ge__(self, other) -> BoolRef:
         """Support x >= date comparison."""
-        if isinstance(other, Date):
+        if isinstance(other, (Date, _UnboundedDate)):
             alpha_o = months_since_epoch_from_ym(
                 BitVecVal(other.year, LEGACY_BITS), BitVecVal(other.month, LEGACY_BITS)
             )
@@ -170,7 +170,7 @@ class DateVar:
 
     def __le__(self, other) -> BoolRef:
         """Support x <= date comparison."""
-        if isinstance(other, Date):
+        if isinstance(other, (Date, _UnboundedDate)):
             alpha_o = months_since_epoch_from_ym(
                 BitVecVal(other.year, LEGACY_BITS), BitVecVal(other.month, LEGACY_BITS)
             )
@@ -189,21 +189,27 @@ class DateVar:
 
     def __lt__(self, other) -> BoolRef:
         """Support x < date comparison."""
-        if isinstance(other, Date) or isinstance(other, DateVar):
+        if isinstance(other, (Date, _UnboundedDate, DateVar)):
             return Not(self.__ge__(other))
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
     def __gt__(self, other) -> BoolRef:
         """Support x > date comparison."""
-        if isinstance(other, Date) or isinstance(other, DateVar):
+        if isinstance(other, (Date, _UnboundedDate, DateVar)):
             return Not(self.__le__(other))
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
     def __eq__(self, other) -> BoolRef:
         """Support x == date comparison."""
-        if isinstance(other, Date):
+        if isinstance(other, _UnboundedDate):
+            raise ValueError(
+                f"Cannot constrain date variable to equal Date({other.year}, {other.month}, {other.day}) "
+                f"which is outside the allowed range [1900-03-01..2100-02-28]. "
+                f"This constraint is always unsatisfiable."
+            )
+        elif isinstance(other, Date):
             alpha_o = months_since_epoch_from_ym(
                 BitVecVal(other.year, LEGACY_BITS), BitVecVal(other.month, LEGACY_BITS)
             )

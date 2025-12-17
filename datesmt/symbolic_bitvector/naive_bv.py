@@ -24,7 +24,7 @@ from z3 import (
     Solver,
     sat
 )
-from ..core import Date, Period
+from ..core import Date, Period, _UnboundedDate
 from .bitwidths import LEGACY_BITS
 
 _NONLEAP_PREFIX = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334]
@@ -290,9 +290,9 @@ class DateVar:
 
     def __ge__(self, other) -> BoolRef:
         """Support x >= date comparison."""
-        if isinstance(other, Date) or isinstance(other, DateVar):
+        if isinstance(other, (Date, _UnboundedDate, DateVar)):
             # Convert Date to bitvector values if needed
-            if isinstance(other, Date):
+            if isinstance(other, (Date, _UnboundedDate)):
                 other_year = BitVecVal(other.year, LEGACY_BITS)
                 other_month = BitVecVal(other.month, LEGACY_BITS)
                 other_day = BitVecVal(other.day, LEGACY_BITS)
@@ -316,9 +316,9 @@ class DateVar:
 
     def __le__(self, other) -> BoolRef:
         """Support x <= date comparison."""
-        if isinstance(other, Date) or isinstance(other, DateVar):
+        if isinstance(other, (Date, _UnboundedDate, DateVar)):
             # Convert Date to bitvector values if needed
-            if isinstance(other, Date):
+            if isinstance(other, (Date, _UnboundedDate)):
                 other_year = BitVecVal(other.year, LEGACY_BITS)
                 other_month = BitVecVal(other.month, LEGACY_BITS)
                 other_day = BitVecVal(other.day, LEGACY_BITS)
@@ -342,23 +342,23 @@ class DateVar:
 
     def __lt__(self, other) -> BoolRef:
         """Support x < date comparison."""
-        if isinstance(other, Date) or isinstance(other, DateVar):
+        if isinstance(other, (Date, _UnboundedDate, DateVar)):
             return Not(self.__ge__(other))
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
     def __gt__(self, other) -> BoolRef:
         """Support x > date comparison."""
-        if isinstance(other, Date) or isinstance(other, DateVar):
+        if isinstance(other, (Date, _UnboundedDate, DateVar)):
             return Not(self.__le__(other))
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
     def __eq__(self, other) -> BoolRef:
         """Support x == date comparison."""
-        if isinstance(other, Date) or isinstance(other, DateVar):
+        if isinstance(other, (Date, _UnboundedDate, DateVar)):
             # Convert Date to bitvector values if needed
-            if isinstance(other, Date):
+            if isinstance(other, (Date, _UnboundedDate)):
                 other_year = BitVecVal(other.year, LEGACY_BITS)
                 other_month = BitVecVal(other.month, LEGACY_BITS)
                 other_day = BitVecVal(other.day, LEGACY_BITS)
@@ -377,7 +377,11 @@ class DateVar:
 
     def __ne__(self, other) -> BoolRef:
         """Support x != date comparison using ordinal arithmetic."""
-        if isinstance(other, Date) or isinstance(other, DateVar):
+        if isinstance(other, _UnboundedDate):
+            # Date variable can never equal an out-of-range date, so != is always true
+            from z3 import BoolVal
+            return BoolVal(True)
+        elif isinstance(other, (Date, DateVar)):
             return Not(self.__eq__(other))
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
