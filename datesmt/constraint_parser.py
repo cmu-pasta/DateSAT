@@ -13,28 +13,6 @@ import re
 class ConstraintTransformer(Transformer):
     """Transformer to convert Lark parse tree to Python code."""
     
-    @staticmethod
-    def _strip_unnecessary_parens(expr: str) -> str:
-        """Strip unnecessary parentheses from an expression."""
-        expr = expr.strip()
-        # Remove outer parentheses if they wrap a simple expression
-        if expr.startswith('(') and expr.endswith(')'):
-            inner = expr[1:-1].strip()
-            # Count parentheses to ensure we're removing matching outer ones
-            paren_count = 0
-            for char in inner:
-                if char == '(':
-                    paren_count += 1
-                elif char == ')':
-                    paren_count -= 1
-                    if paren_count < 0:
-                        # Unmatched closing paren, don't strip
-                        return expr
-            if paren_count == 0:
-                # All parentheses are matched, safe to strip
-                return inner
-        return expr
-    
     def constraint(self, items) -> str:
         """Transform constraint (top level)."""
         return self.top_level_constraint(items)
@@ -54,12 +32,12 @@ class ConstraintTransformer(Transformer):
         # Earley parser might include the -> token, filter it out
         filtered = [item for item in items if str(item) != '->']
         if len(filtered) == 2:
-            left = self._strip_unnecessary_parens(str(filtered[0]))
-            right = self._strip_unnecessary_parens(str(filtered[1]))
+            left = str(filtered[0])
+            right = str(filtered[1])
             return f"Implies({left}, {right})"
         # Fallback: use first two items
-        left = self._strip_unnecessary_parens(str(items[0]))
-        right = self._strip_unnecessary_parens(str(items[-1]))
+        left = str(items[0])
+        right = str(items[-1])
         return f"Implies({left}, {right})"
 
     def or_op(self, items) -> str:
@@ -67,12 +45,12 @@ class ConstraintTransformer(Transformer):
         # Earley parser might include the operator token, filter it out
         filtered = [item for item in items if str(item) not in ('||', 'or', 'OR')]
         if len(filtered) == 2:
-            left = self._strip_unnecessary_parens(str(filtered[0]))
-            right = self._strip_unnecessary_parens(str(filtered[1]))
+            left = str(filtered[0])
+            right = str(filtered[1])
             return f"Or({left}, {right})"
         # Fallback: use first two items
-        left = self._strip_unnecessary_parens(str(items[0]))
-        right = self._strip_unnecessary_parens(str(items[-1]))
+        left = str(items[0])
+        right = str(items[-1])
         return f"Or({left}, {right})"
 
     def and_op(self, items) -> str:
@@ -80,12 +58,12 @@ class ConstraintTransformer(Transformer):
         # Earley parser might include the operator token, filter it out
         filtered = [item for item in items if str(item) not in ('&&', 'and', 'AND')]
         if len(filtered) == 2:
-            left = self._strip_unnecessary_parens(str(filtered[0]))
-            right = self._strip_unnecessary_parens(str(filtered[1]))
+            left = str(filtered[0])
+            right = str(filtered[1])
             return f"And({left}, {right})"
         # Fallback: use first two items
-        left = self._strip_unnecessary_parens(str(items[0]))
-        right = self._strip_unnecessary_parens(str(items[-1]))
+        left = str(items[0])
+        right = str(items[-1])
         return f"And({left}, {right})"
 
     def not_op(self, items) -> str:
@@ -93,16 +71,17 @@ class ConstraintTransformer(Transformer):
         # items = [NOT token, not_expr] or [not_expr] if NOT token is stripped
         filtered = [item for item in items if str(item) not in ('!', 'not', 'NOT')]
         if filtered:
-            expr = self._strip_unnecessary_parens(str(filtered[0]))
+            expr = str(filtered[0])
             return f"Not({expr})"
-        expr = self._strip_unnecessary_parens(str(items[-1]))
+        expr = str(items[-1])
         return f"Not({expr})"
     
     def bool_atom(self, items) -> str:
         """Transform boolean atom (comparison, variable, bool literal, or parenthesized bool expr)."""
         # Handle parenthesized expressions: LPAR bool_expr RPAR
+        # We don't need to preserve parens since Z3 function calls handle precedence
         if len(items) == 3 and str(items[0]) == '(' and str(items[2]) == ')':
-            return f"({items[1]})"
+            return str(items[1])
         return items[0]
     
     def comparison_expr(self, items) -> str:
@@ -510,6 +489,62 @@ class ConstraintParser:
         )
         self.transformer = ConstraintTransformer()
 
+    def _validate_parentheses_balance(self, constraint_str: str) -> None:
+        """
+        Validate that parentheses are balanced in the constraint.
+        
+        Raises:
+            ValueError: If parentheses are unbalanced with helpful error message
+        """
+        if not constraint_str:
+            return
+        
+        depth = 0
+        position = 0
+        
+        for i, char in enumerate(constraint_str):
+            if char == '(':
+                depth += 1
+            elif char == ')':
+                depth -= 1
+                if depth < 0:
+                    # More closing than opening parens at this position
+                    context_start = max(0, i - 20)
+                    context_end = min(len(constraint_str), i + 20)
+                    context = constraint_str[context_start:context_end]
+                    pointer = ' ' * (i - context_start) + '^'
+                    raise ValueError(
+                        f"Unbalanced parentheses: found closing ')' without matching opening '(' at position {i}\n"
+                        f"  {context}\n"
+                        f"  {pointer}"
+                    )
+            position = i
+        
+        if depth > 0:
+            # More opening than closing parens
+            # Find the first unmatched opening paren
+            temp_depth = 0
+            first_unmatched = -1
+            for i, char in enumerate(constraint_str):
+                if char == '(':
+                    if temp_depth == 0:
+                        first_unmatched = i
+                    temp_depth += 1
+                elif char == ')':
+                    temp_depth -= 1
+                    if temp_depth == 0:
+                        first_unmatched = -1
+            
+            context_start = max(0, first_unmatched - 20)
+            context_end = min(len(constraint_str), first_unmatched + 40)
+            context = constraint_str[context_start:context_end]
+            pointer = ' ' * (first_unmatched - context_start) + '^'
+            raise ValueError(
+                f"Unbalanced parentheses: {depth} unclosed opening '(' found, starting at position {first_unmatched}\n"
+                f"  {context}\n"
+                f"  {pointer}"
+            )
+
     def parse_constraint(self, constraint_str: str) -> str:
         """
         Parse a single constraint string and return the corresponding Python code.
@@ -522,6 +557,9 @@ class ConstraintParser:
         """
         # Remove whitespace
         constraint_str = constraint_str.strip()
+
+        # Check for unbalanced parentheses
+        self._validate_parentheses_balance(constraint_str)
 
         # Check for invalid variable names that should raise ValueError
         if self._is_invalid_variable_name(constraint_str):
@@ -732,43 +770,140 @@ class ConstraintParser:
         
         return result
 
+    # ========================================================================
+    # TYPE CHECKING METHODS (CURRENTLY DISABLED)
+    # ========================================================================
+    # These methods were used to enforce strict type checking at parse time,
+    # rejecting comparisons like Bool == Int even though Z3 allows them.
+    # Currently disabled to allow Z3's more permissive runtime type handling.
+    # ========================================================================
+    
     def _check_comparison_type_mismatches(
         self, 
         constraints: List[str], 
         variable_types: Dict[str, str]
     ) -> None:
         """
-        Check for type mismatches in comparisons between variables.
+        [DISABLED] Check for type mismatches in comparisons between variables.
         
         For example, comparing an int variable with a bool variable is invalid.
         """
         for constraint in constraints:
-                # Find comparison operator and split
-                comp_match = re.search(r'(==|!=|>=|<=|>|<)', constraint)
-                if not comp_match:
-                    continue
-                
-                op = comp_match.group(1)
-                left_expr = constraint[:comp_match.start()].strip()
-                right_expr = constraint[comp_match.end():].strip()
-                
-                # Get types for both sides
-                left_type = self._get_full_expression_type(left_expr, variable_types)
-                right_type = self._get_full_expression_type(right_expr, variable_types)
-                
-                if left_type is None or right_type is None:
-                    continue
-                
-                if not self._types_compatible(left_type, right_type):
-                    raise ValueError(
-                        f"Type mismatch in constraint '{constraint}': "
-                        f"cannot compare '{left_expr}' (type: {left_type}) with "
-                        f"'{right_expr}' (type: {right_type}). "
-                        f"Only values of compatible types can be compared."
-                    )
+            self._check_constraint_comparisons(constraint, variable_types)
+    
+    def _check_constraint_comparisons(
+        self,
+        constraint: str,
+        variable_types: Dict[str, str]
+    ) -> None:
+        """
+        [DISABLED] Recursively check comparisons in a constraint, handling logical operators.
+        """
+        constraint = constraint.strip()
+        
+        # Handle implication: A -> B
+        # Split by '->' and check both sides
+        if '->' in constraint:
+            # Find '->' outside of parentheses
+            parts = self._split_by_operator(constraint, '->')
+            if len(parts) == 2:
+                # Check both sides of implication
+                self._check_constraint_comparisons(parts[0], variable_types)
+                self._check_constraint_comparisons(parts[1], variable_types)
+                return
+        
+        # Handle logical OR: A || B
+        or_parts = self._split_by_operator(constraint, '||')
+        if len(or_parts) > 1:
+            # Check each part separately
+            for part in or_parts:
+                self._check_constraint_comparisons(part, variable_types)
+            return
+        
+        # Handle logical AND: A && B
+        and_parts = self._split_by_operator(constraint, '&&')
+        if len(and_parts) > 1:
+            # Check each part separately
+            for part in and_parts:
+                self._check_constraint_comparisons(part, variable_types)
+            return
+        
+        # Remove outer parentheses if present
+        if constraint.startswith('(') and constraint.endswith(')'):
+            # Check if these are matching outer parentheses
+            depth = 0
+            for i, c in enumerate(constraint):
+                if c == '(':
+                    depth += 1
+                elif c == ')':
+                    depth -= 1
+                if depth == 0 and i < len(constraint) - 1:
+                    break
+            if depth == 0 and i == len(constraint) - 1:
+                # Outer parentheses match, remove them
+                self._check_constraint_comparisons(constraint[1:-1], variable_types)
+                return
+        
+        # Now check for comparison operators
+        comp_match = re.search(r'(==|!=|>=|<=|>|<)', constraint)
+        if not comp_match:
+            return
+        
+        op = comp_match.group(1)
+        left_expr = constraint[:comp_match.start()].strip()
+        right_expr = constraint[comp_match.end():].strip()
+        
+        # Get types for both sides
+        left_type = self._get_full_expression_type(left_expr, variable_types)
+        right_type = self._get_full_expression_type(right_expr, variable_types)
+        
+        if left_type is None or right_type is None:
+            return
+        
+        if not self._types_compatible(left_type, right_type):
+            raise ValueError(
+                f"Type mismatch in constraint '{constraint}': "
+                f"cannot compare '{left_expr}' (type: {left_type}) with "
+                f"'{right_expr}' (type: {right_type}). "
+                f"Only values of compatible types can be compared."
+            )
+    
+    def _split_by_operator(self, expr: str, op: str) -> List[str]:
+        """
+        [DISABLED - used by type checking] Split expression by operator, respecting parentheses.
+        Returns list with single element if operator not found at depth 0.
+        """
+        parts = []
+        current = []
+        depth = 0
+        i = 0
+        
+        while i < len(expr):
+            if expr[i] == '(':
+                depth += 1
+                current.append(expr[i])
+                i += 1
+            elif expr[i] == ')':
+                depth -= 1
+                current.append(expr[i])
+                i += 1
+            elif depth == 0 and expr[i:i+len(op)] == op:
+                # Found operator at depth 0
+                parts.append(''.join(current).strip())
+                current = []
+                i += len(op)
+            else:
+                current.append(expr[i])
+                i += 1
+        
+        # Add the last part
+        if current:
+            parts.append(''.join(current).strip())
+        
+        return parts if len(parts) > 1 else [expr]
     
     def _get_full_expression_type(self, expr: str, variable_types: Dict[str, str]) -> str:
-        """Get the type of a full expression including Date/Period constructors."""
+        """[DISABLED - used by type checking] Get the type of a full expression including Date/Period constructors."""
         expr = expr.strip()
         
         # Check for Date constructor
@@ -798,7 +933,7 @@ class ConstraintParser:
         return None
     
     def _types_compatible(self, type1: str, type2: str) -> bool:
-        """Check if two types are compatible for comparison."""
+        """[DISABLED - used by type checking] Check if two types are compatible for comparison."""
         return type1 == type2
 
     def generate_builder_code(
@@ -849,7 +984,11 @@ class ConstraintParser:
             filtered_constraints = self.filter_declarations_from_constraints(constraints)
         
         self.variable_types = variable_types
-        
+
+        # Validate parentheses balance in all constraints FIRST (before any other validation)
+        for constraint in filtered_constraints:
+            self._validate_parentheses_balance(constraint)
+
         # Auto-extract variables from remaining constraints
         all_variables = self.extract_variables_from_constraints(filtered_constraints)
         
@@ -903,7 +1042,8 @@ class ConstraintParser:
             )
         
         # Check for type mismatches in comparisons (e.g., int == bool)
-        self._check_comparison_type_mismatches(filtered_constraints, variable_types)
+        # NOTE: Type checking disabled - Z3 handles type conversions at runtime
+        # self._check_comparison_type_mismatches(filtered_constraints, variable_types)
         
         # Infer bounds for integer variables used in Date() constructors
         component_bounds = self.infer_date_component_bounds(filtered_constraints)

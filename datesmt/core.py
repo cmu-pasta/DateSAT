@@ -98,6 +98,54 @@ class Date:
         ):
             return NotImplemented
         raise TypeError(f"Cannot compare Date with {type(other)}")
+    
+    def __lt__(self, other: "Date"):
+        """Check if this date is less than another."""
+        if isinstance(other, Date):
+            return self.to_python_date() < other.to_python_date()
+        other_cls = other.__class__
+        if (
+            other_cls.__name__ == "DateVar"
+            and getattr(other_cls, "__module__", "").startswith("datesmt.symbolic")
+        ):
+            return NotImplemented
+        raise TypeError(f"Cannot compare Date with {type(other)}")
+    
+    def __le__(self, other: "Date"):
+        """Check if this date is less than or equal to another."""
+        if isinstance(other, Date):
+            return self.to_python_date() <= other.to_python_date()
+        other_cls = other.__class__
+        if (
+            other_cls.__name__ == "DateVar"
+            and getattr(other_cls, "__module__", "").startswith("datesmt.symbolic")
+        ):
+            return NotImplemented
+        raise TypeError(f"Cannot compare Date with {type(other)}")
+    
+    def __gt__(self, other: "Date"):
+        """Check if this date is greater than another."""
+        if isinstance(other, Date):
+            return self.to_python_date() > other.to_python_date()
+        other_cls = other.__class__
+        if (
+            other_cls.__name__ == "DateVar"
+            and getattr(other_cls, "__module__", "").startswith("datesmt.symbolic")
+        ):
+            return NotImplemented
+        raise TypeError(f"Cannot compare Date with {type(other)}")
+    
+    def __ge__(self, other: "Date"):
+        """Check if this date is greater than or equal to another."""
+        if isinstance(other, Date):
+            return self.to_python_date() >= other.to_python_date()
+        other_cls = other.__class__
+        if (
+            other_cls.__name__ == "DateVar"
+            and getattr(other_cls, "__module__", "").startswith("datesmt.symbolic")
+        ):
+            return NotImplemented
+        raise TypeError(f"Cannot compare Date with {type(other)}")
 
     def to_python_date(self) -> date:
         """Convert to Python date object."""
