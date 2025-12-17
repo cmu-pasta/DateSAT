@@ -1218,60 +1218,59 @@ def test_type_conflict_date_used_as_int(parser):
 # -------------------------
 
 def test_type_mismatch_int_vs_bool(parser):
-    """Test that type mismatch is detected: int vs bool."""
+    """Test that type checking is disabled: int vs bool is now allowed."""
+    # Type checking is disabled - Z3 handles type conversions at runtime
+    # Z3 will convert Bool to 0/1, so this constraint is valid
     constraints = [
         "a: int",
         "b: bool",
         "a == b"
     ]
     
-    with pytest.raises(ValueError) as exc_info:
-        parser.generate_builder_code(constraints)
-    
-    assert "Type mismatch" in str(exc_info.value)
-    assert "int" in str(exc_info.value)
-    assert "bool" in str(exc_info.value)
+    # Should NOT raise an error - type checking is disabled
+    result = parser.generate_builder_code(constraints)
+    assert "a == b" in result or "b == a" in result
 
 
 def test_type_mismatch_int_vs_date(parser):
-    """Test that type mismatch is detected: int vs date."""
+    """Test that type checking is disabled: int vs date is now allowed."""
+    # Type checking is disabled - will fail at Z3 runtime instead
     constraints = [
         "a: int",
         "k: date",
         "a == k"
     ]
     
-    with pytest.raises(ValueError) as exc_info:
-        parser.generate_builder_code(constraints)
-    
-    assert "Type mismatch" in str(exc_info.value)
+    # Should NOT raise an error at parse time - type checking is disabled
+    result = parser.generate_builder_code(constraints)
+    assert "a == k" in result or "k == a" in result
 
 
 def test_type_mismatch_int_vs_date_constructor(parser):
-    """Test that type mismatch is detected: int vs Date(...)."""
+    """Test that type checking is disabled: int vs Date(...) is now allowed."""
+    # Type checking is disabled - will fail at Z3 runtime instead
     constraints = [
         "a: int",
         "a == Date(2000, 2, 1)"
     ]
     
-    with pytest.raises(ValueError) as exc_info:
-        parser.generate_builder_code(constraints)
-    
-    assert "Type mismatch" in str(exc_info.value)
+    # Should NOT raise an error at parse time - type checking is disabled
+    result = parser.generate_builder_code(constraints)
+    assert "Date(2000, 2, 1)" in result
 
 
 def test_type_mismatch_bool_vs_date(parser):
-    """Test that type mismatch is detected: bool vs date."""
+    """Test that type checking is disabled: bool vs date is now allowed."""
+    # Type checking is disabled - will fail at Z3 runtime instead
     constraints = [
         "flag: bool",
         "k: date",
         "flag == k"
     ]
     
-    with pytest.raises(ValueError) as exc_info:
-        parser.generate_builder_code(constraints)
-    
-    assert "Type mismatch" in str(exc_info.value)
+    # Should NOT raise an error at parse time - type checking is disabled
+    result = parser.generate_builder_code(constraints)
+    assert "flag == k" in result or "k == flag" in result
 
 
 # -------------------------

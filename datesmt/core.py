@@ -6,9 +6,172 @@ The difference between approaches is in how these are converted to Z3 constraint
 not in the data representation itself.
 """
 
+import warnings
 from datetime import date, timedelta
 from dateutil.relativedelta import relativedelta
 from z3 import *
+
+
+class _UnboundedDate:
+    """
+    Wrapper for dates outside Date-SMT's supported range [1900-03-01 to 2100-02-28].
+    
+    This class is used for intermediate date computations that go outside the allowed
+    range. It provides the same interface as Date but doesn't enforce range validation.
+    
+    Note: Direct construction of dates outside the range via Date() constructor will
+    still raise an error. This class is only for intermediate computation results.
+    """
+    
+    def __init__(self, year: int, month: int, day: int):
+        """Initialize an unbounded date with year, month, day components."""
+        self._year = year
+        self._month = month
+        self._day = day
+        # Validate calendar correctness (but not range)
+        try:
+            date(year, month, day)
+        except ValueError as e:
+            raise ValueError(
+                f"Invalid date: {year}-{month:02d}-{day:02d}"
+            ) from e
+    
+    @property
+    def year(self) -> int:
+        """Get the year component."""
+        return self._year
+    
+    @property
+    def month(self) -> int:
+        """Get the month component."""
+        return self._month
+    
+    @property
+    def day(self) -> int:
+        """Get the day component."""
+        return self._day
+    
+    def to_python_date(self) -> date:
+        """Convert to Python date object."""
+        return date(self.year, self.month, self.day)
+    
+    def __str__(self) -> str:
+        """Return a string representation of the unbounded date."""
+        return f"Date({self.year}, {self.month}, {self.day})"
+    
+    def __repr__(self) -> str:
+        """Return a string representation of the unbounded date."""
+        return f"Date({self.year}, {self.month}, {self.day})"
+    
+    def __hash__(self) -> int:
+        """Return hash value for unbounded date."""
+        return hash((self.year, self.month, self.day))
+    
+    def __eq__(self, other) -> bool:
+        """Check if two dates are equal."""
+        if isinstance(other, (Date, _UnboundedDate)):
+            return (
+                self.year == other.year
+                and self.month == other.month
+                and self.day == other.day
+            )
+        # Allow DateVar implementations to handle reflected comparison
+        other_cls = other.__class__
+        other_name = other_cls.__name__
+        if (other_name in ("DateVar", "EvalDateVar", "EnumerationDateVar") or
+            (other_name == "DateVar" and getattr(other_cls, "__module__", "").startswith("datesmt.symbolic"))):
+            return NotImplemented
+        raise TypeError(f"Cannot compare Date with {type(other)}")
+    
+    def __ne__(self, other) -> bool:
+        """Check if two dates are not equal."""
+        if isinstance(other, (Date, _UnboundedDate)):
+            return not self.__eq__(other)
+        # Allow DateVar implementations to handle reflected comparison
+        other_cls = other.__class__
+        other_name = other_cls.__name__
+        if (other_name in ("DateVar", "EvalDateVar", "EnumerationDateVar") or
+            (other_name == "DateVar" and getattr(other_cls, "__module__", "").startswith("datesmt.symbolic"))):
+            return NotImplemented
+        raise TypeError(f"Cannot compare Date with {type(other)}")
+    
+    def __lt__(self, other):
+        """Check if this date is less than another."""
+        if isinstance(other, (Date, _UnboundedDate)):
+            return self.to_python_date() < other.to_python_date()
+        # Allow DateVar implementations to handle reflected comparison
+        other_cls = other.__class__
+        other_name = other_cls.__name__
+        if (other_name in ("DateVar", "EvalDateVar", "EnumerationDateVar") or
+            (other_name == "DateVar" and getattr(other_cls, "__module__", "").startswith("datesmt.symbolic"))):
+            return NotImplemented
+        raise TypeError(f"Cannot compare Date with {type(other)}")
+    
+    def __le__(self, other):
+        """Check if this date is less than or equal to another."""
+        if isinstance(other, (Date, _UnboundedDate)):
+            return self.to_python_date() <= other.to_python_date()
+        # Allow DateVar implementations to handle reflected comparison
+        other_cls = other.__class__
+        other_name = other_cls.__name__
+        if (other_name in ("DateVar", "EvalDateVar", "EnumerationDateVar") or
+            (other_name == "DateVar" and getattr(other_cls, "__module__", "").startswith("datesmt.symbolic"))):
+            return NotImplemented
+        raise TypeError(f"Cannot compare Date with {type(other)}")
+    
+    def __gt__(self, other):
+        """Check if this date is greater than another."""
+        if isinstance(other, (Date, _UnboundedDate)):
+            return self.to_python_date() > other.to_python_date()
+        # Allow DateVar implementations to handle reflected comparison
+        other_cls = other.__class__
+        other_name = other_cls.__name__
+        if (other_name in ("DateVar", "EvalDateVar", "EnumerationDateVar") or
+            (other_name == "DateVar" and getattr(other_cls, "__module__", "").startswith("datesmt.symbolic"))):
+            return NotImplemented
+        raise TypeError(f"Cannot compare Date with {type(other)}")
+    
+    def __ge__(self, other):
+        """Check if this date is greater than or equal to another."""
+        if isinstance(other, (Date, _UnboundedDate)):
+            return self.to_python_date() >= other.to_python_date()
+        # Allow DateVar implementations to handle reflected comparison
+        other_cls = other.__class__
+        other_name = other_cls.__name__
+        if (other_name in ("DateVar", "EvalDateVar", "EnumerationDateVar") or
+            (other_name == "DateVar" and getattr(other_cls, "__module__", "").startswith("datesmt.symbolic"))):
+            return NotImplemented
+        raise TypeError(f"Cannot compare Date with {type(other)}")
+    
+    def __add__(self, other):
+        """
+        UnboundedDate + Period using Python's datetime library with relativedelta.
+        Always returns an _UnboundedDate since we're already outside normal bounds.
+        """
+        if not isinstance(other, Period):
+            raise TypeError(f"Cannot add {type(other)} to Date")
+        
+        py_date = self.to_python_date()
+        result_date = py_date + relativedelta(
+            years=other.years, months=other.months, days=other.days
+        )
+        
+        return _UnboundedDate(result_date.year, result_date.month, result_date.day)
+    
+    def __sub__(self, other):
+        """
+        UnboundedDate - Period using Python's datetime library with relativedelta.
+        Always returns an _UnboundedDate since we're already outside normal bounds.
+        """
+        if not isinstance(other, Period):
+            raise TypeError(f"Cannot subtract {type(other)} from Date")
+        
+        py_date = self.to_python_date()
+        result_date = py_date + relativedelta(
+            years=-other.years, months=-other.months, days=-other.days
+        )
+        
+        return _UnboundedDate(result_date.year, result_date.month, result_date.day)
 
 
 class Date:
@@ -72,30 +235,78 @@ class Date:
 
     def __eq__(self, other: "Date") -> bool:
         """Check if two dates are equal."""
-        if isinstance(other, Date):
+        if isinstance(other, (Date, _UnboundedDate)):
             return (
                 self.year == other.year
                 and self.month == other.month
                 and self.day == other.day
             )
-        # Allow symbolic DateVar implementations to handle reflected comparison.
+        # Allow DateVar implementations to handle reflected comparison
+        # Includes: symbolic DateVar, EvalDateVar (validation), EnumerationDateVar (baseline)
         other_cls = other.__class__
-        if (
-            other_cls.__name__ == "DateVar"
-            and getattr(other_cls, "__module__", "").startswith("datesmt.symbolic")
-        ):
+        other_name = other_cls.__name__
+        if (other_name in ("DateVar", "EvalDateVar", "EnumerationDateVar") or
+            (other_name == "DateVar" and getattr(other_cls, "__module__", "").startswith("datesmt.symbolic"))):
             return NotImplemented
         raise TypeError(f"Cannot compare Date with {type(other)}")
 
     def __ne__(self, other: "Date") -> bool:
         """Check if two dates are not equal."""
-        if isinstance(other, Date):
+        if isinstance(other, (Date, _UnboundedDate)):
             return not self.__eq__(other)
+        # Allow DateVar implementations to handle reflected comparison
         other_cls = other.__class__
-        if (
-            other_cls.__name__ == "DateVar"
-            and getattr(other_cls, "__module__", "").startswith("datesmt.symbolic")
-        ):
+        other_name = other_cls.__name__
+        if (other_name in ("DateVar", "EvalDateVar", "EnumerationDateVar") or
+            (other_name == "DateVar" and getattr(other_cls, "__module__", "").startswith("datesmt.symbolic"))):
+            return NotImplemented
+        raise TypeError(f"Cannot compare Date with {type(other)}")
+    
+    def __lt__(self, other: "Date"):
+        """Check if this date is less than another."""
+        if isinstance(other, (Date, _UnboundedDate)):
+            return self.to_python_date() < other.to_python_date()
+        # Allow DateVar implementations to handle reflected comparison
+        other_cls = other.__class__
+        other_name = other_cls.__name__
+        if (other_name in ("DateVar", "EvalDateVar", "EnumerationDateVar") or
+            (other_name == "DateVar" and getattr(other_cls, "__module__", "").startswith("datesmt.symbolic"))):
+            return NotImplemented
+        raise TypeError(f"Cannot compare Date with {type(other)}")
+    
+    def __le__(self, other: "Date"):
+        """Check if this date is less than or equal to another."""
+        if isinstance(other, (Date, _UnboundedDate)):
+            return self.to_python_date() <= other.to_python_date()
+        # Allow DateVar implementations to handle reflected comparison
+        other_cls = other.__class__
+        other_name = other_cls.__name__
+        if (other_name in ("DateVar", "EvalDateVar", "EnumerationDateVar") or
+            (other_name == "DateVar" and getattr(other_cls, "__module__", "").startswith("datesmt.symbolic"))):
+            return NotImplemented
+        raise TypeError(f"Cannot compare Date with {type(other)}")
+    
+    def __gt__(self, other: "Date"):
+        """Check if this date is greater than another."""
+        if isinstance(other, (Date, _UnboundedDate)):
+            return self.to_python_date() > other.to_python_date()
+        # Allow DateVar implementations to handle reflected comparison
+        other_cls = other.__class__
+        other_name = other_cls.__name__
+        if (other_name in ("DateVar", "EvalDateVar", "EnumerationDateVar") or
+            (other_name == "DateVar" and getattr(other_cls, "__module__", "").startswith("datesmt.symbolic"))):
+            return NotImplemented
+        raise TypeError(f"Cannot compare Date with {type(other)}")
+    
+    def __ge__(self, other: "Date"):
+        """Check if this date is greater than or equal to another."""
+        if isinstance(other, (Date, _UnboundedDate)):
+            return self.to_python_date() >= other.to_python_date()
+        # Allow DateVar implementations to handle reflected comparison
+        other_cls = other.__class__
+        other_name = other_cls.__name__
+        if (other_name in ("DateVar", "EvalDateVar", "EnumerationDateVar") or
+            (other_name == "DateVar" and getattr(other_cls, "__module__", "").startswith("datesmt.symbolic"))):
             return NotImplemented
         raise TypeError(f"Cannot compare Date with {type(other)}")
 
@@ -108,10 +319,13 @@ class Date:
         """Create Date from Python date object."""
         return cls(d.year, d.month, d.day)
 
-    def __add__(self, other: "Period") -> "Date":
+    def __add__(self, other: "Period"):
         """
         Date + Period using Python's datetime library with relativedelta.
         This provides the same semantics as the symbolic DateVar operations.
+        
+        If the result is outside the allowed range [1900-03-01, 2100-02-28],
+        returns an _UnboundedDate with a warning instead of raising an error.
         """
         if not isinstance(other, Period):
             raise TypeError(f"Cannot add {type(other)} to Date")
@@ -122,12 +336,30 @@ class Date:
             years=other.years, months=other.months, days=other.days
         )
         
-        # Convert back to Date (will validate the result)
-        return Date.from_python_date(result_date)
+        # Try to convert back to Date (will validate the result)
+        try:
+            return Date.from_python_date(result_date)
+        except ValueError as e:
+            # Date is out of range, return unbounded date with warning
+            if "Date outside allowed range" in str(e):
+                warnings.warn(
+                    f"Intermediate date computation resulted in date outside allowed range: "
+                    f"{result_date.year}-{result_date.month:02d}-{result_date.day:02d} "
+                    f"(allowed [1900-03-01..2100-02-28]). Using unbounded date for constraint.",
+                    UserWarning,
+                    stacklevel=2
+                )
+                return _UnboundedDate(result_date.year, result_date.month, result_date.day)
+            else:
+                # Re-raise if it's a different error (invalid date)
+                raise
 
-    def __sub__(self, other: "Period") -> "Date":
+    def __sub__(self, other: "Period"):
         """
         Date - Period implemented as Date + (-Period).
+        
+        If the result is outside the allowed range [1900-03-01, 2100-02-28],
+        returns an _UnboundedDate with a warning instead of raising an error.
         """
         if not isinstance(other, Period):
             raise TypeError(f"Cannot subtract {type(other)} from Date")

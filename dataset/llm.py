@@ -43,7 +43,7 @@ PROVIDER_CONFIG = {
     },
     "anthropic": {
         "enabled": ENABLE_ANTHROPIC,
-        "default_model": "claude-4-5-sonnet-latest",
+        "default_model": "claude-sonnet-4-5",
         "api_key_env": "ANTHROPIC_API_KEY",
         "thinking_param": "thinking",
         "thinking_value": {"type": "enabled", "budget_tokens": 10000},
@@ -193,7 +193,7 @@ class LLMClient:
             self.client = anthropic.Anthropic(api_key=self.api_key)
 
         # Light defaults that usually help JSON fidelity
-        self.max_tokens = 2000
+        self.max_tokens = 16000  # Must be > thinking.budget_tokens (10000)
         self.temperature = 0.4
         self.top_p = 0.95
 
@@ -251,6 +251,10 @@ class LLMClient:
         self, system_prompt: str, user_prompt: str, temperature: float, max_tokens: int
     ) -> str:
         """Make an API call to Anthropic."""
+        # Anthropic requires temperature=1 when extended thinking is enabled
+        if self.enable_thinking:
+            temperature = 1.0
+        
         api_params = {
             "model": self.model,
             "max_tokens": max_tokens,
@@ -265,7 +269,18 @@ class LLMClient:
             api_params[config["thinking_param"]] = config["thinking_value"]
 
         resp = self.client.messages.create(**api_params)
-        return resp.content[0].text
+        
+        # Handle extended thinking responses
+        # When thinking is enabled, content contains ThinkingBlock and TextBlock objects
+        # We need to extract the text from TextBlock objects only
+        if self.enable_thinking:
+            text_parts = []
+            for block in resp.content:
+                if block.type == "text":
+                    text_parts.append(block.text)
+            return "\n".join(text_parts)
+        else:
+            return resp.content[0].text
 
     def parse_json_response(self, response: str, extract_array: bool = False) -> any:
         """

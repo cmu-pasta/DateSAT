@@ -37,29 +37,33 @@ from datesmt.constraint_parser import ConstraintParser
 # Paste a single JSON constraint object here (one from *_constraints*.jsonl)
 CONSTRAINT_JSON = r"""
 {
-    "id": "grammar-7",
+    "id": "grammar-17",
     "declarations": [
+      "B0: bool",
       "B4: bool",
       "B7: bool",
+      "B9: bool",
       "D1: date",
       "D2: date",
       "D3: date",
-      "D6: date",
+      "D4: date",
+      "D5: date",
       "D7: date",
+      "D8: date",
+      "D9: date",
       "I3: int",
-      "I6: int",
-      "I7: int",
-      "I9: int"
+      "I6: int"
     ],
     "constraints": [
-      "(B4 == False) -> (D2 < (Date(2099,11,9) - Period(6,4,6)))",
-      "I9 == 7 || I3 != 31",
-      "(B7 != False) -> (Date(2022,7,14) + (Period(4,9,2) + Period(3,6,4) * 7) == ((D6 + Period(2,0,9)) - (Period(8,9,9) + (Period(0,5,2) * 0))) - Period(0,6,8))",
-      "I6 >= 29",
-      "D3 != D6",
-      "D7 != D1 || I9 >= I7"
+      "(B0 == True) -> (D1 == D1) || D8 <= D5",
+      "I3 == (I6 - 1) || (B7 == False) -> (Date(1926, 6, 11) >= (Date(2044, 3, 16) - (Period(0, 0, 8) * 5))) || D4 > D5 || (B9 != True) -> ((Date(1903, 11, 12) - (Period(9, 1, 4) * 9)) == D7) || D8 <= Date(2068, 5, 4)",
+      "D2 > (D8 - ((Period(5, 1, 5) - ((Period(2, 2, 8) * 2) * 4)) * 1)) || (B4 == True) -> (D3 < (D9 + (((Period(1, 3, 4) - (Period(6, 6, 1) + Period(1, 6, 4))) * 8) * 7)))",
+      "D3.year == (D2.month - 12)",
+      "(B0 == True) -> ((Date(2009, 4, 19) - (Period(8, 9, 1) + (((Period(5, 0, 0) - (((Period(3, 7, 2) - (Period(0, 9, 0) - (((Period(0, 1, 4) * 0) * 5) * 5))) * 4) * 6)) * 4) * 8))) > D7)",
+      "D4 > D9",
+      "D5.day > 2024"
     ],
-    "size": 6
+    "size": 7
   }
 """
 

@@ -24,7 +24,7 @@ from z3 import (
     Solver,
     sat
 )
-from ..core import Date, Period
+from ..core import Date, Period, _UnboundedDate
 from .bitwidths import LEGACY_BITS
 from .naive_bv import (
     is_leap,
@@ -92,7 +92,7 @@ class DateVar:
 
     def __ge__(self, other) -> BoolRef:
         """Support x >= date comparison."""
-        if isinstance(other, Date):
+        if isinstance(other, (Date, _UnboundedDate)):
             return self.days_var >= to_days_since_epoch(other)
         elif isinstance(other, DateVar):
             return self.days_var >= other.days_var
@@ -101,7 +101,7 @@ class DateVar:
 
     def __le__(self, other) -> BoolRef:
         """Support x <= date comparison."""
-        if isinstance(other, Date):
+        if isinstance(other, (Date, _UnboundedDate)):
             return self.days_var <= to_days_since_epoch(other)
         elif isinstance(other, DateVar):
             return self.days_var <= other.days_var
@@ -110,21 +110,27 @@ class DateVar:
 
     def __lt__(self, other) -> BoolRef:
         """Support x < date comparison."""
-        if isinstance(other, Date) or isinstance(other, DateVar):
+        if isinstance(other, (Date, _UnboundedDate, DateVar)):
             return Not(self.__ge__(other))
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
     def __gt__(self, other) -> BoolRef:
         """Support x > date comparison."""
-        if isinstance(other, Date) or isinstance(other, DateVar):
+        if isinstance(other, (Date, _UnboundedDate, DateVar)):
             return Not(self.__le__(other))
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
     def __eq__(self, other) -> BoolRef:
         """Support x == date comparison."""
-        if isinstance(other, Date):
+        if isinstance(other, _UnboundedDate):
+            raise ValueError(
+                f"Cannot constrain date variable to equal Date({other.year}, {other.month}, {other.day}) "
+                f"which is outside the allowed range [1900-03-01..2100-02-28]. "
+                f"This constraint is always unsatisfiable."
+            )
+        elif isinstance(other, Date):
             return self.days_var == to_days_since_epoch(other)
         elif isinstance(other, DateVar):
             return self.days_var == other.days_var
@@ -133,7 +139,14 @@ class DateVar:
 
     def __ne__(self, other) -> BoolRef:
         """Support x != date comparison."""
-        return Not(self.__eq__(other))
+        if isinstance(other, _UnboundedDate):
+            # Date variable can never equal an out-of-range date, so != is always true
+            from z3 import BoolVal
+            return BoolVal(True)
+        elif isinstance(other, (Date, DateVar)):
+            return Not(self.__eq__(other))
+        else:
+            raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
     def __add__(self, other) -> 'DateVar':
         """
