@@ -6,11 +6,23 @@ By default, this script reads the parsed elements from:
 and writes candidate constraints to:
     dataset/legal_doc_constraints/processed_data/filtered.jsonl
 
-Filtering logic:
-- Records must contain temporal keywords/patterns (period keywords, relation keywords, 
-  tax anchors, effective cues, or date patterns)
-- Records must have MORE THAN the minimum number of unique matched patterns (default: 5)
-- Configure the threshold with --min-patterns flag
+Filtering Pipeline (multi-stage):
+
+Step 1 - Hard Precision Gate (must-pass):
+    A clause must satisfy at least ONE high-signal temporal evidence pattern:
+    - Numeric + unit (e.g., "30 days", "12 months")
+    - Explicit deadline language (e.g., "no later than", "on or before")
+    - Absolute calendar date (e.g., "January 15, 2019", "2019-01-15")
+    - Applicability windows (e.g., "taxable years beginning after")
+    - Ordinal constructions (e.g., "15th day of the 4th month")
+    
+Step 2 - Temporal Pattern Detection:
+    Records must contain temporal keywords/patterns (period keywords, relation keywords,
+    tax anchors, effective cues, or date patterns)
+
+Step 3 - Pattern Threshold:
+    Records must have MORE THAN the minimum number of unique matched patterns (default: 5)
+    Configure the threshold with --min-patterns flag
 """
 
 import argparse
@@ -105,6 +117,62 @@ ALL_PATTERNS = (
 # Compile regex patterns (case-insensitive)
 COMPILED_PATTERNS = [re.compile(pattern, re.IGNORECASE) for pattern in ALL_PATTERNS]
 
+# ============================================================================
+# HARD PRECISION GATE - Step 1 (must-pass)
+# ============================================================================
+# A clause must satisfy at least ONE of the following high-signal temporal evidence patterns.
+# This is a binary gate that immediately removes ~60-70% of junk without tuning thresholds.
+
+PRECISION_GATE_PATTERNS = [
+    # 1. Numeric + unit: e.g., "30 days", "12 months", "5 years", "2 weeks"
+    r"\d+\s+(day|month|year|week)s?",
+    
+    # 2. Explicit deadline language
+    r"\bno\s+later\s+than\b",
+    r"\bnot\s+later\s+than\b",
+    r"\bon\s+or\s+before\b",
+    r"\bon\s+or\s+after\b",
+    
+    # 3. Absolute calendar dates
+    r"\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},\s+\d{4}\b",  # January 15, 2019
+    r"\b\d{4}-\d{2}-\d{2}\b",  # 2019-01-15
+    r"\b\d{1,2}/\d{1,2}/\d{4}\b",  # 1/15/2019
+    
+    # 4. Applicability windows
+    r"\btaxable\s+years?\s+beginning\s+(after|before|on\s+or\s+after|on\s+or\s+before)\b",
+    r"\btaxable\s+years?\s+ending\s+(after|before|on\s+or\s+after|on\s+or\s+before)\b",
+    r"\bperiods?\s+beginning\s+(after|before|on\s+or\s+after|on\s+or\s+before)\b",
+    r"\bperiods?\s+ending\s+(after|before|on\s+or\s+after|on\s+or\s+before)\b",
+    
+    # 5. Ordinal constructions: e.g., "15th day of the 4th month"
+    r"\b(the\s+)?\d+(st|nd|rd|th)\s+day\s+of\s+(the\s+)?\d+(st|nd|rd|th)\s+month\b",
+]
+
+# Compile precision gate patterns
+COMPILED_PRECISION_GATE = [re.compile(pattern, re.IGNORECASE) for pattern in PRECISION_GATE_PATTERNS]
+
+
+def passes_precision_gate(text: str) -> bool:
+    """
+    Hard precision gate (Step 1 - must-pass).
+    
+    A clause must satisfy at least ONE high-signal temporal evidence pattern:
+    - Numeric + unit (e.g., "30 days")
+    - Explicit deadline language (e.g., "no later than")
+    - Absolute calendar date (e.g., "January 15, 2019")
+    - Applicability windows (e.g., "taxable years beginning after")
+    - Ordinal constructions (e.g., "15th day of the 4th month")
+    
+    This is a binary gate that immediately filters out low-quality candidates.
+    
+    Returns:
+        bool: True if at least one precision gate pattern is found, False otherwise
+    """
+    for pattern in COMPILED_PRECISION_GATE:
+        if pattern.search(text):
+            return True
+    return False
+
 
 def detect_temporal_hits(text: str) -> Dict:
     """
@@ -163,6 +231,11 @@ def is_temporal_clause(record: Dict) -> bool:
     """Determine if a record contains temporal logic."""
     text = record.get("text", "")
     if not text:
+        return False
+
+    # STEP 1: Hard precision gate (must-pass)
+    # This is a binary check - if it fails, reject immediately
+    if not passes_precision_gate(text):
         return False
 
     # Check for temporal hits in the main text
@@ -230,8 +303,15 @@ def main():
     print(f"Detecting temporal clauses in {input_path}...")
     print(f"Output: {output_path}")
     print(f"Minimum unique matched patterns required: {args.min_patterns}")
+    print(f"\n=== FILTERING PIPELINE ===")
+    print(f"Step 1: Hard precision gate (must satisfy at least one high-signal pattern)")
+    print(f"Step 2: Temporal pattern detection")
+    print(f"Step 3: Minimum pattern threshold (>{args.min_patterns} unique patterns)")
+    print(f"=" * 50)
 
     total = 0
+    passed_precision_gate = 0
+    passed_temporal_check = 0
     candidates = 0
     filtered_id = 0  # New sequential ID for filtered records
 
@@ -240,10 +320,16 @@ def main():
         for line in f_in:
             total += 1
             record = json.loads(line)
-
+            text = record.get("text", "")
+            
+            # Track precision gate passes for statistics
+            if passes_precision_gate(text):
+                passed_precision_gate += 1
+            
             if is_temporal_clause(record):
+                passed_temporal_check += 1
+                
                 # Preserve ALL fields from parsed record and add detection metadata
-                text = record.get("text", "")
                 hits = detect_temporal_hits(text)
                 
                 # Check if the number of unique matched patterns meets the threshold
@@ -269,9 +355,14 @@ def main():
                 f_out.write(json.dumps(output_record, ensure_ascii=False) + "\n")
                 candidates += 1
 
-    print(f"Done! Processed {total} records, found {candidates} temporal candidates.")
-    print(f"Output saved to: {output_path}")
-    print(f"Hit rate: {candidates/total*100:.2f}%" if total > 0 else "N/A")
+    print(f"\n=== FILTERING RESULTS ===")
+    print(f"Total records processed: {total}")
+    print(f"Passed precision gate (Step 1): {passed_precision_gate} ({passed_precision_gate/total*100:.2f}%)")
+    print(f"Rejected by precision gate: {total - passed_precision_gate} ({(total - passed_precision_gate)/total*100:.2f}%)")
+    print(f"Passed temporal check (Step 2): {passed_temporal_check} ({passed_temporal_check/total*100:.2f}%)")
+    print(f"Final candidates (after all filters): {candidates} ({candidates/total*100:.2f}%)")
+    print(f"=" * 50)
+    print(f"\nOutput saved to: {output_path}")
     
     # Automatically generate formatted version
     formatted_output_path = output_path.parent / f"{output_path.stem}_formatted.jsonl"

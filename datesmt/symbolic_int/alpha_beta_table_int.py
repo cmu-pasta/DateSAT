@@ -27,7 +27,7 @@ from z3 import (
     Store,
     sat
 )
-from ..core import Date, Period
+from ..core import Date, Period, _UnboundedDate
 from .naive_int import days_in_month, add_days_ordinal
 _EPOCH_YEAR = 2000
 _EPOCH_MONTH = 3
@@ -150,7 +150,7 @@ class DateVar:
 
     def __ge__(self, other) -> BoolRef:
         """Support x >= date comparison."""
-        if isinstance(other, Date):
+        if isinstance(other, (Date, _UnboundedDate)):
             alpha_o = months_since_epoch_from_ym(
                 IntVal(other.year), IntVal(other.month)
             )
@@ -170,7 +170,7 @@ class DateVar:
 
     def __le__(self, other) -> BoolRef:
         """Support x <= date comparison."""
-        if isinstance(other, Date):
+        if isinstance(other, (Date, _UnboundedDate)):
             alpha_o = months_since_epoch_from_ym(
                 IntVal(other.year), IntVal(other.month)
             )
@@ -190,21 +190,27 @@ class DateVar:
 
     def __lt__(self, other) -> BoolRef:
         """Support x < date comparison."""
-        if isinstance(other, Date) or isinstance(other, DateVar):
+        if isinstance(other, (Date, _UnboundedDate, DateVar)):
             return Not(self.__ge__(other))
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
     def __gt__(self, other) -> BoolRef:
         """Support x > date comparison."""
-        if isinstance(other, Date) or isinstance(other, DateVar):
+        if isinstance(other, (Date, _UnboundedDate, DateVar)):
             return Not(self.__le__(other))
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
     def __eq__(self, other) -> BoolRef:
         """Support x == date comparison."""
-        if isinstance(other, Date):
+        if isinstance(other, _UnboundedDate):
+            raise ValueError(
+                f"Cannot constrain date variable to equal Date({other.year}, {other.month}, {other.day}) "
+                f"which is outside the allowed range [1900-03-01..2100-02-28]. "
+                f"This constraint is always unsatisfiable."
+            )
+        elif isinstance(other, Date):
             alpha_o = months_since_epoch_from_ym(
                 IntVal(other.year), IntVal(other.month)
             )
@@ -218,7 +224,11 @@ class DateVar:
 
     def __ne__(self, other) -> BoolRef:
         """Support x != date comparison using ordinal arithmetic."""
-        if isinstance(other, Date) or isinstance(other, DateVar):
+        if isinstance(other, _UnboundedDate):
+            # Date variable can never equal an out-of-range date, so != is always true
+            from z3 import BoolVal
+            return BoolVal(True)
+        elif isinstance(other, (Date, DateVar)):
             return Not(self.__eq__(other))
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")

@@ -12,7 +12,7 @@ from datetime import date, timedelta
 from dateutil.relativedelta import relativedelta
 from typing import Any, Dict, Optional, Union, List, Tuple
 import time
-from .core import Date, Period
+from .core import Date, Period, _UnboundedDate
 import itertools
 import builtins
 
@@ -264,6 +264,12 @@ class EnumerationDateVar:
         return ConstraintWrapper(self._get_comparison_func("gt", other), var_ref=self, rhs_ref=other)
 
     def __eq__(self, other: Union[Date, "EnumerationDateVar"]) -> ConstraintWrapper:  # type: ignore[override]
+        if isinstance(other, _UnboundedDate):
+            raise ValueError(
+                f"Cannot constrain date variable to equal Date({other.year}, {other.month}, {other.day}) "
+                f"which is outside the allowed range [1900-03-01..2100-02-28]. "
+                f"This constraint is always unsatisfiable."
+            )
         concrete_value = self._get_equality_binding(other)
         return ConstraintWrapper(
             self._get_comparison_func("eq", other),
@@ -273,6 +279,9 @@ class EnumerationDateVar:
         )
 
     def __ne__(self, other: Union[Date, "EnumerationDateVar"]) -> ConstraintWrapper:  # type: ignore[override]
+        if isinstance(other, _UnboundedDate):
+            # Date variable can never equal an out-of-range date, so != is always true
+            return ConstraintWrapper(lambda: True)
         return ConstraintWrapper(self._get_comparison_func("ne", other), var_ref=self, rhs_ref=other)
 
     def __add__(self, other: Period) -> "EnumerationDateVar":

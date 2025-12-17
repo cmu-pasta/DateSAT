@@ -1,0 +1,271 @@
+{
+  "description": "Estate tax transfer rules with 3-year power relinquishment lookback period before death",
+  "declarations": [
+    "transfer_date: date",
+    "death_date: date",
+    "power_relinquished: bool",
+    "power_relinquishment_date: date"
+  ],
+  "constraints": [
+    "transfer_date < death_date",
+    "(power_relinquished == True) -> (power_relinquishment_date >= death_date - Period(3, 0, 0) && power_relinquishment_date <= death_date)"
+  ],
+  "provenance": {
+    "identifier": "/us/usc/t26/s2038/a",
+    "original_text": "(a) In general The value of the gross estate shall include the value of all property— (1) Transfers after June 22, 1936 To the extent of any interest therein of which the decedent has at any time made a transfer (except in case of a bona fide sale for an adequate and full consideration in money or money’s worth), by trust or otherwise, where the enjoyment thereof was subject at the date of his death to any change through the exercise of a power (in whatever capacity exercisable) by the decedent alone or by the decedent in conjunction with any other person (without regard to when or from what source the decedent acquired such power), to alter, amend, revoke, or terminate, or where any such power is relinquished during the 3 year period ending on the date of the decedent’s death. (2) Transfers on or before June 22, 1936 To the extent of any interest therein of which the decedent has at any time made a transfer (except in case of a bona fide sale for an adequate and full consideration in money or money’s worth), by trust or otherwise, where the enjoyment thereof was subject at the date of his death to any change through the exercise of a power, either by the decedent alone or in conjunction with any person, to alter, amend, or revoke, or where the decedent relinquished any such power during the 3 year period ending on the date of the decedent’s death. Except in the case of transfers made after June 22, 1936 , no interest of the decedent of which he has made a transfer shall be included in the gross estate under paragraph (1) unless it is includible under this paragraph.",
+    "heading": "Revocable transfers"
+  },
+  "id": "legal-1",
+  "parsed_id": "4066",
+  "filtered_id": "655"
+}
+
+{
+  "description": "Annuity taxation timing constraints for payments, cessation, and deductions",
+  "declarations": [
+    "annuity_starting_date: date",
+    "amount_receipt_date: date",
+    "cessation_date: date",
+    "determination_date: date",
+    "last_taxable_year_start: date",
+    "last_taxable_year_end: date",
+    "receipt_taxable_year_start: date",
+    "receipt_taxable_year_end: date",
+    "payments_ceased: bool",
+    "deduction_to_other_persons: bool"
+  ],
+  "constraints": [
+    "amount_receipt_date >= annuity_starting_date",
+    "(payments_ceased == True) -> (cessation_date > annuity_starting_date)",
+    "(amount_receipt_date >= annuity_starting_date) && (amount_receipt_date < determination_date)",
+    "(payments_ceased == True) -> ((cessation_date >= last_taxable_year_start) && (cessation_date <= last_taxable_year_end))",
+    "last_taxable_year_end >= last_taxable_year_start",
+    "last_taxable_year_end <= last_taxable_year_start + Period(1, 0, 0)",
+    "(deduction_to_other_persons == True) -> ((amount_receipt_date >= receipt_taxable_year_start) && (amount_receipt_date <= receipt_taxable_year_end))",
+    "receipt_taxable_year_end >= receipt_taxable_year_start",
+    "receipt_taxable_year_end <= receipt_taxable_year_start + Period(1, 0, 0)"
+  ],
+  "provenance": {
+    "identifier": "/us/usc/t26/s72/b",
+    "original_text": "(b) Exclusion ratio (1) In general Gross income does not include that part of any amount received as an annuity under an annuity, endowment, or life insurance contract which bears the same ratio to such amount as the investment in the contract (as of the annuity starting date) bears to the expected return under the contract (as of such date). (2) Exclusion limited to investment The portion of any amount received as an annuity which is excluded from gross income under paragraph (1) shall not exceed the unrecovered investment in the contract immediately before the receipt of such amount. (3) Deduction where annuity payments cease before entire investment recovered (A) In general If— (i) after the annuity starting date, payments as an annuity under the contract cease by reason of the death of an annuitant, and (ii) as of the date of such cessation, there is unrecovered investment in the contract, the amount of such unrecovered investment (in excess of any amount specified in subsection (e)(5) which was not included in gross income) shall be allowed as a deduction to the annuitant for his last taxable year. (B) Payments to other persons In the case of any contract which provides for payments meeting the requirements of subparagraphs (B) and (C) of subsection (c)(2), the deduction under subparagraph (A) shall be allowed to the person entitled to such payments for the taxable year in which such payments are received. (C) Net operating loss deductions provided For purposes of section 172, a deduction allowed under this paragraph shall be treated as if it were attributable to a trade or business of the taxpayer. (4) Unrecovered investment For purposes of this subsection, the unrecovered investment in the contract as of any date is— (A) the investment in the contract (determined without regard to subsection (c)(2)) as of the annuity starting date, reduced by (B) the aggregate amount received under the contract on or after such annuity starting date and before the date as of which the determination is being made, to the extent such amount was excludable from gross income under this subtitle.",
+    "heading": "Annuities; certain proceeds of endowment and life insurance contracts"
+  },
+  "id": "legal-2",
+  "parsed_id": "602",
+  "filtered_id": "115"
+}
+
+{
+  "description": "Election to treat residence purchase as occurring in prior year",
+  "declarations": [
+    "actual_purchase_date: date",
+    "treated_as_date: date",
+    "election_made: bool",
+    "preceding_year: int"
+  ],
+  "constraints": [
+    "actual_purchase_date > Date(2008, 12, 31)",
+    "preceding_year == actual_purchase_date.year - 1",
+    "(election_made == True) -> (treated_as_date == Date(preceding_year, 12, 31))",
+    "(election_made == False) -> (treated_as_date == actual_purchase_date)"
+  ],
+  "provenance": {
+    "identifier": "/us/usc/t26/s36/g",
+    "original_text": "(g) Election to treat purchase in prior year In the case of a purchase of a principal residence after December 31, 2008 , a taxpayer may elect to treat such purchase as made on December 31 of the calendar year preceding such purchase for purposes of this section (other than subsections (b)(4), (c), (f)(4)(D), and (h)).",
+    "heading": "First-time homebuyer credit"
+  },
+  "id": "legal-3",
+  "parsed_id": "195",
+  "filtered_id": "26"
+}
+
+{
+  "description": "Claim filing deadlines: within 6 months of loss, or extended period if major disaster declared",
+  "declarations": [
+    "loss_date: date",
+    "claim_filing_date: date",
+    "major_disaster_declared: bool",
+    "presidential_determination_date: date",
+    "filing_deadline: date"
+  ],
+  "constraints": [
+    "claim_filing_date >= loss_date",
+    "(major_disaster_declared == False) -> (filing_deadline == loss_date + Period(0, 6, 0))",
+    "(major_disaster_declared == True) -> (filing_deadline >= loss_date + Period(0, 6, 0))",
+    "(major_disaster_declared == True) -> (filing_deadline >= presidential_determination_date + Period(0, 6, 0))",
+    "claim_filing_date <= filing_deadline"
+  ],
+  "provenance": {
+    "identifier": "/us/usc/t26/s5064/b",
+    "original_text": "(b) Claims (1) Period for making claim; proof No claim shall be allowed under this section unless— (A) filed within 6 months after the date on which such distilled spirits, wines, or beer were lost, rendered unmarketable, or condemned by a duly authorized official, and (B) the claimant furnishes proof satisfactory to the Secretary that the claimant— (i) was not indemnified by any valid claim of insurance or otherwise in respect of the tax, or tax and duty, on the distilled spirits, wines, or beer covered by the claim; and (ii) is entitled to payment under this section. (2) Minimum claim Except as provided in paragraph (3)(A), no claim of less than $250 shall be allowed under this section with respect to any disaster or other damage (as the case may be). (3) Special rules for major disasters If the President has determined under the Robert T. Stafford Disaster Relief and Emergency Assistance Act that a “major disaster” (as defined in such Act) has occurred in any part of the United States, and if the disaster referred to in subsection (a)(1) occurs in such part of the United States by reason of such major disaster, then— (A) paragraph (2) shall not apply, and (B) the filing period set forth in paragraph (1)(A) shall not expire before the day which is 6 months after the date on which the President makes the determination that such major disaster has occurred. (4) Regulations Claims under this section shall be filed under such regulations as the Secretary shall prescribe.",
+    "heading": "Losses resulting from disaster, vandalism, or malicious mischief"
+  },
+  "id": "legal-4",
+  "parsed_id": "5294",
+  "filtered_id": "760"
+}
+
+{
+  "description": "Temporal constraints for pre-change loss and post-change year definitions relative to ownership change date",
+  "declarations": [
+    "change_date: date",
+    "change_year_start: date",
+    "change_year_end: date",
+    "post_change_year_end: date"
+  ],
+  "constraints": [
+    "change_year_start <= change_date",
+    "change_date <= change_year_end",
+    "change_year_end >= change_year_start",
+    "change_year_end <= change_year_start + Period(1, 0, 0)",
+    "post_change_year_end > change_date"
+  ],
+  "provenance": {
+    "identifier": "/us/usc/t26/s382/d",
+    "original_text": "(d) Pre-change loss and post-change year For purposes of this section— (1) Pre-change loss The term “pre-change loss” means— (A) any net operating loss carryforward of the old loss corporation to the taxable year ending with the ownership change or in which the change date occurs, and (B) the net operating loss of the old loss corporation for the taxable year in which the ownership change occurs to the extent such loss is allocable to the period in such year on or before the change date. Except as provided in subsection (h)(5) and in regulations, the net operating loss shall, for purposes of subparagraph (B), be allocated ratably to each day in the year. (2) Post-change year The term “post-change year” means any taxable year ending after the change date. (3) Application to carryforward of disallowed interest The term “pre-change loss” shall include any carryover of disallowed interest described in section 163(j)(2) under rules similar to the rules of paragraph (1).",
+    "heading": "Limitation on net operating loss carryforwards and certain built-in losses following ownership change"
+  },
+  "id": "legal-5",
+  "parsed_id": "1659",
+  "filtered_id": "282"
+}
+
+{
+  "description": "Policy issue date constraint for paragraph 2(A) application",
+  "declarations": [
+    "policy_issue_date: date"
+  ],
+  "constraints": [
+    "policy_issue_date > Date(1997, 6, 8)"
+  ],
+  "provenance": {
+    "identifier": "/us/usc/t26/s264/f",
+    "original_text": "(f) Pro rata allocation of interest expense to policy cash values (1) In general No deduction shall be allowed for that portion of the taxpayer’s interest expense which is allocable to unborrowed policy cash values. (2) Allocation For purposes of paragraph (1), the portion of the taxpayer’s interest expense which is allocable to unborrowed policy cash values is an amount which bears the same ratio to such interest expense as— (A) the taxpayer’s average unborrowed policy cash values of life insurance policies, and annuity and endowment contracts, issued after June 8, 1997 , bears to (B) the sum of— (i) in the case of assets of the taxpayer which are life insurance policies or annuity or endowment contracts, the average unborrowed policy cash values of such policies and contracts, and (ii) in the case of assets of the taxpayer not described in clause (i), the average adjusted bases (within the meaning of section 1016) of such assets. (3) Unborrowed policy cash value For purposes of this subsection, the term “unborrowed policy cash value” means, with respect to any life insurance policy or annuity or endowment contract, the excess of— (A) the cash surrender value of such policy or contract determined without regard to any surrender charge, over (B) the amount of any loan with respect to such policy or contract. If the amount described in subparagraph (A) with respect to any policy or contract does not reasonably approximate its actual value, the amount taken into account under subparagraph (A) shall be the greater of the amount of the insurance company liability or the insurance company reserve with respect to such policy or contract (as determined for purposes of the annual statement approved by the National Association of Insurance Commissioners) or shall be such other amount as is determined by the Secretary. (4) Exception for certain policies and contracts (A) Policies and contracts covering 20-percent owners, officers, directors, and employees Paragraph (1) shall not apply to any policy or contract owned by an entity engaged in a trade or business if such policy or contract covers only 1 individual and if such individual is (at the time first covered by the policy or contract)— (i) a 20-percent owner of such entity, or (ii) an individual (not described in clause (i)) who is an officer, director, or employee of such trade or business. A policy or contract covering a 20-percent owner of such entity shall not be treated as failing to meet the requirements of the preceding sentence by reason of covering the joint lives of such owner and such owner’s spouse. (B) Contracts subject to current income inclusion Paragraph (1) shall not apply to any annuity contract to which section 72(u) applies. (C) Coordination with paragraph (2) Any policy or contract to which paragraph (1) does not apply by reason of this paragraph shall not be taken into account under paragraph (2). (D) 20-percent owner For purposes of subparagraph (A), the term “20-percent owner” has the meaning given such term by subsection (e)(4). (E) Master contracts If coverage for each insured under a master contract is treated as a separate contract for purposes of sections 817(h), 7702, and 7702A, coverage for each such insured shall be treated as a separate contract for purposes of subparagraph (A). For purposes of the preceding sentence, the term “master contract” shall not include any group life insurance contract (as defined in section 848(e)(2)). (5) Exception for policies and contracts held by natural persons; treatment of partnerships and S corporations (A) Policies and contracts held by natural persons (i) In general This subsection shall not apply to any policy or contract held by a natural person. (ii) Exception where business is beneficiary If a trade or business is directly or indirectly the beneficiary under any policy or contract, such policy or contract shall be treated as held by such trade or business and not by a natural person. (iii) Special rules (I) Certain trades or businesses not taken into account Clause (ii) shall not apply to any trade or business carried on as a sole proprietorship and to any trade or business performing services as an employee. (II) Limitation on unborrowed cash value The amount of the unborrowed cash value of any policy or contract which is taken into account by reason of clause (ii) shall not exceed the benefit to which the trade or business is directly or indirectly entitled under the policy or contract. (iv) Reporting The Secretary shall require such reporting from policyholders and issuers as is necessary to carry out clause (ii). (B) Treatment of partnerships and S corporations In the case of a partnership or S corporation, this subsection shall be applied at the partnership and corporate levels. (6) Special rules (A) Coordination with subsection (a) and section 265 If interest on any indebtedness is disallowed under subsection (a) or section 265— (i) such disallowed interest shall not be taken into account for purposes of applying this subsection, and (ii) the amount otherwise taken into account under paragraph (2)(B) shall be reduced (but not below zero) by the amount of such indebtedness. (B) Coordination with section 263A This subsection shall be applied before the application of section 263A (relating to capitalization of certain expenses where taxpayer produces property). (7) Interest expense The term “interest expense” means the aggregate amount allowable to the taxpayer as a deduction for interest (within the meaning of section 265(b)(4)) for the taxable year (determined without regard to this subsection, section 265(b), and section 291). (8) Aggregation rules (A) In general All members of a controlled group (within the meaning of subsection (e)(5)(B)) shall be treated as 1 taxpayer for purposes of this subsection. (B) Treatment of insurance companies This subsection shall not apply to an insurance company subject to tax under subchapter L, and subparagraph (A) shall be applied without regard to any member of an affiliated group which is an insurance company.",
+    "heading": "Certain amounts paid in connection with insurance contracts"
+  },
+  "id": "legal-6",
+  "parsed_id": "1392",
+  "filtered_id": "251"
+}
+
+{
+  "description": "Moving expense deduction temporal requirements based on employment weeks after arrival",
+  "declarations": [
+    "arrival_date: date",
+    "period_12_months_end: date",
+    "period_24_months_end: date",
+    "weeks_in_first_12_months: int",
+    "weeks_in_first_24_months: int"
+  ],
+  "constraints": [
+    "period_12_months_end == arrival_date + Period(1, 0, 0)",
+    "period_24_months_end == arrival_date + Period(2, 0, 0)",
+    "weeks_in_first_12_months >= 0",
+    "weeks_in_first_24_months >= 0",
+    "weeks_in_first_24_months >= weeks_in_first_12_months",
+    "(weeks_in_first_12_months >= 39) || ((weeks_in_first_24_months >= 78) && (weeks_in_first_12_months >= 39))"
+  ],
+  "provenance": {
+    "identifier": "/us/usc/t26/s217/c",
+    "original_text": "(c) Conditions for allowance No deduction shall be allowed under this section unless— (1) the taxpayer’s new principal place of work— (A) is at least 50 miles farther from his former residence than was his former principal place of work, or (B) if he had no former principal place of work, is at least 50 miles from his former residence, and (2) either— (A) during the 12-month period immediately following his arrival in the general location of his new principal place of work, the taxpayer is a full-time employee, in such general location, during at least 39 weeks, or (B) during the 24-month period immediately following his arrival in the general location of his new principal place of work, the taxpayer is a full-time employee or performs services as a self-employed individual on a full-time basis, in such general location, during at least 78 weeks, of which not less than 39 weeks are during the 12-month period referred to in subparagraph (A). For purposes of paragraph (1), the distance between two points shall be the shortest of the more commonly traveled routes between such two points.",
+    "heading": "Moving expenses"
+  },
+  "id": "legal-7",
+  "parsed_id": "1264",
+  "filtered_id": "229"
+}
+
+{
+  "description": "Temporal constraints for home sale capital gains exclusion limitations including two-year lookback rule and surviving spouse provisions",
+  "declarations": [
+    "sale_date: date",
+    "taxable_year_start: date",
+    "taxable_year_end: date",
+    "prior_qualifying_sale_occurred: bool",
+    "prior_sale_date: date",
+    "surviving_spouse_provision_applies: bool",
+    "spouse_death_date: date"
+  ],
+  "constraints": [
+    "sale_date >= taxable_year_start && sale_date <= taxable_year_end",
+    "taxable_year_end >= taxable_year_start",
+    "taxable_year_end <= taxable_year_start + Period(1, 0, 0)",
+    "(prior_qualifying_sale_occurred == True) -> (sale_date > prior_sale_date + Period(2, 0, 0))",
+    "(prior_qualifying_sale_occurred == True) -> (prior_sale_date < sale_date)",
+    "(surviving_spouse_provision_applies == True) -> (sale_date <= spouse_death_date + Period(2, 0, 0))",
+    "(surviving_spouse_provision_applies == True) -> (spouse_death_date < sale_date)"
+  ],
+  "provenance": {
+    "identifier": "/us/usc/t26/s121/b",
+    "original_text": "(b) Limitations (1) In general The amount of gain excluded from gross income under subsection (a) with respect to any sale or exchange shall not exceed $250,000. (2) Special rules for joint returns In the case of a husband and wife who make a joint return for the taxable year of the sale or exchange of the property— (A) $500,000 Limitation for certain joint returns Paragraph (1) shall be applied by substituting “$500,000” for “$250,000” if— (i) either spouse meets the ownership requirements of subsection (a) with respect to such property; (ii) both spouses meet the use requirements of subsection (a) with respect to such property; and (iii) neither spouse is ineligible for the benefits of subsection (a) with respect to such property by reason of paragraph (3). (B) Other joint returns If such spouses do not meet the requirements of subparagraph (A), the limitation under paragraph (1) shall be the sum of the limitations under paragraph (1) to which each spouse would be entitled if such spouses had not been married. For purposes of the preceding sentence, each spouse shall be treated as owning the property during the period that either spouse owned the property. (3) Application to only 1 sale or exchange every 2 years Subsection (a) shall not apply to any sale or exchange by the taxpayer if, during the 2-year period ending on the date of such sale or exchange, there was any other sale or exchange by the taxpayer to which subsection (a) applied. (4) Special rule for certain sales by surviving spouses In the case of a sale or exchange of property by an unmarried individual whose spouse is deceased on the date of such sale, paragraph (1) shall be applied by substituting “$500,000” for “$250,000” if such sale occurs not later than 2 years after the date of death of such spouse and the requirements of paragraph (2)(A) were met immediately before such date of death. (5) Exclusion of gain allocated to nonqualified use (A) In general Subsection (a) shall not apply to so much of the gain from the sale or exchange of property as is allocated to periods of nonqualified use. (B) Gain allocated to periods of nonqualified use For purposes of subparagraph (A), gain shall be allocated to periods of nonqualified use based on the ratio which— (i) the aggregate periods of nonqualified use during the period such property was owned by the taxpayer, bears to (ii) the period such property was owned by the taxpayer. (C) Period of nonqualified use For purposes of this paragraph— (i) In general The term “period of nonqualified use” means any period (other than the portion of any period preceding January 1, 2009 ) during which the property is not used as the principal residence of the taxpayer or the taxpayer’s spouse or former spouse. (ii) Exceptions The term “period of nonqualified use” does not include— (I) any portion of the 5-year period described in subsection (a) which is after the last date that such property is used as the principal residence of the taxpayer or the taxpayer’s spouse, (II) any period (not to exceed an aggregate period of 10 years) during which the taxpayer or the taxpayer’s spouse is serving on qualified official extended duty (as defined in subsection (d)(9)(C)) described in clause (i), (ii), or (iii) of subsection (d)(9)(A), and (III) any other period of temporary absence (not to exceed an aggregate period of 2 years) due to change of employment, health conditions, or such other unforeseen circumstances as may be specified by the Secretary. (D) Coordination with recognition of gain attributable to depreciation For purposes of this paragraph— (i) subparagraph (A) shall be applied after the application of subsection (d)(6), and (ii) subparagraph (B) shall be applied without regard to any gain to which subsection (d)(6) applies.",
+    "heading": "Exclusion of gain from sale of principal residence"
+  },
+  "id": "legal-8",
+  "parsed_id": "763",
+  "filtered_id": "143"
+}
+
+{
+  "description": "Health insurance penalty temporal constraints: taxable year period, failure months within taxable year, calendar year determination, and age determination timing",
+  "declarations": [
+    "taxable_year_start: date",
+    "taxable_year_end: date",
+    "failure_month_start: date",
+    "calendar_year_of_tax_year_end: int",
+    "plan_year_start: date",
+    "age_determination_date: date",
+    "month_calendar_year: int"
+  ],
+  "constraints": [
+    "taxable_year_end >= taxable_year_start",
+    "taxable_year_end <= taxable_year_start + Period(1, 0, 0)",
+    "failure_month_start >= taxable_year_start",
+    "failure_month_start <= taxable_year_end",
+    "calendar_year_of_tax_year_end == taxable_year_end.year",
+    "plan_year_start.year == calendar_year_of_tax_year_end",
+    "age_determination_date == failure_month_start",
+    "month_calendar_year == failure_month_start.year"
+  ],
+  "provenance": {
+    "identifier": "/us/usc/t26/s5000A/c",
+    "original_text": "(c) Amount of penalty (1) In general The amount of the penalty imposed by this section on any taxpayer for any taxable year with respect to failures described in subsection (b)(1) shall be equal to the lesser of— (A) the sum of the monthly penalty amounts determined under paragraph (2) for months in the taxable year during which 1 or more such failures occurred, or (B) an amount equal to the national average premium for qualified health plans which have a bronze level of coverage, provide coverage for the applicable family size involved, and are offered through Exchanges for plan years beginning in the calendar year with or within which the taxable year ends. (2) Monthly penalty amounts For purposes of paragraph (1)(A), the monthly penalty amount with respect to any taxpayer for any month during which any failure described in subsection (b)(1) occurred is an amount equal to 1 ⁄ 12 of the greater of the following amounts: (A) Flat dollar amount An amount equal to the lesser of— (i) the sum of the applicable dollar amounts for all individuals with respect to whom such failure occurred during such month, or (ii) 300 percent of the applicable dollar amount (determined without regard to paragraph (3)(C)) for the calendar year with or within which the taxable year ends. (B) Percentage of income An amount equal to the following percentage of the excess of the taxpayer’s household income for the taxable year over the amount of gross income specified in section 6012(a)(1) with respect to the taxpayer for the taxable year: (i) 1.0 percent for taxable years beginning in 2014. (ii) 2.0 percent for taxable years beginning in 2015. (iii) Zero percent for taxable years beginning after 2015. (3) Applicable dollar amount For purposes of paragraph (1)— (A) In general Except as provided in subparagraphs (B) and (C), the applicable dollar amount is $0. (B) Phase in The applicable dollar amount is $95 for 2014 and $325 for 2015. (C) Special rule for individuals under age 18 If an applicable individual has not attained the age of 18 as of the beginning of a month, the applicable dollar amount with respect to such individual for the month shall be equal to one-half of the applicable dollar amount for the calendar year in which the month occurs. (4) Terms relating to income and families For purposes of this section— (A) Family size The family size involved with respect to any taxpayer shall be equal to the number of individuals for whom the taxpayer is allowed a deduction under section 151 (relating to allowance of deduction for personal exemptions) for the taxable year. (B) Household income The term “household income” means, with respect to any taxpayer for any taxable year, an amount equal to the sum of— (i) the modified adjusted gross income of the taxpayer, plus (ii) the aggregate modified adjusted gross incomes of all other individuals who— (I) were taken into account in determining the taxpayer’s family size under paragraph (1), and (II) were required to file a return of tax imposed by section 1 for the taxable year. (C) Modified adjusted gross income The term “modified adjusted gross income” means adjusted gross income increased by— (i) any amount excluded from gross income under section 911, and (ii) any amount of interest received or accrued by the taxpayer during the taxable year which is exempt from tax.",
+    "heading": "Requirement to maintain minimum essential coverage"
+  },
+  "id": "legal-9",
+  "parsed_id": "5186",
+  "filtered_id": "755"
+}
+
+{
+  "description": "Temporal constraints for financial statement periods, taxable years, and wireless spectrum acquisition timing",
+  "declarations": [
+    "financial_statement_start: date",
+    "financial_statement_end: date",
+    "taxable_year_start: date",
+    "taxable_year_end: date",
+    "year_n_end: date",
+    "year_n_plus_1_start: date",
+    "year_n_plus_1_end: date",
+    "spectrum_acquisition_date: date",
+    "section_enactment_date: date",
+    "qualifies_as_wireless_spectrum: bool"
+  ],
+  "constraints": [
+    "taxable_year_end >= taxable_year_start",
+    "taxable_year_end <= taxable_year_start + Period(1, 0, 0)",
+    "financial_statement_end >= financial_statement_start",
+    "year_n_plus_1_start > year_n_end",
+    "year_n_plus_1_end >= year_n_plus_1_start",
+    "year_n_plus_1_end <= year_n_plus_1_start + Period(1, 0, 0)",
+    "(qualifies_as_wireless_spectrum == True) -> (spectrum_acquisition_date > Date(2007, 12, 31) && spectrum_acquisition_date < section_enactment_date)"
+  ],
+  "provenance": {
+    "identifier": "/us/usc/t26/s56A/c",
+    "original_text": "(c) General adjustments (1) Statements covering different taxable years Appropriate adjustments shall be made in adjusted financial statement income in any case in which an applicable financial statement covers a period other than the taxable year. (2) Special rules for related entities (A) Consolidated financial statements If the financial results of a taxpayer are reported on the applicable financial statement for a group of entities, rules similar to the rules of section 451(b)(5) shall apply. (B) Consolidated returns Except as provided in regulations prescribed by the Secretary, if the taxpayer is part of an affiliated group of corporations filing a consolidated return for any taxable year, adjusted financial statement income for such group for such taxable year shall take into account items on the group’s applicable financial statement which are properly allocable to members of such group. (C) Treatment of dividends and other amounts In the case of any corporation which is not included on a consolidated return with the taxpayer, adjusted financial statement income of the taxpayer with respect to such other corporation shall be determined by only taking into account the dividends received from such other corporation (reduced to the extent provided by the Secretary in regulations or other guidance) and other amounts which are includible in gross income or deductible as a loss under this chapter (other than amounts required to be included under sections 951 and 951A or such other amounts as provided by the Secretary) with respect to such other corporation. (D) Treatment of partnerships (i) In general Except as provided by the Secretary, if the taxpayer is a partner in a partnership, adjusted financial statement income of the taxpayer with respect to such partnership shall be adjusted to only take into account the taxpayer’s distributive share of adjusted financial statement income of such partnership. (ii) Adjusted financial statement income of partnerships For the purposes of this part, the adjusted financial statement income of a partnership shall be the partnership’s net income or loss set forth on such partnership’s applicable financial statement (adjusted under rules similar to the rules of this section). (3) Adjustments to take into account certain items of foreign income (A) In general If, for any taxable year, a taxpayer is a United States shareholder of one or more controlled foreign corporations, the adjusted financial statement income of such taxpayer with respect to such controlled foreign corporation (as determined under paragraph (2)(C)) shall be adjusted to also take into account such taxpayer’s pro rata share (determined under rules similar to the rules under section 951(a)(2)) of items taken into account in computing the net income or loss set forth on the applicable financial statement (as adjusted under rules similar to those that apply in determining adjusted financial statement income) of each such controlled foreign corporation with respect to which such taxpayer is a United States shareholder. (B) Negative adjustments In any case in which the adjustment determined under subparagraph (A) would result in a negative adjustment for such taxable year— (i) no adjustment shall be made under this paragraph for such taxable year, and (ii) the amount of the adjustment determined under this paragraph for the succeeding taxable year (determined without regard to this paragraph) shall be reduced by an amount equal to the negative adjustment for such taxable year. (4) Effectively connected income In the case of a foreign corporation, to determine adjusted financial statement income, the principles of section 882 shall apply. (5) Adjustments for certain taxes Adjusted financial statement income shall be appropriately adjusted to disregard any Federal income taxes, or income, war profits, or excess profits taxes (within the meaning of section 901) with respect to a foreign country or possession of the United States, which are taken into account on the taxpayer’s applicable financial statement. To the extent provided by the Secretary, the preceding sentence shall not apply to income, war profits, or excess profits taxes (within the meaning of section 901) that are imposed by a foreign country or possession of the United States and taken into account on the taxpayer’s applicable financial statement if the taxpayer does not choose to have the benefits of subpart A of part III of subchapter N for the taxable year. The Secretary shall prescribe such regulations or other guidance as may be necessary and appropriate to provide for the proper treatment of current and deferred taxes for purposes of this paragraph, including the time at which such taxes are properly taken into account. (6) Adjustment with respect to disregarded entities Adjusted financial statement income shall be adjusted to take into account any adjusted financial statement income of a disregarded entity owned by the taxpayer. (7) Special rule for cooperatives In the case of a cooperative to which section 1381 applies, the adjusted financial statement income (determined without regard to this paragraph) shall be reduced by the amounts referred to in section 1382(b) (relating to patronage dividends and per-unit retain allocations) to the extent such amounts were not otherwise taken into account in determining adjusted financial statement income. (8) Rules for Alaska native corporations Adjusted financial statement income shall be appropriately adjusted to allow— (A) cost recovery and depletion attributable to property the basis of which is determined under section 21(c) of the Alaska Native Claims Settlement Act ( 43 U.S.C. 1620(c) ), and (B) deductions for amounts payable made pursuant to section 7(i) or section 7(j) of such Act ( 43 U.S.C. 1606(i) and 1606(j)) only at such time as the deductions are allowed for tax purposes. (9) Amounts attributable to elections for direct payment of certain credits Adjusted financial statement income shall be appropriately adjusted to disregard any amount treated as a payment against the tax imposed by subtitle A pursuant to an election under section 48D(d) or 6417, to the extent such amount was not otherwise taken into account under paragraph (5). (10) Consistent treatment of mortgage servicing income of taxpayer other than a regulated investment company (A) In general Adjusted financial statement income shall be adjusted so as not to include any item of income in connection with a mortgage servicing contract any earlier than when such income is included in gross income under any other provision of this chapter. (B) Rules for amounts not representing reasonable compensation The Secretary shall provide regulations to prevent the avoidance of taxes imposed by this chapter with respect to amounts not representing reasonable compensation (as determined by the Secretary) with respect to a mortgage servicing contract. (11) Adjustment with respect to defined benefit pensions (A) In general Except as otherwise provided in rules prescribed by the Secretary in regulations or other guidance, adjusted financial statement income shall be— (i) adjusted to disregard any amount of income, cost, or expense that would otherwise be included on the applicable financial statement in connection with any covered benefit plan, (ii) increased by any amount of income in connection with any such covered benefit plan that is included in the gross income of the corporation under any other provision of this chapter, and (iii) reduced by deductions allowed under any other provision of this chapter with respect to any such covered benefit plan. (B) Covered benefit plan For purposes of this paragraph, the term “covered benefit plan” means— (i) a defined benefit plan (other than a multiemployer plan described in section 414(f)) if the trust which is part of such plan is an employees’ trust described in section 401(a) which is exempt from tax under section 501(a), (ii) any qualified foreign plan (as defined in section 404A(e)), or (iii) any other defined benefit plan which provides post-employment benefits other than pension benefits. (12) Tax-exempt entities In the case of an organization subject to tax under section 511, adjusted financial statement income shall be appropriately adjusted to only take into account any adjusted financial statement income— (A) of an unrelated trade or business (as defined in section 513) of such organization, or (B) derived from debt-financed property (as defined in section 514) to the extent that income from such property is treated as unrelated business taxable income. (13) Depreciation Adjusted financial statement income shall be— (A) reduced by— (i) depreciation deductions allowed under section 167 with respect to property to which section 168 applies to the extent of the amount allowed as deductions in computing taxable income for the year, and (ii) any deduction allowed for expenses under section 263(c) (including any deduction for such expenses under section 59(e) or 291(b)(2)) with respect to property described therein to the extent of the amount allowed as deductions in computing taxable income for the year, and (B) appropriately adjusted— (i) to disregard any amount of— (I) depreciation expense that is taken into account on the taxpayer’s applicable financial statement with respect to such property, and (II) depletion expense that is taken into account on the taxpayer’s applicable financial statement with respect to the intangible drilling and development costs of such property, and (ii) to take into account any other item specified by the Secretary in order to provide that such property is accounted for in the same manner as it is accounted for under this chapter. (14) Qualified wireless spectrum (A) In general Adjusted financial statement income shall be— (i) reduced by amortization deductions allowed under section 197 with respect to qualified wireless spectrum to the extent of the amount allowed as deductions in computing taxable income for the taxable year, and (ii) appropriately adjusted— (I) to disregard any amount of amortization expense that is taken into account on the taxpayer’s applicable financial statement with respect to such qualified wireless spectrum, and (II) to take into account any other item specified by the Secretary in order to provide that such qualified wireless spectrum is accounted for in the same manner as it is accounted for under this chapter. (B) Qualified wireless spectrum For purposes of this paragraph, the term “qualified wireless spectrum” means wireless spectrum which— (i) is used in the trade or business of a wireless telecommunications carrier, and (ii) was acquired after December 31, 2007 , and before the date of enactment of this section. (15) Secretarial authority to adjust items The Secretary shall issue regulations or other guidance to provide for such adjustments to adjusted financial statement income as the Secretary determines necessary to carry out the purposes of this section, including adjustments— (A) to prevent the omission or duplication of any item, and (B) to carry out the principles of part II of subchapter C of this chapter (relating to corporate liquidations), part III of subchapter C of this chapter (relating to corporate organizations and reorganizations), and part II of subchapter K of this chapter (relating to partnership contributions and distributions).",
+    "heading": "Adjusted financial statement income"
+  },
+  "id": "legal-10",
+  "parsed_id": "540",
+  "filtered_id": "105"
+}
+

@@ -36,34 +36,33 @@ from datesmt.core import Date, Period
 # Paste a single JSON constraint object here (one from *_constraints*.jsonl)
 CONSTRAINT_JSON = r"""
 {
-    "id": "grammar-sat-1",
+    "id": "grammar-17",
     "declarations": [
       "B0: bool",
-      "B2: bool",
-      "B5: bool",
-      "B6: bool",
-      "D0: date",
+      "B4: bool",
+      "B7: bool",
+      "B9: bool",
+      "D1: date",
       "D2: date",
       "D3: date",
+      "D4: date",
       "D5: date",
-      "D6: date",
       "D7: date",
       "D8: date",
       "D9: date",
-      "I4: int",
-      "I6: int",
-      "I7: int"
+      "I3: int",
+      "I6: int"
     ],
     "constraints": [
-      "I4 < 2165 || (B0 != True) -> (D5 >= Date(2074, 11, 10)) || (B0 != False) -> ((((D7 + (Period(0, 0, 6) + ((Period(1, 6, 4) - Period(1, 2, 6)) * 5))) - (Period(5, 4, 8) + (Period(4, 0, 3) * 4))) + (Period(1, 4, 8) * 4)) >= (Date(1968, 4, 2) + (Period(7, 0, 5) - ((Period(8, 1, 6) - Period(6, 2, 0)) * 4)))) || D5 == D7",
-      "D8 != D8 || D9 < Date(1935, 11, 7)",
-      "(B5 == False) -> (D0 >= D9)",
-      "D3 < ((D5 - (Period(8, 9, 8) + (Period(7, 6, 2) * 0))) - Period(4, 2, 5)) || D7 != D3",
-      "(B2 != False) -> (Date(2032, 9, 29) == (D2 - (Period(7, 0, 0) + ((Period(1, 4, 7) + Period(4, 6, 8)) * 1)))) || I6 != D6.day",
-      "D9.month != I7 || (B6 == True) -> (D5 != D8)"
+      "(B0 == True) -> (D1 == D1) || D8 <= D5",
+      "I3 == (I6 - 1) || (B7 == False) -> (Date(1926, 6, 11) >= (Date(2044, 3, 16) - (Period(0, 0, 8) * 5))) || D4 > D5 || (B9 != True) -> ((Date(1903, 11, 12) - (Period(9, 1, 4) * 9)) == D7) || D8 <= Date(2068, 5, 4)",
+      "D2 > (D8 - ((Period(5, 1, 5) - ((Period(2, 2, 8) * 2) * 4)) * 1)) || (B4 == True) -> (D3 < (D9 + (((Period(1, 3, 4) - (Period(6, 6, 1) + Period(1, 6, 4))) * 8) * 7)))",
+      "D3.year == (D2.month - 12)",
+      "(B0 == True) -> ((Date(2009, 4, 19) - (Period(8, 9, 1) + (((Period(5, 0, 0) - (((Period(3, 7, 2) - (Period(0, 9, 0) - (((Period(0, 1, 4) * 0) * 5) * 5))) * 4) * 6)) * 4) * 8))) > D7)",
+      "D4 > D9",
+      "D5.day > 2024"
     ],
-    "size": 6,
-    "execution_time": 53.237571001052856
+    "size": 7
   }
 """
 
