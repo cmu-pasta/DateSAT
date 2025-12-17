@@ -69,7 +69,7 @@ PERIOD OPERATIONS:
   • Period * int → Period
 
 INTEGER OPERATIONS:
-  • Arithmetic: +, -, *, **, // (int division), % (modulo)
+  • Arithmetic: +, -, *, **, /, %
   • Comparison: ==, !=, <, <=, >, >=
 
 BOOLEAN OPERATIONS:
@@ -89,7 +89,6 @@ PARENTHESIZATION (REQUIRED):
 III. FORBIDDEN EXPRESSIONS
 ═══════════════════════════════════════════════════════════════════
   ✗ Period comparisons (Period ▷◁ Period)  — compare dates after applying the period arithmetic instead
-  ✗ Floating-point division (Int / Int)    — use // for integer division
   ✗ Boolean arithmetic (bool + int, etc.)
   ✗ Function-style operators: And(), Or(), Not()  — use &&, ||, ! operators
   ✗ Chained implications: (A) -> (B) -> (C)  — use nested: (A) -> ((B) -> (C))

@@ -9,6 +9,7 @@ against a provided concrete solution (no solving capability).
 from typing import Any, Dict, Optional, Tuple, Union
 from dateutil.relativedelta import relativedelta
 import datetime
+import warnings
 
 from .core import Date, Period, _UnboundedDate
 from .enumeration_baseline import (
@@ -18,6 +19,13 @@ from .enumeration_baseline import (
     Not_enumeration,
     Implies_enumeration,
 )
+
+
+# Global flag used during validation to detect when any intermediate date
+# computation has gone outside Date-SMT's supported range. This allows the
+# higher-level validation/summary code to classify such cases as "warning"
+# instead of fully "wrong".
+_OUT_OF_BOUNDS_USED: bool = False
 
 
 class EvalDateVar:
@@ -57,9 +65,25 @@ class EvalDateVar:
                 result = Date.from_python_date(result_date)
                 self.set_value(result.year, result.month, result.day)
             except ValueError:
-                # Date is out of Date-SMT bounds, but still valid for validation
-                # Store as a pseudo-Date using a custom unbounded wrapper
-                self._value = _UnboundedDate(result_date)
+                # Date is out of Date-SMT bounds, but still valid for validation.
+                # Store as a pseudo-Date using a custom unbounded wrapper and
+                # record that we went outside the supported range.
+                global _OUT_OF_BOUNDS_USED
+                _OUT_OF_BOUNDS_USED = True
+
+                # Emit a warning for visibility during ad‑hoc runs
+                warnings.warn(
+                    f"Intermediate date computation resulted in date outside allowed range: "
+                    f"{result_date.year}-{result_date.month:02d}-{result_date.day:02d} "
+                    f"(allowed [1900-03-01..2100-02-28]). Using unbounded date for validation.",
+                    UserWarning,
+                    stacklevel=2,
+                )
+
+                # Construct _UnboundedDate with explicit Y/M/D components
+                self._value = _UnboundedDate(
+                    result_date.year, result_date.month, result_date.day
+                )
         return self._value
 
     # comparisons
@@ -142,41 +166,183 @@ class EvalDateComponent:
         self.parent = parent
         self.attr = attr
 
+    def _get_component_value(self) -> Optional[int]:
+        """Return the concrete component value (year/month/day) or None."""
+        d = self.parent.get_value()
+        if d is None:
+            return None
+        # Works for both Date and _UnboundedDate
+        return getattr(d, self.attr)
+
     def _cmp(self, op: str, other: Union[int, "EvalIntVar"]) -> ConstraintWrapper:
         def compare():
-            d = self.parent.get_value()
-            if d is None:
+            component_val = self._get_component_value()
+            if component_val is None:
                 return False
-            # Get the component value (works for both Date and _UnboundedDate)
-            component_val = getattr(d, self.attr)
-            # Handle EvalIntVar
+
+            # Handle EvalIntVar on the right
             if isinstance(other, EvalIntVar):
                 other_val = other.get_value()
-                if other_val is None:
-                    return False
-                return getattr(component_val, f"__{op}__")(other_val)
+            # Handle another date component on the right (e.g., D4.month <= D3.day)
+            elif isinstance(other, EvalDateComponent):
+                other_val = other._get_component_value()
             else:
-                return getattr(component_val, f"__{op}__")(int(other))
+                try:
+                    other_val = int(other)
+                except Exception:
+                    other_val = None
+
+            if other_val is None:
+                return False
+
+            try:
+                return getattr(component_val, f"__{op}__")(other_val)
+            except (OverflowError, ZeroDivisionError, ValueError, TypeError):
+                return False
 
         return ConstraintWrapper(compare)
 
     def __eq__(self, other: Union[int, "EvalIntVar"]) -> ConstraintWrapper:  # type: ignore[override]
         return self._cmp("eq", other)
-
+    
     def __ne__(self, other: Union[int, "EvalIntVar"]) -> ConstraintWrapper:  # type: ignore[override]
         return self._cmp("ne", other)
-
+    
     def __lt__(self, other: Union[int, "EvalIntVar"]) -> ConstraintWrapper:
         return self._cmp("lt", other)
-
+    
     def __le__(self, other: Union[int, "EvalIntVar"]) -> ConstraintWrapper:
         return self._cmp("le", other)
-
+    
     def __gt__(self, other: Union[int, "EvalIntVar"]) -> ConstraintWrapper:
         return self._cmp("gt", other)
-
+    
     def __ge__(self, other: Union[int, "EvalIntVar"]) -> ConstraintWrapper:
         return self._cmp("ge", other)
+
+    # Arithmetic operations returning EvalIntVar so that expressions like
+    # D4.year * 1982 or (D7.day + I0) are supported during validation.
+    def _binary_int_op(self, op: str, other: Union[int, "EvalIntVar"]) -> "EvalIntVar":
+        out = EvalIntVar(f"{self.parent.name}_{self.attr}_{op}")
+
+        def compute():
+            lhs = self._get_component_value()
+            if lhs is None:
+                return None
+            if isinstance(other, EvalIntVar):
+                rv = other.get_value()
+            else:
+                try:
+                    rv = int(other)
+                except Exception:
+                    rv = None
+            if rv is None:
+                return None
+            try:
+                return getattr(lhs, f"__{op}__")(rv)
+            except (OverflowError, ZeroDivisionError, ValueError):
+                return None
+
+        out.get_value = compute  # type: ignore[attr-defined]
+        return out
+
+    def __add__(self, other: Union[int, "EvalIntVar"]) -> "EvalIntVar":
+        return self._binary_int_op("add", other)
+
+    def __radd__(self, other: Union[int, "EvalIntVar"]) -> "EvalIntVar":
+        return self.__add__(other)
+
+    def __sub__(self, other: Union[int, "EvalIntVar"]) -> "EvalIntVar":
+        return self._binary_int_op("sub", other)
+
+    def __rsub__(self, other: Union[int, "EvalIntVar"]) -> "EvalIntVar":
+        # Implement as (other - component)
+        out = EvalIntVar(f"const_minus_{self.parent.name}_{self.attr}")
+
+        def compute():
+            rhs = self._get_component_value()
+            if rhs is None:
+                return None
+            if isinstance(other, EvalIntVar):
+                lv = other.get_value()
+            else:
+                try:
+                    lv = int(other)
+                except Exception:
+                    lv = None
+            if lv is None:
+                return None
+            try:
+                return getattr(lv, "__sub__")(rhs)
+            except (OverflowError, ZeroDivisionError, ValueError):
+                return None
+
+        out.get_value = compute  # type: ignore[attr-defined]
+        return out
+
+    def __mul__(self, other: Union[int, "EvalIntVar"]) -> "EvalIntVar":
+        return self._binary_int_op("mul", other)
+
+    def __rmul__(self, other: Union[int, "EvalIntVar"]) -> "EvalIntVar":
+        return self.__mul__(other)
+
+    # Integer division using `/` in the DSL
+    def __truediv__(self, other: Union[int, "EvalIntVar"]) -> "EvalIntVar":
+        # Delegate to floordiv semantics for integer division
+        return self._binary_int_op("floordiv", other)
+
+    def __rtruediv__(self, other: Union[int, "EvalIntVar"]) -> "EvalIntVar":
+        # Implement as (other / component) with floor semantics
+        out = EvalIntVar(f"const_div_{self.parent.name}_{self.attr}")
+
+        def compute():
+            rhs = self._get_component_value()
+            if rhs is None or rhs == 0:
+                return None
+            if isinstance(other, EvalIntVar):
+                lv = other.get_value()
+            else:
+                try:
+                    lv = int(other)
+                except Exception:
+                    lv = None
+            if lv is None:
+                return None
+            try:
+                return lv // rhs
+            except (OverflowError, ZeroDivisionError, ValueError):
+                return None
+
+        out.get_value = compute  # type: ignore[attr-defined]
+        return out
+
+    def __mod__(self, other: Union[int, "EvalIntVar"]) -> "EvalIntVar":
+        return self._binary_int_op("mod", other)
+
+    def __rmod__(self, other: Union[int, "EvalIntVar"]) -> "EvalIntVar":
+        # Implement as (other % component)
+        out = EvalIntVar(f"const_mod_{self.parent.name}_{self.attr}")
+
+        def compute():
+            rhs = self._get_component_value()
+            if rhs is None or rhs == 0:
+                return None
+            if isinstance(other, EvalIntVar):
+                lv = other.get_value()
+            else:
+                try:
+                    lv = int(other)
+                except Exception:
+                    lv = None
+            if lv is None:
+                return None
+            try:
+                return getattr(lv, "__mod__")(rhs)
+            except (OverflowError, ZeroDivisionError, ValueError):
+                return None
+
+        out.get_value = compute  # type: ignore[attr-defined]
+        return out
 
 
 class EvalIntVar:
@@ -195,8 +361,20 @@ class EvalIntVar:
 
     def _cmp(self, op: str, other: Union[int, "EvalIntVar"]) -> ConstraintWrapper:
         def rhs():
+            # Support comparisons against another EvalIntVar
             if isinstance(other, EvalIntVar):
                 return other.get_value()
+
+            # Support comparisons where the *right-hand side* is a date component
+            # such as D6.month or D3.day. The parser may generate expressions like
+            # "I6 > D6.month", which should be valid and interpreted as an int
+            # comparison, just like "D6.month < I6".
+            from .constraint_validator import EvalDateComponent  # type: ignore
+
+            if isinstance(other, EvalDateComponent):
+                return other._get_component_value()
+
+            # Fallback: treat as a plain integer literal
             try:
                 return int(other)
             except Exception:
@@ -251,6 +429,143 @@ class EvalIntVar:
             if lhs is None or rv is None:
                 return None
             return lhs - rv
+
+        out.get_value = compute  # type: ignore
+        return out
+
+    def __mul__(self, other: Union[int, "EvalIntVar"]) -> "EvalIntVar":
+        out = EvalIntVar(f"{self.name}_times")
+
+        def compute():
+            lhs = self.get_value()
+            rv = other.get_value() if isinstance(other, EvalIntVar) else int(other)
+            if lhs is None or rv is None:
+                return None
+            return lhs * rv
+
+        out.get_value = compute  # type: ignore
+        return out
+
+    def __floordiv__(self, other: Union[int, "EvalIntVar"]) -> "EvalIntVar":
+        out = EvalIntVar(f"{self.name}_div")
+
+        def compute():
+            lhs = self.get_value()
+            rv = other.get_value() if isinstance(other, EvalIntVar) else int(other)
+            if lhs is None or rv is None or rv == 0:
+                return None
+            return lhs // rv
+
+        out.get_value = compute  # type: ignore
+        return out
+
+    def __mod__(self, other: Union[int, "EvalIntVar"]) -> "EvalIntVar":
+        out = EvalIntVar(f"{self.name}_mod")
+
+        def compute():
+            lhs = self.get_value()
+            rv = other.get_value() if isinstance(other, EvalIntVar) else int(other)
+            if lhs is None or rv is None or rv == 0:
+                return None
+            return lhs % rv
+
+        out.get_value = compute  # type: ignore
+        return out
+
+    def __pow__(self, other: Union[int, "EvalIntVar"]) -> "EvalIntVar":
+        out = EvalIntVar(f"{self.name}_pow")
+
+        def compute():
+            lhs = self.get_value()
+            rv = other.get_value() if isinstance(other, EvalIntVar) else int(other)
+            if lhs is None or rv is None:
+                return None
+            try:
+                return lhs ** rv
+            except (OverflowError, ValueError):
+                return None
+
+        out.get_value = compute  # type: ignore
+        return out
+
+    # Reverse operations for when int is on the left side
+    def __radd__(self, other: int) -> "EvalIntVar":
+        return self.__add__(other)
+
+    def __rsub__(self, other: int) -> "EvalIntVar":
+        out = EvalIntVar(f"const_minus_{self.name}")
+
+        def compute():
+            rhs = self.get_value()
+            if rhs is None:
+                return None
+            return int(other) - rhs
+
+        out.get_value = compute  # type: ignore
+        return out
+
+    def __rmul__(self, other: int) -> "EvalIntVar":
+        return self.__mul__(other)
+
+    # Integer division using `/` in the DSL
+    def __truediv__(self, other: Union[int, "EvalIntVar"]) -> "EvalIntVar":
+        out = EvalIntVar(f"{self.name}_div")
+
+        def compute():
+            lhs = self.get_value()
+            # Support division by another EvalIntVar
+            if isinstance(other, EvalIntVar):
+                rv = other.get_value()
+            # Support division by a date component (e.g., I8 / D5.year)
+            elif isinstance(other, EvalDateComponent):
+                rv = other._get_component_value()
+            else:
+                try:
+                    rv = int(other)
+                except Exception:
+                    rv = None
+            if lhs is None or rv is None or rv == 0:
+                return None
+            return lhs // rv
+
+        out.get_value = compute  # type: ignore
+        return out
+
+    def __rtruediv__(self, other: int) -> "EvalIntVar":
+        out = EvalIntVar(f"const_div_{self.name}")
+
+        def compute():
+            rhs = self.get_value()
+            if rhs is None or rhs == 0:
+                return None
+            return int(other) // rhs
+
+        out.get_value = compute  # type: ignore
+        return out
+
+    def __rmod__(self, other: int) -> "EvalIntVar":
+        out = EvalIntVar(f"const_mod_{self.name}")
+
+        def compute():
+            rhs = self.get_value()
+            if rhs is None or rhs == 0:
+                return None
+            return int(other) % rhs
+
+        out.get_value = compute  # type: ignore
+        return out
+
+    def __rpow__(self, other: int) -> "EvalIntVar":
+        out = EvalIntVar(f"const_pow_{self.name}")
+
+        def compute():
+            rhs = self.get_value()
+            if rhs is None:
+                return None
+            try:
+                return int(other) ** rhs
+            except (OverflowError, ValueError):
+                return None
 
         out.get_value = compute  # type: ignore
         return out
@@ -464,52 +779,72 @@ def validate_constraint_solution(
     Execute constraint_code with a validation-only builder and evaluate
     the provided concrete solution.
     """
-    builder = EvalBuilder()
-    ctx = builder.get_execution_context()
+    # Reset global out-of-bounds flag for this validation run
+    global _OUT_OF_BOUNDS_USED
+    _OUT_OF_BOUNDS_USED = False
 
-    try:
-        exec(constraint_code, ctx)
-    except Exception as e:
-        return False, f"Error executing constraint code: {e}"
+    # Suppress warnings from datesmt.core.Date operations during constraint code execution.
+    # We only care about the _OUT_OF_BOUNDS_USED flag set by EvalDateVar, not warnings
+    # from literal Date expressions in the constraint code (like Date(2042, 12, 18) + Period(...)).
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", message="Intermediate date computation.*", category=UserWarning)
+        
+        builder = EvalBuilder()
+        ctx = builder.get_execution_context()
 
-    solver = ctx.get("result") or ctx.get("builder") or builder
+        try:
+            exec(constraint_code, ctx)
+        except Exception as e:
+            return False, f"Error executing constraint code: {e}"
 
-    # Set values
-    for var_name, raw_val in solution.items():
-        parsed = _parse_solution_value(raw_val)
-        if var_name in solver.date_vars:
-            if not isinstance(parsed, Date):
-                return False, f"Variable {var_name} expects Date, got {parsed}"
-            solver.date_vars[var_name].set_value(parsed.year, parsed.month, parsed.day)
-        elif var_name in solver.int_vars:
-            if not isinstance(parsed, int):
-                return False, f"Variable {var_name} expects int, got {parsed}"
-            solver.int_vars[var_name].set_value(parsed)
-        elif var_name in solver.bool_vars:
-            if not isinstance(parsed, bool):
-                return False, f"Variable {var_name} expects bool, got {parsed}"
-            solver.bool_vars[var_name].set_value(parsed)
-        else:
-            # Ignore unknown variables; they might be unused
-            continue
+        solver = ctx.get("result") or ctx.get("builder") or builder
 
-    # Evaluate constraints
-    try:
-        for c in solver.constraints:
-            if isinstance(c, bool):
-                if not c:
-                    return False, "Constraint evaluated False"
-            elif isinstance(c, ConstraintWrapper):
-                if not c.evaluate():
-                    return False, "Constraint evaluated False"
-            elif callable(c):
-                if not c():
-                    return False, "Constraint evaluated False"
+        # Set values
+        for var_name, raw_val in solution.items():
+            parsed = _parse_solution_value(raw_val)
+            if var_name in solver.date_vars:
+                if not isinstance(parsed, Date):
+                    return False, f"Variable {var_name} expects Date, got {parsed}"
+                solver.date_vars[var_name].set_value(parsed.year, parsed.month, parsed.day)
+            elif var_name in solver.int_vars:
+                if not isinstance(parsed, int):
+                    return False, f"Variable {var_name} expects int, got {parsed}"
+                solver.int_vars[var_name].set_value(parsed)
+            elif var_name in solver.bool_vars:
+                if not isinstance(parsed, bool):
+                    return False, f"Variable {var_name} expects bool, got {parsed}"
+                solver.bool_vars[var_name].set_value(parsed)
             else:
-                if not bool(c):
-                    return False, "Constraint evaluated False"
-    except Exception as e:
-        return False, f"Error during constraint evaluation: {e}"
+                # Ignore unknown variables; they might be unused
+                continue
+
+        # Evaluate constraints
+        try:
+            for c in solver.constraints:
+                if isinstance(c, bool):
+                    if not c:
+                        return False, "Constraint evaluated False"
+                elif isinstance(c, ConstraintWrapper):
+                    if not c.evaluate():
+                        return False, "Constraint evaluated False"
+                elif callable(c):
+                    if not c():
+                        return False, "Constraint evaluated False"
+                else:
+                    if not bool(c):
+                        return False, "Constraint evaluated False"
+        except Exception as e:
+            return False, f"Error during constraint evaluation: {e}"
+
+    # If any intermediate date went outside the supported range during evaluation,
+    # treat this as a special validation failure. The higher-level summary code
+    # will classify these as "warning" rather than fully "wrong", but we still
+    # surface a clear message here.
+    if _OUT_OF_BOUNDS_USED:
+        return (
+            False,
+            "Date outside allowed range encountered during intermediate computation",
+        )
 
     return True, "Solution validated successfully"
 

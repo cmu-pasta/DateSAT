@@ -140,7 +140,10 @@ class DateVar:
             # Date variable can never equal an out-of-range date, so != is always true
             from z3 import BoolVal
             return BoolVal(True)
-        return Not(self.__eq__(other))
+        elif isinstance(other, (Date, DateVar)):
+            return Not(self.__eq__(other))
+        else:
+            raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
     def __add__(self, other) -> 'DateVar':
         """

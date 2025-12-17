@@ -9,15 +9,20 @@ import json
 import os
 import re
 import sys
+import warnings
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 # Ensure repository root is on sys.path so `import datesmt` works
-REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
-from datesmt.enumeration_baseline import EnumerationSolver, EnumerationDateVar, ConstraintWrapper
+from datesmt.enumeration_baseline import (
+    EnumerationSolver,
+    EnumerationDateVar,
+    ConstraintWrapper,
+)
 from datesmt.constraint_validator import validate_constraint_solution
 from datesmt.constraint_parser import ConstraintParser
 from datesmt.core import Date, Period
@@ -205,14 +210,37 @@ def validate_solution_with_concrete(
         else:
             return False, f"Unknown variable type for {var_name}: {type(var_value)}", None
 
-    # Execute the constraint with concrete values using Python-based enumeration solver
-    # This validates using Python date arithmetic, not SMT-LIB
-    success, message, validated_constraints_str = execute_constraint_code(
-        constraint_code, string_solution, constraint_data
+    # Execute the constraint with concrete values using Python-based enumeration solver.
+    # This validates using Python date arithmetic, not SMT-LIB. We also capture any
+    # warnings about out-of-bounds intermediate dates so that higher-level summaries
+    # can classify these cases as "warning" instead of fully "wrong".
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        success, message, validated_constraints_str = execute_constraint_code(
+            constraint_code, string_solution, constraint_data
+        )
+
+    # Detect out-of-bounds warnings emitted by Date/Period arithmetic
+    oob_warning = any(
+        "Intermediate date computation resulted in date outside allowed range"
+        in str(w.message)
+        for w in caught
     )
 
     if not success:
+        # Preserve existing error behavior, but keep the message as-is so callers can
+        # decide whether to treat it as a warning or an error.
         return False, f"Constraint execution failed: {message}", validated_constraints_str
+
+    # If evaluation succeeded but went outside the supported date range at any point,
+    # treat this as a special failure. Upstream, this will be interpreted as a
+    # "warning" (not a fully wrong model).
+    if oob_warning:
+        return (
+            False,
+            "Constraint execution failed: Date outside allowed range encountered during intermediate computation",
+            validated_constraints_str,
+        )
 
     # Save the solution and constraints with substituted values
     # This shows what was actually validated using Python enumeration baseline implementation

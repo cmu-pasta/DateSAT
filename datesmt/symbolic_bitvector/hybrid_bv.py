@@ -265,7 +265,14 @@ class DateVar:
 
     def __ne__(self, other) -> BoolRef:
         """Support x != date comparison."""
-        return Not(self.__eq__(other))
+        if isinstance(other, _UnboundedDate):
+            # Date variable can never equal an out-of-range date, so != is always true
+            from z3 import BoolVal
+            return BoolVal(True)
+        elif isinstance(other, (Date, DateVar)):
+            return Not(self.__eq__(other))
+        else:
+            raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
     def __add__(self, other) -> 'DateVar':
         """Hybrid date + Period: mirror epoch_days semantics, but avoid epoch encode unless days-only.

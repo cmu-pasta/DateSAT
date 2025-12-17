@@ -279,13 +279,13 @@ class ConstraintTransformer(Transformer):
         return f"{items[0]} * {items[-1]}"
     
     def floordiv(self, items) -> str:
-        """Transform floor division operation."""
-        # Earley parser might include the // token, filter it out
-        filtered = [item for item in items if str(item) != '//']
+        """Transform integer division operation."""
+        # Earley parser might include the / token, filter it out
+        filtered = [item for item in items if str(item) != '/']
         if len(filtered) == 2:
-            return f"{filtered[0]} // {filtered[1]}"
+            return f"{filtered[0]} / {filtered[1]}"
         # Fallback: use first two items
-        return f"{items[0]} // {items[-1]}"
+        return f"{items[0]} / {items[-1]}"
     
     def mod(self, items) -> str:
         """Transform modulo operation."""
@@ -424,7 +424,7 @@ class ConstraintParser:
             PLUS: "+"
             MINUS: "-"
             STAR: "*"
-            FLOORDIV: "//"
+            DIV:  "/"
             MOD: "%"
             POW: "**"
             LPAR: "("
@@ -436,9 +436,9 @@ class ConstraintParser:
                        | expression MINUS term  -> sub
 
             ?term: power
-                 | term STAR power     -> mul
-                 | term FLOORDIV power -> floordiv
-                 | term MOD power      -> mod
+                 | term STAR power -> mul
+                 | term DIV power  -> floordiv
+                 | term MOD power  -> mod
             
             ?power: factor
                   | factor POW power -> pow

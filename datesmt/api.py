@@ -68,6 +68,10 @@ class DateSMTBuilder:
 
         self.constraints = []
         self._print_smt_on_solve = False
+        
+        # Track Int and Bool variables for complete solution extraction
+        self.int_vars = {}  # name -> z3 var
+        self.bool_vars = {}  # name -> z3 var
 
     def add_date_var(self, name: str) -> "DateVar":
         """Add a symbolic date variable."""
@@ -81,15 +85,23 @@ class DateSMTBuilder:
         if self.implementation == "bitvector":
             from z3 import BitVec
             from .symbolic_bitvector.bitwidths import LEGACY_BITS
-            return BitVec(name, LEGACY_BITS)
+            var = BitVec(name, LEGACY_BITS)
         else:
             from z3 import Int
-            return Int(name)
+            var = Int(name)
+        
+        # Track this variable for solution extraction
+        self.int_vars[name] = var
+        return var
 
     def add_bool_var(self, name: str) -> Any:
         """Add a symbolic bool variable."""
         from z3 import Bool
-        return Bool(name)
+        var = Bool(name)
+        
+        # Track this variable for solution extraction
+        self.bool_vars[name] = var
+        return var
 
     def add_constraint(self, constraint: Any) -> None:
         """Add a constraint to the solver.
@@ -117,37 +129,28 @@ class DateSMTBuilder:
             int_values = {}
             bool_values = {}
             
-            # Get all declarations from the model
-            # First, get all date variable names to exclude their internal components
-            date_var_names = set(self.solver.date_vars.keys())
-            
-            for decl in model.decls():
-                name = decl.name()
-                # Skip if this is a date variable (we already have it in result["dates"])
-                if name in date_var_names:
-                    continue
-                # Skip internal date variable components (date_var_name + suffix)
-                is_date_component = False
-                for date_var in date_var_names:
-                    if any(name == f"{date_var}{suffix}" for suffix in ['_year', '_month', '_day', '_months', '_beta', '_days']):
-                        is_date_component = True
-                        break
-                if is_date_component:
-                    continue
-                
-                # Check if this is an Int, BitVec, or Bool variable
+            # Explicitly evaluate all tracked Int variables with model_completion=True
+            # to ensure we get values for unconstrained variables
+            for name, var in self.int_vars.items():
                 try:
-                    value = model[decl]
+                    value = model.evaluate(var, model_completion=True)
                     if value is not None:
-                        # Check the sort type
-                        from z3 import IntSort, BoolSort, is_bv_sort
-                        if decl.range() == IntSort():
-                            int_values[name] = value.as_long()
-                        elif is_bv_sort(decl.range()):
-                            # BitVec variables - extract as signed long for int semantics
+                        # Check if it's a BitVec or Int
+                        from z3 import is_bv
+                        if is_bv(value):
                             int_values[name] = value.as_signed_long()
-                        elif decl.range() == BoolSort():
-                            bool_values[name] = bool(value)
+                        else:
+                            int_values[name] = value.as_long()
+                except Exception:
+                    # Skip if we can't extract the value
+                    pass
+            
+            # Explicitly evaluate all tracked Bool variables with model_completion=True
+            for name, var in self.bool_vars.items():
+                try:
+                    value = model.evaluate(var, model_completion=True)
+                    if value is not None:
+                        bool_values[name] = bool(value)
                 except Exception:
                     # Skip if we can't extract the value
                     pass

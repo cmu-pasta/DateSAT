@@ -37,39 +37,33 @@ from datesmt.constraint_parser import ConstraintParser
 # Paste a single JSON constraint object here (one from *_constraints*.jsonl)
 CONSTRAINT_JSON = r"""
 {
-    "id": "grammar-10",
+    "id": "grammar-17",
     "declarations": [
       "B0: bool",
-      "B1: bool",
-      "B6: bool",
-      "B8: bool",
-      "D0: date",
+      "B4: bool",
+      "B7: bool",
+      "B9: bool",
       "D1: date",
       "D2: date",
       "D3: date",
       "D4: date",
       "D5: date",
+      "D7: date",
       "D8: date",
       "D9: date",
-      "I1: int",
-      "I2: int",
-      "I4: int",
-      "I5: int",
-      "I6: int",
-      "I8: int"
+      "I3: int",
+      "I6: int"
     ],
     "constraints": [
-      "(B6 != True) -> ((D9 + Period(3, 3, 9)) < Date(2064, 3, 18)) || D0 >= Date(1912, 4, 11) || I2 >= 2021",
-      "(B0 != True) -> (D5 <= (D2 - Period(9, 6, 4)))",
-      "I6 != 8 || D2 != (Date(2087, 12, 18) + ((Period(9, 1, 2) * 2) * 9)) || D0 <= (D2 - Period(5, 3, 0)) || D8 < (((D1 - (Period(9, 5, 0) - Period(0, 6, 5))) - (Period(0, 3, 2) - (Period(9, 2, 1) + (Period(0, 5, 6) + ((Period(9, 7, 4) + Period(0, 4, 3)) * 5))))) + ((((Period(4, 8, 9) + Period(5, 9, 4)) * 2) * 1) * 5)) || D5.year < 6 || D9.month <= (D1.year + (I1 * 2033)) || (B1 == False) -> (D4 == Date(2064, 10, 3)) || (B6 == True) -> (D9 > (Date(1930, 9, 27) + Period(8, 9, 8)))",
-      "D8 < Date(1919, 4, 5)",
-      "I4 == 23",
-      "I1 <= (I8 - 1) || D4.year < I5",
-      "D3.month != (I1 - 2038)",
-      "(B0 == True) -> (D5 == D0) || (B8 != True) -> (D2 == Date(2059, 10, 23))",
-      "D3 != (Date(2069, 6, 8) + (Period(8, 3, 2) * 8))"
+      "(B0 == True) -> (D1 == D1) || D8 <= D5",
+      "I3 == (I6 - 1) || (B7 == False) -> (Date(1926, 6, 11) >= (Date(2044, 3, 16) - (Period(0, 0, 8) * 5))) || D4 > D5 || (B9 != True) -> ((Date(1903, 11, 12) - (Period(9, 1, 4) * 9)) == D7) || D8 <= Date(2068, 5, 4)",
+      "D2 > (D8 - ((Period(5, 1, 5) - ((Period(2, 2, 8) * 2) * 4)) * 1)) || (B4 == True) -> (D3 < (D9 + (((Period(1, 3, 4) - (Period(6, 6, 1) + Period(1, 6, 4))) * 8) * 7)))",
+      "D3.year == (D2.month - 12)",
+      "(B0 == True) -> ((Date(2009, 4, 19) - (Period(8, 9, 1) + (((Period(5, 0, 0) - (((Period(3, 7, 2) - (Period(0, 9, 0) - (((Period(0, 1, 4) * 0) * 5) * 5))) * 4) * 6)) * 4) * 8))) > D7)",
+      "D4 > D9",
+      "D5.day > 2024"
     ],
-    "size": 9
+    "size": 7
   }
 """
 
