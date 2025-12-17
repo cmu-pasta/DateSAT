@@ -1,0 +1,351 @@
+[
+  {
+    "id": "grammar-sat-1",
+    "declarations": [
+      "B0: bool",
+      "B2: bool",
+      "B5: bool",
+      "B6: bool",
+      "D0: date",
+      "D2: date",
+      "D3: date",
+      "D5: date",
+      "D6: date",
+      "D7: date",
+      "D8: date",
+      "D9: date",
+      "I4: int",
+      "I6: int",
+      "I7: int"
+    ],
+    "constraints": [
+      "I4 < 2165 || (B0 != True) -> (D5 >= Date(2074, 11, 10)) || (B0 != False) -> ((((D7 + (Period(0, 0, 6) + ((Period(1, 6, 4) - Period(1, 2, 6)) * 5))) - (Period(5, 4, 8) + (Period(4, 0, 3) * 4))) + (Period(1, 4, 8) * 4)) >= (Date(1968, 4, 2) + (Period(7, 0, 5) - ((Period(8, 1, 6) - Period(6, 2, 0)) * 4)))) || D5 == D7",
+      "D8 != D8 || D9 < Date(1935, 11, 7)",
+      "(B5 == False) -> (D0 >= D9)",
+      "D3 < ((D5 - (Period(8, 9, 8) + (Period(7, 6, 2) * 0))) - Period(4, 2, 5)) || D7 != D3",
+      "(B2 != False) -> (Date(2032, 9, 29) == (D2 - (Period(7, 0, 0) + ((Period(1, 4, 7) + Period(4, 6, 8)) * 1)))) || I6 != D6.day",
+      "D9.month != I7 || (B6 == True) -> (D5 != D8)"
+    ],
+    "size": 6,
+    "execution_time": 53.237571001052856
+  },
+  {
+    "id": "grammar-sat-2",
+    "declarations": [
+      "B7: bool",
+      "B9: bool",
+      "D0: date",
+      "D1: date",
+      "D2: date",
+      "D6: date",
+      "D7: date",
+      "D8: date",
+      "I2: int",
+      "I8: int"
+    ],
+    "constraints": [
+      "D6 >= ((D7 + ((Period(0, 9, 3) * 3) * 0)) - ((Period(4, 2, 6) + (Period(2, 1, 5) * 1)) * 4))",
+      "(B9 == False) -> (((D7 - (Period(3, 8, 4) * 9)) + Period(8, 4, 1)) > D6)",
+      "D6.day >= 7",
+      "(B9 == False) -> (Date(2061, 10, 14) != D6)",
+      "I2 == 10 || D8.day < 2078",
+      "(B7 == True) -> (D2 != (D8 - Period(9, 7, 0))) || D2 >= Date(1990, 9, 19) || I8 == 5 || D2 == (Date(2023, 5, 29) + (Period(1, 7, 7) - Period(3, 8, 9)))",
+      "D1 > D0",
+      "D8.day <= I8",
+      "D6.month <= (I8 % 2031)"
+    ],
+    "size": 9,
+    "execution_time": 37.01432394981384
+  },
+  {
+    "id": "grammar-sat-3",
+    "declarations": [
+      "B1: bool",
+      "B2: bool",
+      "B7: bool",
+      "D0: date",
+      "D2: date",
+      "D3: date",
+      "D4: date",
+      "D5: date",
+      "D7: date",
+      "D8: date",
+      "D9: date",
+      "I1: int",
+      "I8: int"
+    ],
+    "constraints": [
+      "(B1 != False) -> ((Date(1904, 1, 28) + (Period(6, 4, 2) * 2)) != D5)",
+      "D2.day == I8",
+      "(B2 != True) -> (((((D0 + Period(9, 9, 4)) - Period(3, 1, 8)) - (Period(2, 4, 0) + Period(0, 9, 3))) + Period(5, 5, 9)) == D9)",
+      "D8 <= Date(1924, 10, 30)",
+      "D9.year != D4.month || (B7 != True) -> ((Date(1919, 7, 5) + Period(5, 2, 0)) < (D0 - Period(7, 2, 3))) || I1 != 1935",
+      "D7 < D7 || I1 > 13 || D4 < Date(2090, 8, 24)",
+      "D3 != D5",
+      "D0 <= D2"
+    ],
+    "size": 8,
+    "execution_time": 16.270795106887817
+  },
+  {
+    "id": "grammar-sat-4",
+    "declarations": [
+      "B2: bool",
+      "D2: date",
+      "D3: date",
+      "D4: date",
+      "D6: date",
+      "D7: date",
+      "D8: date",
+      "I3: int",
+      "I5: int",
+      "I6: int",
+      "I8: int"
+    ],
+    "constraints": [
+      "D3.year == I8 || D8.day >= 22",
+      "I6 > D6.month",
+      "D4.month <= D3.day || D4.day != (I5 * I3)",
+      "(B2 == True) -> (D7 == Date(1940, 12, 16)) || D3 != (((D8 - Period(8, 4, 8)) + Period(7, 6, 9)) - Period(0, 8, 7))",
+      "D3 > D3 || D2 > Date(2053, 12, 7)"
+    ],
+    "size": 5,
+    "execution_time": 11.098757982254028
+  },
+  {
+    "id": "grammar-sat-5",
+    "declarations": [
+      "B3: bool",
+      "D0: date",
+      "D1: date",
+      "D2: date",
+      "D3: date",
+      "D5: date",
+      "D6: date",
+      "D8: date",
+      "I0: int",
+      "I5: int",
+      "I7: int",
+      "I8: int"
+    ],
+    "constraints": [
+      "D3 <= ((D1 - Period(5, 0, 1)) + (Period(2, 9, 4) * 2))",
+      "I7 == D2.day",
+      "I5 <= 3",
+      "D8.year >= (D6.year * 1906) || D3 == ((D0 + Period(5, 5, 6)) + Period(3, 6, 3)) || D2 < (Date(2054, 7, 5) + Period(7, 8, 7)) || D6 > (Date(2092, 5, 19) - (Period(1, 5, 2) + Period(1, 3, 1))) || I0 <= D1.day || (B3 == True) -> ((D5 - (Period(7, 3, 5) - (Period(0, 0, 5) * 1))) != Date(1904, 6, 15))",
+      "I8 == (D2.year + 9)"
+    ],
+    "size": 5,
+    "execution_time": 7.215055704116821
+  },
+  {
+    "id": "grammar-sat-6",
+    "declarations": [
+      "B3: bool",
+      "B7: bool",
+      "B9: bool",
+      "D0: date",
+      "D2: date",
+      "D3: date",
+      "D5: date",
+      "D6: date",
+      "D7: date",
+      "D8: date",
+      "I0: int",
+      "I2: int",
+      "I4: int",
+      "I5: int",
+      "I7: int",
+      "I8: int",
+      "I9: int"
+    ],
+    "constraints": [
+      "I8 <= (I7 % 11) || D2 <= Date(1923, 7, 14)",
+      "D0.year > I5",
+      "(B9 != True) -> ((D0 + (Period(8, 7, 5) - Period(4, 5, 2))) >= (Date(2073, 9, 2) - (Period(1, 0, 8) * 9)))",
+      "D6 != Date(1928, 6, 23) || (B7 == False) -> ((D2 + (Period(1, 2, 4) * 0)) != Date(1909, 7, 22)) || I9 < 2040",
+      "D7 < (D8 - Period(7, 2, 3))",
+      "I2 != I4",
+      "D3 > (((D0 - Period(7, 7, 4)) + Period(6, 7, 7)) + (Period(5, 3, 3) - Period(1, 3, 5))) || (B3 != True) -> (D6 <= D0)",
+      "D5 >= Date(2028, 6, 25) || I0 < 14 || D6 < (Date(2066, 12, 31) - (Period(4, 5, 5) + (Period(3, 6, 5) - (Period(1, 3, 9) * 9))))"
+    ],
+    "size": 8,
+    "execution_time": 3.3990390300750732
+  },
+  {
+    "id": "grammar-sat-7",
+    "declarations": [
+      "B1: bool",
+      "B5: bool",
+      "D0: date",
+      "D3: date",
+      "D4: date",
+      "D5: date",
+      "D6: date",
+      "D7: date",
+      "D9: date",
+      "I0: int",
+      "I9: int"
+    ],
+    "constraints": [
+      "I9 > (D4.year * 1982)",
+      "D5.month >= 9",
+      "(B5 == False) -> (Date(2034, 7, 26) <= ((D5 - (Period(2, 1, 2) - (Period(1, 4, 3) - (Period(7, 0, 6) - (Period(3, 5, 5) - (Period(8, 4, 2) - (Period(9, 9, 0) - ((Period(6, 0, 3) * 5) * 6)))))))) - Period(4, 8, 5))) || (B1 != False) -> ((Date(1934, 7, 3) - Period(1, 2, 0)) == (D9 - Period(1, 5, 8)))",
+      "D3.year == I0",
+      "D6 <= D7 || D0.year > 10"
+    ],
+    "size": 5,
+    "execution_time": 1.7494840621948242
+  },
+  {
+    "id": "grammar-sat-8",
+    "declarations": [
+      "B4: bool",
+      "B7: bool",
+      "B8: bool",
+      "D0: date",
+      "D1: date",
+      "D2: date",
+      "D3: date",
+      "D4: date",
+      "D6: date",
+      "D9: date",
+      "I1: int",
+      "I2: int",
+      "I7: int"
+    ],
+    "constraints": [
+      "D9 == (Date(1967, 12, 6) + (Period(9, 9, 6) + Period(5, 6, 9))) || D6 == (Date(1904, 11, 12) + (Period(9, 5, 9) * 0))",
+      "D3 != D1",
+      "D1 != Date(2018, 1, 6) || I7 >= 3",
+      "D0.day < (I2 - 11)",
+      "D4 > (Date(1957, 4, 15) - Period(2, 6, 1)) || (B8 == False) -> ((D2 + Period(2, 8, 1)) >= (D9 - Period(5, 2, 0))) || (B4 == True) -> ((Date(2042, 10, 10) - (Period(8, 7, 3) * 5)) != ((D0 - (Period(2, 3, 5) + (Period(0, 1, 0) + (((Period(3, 4, 6) + (Period(3, 1, 9) - Period(8, 7, 5))) * 6) * 6)))) + Period(8, 9, 6))) || I7 > (I1 % 20) || D6 <= (D1 + Period(1, 7, 2)) || (B7 == False) -> ((D6 - (Period(6, 7, 3) + (Period(1, 6, 9) - (Period(8, 3, 2) - (Period(1, 4, 5) + Period(0, 1, 7)))))) <= D3)"
+    ],
+    "size": 5,
+    "execution_time": 1.7297780513763428
+  },
+  {
+    "id": "grammar-sat-9",
+    "declarations": [
+      "B5: bool",
+      "D0: date",
+      "D3: date",
+      "D4: date",
+      "D5: date",
+      "D6: date",
+      "D7: date",
+      "I0: int",
+      "I9: int"
+    ],
+    "constraints": [
+      "I9 > (D4.year * 1982)",
+      "D5.month >= 9",
+      "(B5 == False) -> (Date(2034, 7, 4) <= ((D5 - (Period(2, 1, 2) - (Period(1, 4, 3) - (Period(7, 0, 6) - (Period(3, 5, 5) - (Period(8, 4, 2) - (Period(9, 9, 0) - ((Period(6, 0, 3) * 5) * 6)))))))) - Period(4, 8, 5))) || D4.day < 1",
+      "D3.year == I0",
+      "D6 <= D7 || D0.year > 10"
+    ],
+    "size": 5,
+    "execution_time": 0.7504708766937256
+  },
+  {
+    "id": "grammar-sat-10",
+    "declarations": [
+      "B1: bool",
+      "B6: bool",
+      "B9: bool",
+      "D0: date",
+      "D2: date",
+      "D3: date",
+      "D4: date",
+      "D8: date",
+      "D9: date",
+      "I3: int"
+    ],
+    "constraints": [
+      "D2.year != 2073",
+      "D0 != D9",
+      "I3 < 14 || (B1 != False) -> ((Date(2032, 12, 23) - (Period(8, 1, 3) + (Period(1, 6, 2) + Period(4, 0, 4)))) > (D4 - Period(0, 9, 1)))",
+      "D2 != (D4 + (Period(4, 5, 2) + (Period(9, 3, 4) + Period(0, 0, 9)))) || (B6 != True) -> ((D3 - (Period(6, 6, 2) + Period(8, 0, 4))) == D3)",
+      "(B9 != True) -> (D9 < D3)",
+      "D8 >= D3",
+      "I3 == (D8.day - 2101)"
+    ],
+    "size": 7,
+    "execution_time": 0.7320249080657959
+  },
+  {
+    "id": "grammar-sat-11",
+    "declarations": [
+      "B5: bool",
+      "D0: date",
+      "D3: date",
+      "D4: date",
+      "D5: date",
+      "D6: date",
+      "D7: date",
+      "I0: int",
+      "I9: int"
+    ],
+    "constraints": [
+      "I9 > (D4.year * 1982)",
+      "D5.month >= 9",
+      "(B5 == False) -> (Date(2034, 7, 26) <= ((D5 - (Period(2, 1, 2) - (Period(1, 4, 3) - (Period(7, 0, 6) - (Period(3, 5, 5) - (Period(8, 4, 2) - (Period(9, 9, 0) - ((Period(6, 0, 3) * 5) * 6)))))))) - Period(4, 8, 5))) || D4.day < 1",
+      "D3.year == I0",
+      "D6 <= D7 || D0.year > 10"
+    ],
+    "size": 5,
+    "execution_time": 0.35810089111328125
+  },
+  {
+    "id": "grammar-sat-12",
+    "declarations": [
+      "B2: bool",
+      "B8: bool",
+      "D0: date",
+      "D1: date",
+      "D3: date",
+      "D4: date",
+      "D5: date",
+      "D6: date",
+      "D7: date",
+      "D8: date",
+      "I1: int",
+      "I2: int",
+      "I4: int",
+      "I7: int",
+      "I9: int"
+    ],
+    "constraints": [
+      "D1.year <= 11 || D6.year < D1.month || D4 >= D7",
+      "D7.year != 1955 || (B2 == True) -> (D5 > D7) || D6 != (D3 + Period(3, 5, 6)) || D0 < D7 || I9 >= 17 || I4 == 2014 || I2 > 27",
+      "I7 > 3",
+      "(B8 != False) -> (Date(2087, 6, 26) == (Date(2062, 10, 21) - ((Period(6, 9, 5) * 2) * 5))) || I1 == 2020",
+      "D8 == Date(2059, 12, 29)"
+    ],
+    "size": 5,
+    "execution_time": 0.32534289360046387
+  },
+  {
+    "id": "grammar-sat-13",
+    "declarations": [
+      "B3: bool",
+      "B7: bool",
+      "D0: date",
+      "D2: date",
+      "D4: date",
+      "D7: date",
+      "D8: date",
+      "I3: int",
+      "I7: int"
+    ],
+    "constraints": [
+      "D4 != D7 || D0 >= Date(1927, 3, 3) || D8 < D7",
+      "I7 <= 2057",
+      "I3 == 2122 || D2 >= D4",
+      "(B7 != False) -> ((Date(1909, 9, 14) + Period(1, 9, 0)) > D8)",
+      "(B3 != False) -> (D8 >= Date(1968, 11, 25))"
+    ],
+    "size": 5,
+    "execution_time": 0.06060194969177246
+  }
+]
