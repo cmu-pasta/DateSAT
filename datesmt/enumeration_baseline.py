@@ -23,36 +23,48 @@ def _wrap_constraint_for_enumeration(constraint: Any) -> "ConstraintWrapper":
     if isinstance(constraint, ConstraintWrapper):
         return constraint
     elif isinstance(constraint, bool):
-        return ConstraintWrapper(lambda: constraint)
+        # Use default argument to capture value, not reference
+        return ConstraintWrapper(lambda c=constraint: c)
     elif callable(constraint):
         return ConstraintWrapper(constraint)
     else:
-        # Try to convert to bool
-        return ConstraintWrapper(lambda: bool(constraint))
+        # Check if this is a variable object with get_value() method (EvalBoolVar, EvalIntVar, etc.)
+        # These should be evaluated by calling get_value(), not by calling the object itself
+        if hasattr(constraint, 'get_value'):
+            # Capture the object with a default argument and call get_value()
+            return ConstraintWrapper(lambda obj=constraint: bool(obj.get_value()))
+        # Try to convert to bool, capture value with default argument
+        return ConstraintWrapper(lambda c=constraint: bool(c))
 
 
 def Or_enumeration(*args) -> "ConstraintWrapper":
     """Wrapper for Z3's Or() that works with enumeration baseline ConstraintWrapper objects."""
     wrapped_args = [_wrap_constraint_for_enumeration(arg) for arg in args]
+    # Create tuple and capture as default argument to prevent closure issues
+    wrapped_args_tuple = tuple(wrapped_args)
     return ConstraintWrapper(
-        func=lambda: any(c.evaluate() for c in wrapped_args),
-        or_constraints=wrapped_args
+        func=lambda wrapped=wrapped_args_tuple: any(c.evaluate() for c in wrapped),
+        or_constraints=list(wrapped_args_tuple)
     )
 
 
 def And_enumeration(*args) -> "ConstraintWrapper":
     """Wrapper for Z3's And() that works with enumeration baseline ConstraintWrapper objects."""
     wrapped_args = [_wrap_constraint_for_enumeration(arg) for arg in args]
+    # Create a tuple instead of list to ensure immutability and prevent accidental sharing
+    wrapped_args_tuple = tuple(wrapped_args)
     return ConstraintWrapper(
-        func=lambda: all(c.evaluate() for c in wrapped_args)
+        func=lambda wrapped=wrapped_args_tuple: all(c.evaluate() for c in wrapped)
     )
+
 
 
 def Not_enumeration(arg) -> "ConstraintWrapper":
     """Wrapper for Z3's Not() that works with enumeration baseline ConstraintWrapper objects."""
     wrapped_arg = _wrap_constraint_for_enumeration(arg)
+    # Capture as default argument to prevent closure issues
     return ConstraintWrapper(
-        func=lambda: not wrapped_arg.evaluate()
+        func=lambda wrapped=wrapped_arg: not wrapped.evaluate()
     )
 
 
@@ -60,8 +72,9 @@ def Implies_enumeration(antecedent, consequent) -> "ConstraintWrapper":
     """Wrapper for Z3's Implies() that works with enumeration baseline ConstraintWrapper objects."""
     wrapped_antecedent = _wrap_constraint_for_enumeration(antecedent)
     wrapped_consequent = _wrap_constraint_for_enumeration(consequent)
+    # Explicitly capture as default arguments to avoid closure issues
     return ConstraintWrapper(
-        func=lambda: not wrapped_antecedent.evaluate() or wrapped_consequent.evaluate()
+        func=lambda ant=wrapped_antecedent, cons=wrapped_consequent: not ant.evaluate() or cons.evaluate()
     )
 
 

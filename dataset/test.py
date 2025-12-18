@@ -37,33 +37,33 @@ from datesmt.constraint_parser import ConstraintParser
 # Paste a single JSON constraint object here (one from *_constraints*.jsonl)
 CONSTRAINT_JSON = r"""
 {
-    "id": "grammar-17",
+    "id": "grammar-41",
     "declarations": [
       "B0: bool",
-      "B4: bool",
-      "B7: bool",
-      "B9: bool",
+      "D0: date",
       "D1: date",
       "D2: date",
-      "D3: date",
       "D4: date",
-      "D5: date",
+      "D6: date",
       "D7: date",
       "D8: date",
       "D9: date",
+      "I0: int",
       "I3: int",
-      "I6: int"
+      "I4: int",
+      "I6: int",
+      "I8: int",
+      "I9: int"
     ],
     "constraints": [
-      "(B0 == True) -> (D1 == D1) || D8 <= D5",
-      "I3 == (I6 - 1) || (B7 == False) -> (Date(1926, 6, 11) >= (Date(2044, 3, 16) - (Period(0, 0, 8) * 5))) || D4 > D5 || (B9 != True) -> ((Date(1903, 11, 12) - (Period(9, 1, 4) * 9)) == D7) || D8 <= Date(2068, 5, 4)",
-      "D2 > (D8 - ((Period(5, 1, 5) - ((Period(2, 2, 8) * 2) * 4)) * 1)) || (B4 == True) -> (D3 < (D9 + (((Period(1, 3, 4) - (Period(6, 6, 1) + Period(1, 6, 4))) * 8) * 7)))",
-      "D3.year == (D2.month - 12)",
-      "(B0 == True) -> ((Date(2009, 4, 19) - (Period(8, 9, 1) + (((Period(5, 0, 0) - (((Period(3, 7, 2) - (Period(0, 9, 0) - (((Period(0, 1, 4) * 0) * 5) * 5))) * 4) * 6)) * 4) * 8))) > D7)",
-      "D4 > D9",
-      "D5.day > 2024"
+      "D9.month > (I3 % (D8.month / 11))",
+      "I9 == 22 || D6 != Date(2003, 11, 30)",
+      "(B0 == False) -> ((D8 - Period(6, 7, 4)) == ((D1 - (Period(4, 7, 6) + ((Period(2, 9, 7) * 9) * 2))) - (Period(9, 2, 4) + ((Period(0, 4, 1) - ((Period(0, 2, 9) * 6) * 6)) * 7))))",
+      "I6 >= 2061 || D4 >= D7",
+      "I9 >= 8 || I0 > (I4 / (D6.day * 2120)) || D9.month >= (D7.year - 2182) || D1 > (Date(2056, 8, 3) - Period(1, 4, 3)) || D6 == Date(1954, 4, 18) || D8 != (D2 + Period(8, 2, 2))",
+      "D1 <= (Date(2093, 7, 3) + Period(8, 8, 1)) || D6.year < 9 || D1.year >= 1965 || D0 >= ((D8 + (Period(3, 9, 4) * 1)) + (Period(2, 9, 2) - (Period(4, 0, 0) * 8))) || (B0 != True) -> ((D7 - ((((Period(8, 7, 8) * 0) * 7) * 2) * 2)) > D0) || D7.day > D1.month || D7 != ((((D9 + Period(0, 5, 5)) - (Period(9, 2, 5) * 9)) + Period(1, 2, 5)) + (Period(7, 9, 8) * 8)) || I8 <= D9.month"
     ],
-    "size": 7
+    "size": 6
   }
 """
 
@@ -83,7 +83,7 @@ def main():
     # 3) Execute the generated code with a DateSMTBuilder factory
     def create_builder():
         # You can change approach/implementation if you want
-        return DateSMTBuilder(approach="alpha_beta", implementation="bitvector")
+        return DateSMTBuilder(approach="naive", implementation="bitvector")
 
     exec_globals = {
         "Date": Date,
