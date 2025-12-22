@@ -1,0 +1,426 @@
+[
+  {
+    "description": "Leap year detection using logical OR and AND operators",
+    "declarations": [
+      "x: date",
+      "y: date"
+    ],
+    "constraints": [
+      "x == Date(2000, 2, 29)",
+      "y == x + Period(4, 0, 0)",
+      "(x.year == 2000 && x.month == 2) && (x.day == 29 || x.day == 28)",
+      "(y.year == 2004 || y.year == 2000) && y.month == 2",
+      "y.day == 29"
+    ],
+    "coverage_tags": [
+      "logical_operators"
+    ],
+    "id": "1766408324-1"
+  },
+  {
+    "description": "Date range validation with implication and negation operators",
+    "declarations": [
+      "start: date",
+      "mid: date",
+      "end: date"
+    ],
+    "constraints": [
+      "start >= Date(1950, 6, 15)",
+      "end <= Date(2050, 12, 31)",
+      "(start.month >= 6 && start.month <= 12) -> (start.year >= 1950)",
+      "mid == start + Period(0, 6, 0)",
+      "(mid > start) -> !(mid == start)",
+      "end == mid + Period(1, 0, 0)",
+      "(end.year > mid.year) -> (end.month >= 1 && end.month <= 12)"
+    ],
+    "coverage_tags": [
+      "logical_operators"
+    ],
+    "id": "1766408324-2"
+  },
+  {
+    "description": "Contradictory month boundary conditions with logical operators",
+    "declarations": [
+      "x: date",
+      "y: date"
+    ],
+    "constraints": [
+      "x == Date(2023, 1, 31)",
+      "y == x + Period(0, 1, 0)",
+      "(y.month == 2 && y.day == 28) || (y.month == 2 && y.day == 31)",
+      "!(y.day < 30)",
+      "y.day == 31 && y.month == 2",
+      "(x.month == 1 && x.day == 31) -> (y.month == 2 && y.day >= 28)"
+    ],
+    "coverage_tags": [
+      "logical_operators"
+    ],
+    "id": "1766408324-3"
+  },
+  {
+    "description": "Multi-variable date relationships with all logical operators",
+    "declarations": [
+      "a: date",
+      "b: date",
+      "c: date",
+      "d: date",
+      "e: date"
+    ],
+    "constraints": [
+      "a == Date(1920, 3, 1)",
+      "b == a + Period(0, 0, 365)",
+      "(a.year == 1920 && b.year == 1921) || (a.year == 1920 && b.year == 1920)",
+      "c == Date(1920, 12, 31)",
+      "(a < c) -> (b >= a && b <= c + Period(0, 3, 0))",
+      "d == b + Period(0, 6, 0)",
+      "e == d + Period(0, 0, 31)",
+      "(d.month >= 6 && d.month <= 8) -> (e.month >= 7 && e.month <= 9)",
+      "!(a == b) && !(b == c)",
+      "(e > d && d > c) || (e.year == 1921 && e.month >= 8)"
+    ],
+    "coverage_tags": [
+      "logical_operators"
+    ],
+    "id": "1766408324-4"
+  },
+  {
+    "description": "Impossible period arithmetic with logical conditions creating UNSAT",
+    "declarations": [
+      "x: date",
+      "y: date",
+      "z: date"
+    ],
+    "constraints": [
+      "x == Date(2000, 2, 29)",
+      "y == x + Period(1, 0, 0)",
+      "(y.year == 2001 && y.month == 2) -> (y.day == 29)",
+      "z == x + Period(0, 12, 0)",
+      "(z.year == 2001 && z.month == 2) && (z.day == 29 || z.day == 30)",
+      "!(y.day == 28)",
+      "(x.year == 2000 && x.day == 29) -> (y.year == 2001 && y.day == 29)",
+      "y == Date(2001, 2, 29)"
+    ],
+    "coverage_tags": [
+      "logical_operators"
+    ],
+    "id": "1766408324-5"
+  },
+  {
+    "description": "Leap year validation with logical AND/OR operators testing Feb 29 existence",
+    "declarations": [
+      "leap_date: date",
+      "next_year: date"
+    ],
+    "constraints": [
+      "leap_date == Date(2000, 2, 29)",
+      "next_year == leap_date + Period(1, 0, 0)",
+      "(leap_date.year == 2000 && leap_date.month == 2) -> (leap_date.day == 29)",
+      "(next_year.year == 2001 && next_year.month == 2) -> (next_year.day == 28)",
+      "(leap_date.day == 29 && leap_date.month == 2) || (leap_date.year != 2000)"
+    ],
+    "coverage_tags": [
+      "logical_operators"
+    ],
+    "id": "1766408324-6"
+  },
+  {
+    "description": "Month boundary transitions with implication chains and negations",
+    "declarations": [
+      "x: date",
+      "y: date",
+      "z: date"
+    ],
+    "constraints": [
+      "x >= Date(2020, 1, 28) && x <= Date(2020, 1, 31)",
+      "y == x + Period(0, 1, 0)",
+      "z == x + Period(0, 0, 31)",
+      "(x.day >= 28) -> (y.month == x.month + 1 || y.month == 1)",
+      "!(y == z)",
+      "(y > z) -> (y.month > 2)",
+      "(x.month == 1 && y.month == 2) || (x.month == 12 && y.month == 1)"
+    ],
+    "coverage_tags": [
+      "logical_operators"
+    ],
+    "id": "1766408324-7"
+  },
+  {
+    "description": "UNSAT: Contradictory date constraints with complex logical operators",
+    "declarations": [
+      "a: date",
+      "b: date",
+      "c: date",
+      "d: date"
+    ],
+    "constraints": [
+      "a == Date(2010, 6, 15)",
+      "b == a + Period(0, 3, 0)",
+      "c == a + Period(0, 0, 90)",
+      "(a.month == 6 && b.month == 9) -> (b.day == 15)",
+      "!(c.month == b.month) && (c.day == b.day)",
+      "d == Date(2010, 9, 15)",
+      "(b == d) || (c == d)",
+      "(b.year == c.year && b.month == c.month) -> (b == c)",
+      "b != c && b.month == c.month",
+      "(a.day == 15) -> (b.day == 15 && c.day != 15 && d.day == 15)"
+    ],
+    "coverage_tags": [
+      "logical_operators"
+    ],
+    "id": "1766408324-8"
+  },
+  {
+    "description": "Date component validation with OR alternatives across seasons",
+    "declarations": [
+      "date1: date",
+      "date2: date"
+    ],
+    "constraints": [
+      "date1 >= Date(1950, 3, 1) && date1 <= Date(1950, 12, 31)",
+      "date2 == date1 + Period(0, 6, 0)",
+      "(date1.month <= 6) || (date2.month <= 6)",
+      "(date1.month == 3 && date1.day == 31) || (date1.month == 4 && date1.day == 30)",
+      "!(date1.year == date2.year) || (date1.month + 6 <= 12)",
+      "(date2.year == 1950 || date2.year == 1951) && date2.month >= 1"
+    ],
+    "coverage_tags": [
+      "logical_operators"
+    ],
+    "id": "1766408324-9"
+  },
+  {
+    "description": "Period arithmetic chains with logical combinations testing year rollovers",
+    "declarations": [
+      "start: date",
+      "mid: date",
+      "end: date"
+    ],
+    "constraints": [
+      "start == Date(2015, 11, 15)",
+      "mid == start + Period(0, 2, 0)",
+      "end == mid + Period(0, 2, 0)",
+      "(start.month == 11 && mid.month == 1) -> (mid.year == start.year + 1)",
+      "(mid.year > start.year) && (end.year >= mid.year)",
+      "(end.month == 3 && end.day == 15) || (end.month == 2 && end.day == 28)",
+      "!(start.year == end.year) -> (end > start + Period(0, 3, 0))",
+      "(start.month + 4 > 12) || (end.month <= start.month + 4)"
+    ],
+    "coverage_tags": [
+      "logical_operators"
+    ],
+    "id": "1766408324-10"
+  },
+  {
+    "description": "Leap year implication logic with Feb 29 validity checks",
+    "declarations": [
+      "x: date",
+      "y: date"
+    ],
+    "constraints": [
+      "x == Date(2000, 2, 29)",
+      "(x.day == 29 && x.month == 2) -> (x.year % 4 == 0)",
+      "y == x + Period(4, 0, 0)",
+      "(x.year % 400 == 0) -> (y == Date(2004, 2, 29))",
+      "!(x.year == y.year) && (x.month == y.month) && (x.day == y.day)"
+    ],
+    "coverage_tags": [
+      "logical_operators"
+    ],
+    "id": "1766408324-11"
+  },
+  {
+    "description": "Month boundary logic with OR and AND operations across different months",
+    "declarations": [
+      "start: date",
+      "mid: date",
+      "end: date"
+    ],
+    "constraints": [
+      "start >= Date(2020, 1, 28)",
+      "start <= Date(2020, 1, 31)",
+      "mid == start + Period(0, 1, 0)",
+      "(start.day == 31 || start.day == 30) -> (mid.day < start.day)",
+      "(mid.month == 2 && mid.day == 29) || (mid.month == 2 && mid.day == 28)",
+      "end == mid + Period(0, 1, 0)",
+      "(mid.month == 2 && end.month == 3) && (end.day == mid.day || end.day == 28)"
+    ],
+    "coverage_tags": [
+      "logical_operators"
+    ],
+    "id": "1766408324-12"
+  },
+  {
+    "description": "Complex multi-variable date relationships with all logical operators",
+    "declarations": [
+      "a: date",
+      "b: date",
+      "c: date",
+      "d: date"
+    ],
+    "constraints": [
+      "a == Date(2015, 6, 15)",
+      "b == a + Period(0, 6, 0)",
+      "c == b + Period(0, 0, 45)",
+      "(a.month < 7 && b.month > 11) -> (b.year == a.year)",
+      "(b.year == a.year || b.year == a.year + 1) && !(b == a)",
+      "d == Date(2016, 2, 1)",
+      "(c >= d && c < d + Period(0, 1, 0)) || (c < d && c > d - Period(0, 1, 0))",
+      "!(a.month == b.month) && !(b.month == c.month)",
+      "(c.day > 15) -> (c >= b + Period(0, 0, 30))",
+      "(d.month == 2 && d.year % 4 == 0) -> (d + Period(0, 0, 29) == Date(2016, 3, 1))"
+    ],
+    "coverage_tags": [
+      "logical_operators"
+    ],
+    "id": "1766408324-13"
+  },
+  {
+    "description": "Negation heavy constraints testing impossible date combinations",
+    "declarations": [
+      "x: date",
+      "y: date",
+      "z: date"
+    ],
+    "constraints": [
+      "x >= Date(1950, 3, 1)",
+      "x <= Date(1950, 12, 31)",
+      "!(x.month == 2 && x.day == 30)",
+      "y == x + Period(1, 0, 0)",
+      "!(y.year == x.year) && !(y < x)",
+      "(!(x.month == 12) || (y.month == 1)) && (z == Date(1951, 1, 1))"
+    ],
+    "coverage_tags": [
+      "logical_operators"
+    ],
+    "id": "1766408324-14"
+  },
+  {
+    "description": "Date arithmetic with conditional logic and mixed boolean operations",
+    "declarations": [
+      "p: date",
+      "q: date",
+      "r: date"
+    ],
+    "constraints": [
+      "p == Date(2080, 11, 30)",
+      "q == p + Period(0, 3, 0)",
+      "(p.month == 11 && q.month == 2) -> (q.year == p.year + 1)",
+      "r == q + Period(0, 0, 27)",
+      "(q.day == 28 || q.day == 29) && (r.day <= 28)",
+      "!(p.year == q.year) || (p.month == q.month)",
+      "(r.month == 2 && r.day == 27) -> (r == Date(2081, 2, 27))",
+      "((p < q) && (q < r)) || !(r.month == 2)"
+    ],
+    "coverage_tags": [
+      "logical_operators"
+    ],
+    "id": "1766408324-15"
+  },
+  {
+    "description": "Leap year logic with conjunctions and disjunctions",
+    "declarations": [
+      "x: date",
+      "y: date",
+      "z: date"
+    ],
+    "constraints": [
+      "x == Date(2000, 2, 29)",
+      "y == x + Period(4, 0, 0)",
+      "(x.year == 2000 && x.month == 2) -> y.day == 29",
+      "(y.year == 2004 && y.month == 2) || y.month != 2",
+      "z == Date(2001, 2, 28) && (z > x || z.month > x.month)"
+    ],
+    "coverage_tags": [
+      "logical_operators"
+    ],
+    "id": "1766408324-16"
+  },
+  {
+    "description": "Complex logical combinations with contradictions (UNSAT)",
+    "declarations": [
+      "a: date",
+      "b: date",
+      "c: date",
+      "d: date"
+    ],
+    "constraints": [
+      "a == Date(2020, 3, 15)",
+      "(a.month == 3 && a.day == 15) -> b == a + Period(0, 1, 0)",
+      "b.year == 2020 && b.month == 4",
+      "c == Date(2020, 3, 1) || c == Date(2020, 4, 1)",
+      "(a < b && b < c) || (c < a && a < b)",
+      "d == Date(2020, 5, 15)",
+      "!(d.month == 5) || d.day != 15",
+      "(a.day == 15 && b.day == 15) -> (c.day == 1 && d.day == 15)",
+      "(c.day == 1 && d.day == 15) -> (c == Date(2020, 3, 1) || c == Date(2020, 4, 1))",
+      "d.month == 5 && d.day == 15"
+    ],
+    "coverage_tags": [
+      "logical_operators"
+    ],
+    "id": "1766408324-17"
+  },
+  {
+    "description": "Implication chains with period arithmetic",
+    "declarations": [
+      "start: date",
+      "mid: date",
+      "end: date"
+    ],
+    "constraints": [
+      "start == Date(2010, 6, 15)",
+      "(start.month == 6) -> mid == start + Period(0, 3, 0)",
+      "(mid.month == 9) -> end == mid + Period(0, 3, 0)",
+      "(end.month == 12 && end.year == 2010) || end.year > 2010",
+      "!(start.year != 2010) && (mid.year == 2010 || mid.year == 2011)",
+      "(start.day == mid.day && mid.day == end.day) -> end == Date(2010, 12, 15)",
+      "end.month == 12 && end.day == 15"
+    ],
+    "coverage_tags": [
+      "logical_operators"
+    ],
+    "id": "1766408324-18"
+  },
+  {
+    "description": "Negations and disjunctions creating impossibility (UNSAT)",
+    "declarations": [
+      "x: date",
+      "y: date"
+    ],
+    "constraints": [
+      "x == Date(1950, 7, 20)",
+      "y == x + Period(0, 0, 10)",
+      "!(y.day == 30) && !(y.day == 31) && !(y.day < 30)",
+      "(x.month == 7 || x.month == 8) && y.month == 7",
+      "y.day > 28 || y.day < 20",
+      "(x.day == 20 && y.day == 30) || (x.day != 20 && y.day != 30)"
+    ],
+    "coverage_tags": [
+      "logical_operators"
+    ],
+    "id": "1766408324-19"
+  },
+  {
+    "description": "Mixed logical operators with month boundaries and year transitions",
+    "declarations": [
+      "d1: date",
+      "d2: date",
+      "d3: date",
+      "d4: date"
+    ],
+    "constraints": [
+      "d1 == Date(2015, 1, 31)",
+      "(d1.day == 31 && d1.month == 1) -> d2 == d1 + Period(0, 1, 0)",
+      "d2.month == 2 && (d2.day == 28 || d2.day == 29)",
+      "!(d2.year % 4 == 0) || d2.day == 28",
+      "d3 == Date(2015, 3, 31) && (d3.month == 3 || d3.month == 4)",
+      "(d2 < d3 && d1 < d2) -> d4 == d3 + Period(1, 0, 0)",
+      "d4.year == 2016 || d4.year == 2015",
+      "(d4.year == 2016 && d4.month == 3) -> d4.day == 31"
+    ],
+    "coverage_tags": [
+      "logical_operators"
+    ],
+    "id": "1766408324-20"
+  }
+]

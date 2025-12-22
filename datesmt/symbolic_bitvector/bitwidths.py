@@ -6,6 +6,10 @@ to avoid unnecessary overhead while ensuring all valid values can be represented
 """
 LEGACY_BITS = 21
 
+# User-defined integer variable bit width
+# Keep at 21 bits to match other date components, use bounds to prevent overflow
+INT_VAR_BITS = LEGACY_BITS
+
 # Date component bit widths
 YEAR_BITS = 12     # 4096 > 2100
 MONTH_BITS = 12    # Because in the implementation, we multiply YEAR by 12 and add to MONTH

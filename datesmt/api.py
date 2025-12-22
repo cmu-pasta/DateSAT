@@ -77,18 +77,42 @@ class DateSMTBuilder:
         """Add a symbolic date variable."""
         return self.solver.add_date_var(name)
 
-    def add_int_var(self, name: str) -> Any:
+    def add_int_var(self, name: str, min_value: int = None, max_value: int = None) -> Any:
         """Add a symbolic int variable compatible with the current implementation.
         
-        In bitvector mode, creates a BitVec. In int mode, creates an Int.
+        In bitvector mode, creates a BitVec with automatic bounds to prevent overflow.
+        In int mode, creates an Int (unbounded by default).
+        
+        Args:
+            name: Variable name
+            min_value: Optional minimum value (default: 0 in bitvector mode, unbounded in int mode)
+            max_value: Optional maximum value (default: 8000 in bitvector mode, unbounded in int mode)
         """
         if self.implementation == "bitvector":
-            from z3 import BitVec
-            from .symbolic_bitvector.bitwidths import LEGACY_BITS
-            var = BitVec(name, LEGACY_BITS)
+            from z3 import BitVec, BitVecVal
+            from .symbolic_bitvector.bitwidths import INT_VAR_BITS
+            var = BitVec(name, INT_VAR_BITS)
+            
+            # Add automatic bounds to prevent bitvector overflow artifacts
+            # These bounds prevent Z3 from finding spurious solutions due to modular wraparound
+            # Keep values within 21-bit signed range (±1,048,575) to avoid overflow in arithmetic
+            if min_value is None:
+                min_value = 0  # Most integer variables represent non-negative quantities (counts, periods, etc.)
+            if max_value is None:
+                max_value = 8000   # Conservative bound to prevent arithmetic overflow in expressions like x*125
+            
+            # Add bound constraints
+            self.solver.add_constraint(var >= BitVecVal(min_value, INT_VAR_BITS))
+            self.solver.add_constraint(var <= BitVecVal(max_value, INT_VAR_BITS))
         else:
             from z3 import Int
             var = Int(name)
+            
+            # Add optional bounds in int mode if specified
+            if min_value is not None:
+                self.solver.add_constraint(var >= min_value)
+            if max_value is not None:
+                self.solver.add_constraint(var <= max_value)
         
         # Track this variable for solution extraction
         self.int_vars[name] = var

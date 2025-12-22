@@ -1,3082 +1,2244 @@
 [
   {
-    "description": "Chain of period additions with leap year consideration",
+    "description": "Leap year detection using logical OR and AND operators",
+    "declarations": [
+      "x: date",
+      "y: date"
+    ],
     "constraints": [
-      "x == Date(2020, 1, 15)",
-      "y == x + Period(0, 1, 0)",
-      "z == y + Period(0, 1, 0)",
-      "w == z + Period(0, 0, 15)",
-      "w == Date(2020, 3, 30)"
+      "x == Date(2000, 2, 29)",
+      "y == x + Period(4, 0, 0)",
+      "(x.year == 2000 && x.month == 2) && (x.day == 29 || x.day == 28)",
+      "(y.year == 2004 || y.year == 2000) && y.month == 2",
+      "y.day == 29"
     ],
     "coverage_tags": [
-      "chain_ops"
+      "logical_operators"
     ],
-    "id": "1763103049-1"
+    "id": "llm-logical_operators-1",
+    "generated_id": "1766408324-1"
   },
   {
-    "description": "Complex chain of period operations with multiple variables",
+    "description": "Date range validation with implication and negation operators",
+    "declarations": [
+      "start: date",
+      "mid: date",
+      "end: date"
+    ],
     "constraints": [
-      "start_date == Date(2019, 12, 31)",
-      "mid_date == start_date + Period(0, 2, 0)",
-      "end_date == mid_date + Period(0, 0, 29)",
-      "result_date == end_date + Period(0, 0, -15) + Period(0, 1, 0)",
-      "result_date == Date(2020, 4, 14)",
-      "mid_date == Date(2020, 2, 29)"
+      "start >= Date(1950, 6, 15)",
+      "end <= Date(2050, 12, 31)",
+      "(start.month >= 6 && start.month <= 12) -> (start.year >= 1950)",
+      "mid == start + Period(0, 6, 0)",
+      "(mid > start) -> !(mid == start)",
+      "end == mid + Period(1, 0, 0)",
+      "(end.year > mid.year) -> (end.month >= 1 && end.month <= 12)"
     ],
     "coverage_tags": [
-      "chain_ops"
+      "logical_operators"
     ],
-    "id": "1763103049-2"
+    "id": "llm-logical_operators-2",
+    "generated_id": "1766408324-2"
   },
   {
-    "description": "Chain operations with period multiplication",
-    "constraints": [
-      "base_date == Date(2023, 5, 15)",
-      "temp_date == base_date + Period(0, 1, 0) * 3",
-      "final_date == temp_date + Period(0, 0, 10)",
-      "final_date == Date(2023, 8, 25)"
+    "description": "Contradictory month boundary conditions with logical operators",
+    "declarations": [
+      "x: date",
+      "y: date"
     ],
-    "coverage_tags": [
-      "chain_ops"
-    ],
-    "id": "1763103049-3"
-  },
-  {
-    "description": "Chain of period additions and subtractions",
-    "constraints": [
-      "x == Date(2021, 3, 31)",
-      "y == x + Period(0, 1, 0)",
-      "z == y - Period(0, 0, 15)",
-      "z == Date(2021, 4, 15)"
-    ],
-    "coverage_tags": [
-      "chain_ops"
-    ],
-    "id": "1763103049-4"
-  },
-  {
-    "description": "Complex chain operations with period combinations",
-    "constraints": [
-      "start == Date(2024, 1, 31)",
-      "mid1 == start + Period(0, 1, 0)",
-      "mid2 == mid1 + Period(0, 1, 0)",
-      [
-        "mid2 == Date(2024, 3, 31)",
-        "mid2 == Date(2024, 3, 30)"
-      ],
-      "end == mid2 + Period(0, 0, 15) - Period(0, 1, 0)",
-      "end == Date(2024, 3, 15)"
-    ],
-    "coverage_tags": [
-      "chain_ops"
-    ],
-    "id": "1763103049-5"
-  },
-  {
-    "description": "Chained period operations with different variables and leap year handling",
-    "constraints": [
-      "x == Date(2020, 1, 15)",
-      "y == x + Period(0, 1, 0)",
-      "z == y + Period(0, 1, 0)",
-      "w == z + Period(0, 0, 15)",
-      "w < Date(2020, 3, 31)"
-    ],
-    "coverage_tags": [
-      "chain_ops"
-    ],
-    "id": "1763103049-6"
-  },
-  {
-    "description": "Complex period chain with multiplication and leap year boundary",
-    "constraints": [
-      "start_date == Date(2020, 1, 31)",
-      "mid_date == start_date + Period(0, 1, 0)",
-      "end_date == mid_date + Period(0, 1, 0) * 2",
-      "end_date > Date(2020, 4, 29)",
-      "end_date < Date(2020, 5, 2)",
-      "mid_date == Date(2020, 2, 29)"
-    ],
-    "coverage_tags": [
-      "chain_ops"
-    ],
-    "id": "1763103049-7"
-  },
-  {
-    "description": "Chain of period operations with month-end rollover effects",
-    "constraints": [
-      "base_date == Date(2019, 10, 31)",
-      "next_date == base_date + Period(0, 1, 0)",
-      "final_date == next_date + Period(0, 2, 0)"
-    ],
-    "coverage_tags": [
-      "chain_ops"
-    ],
-    "id": "1763103049-8"
-  },
-  {
-    "description": "Period chain with alternating addition and subtraction",
-    "constraints": [
-      "d1 == Date(2022, 3, 15)",
-      "d2 == d1 + Period(0, 2, 0)",
-      "d3 == d2 - Period(0, 0, 10)",
-      "d4 == d3 + Period(0, 1, 5)",
-      [
-        "d4 == Date(2022, 6, 10)",
-        "d4 == Date(2022, 6, 9)"
-      ]
-    ],
-    "coverage_tags": [
-      "chain_ops"
-    ],
-    "id": "1763103049-9"
-  },
-  {
-    "description": "Complex period chain with multiple variables and OR conditions",
-    "constraints": [
-      "start == Date(2023, 1, 30)",
-      "middle == start + Period(0, 1, 0)",
-      [
-        "end == middle + Period(0, 1, 0)",
-        "end == middle + Period(0, 0, 28)"
-      ],
-      [
-        "end > Date(2023, 3, 29)",
-        "middle < Date(2023, 2, 28)"
-      ]
-    ],
-    "coverage_tags": [
-      "chain_ops"
-    ],
-    "id": "1763103049-10"
-  },
-  {
-    "description": "Chain of period operations with leap year considerations",
-    "constraints": [
-      "x == Date(2020, 1, 15)",
-      "y == x + Period(0, 1, 0)",
-      "z == y + Period(0, 1, 0)",
-      "w == z + Period(0, 0, 15)",
-      "w < Date(2020, 3, 31)"
-    ],
-    "coverage_tags": [
-      "chain_ops"
-    ],
-    "id": "1763103049-11"
-  },
-  {
-    "description": "Complex chain of period additions and subtractions",
-    "constraints": [
-      "start_date == Date(2019, 12, 31)",
-      "mid_date == start_date + Period(0, 2, 0)",
-      "end_date == mid_date + Period(0, 0, 29)",
-      "result_date == end_date - Period(0, 0, 15)",
-      "result_date > Date(2020, 2, 28)",
-      "result_date <= Date(2020, 3, 15)"
-    ],
-    "coverage_tags": [
-      "chain_ops"
-    ],
-    "id": "1763103049-12"
-  },
-  {
-    "description": "Chain operations with multiple variables and period multiplications",
-    "constraints": [
-      "base == Date(2022, 5, 15)",
-      "next == base + Period(0, 1, 0) * 3",
-      "final == next + Period(0, 0, 10) * 2"
-    ],
-    "coverage_tags": [
-      "chain_ops"
-    ],
-    "id": "1763103049-13"
-  },
-  {
-    "description": "Chain operations with alternating addition and subtraction",
-    "constraints": [
-      "a == Date(2021, 3, 1)",
-      "b == a + Period(0, 1, 0)",
-      "c == b - Period(0, 0, 15)",
-      "d == c + Period(0, 2, 0)",
-      "e == d - Period(0, 0, 5)",
-      "e != Date(2021, 5, 11)"
-    ],
-    "coverage_tags": [
-      "chain_ops"
-    ],
-    "id": "1763103049-14"
-  },
-  {
-    "description": "Chain operations with OR conditions",
-    "constraints": [
-      "start == Date(2023, 1, 1)",
-      [
-        "intermediate == start + Period(0, 1, 0)",
-        "intermediate == start + Period(0, 0, 31)"
-      ],
-      "end == intermediate + Period(0, 1, 0)",
-      "final == end + Period(0, 0, 15)"
-    ],
-    "coverage_tags": [
-      "chain_ops"
-    ],
-    "id": "1763103049-15"
-  },
-  {
-    "description": "Chained operations with leap year handling",
-    "constraints": [
-      "x == Date(2020, 1, 15)",
-      "y == x + Period(0, 1, 0)",
-      "z == y + Period(0, 1, 0)",
-      "w == z + Period(0, 1, 0) - Period(0, 0, 15)"
-    ],
-    "coverage_tags": [
-      "chain_ops"
-    ],
-    "id": "1763103049-16"
-  },
-  {
-    "description": "Complex chained operations with multiple variables and period scaling",
-    "constraints": [
-      "start_date == Date(2000, 1, 1)",
-      "mid_point == start_date + Period(0, 6, 0)",
-      "end_date == start_date + Period(1, 0, 0)",
-      "checkpoint1 == mid_point - Period(0, 2, 0)",
-      "checkpoint2 == mid_point + Period(0, 2, 0)",
-      "duration == Period(0, 0, 30) * 12"
-    ],
-    "coverage_tags": [
-      "chain_ops"
-    ],
-    "id": "1763103049-17"
-  },
-  {
-    "description": "Chained operations with period multiplication",
-    "constraints": [
-      "base_date == Date(2023, 5, 15)",
-      "next_month == base_date + Period(0, 1, 0)",
-      "three_months_later == base_date + Period(0, 1, 0) * 3"
-    ],
-    "coverage_tags": [
-      "chain_ops"
-    ],
-    "id": "1763103049-18"
-  },
-  {
-    "description": "Chained operations with nested period calculations",
-    "constraints": [
-      "start == Date(2022, 3, 1)",
-      "period1 == Period(0, 2, 15)",
-      "period2 == Period(0, 1, 20)",
-      "date1 == start + period1",
-      "date2 == date1 + period2",
-      "final_date == date2 + (period1 + period2)"
-    ],
-    "coverage_tags": [
-      "chain_ops"
-    ],
-    "id": "1763103049-19"
-  },
-  {
-    "description": "Chained operations with date comparisons",
-    "constraints": [
-      "base == Date(2024, 1, 31)",
-      "next_day == base + Period(0, 0, 1)",
-      "next_month == base + Period(0, 1, 0)",
-      [
-        "next_day == Date(2024, 2, 1)",
-        "next_month == Date(2024, 2, 29)"
-      ],
-      "two_months == base + Period(0, 2, 0)"
-    ],
-    "coverage_tags": [
-      "chain_ops"
-    ],
-    "id": "1763103049-20"
-  },
-  {
-    "description": "Chain of period additions with leap year considerations",
-    "constraints": [
-      "x == Date(2020, 1, 15)",
-      "y == x + Period(0, 1, 0)",
-      "z == y + Period(0, 1, 0)",
-      "w == z + Period(0, 0, 15)",
-      "w == Date(2020, 3, 30)"
-    ],
-    "coverage_tags": [
-      "chain_ops"
-    ],
-    "id": "1763103049-21"
-  },
-  {
-    "description": "Complex period chain operations with multiple variables",
-    "constraints": [
-      "start_date == Date(2023, 12, 25)",
-      "mid_date == start_date + Period(0, 2, 5)",
-      "end_date == mid_date + Period(0, 0, 15) + Period(0, 1, 0)",
-      "end_date < Date(2024, 4, 15)"
-    ],
-    "coverage_tags": [
-      "chain_ops"
-    ],
-    "id": "1763103049-22"
-  },
-  {
-    "description": "Chain operations with period multiplication and leap year",
-    "constraints": [
-      "x == Date(2024, 1, 15)",
-      "y == x + Period(0, 1, 0) * 2",
-      "z == y + Period(0, 0, 10) * 3",
-      [
-        "z == Date(2024, 3, 25)",
-        "z == Date(2024, 3, 26)"
-      ],
-      "w == z + Period(0, 0, 5)",
-      "w > Date(2024, 3, 29)"
-    ],
-    "coverage_tags": [
-      "chain_ops"
-    ],
-    "id": "1763103049-23"
-  },
-  {
-    "description": "Chain operations with period subtraction",
-    "constraints": [
-      "end_date == Date(2025, 6, 15)",
-      "mid_date == end_date - Period(0, 3, 0)",
-      "start_date == mid_date - Period(0, 0, 45)"
-    ],
-    "coverage_tags": [
-      "chain_ops"
-    ],
-    "id": "1763103049-24"
-  },
-  {
-    "description": "Complex chain operations with mixed addition and subtraction",
-    "constraints": [
-      "base_date == Date(2022, 5, 10)",
-      "date1 == base_date + Period(0, 3, 0)",
-      "date2 == date1 - Period(0, 0, 15)",
-      "date3 == date2 + Period(0, 1, 0) + Period(0, 0, 20)",
-      "date4 == date3 - Period(0, 0, 5)",
-      "date4 == Date(2022, 9, 10)"
-    ],
-    "coverage_tags": [
-      "chain_ops"
-    ],
-    "id": "1763103049-25"
-  },
-  {
-    "description": "Nested period operations with brackets involving leap year dates",
-    "constraints": [
-      "x >= Date(2020, 1, 1)",
-      "x <= Date(2020, 3, 1)",
-      "y == x - (Period(0, 0, 10) + Period(0, 1, 0))",
-      "z == y + (Period(0, 1, 0) - Period(0, 0, 2))",
-      "z <= Date(2020, 2, 29)",
-      "z >= Date(2020, 2, 25)"
-    ],
-    "coverage_tags": [
-      "chain_ops_brackets"
-    ],
-    "id": "1763103128-1"
-  },
-  {
-    "description": "Complex period subtraction with brackets across month boundaries",
-    "constraints": [
-      "start_date == Date(2023, 3, 15)",
-      "end_date == start_date + (Period(0, 3, 0) - Period(0, 0, 5))",
-      "mid_date == start_date + (Period(0, 1, 15) - Period(0, 0, 10))"
-    ],
-    "coverage_tags": [
-      "chain_ops_brackets"
-    ],
-    "id": "1763103128-2"
-  },
-  {
-    "description": "Nested period operations with multiple variables and OR conditions",
-    "constraints": [
-      "x >= Date(2024, 1, 1)",
-      "y == x + (Period(0, 2, 0) - Period(0, 0, 15))",
-      [
-        "y <= Date(2024, 2, 29)",
-        "y >= Date(2024, 3, 10)"
-      ],
-      "z == y - (Period(0, 1, 0) + Period(0, 0, 5))"
-    ],
-    "coverage_tags": [
-      "chain_ops_brackets"
-    ],
-    "id": "1763103128-3"
-  },
-  {
-    "description": "Complex period calculations with brackets across year boundaries",
-    "constraints": [
-      "start_date == Date(2019, 12, 15)",
-      "mid_date == start_date + (Period(0, 3, 0) - Period(0, 0, 15))",
-      "end_date == mid_date + (Period(0, 0, 30) - Period(0, 0, 5))",
-      "final_date == end_date - (Period(0, 1, 0) + Period(0, 0, 10))",
-      "final_date >= Date(2020, 2, 15)"
-    ],
-    "coverage_tags": [
-      "chain_ops_brackets"
-    ],
-    "id": "1763103128-4"
-  },
-  {
-    "description": "Nested period operations with multiple variables and complex constraints",
-    "constraints": [
-      "base_date == Date(2022, 1, 15)",
-      "date1 == base_date + (Period(0, 1, 0) - Period(0, 0, 5))",
-      "date2 == date1 - (Period(0, 0, 10) + Period(0, 0, 5))",
-      [
-        "date2 >= Date(2022, 1, 25)",
-        "date2 <= Date(2022, 1, 20)"
-      ],
-      "date3 == date2 + (Period(0, 2, 0) - Period(0, 0, 15))"
-    ],
-    "coverage_tags": [
-      "chain_ops_brackets"
-    ],
-    "id": "1763103128-5"
-  },
-  {
-    "description": "Nested bracket operations with leap year edge case",
-    "constraints": [
-      "x == Date(2020, 2, 28)",
-      "y == x + (Period(0, 0, 1) + Period(0, 0, 1))",
-      "z == x + (Period(0, 0, 1) - Period(0, 0, -1))",
-      "w == y - (Period(0, 0, 2) - Period(0, 0, 1))",
-      "v == z - (Period(0, 0, 1) + Period(0, 0, 1))",
-      "w == Date(2020, 2, 29)"
-    ],
-    "coverage_tags": [
-      "chain_ops_brackets"
-    ],
-    "id": "1763103128-6"
-  },
-  {
-    "description": "Complex period calculations with brackets across month boundaries",
-    "constraints": [
-      "start_date == Date(2023, 1, 31)",
-      "end_date == start_date + (Period(0, 1, 0) - Period(0, 0, 3))",
-      "mid_date == start_date + (Period(0, 0, 15) + Period(0, 0, 10))",
-      [
-        "end_date == Date(2023, 2, 28)",
-        "mid_date > Date(2023, 2, 20)"
-      ]
-    ],
-    "coverage_tags": [
-      "chain_ops_brackets"
-    ],
-    "id": "1763103128-7"
-  },
-  {
-    "description": "Nested period calculations with multiple variables",
-    "constraints": [
-      "date1 == Date(2024, 6, 15)",
-      "date2 == date1 + (Period(0, 3, 0) - Period(0, 1, 15))",
-      "date3 == date2 - (Period(0, 0, 10) + Period(0, 0, 5))"
-    ],
-    "coverage_tags": [
-      "chain_ops_brackets"
-    ],
-    "id": "1763103128-8"
-  },
-  {
-    "description": "Complex period arithmetic with brackets and multiple variables",
-    "constraints": [
-      "base_date == Date(2022, 12, 31)",
-      "next_date == base_date + (Period(0, 2, 0) - Period(0, 0, 15))",
-      "alt_date == base_date + (Period(0, 1, 31) + Period(0, 0, 1))",
-      "final_date == next_date - (Period(0, 0, 28) - Period(0, 0, 14))",
-      [
-        "alt_date > Date(2023, 2, 15)",
-        "final_date < Date(2023, 3, 1)"
-      ]
-    ],
-    "coverage_tags": [
-      "chain_ops_brackets"
-    ],
-    "id": "1763103128-9"
-  },
-  {
-    "description": "Nested operations with period multiplication and subtraction",
-    "constraints": [
-      "anchor == Date(2025, 1, 1)",
-      "target == anchor + (Period(1, 0, 0) - Period(0, 0, 1) * 30)",
-      "midpoint == anchor + (Period(0, 6, 0) - Period(0, 0, 15))",
-      "checkpoint == midpoint + (Period(0, 3, 0) * 2 - Period(0, 0, 10))",
-      "endpoint == target - (Period(0, 1, 0) + Period(0, 0, 15))",
-      [
-        "checkpoint > Date(2025, 8, 15)",
-        "endpoint < Date(2025, 12, 1)"
-      ]
-    ],
-    "coverage_tags": [
-      "chain_ops_brackets"
-    ],
-    "id": "1763103128-10"
-  },
-  {
-    "description": "Nested bracket operations with leap year date calculations",
-    "constraints": [
-      "x >= Date(2020, 1, 1)",
-      "x <= Date(2020, 3, 1)",
-      "y == x - (Period(0, 1, 0) + Period(0, 0, 15))",
-      "z == x + (Period(0, 2, 0) - Period(0, 0, 10))",
-      "y < Date(2020, 1, 1)",
-      "z > Date(2020, 3, 15)"
-    ],
-    "coverage_tags": [
-      "chain_ops_brackets"
-    ],
-    "id": "1763103128-11"
-  },
-  {
-    "description": "Complex period calculations with brackets around February leap day",
-    "constraints": [
-      "start_date == Date(2020, 2, 15)",
-      "end_date == start_date + (Period(0, 0, 20) - Period(0, 0, 5))",
-      "mid_date == start_date + (Period(0, 0, 14) - Period(0, 0, 0))",
-      [
-        "end_date == Date(2020, 3, 1)",
-        "mid_date == Date(2020, 2, 29)"
-      ]
-    ],
-    "coverage_tags": [
-      "chain_ops_brackets"
-    ],
-    "id": "1763103128-12"
-  },
-  {
-    "description": "Nested period operations with multiple variables",
-    "constraints": [
-      "date1 >= Date(2019, 12, 1)",
-      "date1 <= Date(2020, 1, 31)",
-      "date2 == date1 + (Period(0, 2, 0) - Period(0, 0, 15))"
-    ],
-    "coverage_tags": [
-      "chain_ops_brackets"
-    ],
-    "id": "1763103128-13"
-  },
-  {
-    "description": "Complex bracketed period calculations across month boundaries",
-    "constraints": [
-      "base_date == Date(2023, 1, 15)",
-      "result1 == base_date + (Period(0, 1, 15) - Period(0, 0, 10))",
-      "result2 == base_date - (Period(0, 2, 0) - Period(0, 0, 20))",
-      "result3 == base_date + (Period(1, 0, 0) - (Period(0, 11, 0) + Period(0, 0, 15)))",
-      [
-        "result1 > Date(2023, 2, 15)",
-        "result2 < Date(2022, 12, 5)"
-      ]
-    ],
-    "coverage_tags": [
-      "chain_ops_brackets"
-    ],
-    "id": "1763103128-14"
-  },
-  {
-    "description": "Nested period operations with multiplication and subtraction",
-    "constraints": [
-      "start == Date(2024, 1, 1)",
-      "end == start + (Period(0, 3, 0) * 2 - Period(0, 1, 15))",
-      "mid == start + (Period(0, 1, 0) * 3 - Period(0, 0, 15) * 2)",
-      "end > Date(2024, 4, 15)",
-      "mid < end",
-      "mid > start"
-    ],
-    "coverage_tags": [
-      "chain_ops_brackets"
-    ],
-    "id": "1763103128-15"
-  },
-  {
-    "description": "Complex bracket operations with leap year edge case",
-    "constraints": [
-      "x == Date(2020, 2, 28)",
-      "y == x + (Period(0, 0, 1) + Period(0, 0, 1))",
-      "z == x - (Period(0, 0, 1) - Period(0, 0, 2))",
-      "w == y + (Period(0, 0, 1) - Period(0, 0, 0))",
-      "w == Date(2020, 3, 1)",
-      "z == Date(2020, 2, 29)"
-    ],
-    "coverage_tags": [
-      "chain_ops_brackets"
-    ],
-    "id": "1763103128-16"
-  },
-  {
-    "description": "Nested period calculations with brackets at month boundaries",
-    "constraints": [
-      "start_date == Date(2023, 1, 31)",
-      "end_date == start_date + (Period(0, 1, 0) - Period(0, 0, 3))",
-      "end_date == Date(2023, 2, 28)"
-    ],
-    "coverage_tags": [
-      "chain_ops_brackets"
-    ],
-    "id": "1763103128-17"
-  },
-  {
-    "description": "Multiple variable constraints with complex period calculations",
-    "constraints": [
-      "x == Date(2024, 1, 15)",
-      "y == x + (Period(0, 1, 15) - Period(0, 0, 15))",
-      "z == y - (Period(0, 0, 30) - Period(0, 0, 29))",
-      [
-        "z == Date(2024, 2, 14)",
-        "z == Date(2024, 2, 15)"
-      ],
-      "w == z + (Period(0, 0, 14) + Period(0, 0, 1))"
-    ],
-    "coverage_tags": [
-      "chain_ops_brackets"
-    ],
-    "id": "1763103128-18"
-  },
-  {
-    "description": "Nested period calculations with year boundaries",
-    "constraints": [
-      "start_date == Date(2019, 12, 31)",
-      "mid_date == start_date + (Period(0, 1, 0) - Period(0, 0, 1))",
-      "end_date == mid_date + (Period(0, 0, 30) - Period(0, 0, 29))",
-      "end_date == Date(2020, 1, 30)"
-    ],
-    "coverage_tags": [
-      "chain_ops_brackets"
-    ],
-    "id": "1763103128-19"
-  },
-  {
-    "description": "Complex period arithmetic with multiple variables and OR clauses",
-    "constraints": [
-      "base_date == Date(2022, 3, 30)",
-      [
-        "next_date == base_date + (Period(0, 1, 0) - Period(0, 0, 1))",
-        "next_date == base_date + (Period(0, 0, 29) + Period(0, 0, 0))"
-      ],
-      "alt_date == base_date - (Period(0, 1, 0) - Period(0, 1, 1))",
-      "final_date == next_date + (Period(0, 0, 1) + Period(0, 0, 1))",
-      [
-        "final_date == Date(2022, 5, 1)",
-        "final_date == Date(2022, 5, 2)"
-      ]
-    ],
-    "coverage_tags": [
-      "chain_ops_brackets"
-    ],
-    "id": "1763103128-20"
-  },
-  {
-    "description": "Nested bracket operations with multiple periods and date variables",
-    "constraints": [
-      "x == Date(2020, 2, 29)",
-      "y == Date(2021, 3, 1)",
-      "z == x - (Period(0, 1, 0) + Period(0, 0, 15))",
-      "w == y - (Period(0, 2, 0) - Period(0, 0, 10))",
-      "z < w",
-      "z > Date(2020, 1, 1)"
-    ],
-    "coverage_tags": [
-      "chain_ops_brackets"
-    ],
-    "id": "1763103128-21"
-  },
-  {
-    "description": "Leap year calculations with nested period operations",
-    "constraints": [
-      "start_date == Date(2020, 2, 29)",
-      "end_date == start_date - (Period(0, 0, 366) - Period(0, 0, 1))",
-      "middle_date == start_date - (Period(1, 0, 0) - Period(0, 11, 0))"
-    ],
-    "coverage_tags": [
-      "chain_ops_brackets"
-    ],
-    "id": "1763103128-22"
-  },
-  {
-    "description": "Complex period calculations with brackets across multiple variables",
-    "constraints": [
-      "base_date == Date(2022, 5, 15)",
-      "result1 == base_date + (Period(1, 0, 0) - Period(0, 3, 0))",
-      "result2 == base_date - (Period(0, 6, 0) + Period(0, 0, 15))",
-      [
-        "result1 < Date(2023, 3, 1)",
-        "result2 > Date(2021, 10, 31)"
-      ],
-      "result3 == result1 - (Period(0, 1, 0) * 2)"
-    ],
-    "coverage_tags": [
-      "chain_ops_brackets"
-    ],
-    "id": "1763103128-23"
-  },
-  {
-    "description": "Nested period operations with month-end considerations",
-    "constraints": [
-      "start_date == Date(2023, 1, 31)",
-      "adjusted_date == start_date + (Period(0, 1, 0) - Period(0, 0, 3))",
-      "final_date == adjusted_date - (Period(0, 0, 28) + Period(0, 0, 2))",
-      "final_date == Date(2023, 1, 28)"
-    ],
-    "coverage_tags": [
-      "chain_ops_brackets"
-    ],
-    "id": "1763103128-24"
-  },
-  {
-    "description": "Complex date calculations with nested period operations and OR conditions",
-    "constraints": [
-      "initial == Date(2024, 2, 29)",
-      [
-        "calculated == initial - (Period(0, 0, 365) + Period(0, 0, 1))",
-        "calculated == initial - Period(1, 0, 0)"
-      ],
-      "intermediate == initial + (Period(0, 1, 0) - Period(0, 0, 15))",
-      "final == intermediate - (Period(0, 0, 14) + Period(0, 0, 1))",
-      "final == Date(2024, 2, 29)"
-    ],
-    "coverage_tags": [
-      "chain_ops_brackets"
-    ],
-    "id": "1763103128-25"
-  },
-  {
-    "description": "Testing end-of-month behavior when adding one month to January 31st",
     "constraints": [
       "x == Date(2023, 1, 31)",
       "y == x + Period(0, 1, 0)",
-      "y == Date(2023, 2, 28)"
+      "(y.month == 2 && y.day == 28) || (y.month == 2 && y.day == 31)",
+      "!(y.day < 30)",
+      "y.day == 31 && y.month == 2",
+      "(x.month == 1 && x.day == 31) -> (y.month == 2 && y.day >= 28)"
     ],
     "coverage_tags": [
-      "eom"
+      "logical_operators"
     ],
-    "id": "1763102454-1"
+    "id": "llm-logical_operators-3",
+    "generated_id": "1766408324-3"
   },
   {
-    "description": "Comparing different month-end transitions across multiple variables",
+    "description": "Multi-variable date relationships with all logical operators",
+    "declarations": [
+      "a: date",
+      "b: date",
+      "c: date",
+      "d: date",
+      "e: date"
+    ],
     "constraints": [
-      "start_date == Date(2024, 1, 31)",
-      "feb_date == start_date + Period(0, 1, 0)",
-      "mar_date == feb_date + Period(0, 1, 0)",
-      "apr_date == mar_date + Period(0, 1, 0)",
-      "feb_date == Date(2024, 2, 29)",
-      "mar_date == Date(2024, 3, 31)"
+      "a == Date(1920, 3, 1)",
+      "b == a + Period(0, 0, 365)",
+      "(a.year == 1920 && b.year == 1921) || (a.year == 1920 && b.year == 1920)",
+      "c == Date(1920, 12, 31)",
+      "(a < c) -> (b >= a && b <= c + Period(0, 3, 0))",
+      "d == b + Period(0, 6, 0)",
+      "e == d + Period(0, 0, 31)",
+      "(d.month >= 6 && d.month <= 8) -> (e.month >= 7 && e.month <= 9)",
+      "!(a == b) && !(b == c)",
+      "(e > d && d > c) || (e.year == 1921 && e.month >= 8)"
     ],
     "coverage_tags": [
-      "eom"
+      "logical_operators"
     ],
-    "id": "1763102454-2"
+    "id": "llm-logical_operators-4",
+    "generated_id": "1766408324-4"
   },
   {
-    "description": "End-of-month rollovers with OR conditions for multiple months",
+    "description": "Impossible period arithmetic with logical conditions creating UNSAT",
+    "declarations": [
+      "x: date",
+      "y: date",
+      "z: date"
+    ],
     "constraints": [
-      [
-        "x == Date(2022, 1, 31)",
-        "x == Date(2022, 3, 31)",
-        "x == Date(2022, 5, 31)"
-      ],
+      "x == Date(2000, 2, 29)",
+      "y == x + Period(1, 0, 0)",
+      "(y.year == 2001 && y.month == 2) -> (y.day == 29)",
+      "z == x + Period(0, 12, 0)",
+      "(z.year == 2001 && z.month == 2) && (z.day == 29 || z.day == 30)",
+      "!(y.day == 28)",
+      "(x.year == 2000 && x.day == 29) -> (y.year == 2001 && y.day == 29)",
+      "y == Date(2001, 2, 29)"
+    ],
+    "coverage_tags": [
+      "logical_operators"
+    ],
+    "id": "llm-logical_operators-5",
+    "generated_id": "1766408324-5"
+  },
+  {
+    "description": "Leap year validation with logical AND/OR operators testing Feb 29 existence",
+    "declarations": [
+      "leap_date: date",
+      "next_year: date"
+    ],
+    "constraints": [
+      "leap_date == Date(2000, 2, 29)",
+      "next_year == leap_date + Period(1, 0, 0)",
+      "(leap_date.year == 2000 && leap_date.month == 2) -> (leap_date.day == 29)",
+      "(next_year.year == 2001 && next_year.month == 2) -> (next_year.day == 28)",
+      "(leap_date.day == 29 && leap_date.month == 2) || (leap_date.year != 2000)"
+    ],
+    "coverage_tags": [
+      "logical_operators"
+    ],
+    "id": "llm-logical_operators-6",
+    "generated_id": "1766408324-6"
+  },
+  {
+    "description": "Month boundary transitions with implication chains and negations",
+    "declarations": [
+      "x: date",
+      "y: date",
+      "z: date"
+    ],
+    "constraints": [
+      "x >= Date(2020, 1, 28) && x <= Date(2020, 1, 31)",
       "y == x + Period(0, 1, 0)",
-      [
-        "y == Date(2022, 2, 28)",
-        "y == Date(2022, 4, 30)",
-        "y == Date(2022, 6, 30)"
-      ],
-      "z == y + Period(0, 1, 0)"
+      "z == x + Period(0, 0, 31)",
+      "(x.day >= 28) -> (y.month == x.month + 1 || y.month == 1)",
+      "!(y == z)",
+      "(y > z) -> (y.month > 2)",
+      "(x.month == 1 && y.month == 2) || (x.month == 12 && y.month == 1)"
     ],
     "coverage_tags": [
-      "eom"
+      "logical_operators"
     ],
-    "id": "1763102454-3"
+    "id": "llm-logical_operators-7",
+    "generated_id": "1766408324-7"
   },
   {
-    "description": "Complex chain of end-of-month transitions in non-leap year",
+    "description": "UNSAT: Contradictory date constraints with complex logical operators",
+    "declarations": [
+      "a: date",
+      "b: date",
+      "c: date",
+      "d: date"
+    ],
     "constraints": [
-      "start_date == Date(2023, 8, 31)",
-      "date1 == start_date + Period(0, 1, 0)",
-      "date2 == date1 + Period(0, 1, 0)",
-      "date3 == date2 + Period(0, 1, 0)",
-      "date4 == date3 + Period(0, 1, 0)",
-      "date2 == Date(2023, 10, 31)"
+      "a == Date(2010, 6, 15)",
+      "b == a + Period(0, 3, 0)",
+      "c == a + Period(0, 0, 90)",
+      "(a.month == 6 && b.month == 9) -> (b.day == 15)",
+      "!(c.month == b.month) && (c.day == b.day)",
+      "d == Date(2010, 9, 15)",
+      "(b == d) || (c == d)",
+      "(b.year == c.year && b.month == c.month) -> (b == c)",
+      "b != c && b.month == c.month",
+      "(a.day == 15) -> (b.day == 15 && c.day != 15 && d.day == 15)"
     ],
     "coverage_tags": [
-      "eom"
+      "logical_operators"
     ],
-    "id": "1763102454-4"
+    "id": "llm-logical_operators-8",
+    "generated_id": "1766408324-8"
   },
   {
-    "description": "End-of-month behavior with subtraction across different length months",
+    "description": "Date component validation with OR alternatives across seasons",
+    "declarations": [
+      "date1: date",
+      "date2: date"
+    ],
     "constraints": [
-      "end_date == Date(2025, 3, 31)",
-      "start_date == end_date - Period(0, 1, 0)",
-      "prev_date == start_date - Period(0, 1, 0)",
-      "start_date == Date(2025, 2, 28)",
-      [
-        "prev_date == Date(2025, 1, 28)",
-        "prev_date == Date(2025, 1, 31)"
-      ]
+      "date1 >= Date(1950, 3, 1) && date1 <= Date(1950, 12, 31)",
+      "date2 == date1 + Period(0, 6, 0)",
+      "(date1.month <= 6) || (date2.month <= 6)",
+      "(date1.month == 3 && date1.day == 31) || (date1.month == 4 && date1.day == 30)",
+      "!(date1.year == date2.year) || (date1.month + 6 <= 12)",
+      "(date2.year == 1950 || date2.year == 1951) && date2.month >= 1"
     ],
     "coverage_tags": [
-      "eom"
+      "logical_operators"
     ],
-    "id": "1763102454-5"
+    "id": "llm-logical_operators-9",
+    "generated_id": "1766408324-9"
   },
   {
-    "description": "End-of-month rollover with 31-day to 30-day month transition",
+    "description": "Period arithmetic chains with logical combinations testing year rollovers",
+    "declarations": [
+      "start: date",
+      "mid: date",
+      "end: date"
+    ],
+    "constraints": [
+      "start == Date(2015, 11, 15)",
+      "mid == start + Period(0, 2, 0)",
+      "end == mid + Period(0, 2, 0)",
+      "(start.month == 11 && mid.month == 1) -> (mid.year == start.year + 1)",
+      "(mid.year > start.year) && (end.year >= mid.year)",
+      "(end.month == 3 && end.day == 15) || (end.month == 2 && end.day == 28)",
+      "!(start.year == end.year) -> (end > start + Period(0, 3, 0))",
+      "(start.month + 4 > 12) || (end.month <= start.month + 4)"
+    ],
+    "coverage_tags": [
+      "logical_operators"
+    ],
+    "id": "llm-logical_operators-10",
+    "generated_id": "1766408324-10"
+  },
+  {
+    "description": "Leap year implication logic with Feb 29 validity checks",
+    "declarations": [
+      "x: date",
+      "y: date"
+    ],
+    "constraints": [
+      "x == Date(2000, 2, 29)",
+      "(x.day == 29 && x.month == 2) -> (x.year % 4 == 0)",
+      "y == x + Period(4, 0, 0)",
+      "(x.year % 400 == 0) -> (y == Date(2004, 2, 29))",
+      "!(x.year == y.year) && (x.month == y.month) && (x.day == y.day)"
+    ],
+    "coverage_tags": [
+      "logical_operators"
+    ],
+    "id": "llm-logical_operators-11",
+    "generated_id": "1766408324-11"
+  },
+  {
+    "description": "Month boundary logic with OR and AND operations across different months",
+    "declarations": [
+      "start: date",
+      "mid: date",
+      "end: date"
+    ],
+    "constraints": [
+      "start >= Date(2020, 1, 28)",
+      "start <= Date(2020, 1, 31)",
+      "mid == start + Period(0, 1, 0)",
+      "(start.day == 31 || start.day == 30) -> (mid.day < start.day)",
+      "(mid.month == 2 && mid.day == 29) || (mid.month == 2 && mid.day == 28)",
+      "end == mid + Period(0, 1, 0)",
+      "(mid.month == 2 && end.month == 3) && (end.day == mid.day || end.day == 28)"
+    ],
+    "coverage_tags": [
+      "logical_operators"
+    ],
+    "id": "llm-logical_operators-12",
+    "generated_id": "1766408324-12"
+  },
+  {
+    "description": "Complex multi-variable date relationships with all logical operators",
+    "declarations": [
+      "a: date",
+      "b: date",
+      "c: date",
+      "d: date"
+    ],
+    "constraints": [
+      "a == Date(2015, 6, 15)",
+      "b == a + Period(0, 6, 0)",
+      "c == b + Period(0, 0, 45)",
+      "(a.month < 7 && b.month > 11) -> (b.year == a.year)",
+      "(b.year == a.year || b.year == a.year + 1) && !(b == a)",
+      "d == Date(2016, 2, 1)",
+      "(c >= d && c < d + Period(0, 1, 0)) || (c < d && c > d - Period(0, 1, 0))",
+      "!(a.month == b.month) && !(b.month == c.month)",
+      "(c.day > 15) -> (c >= b + Period(0, 0, 30))",
+      "(d.month == 2 && d.year % 4 == 0) -> (d + Period(0, 0, 29) == Date(2016, 3, 1))"
+    ],
+    "coverage_tags": [
+      "logical_operators"
+    ],
+    "id": "llm-logical_operators-13",
+    "generated_id": "1766408324-13"
+  },
+  {
+    "description": "Negation heavy constraints testing impossible date combinations",
+    "declarations": [
+      "x: date",
+      "y: date",
+      "z: date"
+    ],
+    "constraints": [
+      "x >= Date(1950, 3, 1)",
+      "x <= Date(1950, 12, 31)",
+      "!(x.month == 2 && x.day == 30)",
+      "y == x + Period(1, 0, 0)",
+      "!(y.year == x.year) && !(y < x)",
+      "(!(x.month == 12) || (y.month == 1)) && (z == Date(1951, 1, 1))"
+    ],
+    "coverage_tags": [
+      "logical_operators"
+    ],
+    "id": "llm-logical_operators-14",
+    "generated_id": "1766408324-14"
+  },
+  {
+    "description": "Date arithmetic with conditional logic and mixed boolean operations",
+    "declarations": [
+      "p: date",
+      "q: date",
+      "r: date"
+    ],
+    "constraints": [
+      "p == Date(2080, 11, 30)",
+      "q == p + Period(0, 3, 0)",
+      "(p.month == 11 && q.month == 2) -> (q.year == p.year + 1)",
+      "r == q + Period(0, 0, 27)",
+      "(q.day == 28 || q.day == 29) && (r.day <= 28)",
+      "!(p.year == q.year) || (p.month == q.month)",
+      "(r.month == 2 && r.day == 27) -> (r == Date(2081, 2, 27))",
+      "((p < q) && (q < r)) || !(r.month == 2)"
+    ],
+    "coverage_tags": [
+      "logical_operators"
+    ],
+    "id": "llm-logical_operators-15",
+    "generated_id": "1766408324-15"
+  },
+  {
+    "description": "Leap year logic with conjunctions and disjunctions",
+    "declarations": [
+      "x: date",
+      "y: date",
+      "z: date"
+    ],
+    "constraints": [
+      "x == Date(2000, 2, 29)",
+      "y == x + Period(4, 0, 0)",
+      "(x.year == 2000 && x.month == 2) -> y.day == 29",
+      "(y.year == 2004 && y.month == 2) || y.month != 2",
+      "z == Date(2001, 2, 28) && (z > x || z.month > x.month)"
+    ],
+    "coverage_tags": [
+      "logical_operators"
+    ],
+    "id": "llm-logical_operators-16",
+    "generated_id": "1766408324-16"
+  },
+  {
+    "description": "Complex logical combinations with contradictions (UNSAT)",
+    "declarations": [
+      "a: date",
+      "b: date",
+      "c: date",
+      "d: date"
+    ],
+    "constraints": [
+      "a == Date(2020, 3, 15)",
+      "(a.month == 3 && a.day == 15) -> b == a + Period(0, 1, 0)",
+      "b.year == 2020 && b.month == 4",
+      "c == Date(2020, 3, 1) || c == Date(2020, 4, 1)",
+      "(a < b && b < c) || (c < a && a < b)",
+      "d == Date(2020, 5, 15)",
+      "!(d.month == 5) || d.day != 15",
+      "(a.day == 15 && b.day == 15) -> (c.day == 1 && d.day == 15)",
+      "(c.day == 1 && d.day == 15) -> (c == Date(2020, 3, 1) || c == Date(2020, 4, 1))",
+      "d.month == 5 && d.day == 15"
+    ],
+    "coverage_tags": [
+      "logical_operators"
+    ],
+    "id": "llm-logical_operators-17",
+    "generated_id": "1766408324-17"
+  },
+  {
+    "description": "Implication chains with period arithmetic",
+    "declarations": [
+      "start: date",
+      "mid: date",
+      "end: date"
+    ],
+    "constraints": [
+      "start == Date(2010, 6, 15)",
+      "(start.month == 6) -> mid == start + Period(0, 3, 0)",
+      "(mid.month == 9) -> end == mid + Period(0, 3, 0)",
+      "(end.month == 12 && end.year == 2010) || end.year > 2010",
+      "!(start.year != 2010) && (mid.year == 2010 || mid.year == 2011)",
+      "(start.day == mid.day && mid.day == end.day) -> end == Date(2010, 12, 15)",
+      "end.month == 12 && end.day == 15"
+    ],
+    "coverage_tags": [
+      "logical_operators"
+    ],
+    "id": "llm-logical_operators-18",
+    "generated_id": "1766408324-18"
+  },
+  {
+    "description": "Negations and disjunctions creating impossibility (UNSAT)",
+    "declarations": [
+      "x: date",
+      "y: date"
+    ],
+    "constraints": [
+      "x == Date(1950, 7, 20)",
+      "y == x + Period(0, 0, 10)",
+      "!(y.day == 30) && !(y.day == 31) && !(y.day < 30)",
+      "(x.month == 7 || x.month == 8) && y.month == 7",
+      "y.day > 28 || y.day < 20",
+      "(x.day == 20 && y.day == 30) || (x.day != 20 && y.day != 30)"
+    ],
+    "coverage_tags": [
+      "logical_operators"
+    ],
+    "id": "llm-logical_operators-19",
+    "generated_id": "1766408324-19"
+  },
+  {
+    "description": "Mixed logical operators with month boundaries and year transitions",
+    "declarations": [
+      "d1: date",
+      "d2: date",
+      "d3: date",
+      "d4: date"
+    ],
+    "constraints": [
+      "d1 == Date(2015, 1, 31)",
+      "(d1.day == 31 && d1.month == 1) -> d2 == d1 + Period(0, 1, 0)",
+      "d2.month == 2 && (d2.day == 28 || d2.day == 29)",
+      "!(d2.year % 4 == 0) || d2.day == 28",
+      "d3 == Date(2015, 3, 31) && (d3.month == 3 || d3.month == 4)",
+      "(d2 < d3 && d1 < d2) -> d4 == d3 + Period(1, 0, 0)",
+      "d4.year == 2016 || d4.year == 2015",
+      "(d4.year == 2016 && d4.month == 3) -> d4.day == 31"
+    ],
+    "coverage_tags": [
+      "logical_operators"
+    ],
+    "id": "llm-logical_operators-20",
+    "generated_id": "1766408324-20"
+  },
+  {
+    "description": "Basic February month vs days: adding 1 month from Jan 31 produces different result than adding 28 or 31 days",
+    "declarations": [
+      "x: date",
+      "y: date",
+      "z: date"
+    ],
     "constraints": [
       "x == Date(2023, 1, 31)",
-      "y == x + Period(0, 1, 0)",
-      "y == Date(2023, 2, 28)"
-    ],
-    "coverage_tags": [
-      "eom"
-    ],
-    "id": "1763102454-6"
-  },
-  {
-    "description": "End-of-month rollover with leap year February",
-    "constraints": [
-      "x == Date(2020, 1, 31)",
-      "y == x + Period(0, 1, 0)",
-      "z == y + Period(0, 1, 0)",
-      "y == Date(2020, 2, 29)",
-      "z == Date(2020, 3, 31)"
-    ],
-    "coverage_tags": [
-      "eom"
-    ],
-    "id": "1763102454-7"
-  },
-  {
-    "description": "Complex end-of-month transitions across multiple months",
-    "constraints": [
-      "start_date == Date(2022, 8, 31)",
-      "date1 == start_date + Period(0, 1, 0)",
-      "date2 == date1 + Period(0, 1, 0)",
-      "date3 == date2 + Period(0, 1, 0)",
-      "date1 == Date(2022, 9, 30)",
-      "date3 == Date(2022, 11, 30)"
-    ],
-    "coverage_tags": [
-      "eom"
-    ],
-    "id": "1763102454-8"
-  },
-  {
-    "description": "End-of-month rollover with OR conditions for different month lengths",
-    "constraints": [
-      [
-        "x == Date(2023, 4, 30)",
-        "x == Date(2023, 6, 30)",
-        "x == Date(2023, 9, 30)",
-        "x == Date(2023, 11, 30)"
-      ],
-      "y == x + Period(0, 1, 0)",
-      [
-        "y == Date(2023, 5, 30)",
-        "y == Date(2023, 7, 31)",
-        "y == Date(2023, 10, 31)",
-        "y == Date(2023, 12, 31)"
-      ],
-      "z == y + Period(0, 1, 0)"
-    ],
-    "coverage_tags": [
-      "eom"
-    ],
-    "id": "1763102454-9"
-  },
-  {
-    "description": "End-of-month transitions with multiple variables and constraints",
-    "constraints": [
-      "jan_end == Date(2021, 1, 31)",
-      "feb_end == jan_end + Period(0, 1, 0)",
-      "mar_end == feb_end + Period(0, 1, 0)",
-      "apr_end == mar_end + Period(0, 1, 0)",
-      "feb_end == Date(2021, 2, 28)",
-      "apr_end == Date(2021, 4, 30)"
-    ],
-    "coverage_tags": [
-      "eom"
-    ],
-    "id": "1763102454-10"
-  },
-  {
-    "description": "End of month rollover with 30-day months",
-    "constraints": [
-      "x == Date(2023, 4, 30)",
-      "y == x + Period(0, 1, 0)",
-      "y == Date(2023, 5, 30)",
-      "z == x + Period(0, 2, 0)",
-      "z == Date(2023, 6, 30)",
-      "w == z + Period(0, 1, 0)"
-    ],
-    "coverage_tags": [
-      "eom"
-    ],
-    "id": "1763102454-11"
-  },
-  {
-    "description": "End of month rollover with February in a non-leap year",
-    "constraints": [
-      "start_date == Date(2023, 1, 31)",
-      "mid_date == start_date + Period(0, 1, 0)",
-      "mid_date == Date(2023, 2, 28)",
-      [
-        "end_date == mid_date + Period(0, 0, 1)",
-        "end_date == mid_date + Period(0, 1, 0)"
-      ]
-    ],
-    "coverage_tags": [
-      "eom"
-    ],
-    "id": "1763102454-12"
-  },
-  {
-    "description": "End of month rollover with February in a leap year",
-    "constraints": [
-      "x == Date(2020, 1, 31)",
-      "y == x + Period(0, 1, 0)",
-      "y == Date(2020, 2, 29)"
-    ],
-    "coverage_tags": [
-      "eom"
-    ],
-    "id": "1763102454-13"
-  },
-  {
-    "description": "Complex end of month rollovers across multiple months",
-    "constraints": [
-      "start_date == Date(2022, 8, 31)",
-      "date1 == start_date + Period(0, 1, 0)",
-      "date1 == Date(2022, 9, 30)",
-      "date2 == date1 + Period(0, 1, 0)",
-      "date2 == Date(2022, 10, 31)"
-    ],
-    "coverage_tags": [
-      "eom"
-    ],
-    "id": "1763102454-14"
-  },
-  {
-    "description": "End of month transitions with different length months",
-    "constraints": [
-      "jan_date == Date(2021, 1, 31)",
-      "feb_date == jan_date + Period(0, 1, 0)",
-      [
-        "feb_date == Date(2021, 2, 28)",
-        "feb_date == Date(2021, 3, 3)"
-      ],
-      "mar_date == feb_date + Period(0, 1, 0)",
-      "mar_date == Date(2021, 3, 31)"
-    ],
-    "coverage_tags": [
-      "eom"
-    ],
-    "id": "1763102454-15"
-  },
-  {
-    "description": "Testing end-of-month behavior with 31-day months vs 30-day months",
-    "constraints": [
-      "x == Date(2023, 1, 31)",
-      "y == x + Period(0, 1, 0)",
-      "z == x + Period(0, 2, 0)",
-      "y == Date(2023, 2, 28)",
-      "z == Date(2023, 3, 31)"
-    ],
-    "coverage_tags": [
-      "eom"
-    ],
-    "id": "1763102454-16"
-  },
-  {
-    "description": "End-of-month rollover for February in non-leap year",
-    "constraints": [
-      "start_date == Date(2023, 1, 31)",
-      "feb_date == start_date + Period(0, 1, 0)",
-      "mar_date == feb_date + Period(0, 1, 0)",
-      [
-        "feb_date == Date(2023, 2, 28)",
-        "feb_date == Date(2023, 3, 3)"
-      ],
-      "mar_date == Date(2023, 3, 31)",
-      "apr_date == mar_date + Period(0, 1, 0)"
-    ],
-    "coverage_tags": [
-      "eom"
-    ],
-    "id": "1763102454-17"
-  },
-  {
-    "description": "End-of-month behavior with multiple variables across different months",
-    "constraints": [
-      "jan_end == Date(2022, 1, 31)",
-      "feb_end == jan_end + Period(0, 1, 0)",
-      "feb_end == Date(2022, 2, 28)"
-    ],
-    "coverage_tags": [
-      "eom"
-    ],
-    "id": "1763102454-18"
-  },
-  {
-    "description": "End-of-month behavior in leap year February",
-    "constraints": [
-      "x == Date(2020, 1, 31)",
-      "y == x + Period(0, 1, 0)",
-      "z == y + Period(0, 1, 0)",
-      "y == Date(2020, 2, 29)",
-      [
-        "z == Date(2020, 3, 29)",
-        "z == Date(2020, 3, 31)"
-      ]
-    ],
-    "coverage_tags": [
-      "eom"
-    ],
-    "id": "1763102454-19"
-  },
-  {
-    "description": "Complex end-of-month transitions across multiple months",
-    "constraints": [
-      "start_date == Date(2021, 8, 31)",
-      "sep_date == start_date + Period(0, 1, 0)",
-      "oct_date == sep_date + Period(0, 1, 0)",
-      "nov_date == oct_date + Period(0, 1, 0)",
-      "sep_date == Date(2021, 9, 30)",
-      "oct_date == Date(2021, 10, 31)"
-    ],
-    "coverage_tags": [
-      "eom"
-    ],
-    "id": "1763102454-20"
-  },
-  {
-    "description": "End-of-month rollover with 30 vs 31 days",
-    "constraints": [
-      "x == Date(2023, 4, 30)",
-      "y == x + Period(0, 1, 0)",
-      "z == x + Period(0, 0, 30)",
-      "y != z"
-    ],
-    "coverage_tags": [
-      "eom"
-    ],
-    "id": "1763102454-21"
-  },
-  {
-    "description": "February to March rollover in non-leap year",
-    "constraints": [
-      "x == Date(2023, 2, 28)",
       "y == x + Period(0, 1, 0)",
       "z == x + Period(0, 0, 28)",
-      "w == x + Period(0, 0, 30)",
-      "y == Date(2023, 3, 28)",
-      "w == Date(2023, 3, 30)"
+      "y != z",
+      "y == Date(2023, 2, 28)"
     ],
     "coverage_tags": [
-      "eom"
+      "month_vs_days"
     ],
-    "id": "1763102454-22"
+    "id": "llm-month_vs_days-21",
+    "generated_id": "1766396659-1"
   },
   {
-    "description": "Multiple month-end transitions across leap year boundary",
+    "description": "Leap year February: 1 month forward from Jan 31 vs adding 29 days shows difference",
+    "declarations": [
+      "leap_start: date",
+      "month_later: date",
+      "days_later: date"
+    ],
     "constraints": [
-      "start_date == Date(2019, 12, 31)",
-      "mid_date == start_date + Period(0, 2, 0)",
-      "end_date == start_date + Period(0, 4, 0)",
-      [
-        "mid_date == Date(2020, 2, 29)",
-        "mid_date == Date(2020, 3, 2)"
-      ],
-      "end_date == Date(2020, 4, 30)"
+      "leap_start == Date(2000, 1, 31)",
+      "month_later == leap_start + Period(0, 1, 0)",
+      "days_later == leap_start + Period(0, 0, 29)",
+      "month_later == Date(2000, 2, 29)",
+      "days_later == Date(2000, 2, 29)",
+      "month_later == days_later",
+      "(leap_start + Period(0, 1, 0)) != (leap_start + Period(0, 0, 28))"
     ],
     "coverage_tags": [
-      "eom"
+      "month_vs_days"
     ],
-    "id": "1763102454-23"
+    "id": "llm-month_vs_days-22",
+    "generated_id": "1766396659-2"
   },
   {
-    "description": "January to February rollover in leap year",
-    "constraints": [
-      "x == Date(2020, 1, 31)",
-      "y == x + Period(0, 1, 0)",
-      "y == Date(2020, 2, 29)"
+    "description": "Multi-month comparison: showing month vs days divergence across different month lengths with 5 variables",
+    "declarations": [
+      "jan_date: date",
+      "feb_date: date",
+      "mar_date: date",
+      "apr_date: date",
+      "may_date: date"
     ],
-    "coverage_tags": [
-      "eom"
-    ],
-    "id": "1763102454-24"
-  },
-  {
-    "description": "Complex end-of-month chain with multiple variables",
     "constraints": [
-      "start_date == Date(2022, 1, 31)",
-      "feb_date == start_date + Period(0, 1, 0)",
+      "jan_date == Date(2023, 1, 31)",
+      "feb_date == jan_date + Period(0, 1, 0)",
       "mar_date == feb_date + Period(0, 1, 0)",
       "apr_date == mar_date + Period(0, 1, 0)",
       "may_date == apr_date + Period(0, 1, 0)",
-      [
-        "feb_date == Date(2022, 2, 28)",
-        "mar_date == Date(2022, 3, 31)"
-      ]
+      "feb_date == Date(2023, 2, 28)",
+      "mar_date == Date(2023, 3, 28)",
+      "apr_date == Date(2023, 4, 28)",
+      "(jan_date + Period(0, 0, 31)) != feb_date",
+      "(feb_date + Period(0, 0, 28)) != mar_date"
     ],
     "coverage_tags": [
-      "eom"
+      "month_vs_days"
     ],
-    "id": "1763102454-25"
+    "id": "llm-month_vs_days-23",
+    "generated_id": "1766396659-3"
   },
   {
-    "description": "Narrow date window around leap day 2020 (satisfiable)",
+    "description": "Month arithmetic across year boundary: December to January month vs days comparison",
+    "declarations": [
+      "dec_start: date",
+      "jan_month: date",
+      "jan_days: date"
+    ],
     "constraints": [
-      "x >= Date(2020, 2, 28)",
-      "x <= Date(2020, 3, 1)",
-      [
-        "x == Date(2020, 2, 29)",
-        "x == Date(2020, 3, 1)"
-      ]
+      "dec_start == Date(2022, 12, 15)",
+      "jan_month == dec_start + Period(0, 1, 0)",
+      "jan_days == dec_start + Period(0, 0, 31)",
+      "jan_month == jan_days"
     ],
     "coverage_tags": [
-      "ineq_window"
+      "month_vs_days"
     ],
-    "id": "1763103212-1"
+    "id": "llm-month_vs_days-24",
+    "generated_id": "1766396659-4"
   },
   {
-    "description": "Unsatisfiable date window with contradicting constraints",
+    "description": "UNSAT: Contradictory constraints claiming month addition equals specific day count that creates impossible date",
+    "declarations": [
+      "x: date",
+      "y: date",
+      "z: date",
+      "w: date"
+    ],
     "constraints": [
-      "x >= Date(2019, 6, 15)",
-      "x <= Date(2019, 6, 20)",
-      "x != Date(2019, 6, 15)",
-      "x != Date(2019, 6, 16)",
-      "x != Date(2019, 6, 17)",
-      "x != Date(2019, 6, 18)",
-      "x != Date(2019, 6, 19)",
-      "x != Date(2019, 6, 20)"
-    ],
-    "coverage_tags": [
-      "ineq_window"
-    ],
-    "id": "1763103212-2"
-  },
-  {
-    "description": "Multi-variable inequality window with relationship constraints",
-    "constraints": [
-      "x >= Date(2010, 1, 1)",
-      "x <= Date(2010, 12, 31)",
-      "y == x + Period(0, 6, 0)",
-      "z == y + Period(0, 6, 0)",
-      [
-        "z <= Date(2011, 12, 30)",
-        "z >= Date(2011, 12, 31)"
-      ]
-    ],
-    "coverage_tags": [
-      "ineq_window"
-    ],
-    "id": "1763103212-3"
-  },
-  {
-    "description": "Tight inequality window around month boundary",
-    "constraints": [
-      "x >= Date(2018, 1, 30)",
-      "x <= Date(2018, 2, 2)",
+      "x == Date(2023, 1, 31)",
       "y == x + Period(0, 1, 0)",
-      "y < Date(2018, 3, 3)"
+      "z == x + Period(0, 0, 31)",
+      "y == z",
+      "y.month == 2",
+      "z.month == 3",
+      "y.day == 28",
+      "z.day == 3"
     ],
     "coverage_tags": [
-      "ineq_window"
+      "month_vs_days"
     ],
-    "id": "1763103212-4"
+    "id": "llm-month_vs_days-25",
+    "generated_id": "1766396659-5"
   },
   {
-    "description": "Complex inequality window with multiple variables and OR conditions",
+    "description": "Basic month vs days: January plus 1 month differs from plus 30 days",
+    "declarations": [
+      "x: date",
+      "month_later: date",
+      "days_later: date"
+    ],
     "constraints": [
-      "start_date >= Date(2015, 5, 1)",
-      "start_date <= Date(2015, 5, 31)",
-      [
-        "end_date == start_date + Period(0, 1, 0)",
-        "end_date == start_date + Period(0, 2, 0)"
-      ],
-      "mid_date == start_date + Period(0, 0, 15)",
-      [
-        "mid_date >= Date(2015, 5, 20)",
-        "end_date <= Date(2015, 7, 15)"
-      ],
-      "end_date > Date(2015, 6, 15)"
+      "x == Date(2020, 1, 15)",
+      "month_later == x + Period(0, 1, 0)",
+      "days_later == x + Period(0, 0, 30)",
+      "month_later != days_later",
+      "month_later > days_later"
     ],
     "coverage_tags": [
-      "ineq_window"
+      "month_vs_days"
     ],
-    "id": "1763103212-5"
+    "id": "llm-month_vs_days-26",
+    "generated_id": "1766396659-6"
   },
   {
-    "description": "Narrow date window around leap day in 2020",
+    "description": "February month vs days in non-leap year: 1 month from Jan 31 vs 28 days",
+    "declarations": [
+      "start: date",
+      "plus_month: date",
+      "plus_28: date"
+    ],
     "constraints": [
-      "x >= Date(2020, 2, 28)",
-      "x <= Date(2020, 3, 1)",
-      [
-        "x == Date(2020, 2, 29)",
-        "x == Date(2020, 3, 1)"
-      ]
+      "start == Date(2023, 1, 31)",
+      "plus_month == start + Period(0, 1, 0)",
+      "plus_28 == start + Period(0, 0, 28)",
+      "plus_month == Date(2023, 2, 28)",
+      "plus_28 == Date(2023, 2, 28)",
+      "plus_month == plus_28",
+      "(plus_month + Period(0, 1, 0)) != (plus_28 + Period(0, 0, 31))"
     ],
     "coverage_tags": [
-      "ineq_window"
+      "month_vs_days"
     ],
-    "id": "1763103212-6"
+    "id": "llm-month_vs_days-27",
+    "generated_id": "1766396659-7"
   },
   {
-    "description": "Tight inequality window for a specific month in 2022 with exclusions",
+    "description": "Complex month vs day relationships across multiple variables and months",
+    "declarations": [
+      "w: date",
+      "x: date",
+      "y: date",
+      "z: date"
+    ],
     "constraints": [
-      "x >= Date(2022, 6, 1)",
-      "x <= Date(2022, 6, 30)",
-      "x != Date(2022, 6, 15)",
-      "x != Date(2022, 6, 16)",
-      [
-        "x <= Date(2022, 6, 10)",
-        "x >= Date(2022, 6, 20)"
-      ]
+      "w == Date(2020, 1, 31)",
+      "x == w + Period(0, 1, 0)",
+      "y == w + Period(0, 0, 31)",
+      "x == Date(2020, 2, 29)",
+      "y == Date(2020, 3, 2)",
+      "z == x + Period(0, 1, 0)",
+      "(x + Period(0, 0, 30)) != z",
+      "z == Date(2020, 3, 29)",
+      "y < z",
+      "(w + Period(0, 2, 0)) != (w + Period(0, 0, 60))"
     ],
     "coverage_tags": [
-      "ineq_window"
+      "month_vs_days"
     ],
-    "id": "1763103212-7"
+    "id": "llm-month_vs_days-28",
+    "generated_id": "1766396659-8"
   },
   {
-    "description": "Date window with period-based boundaries",
+    "description": "UNSAT: Contradictory leap year month vs day arithmetic",
+    "declarations": [
+      "leap: date",
+      "month_add: date",
+      "day_add: date"
+    ],
     "constraints": [
-      "x >= Date(2025, 1, 1)",
-      "x <= Date(2025, 12, 31)",
-      "y == x + Period(0, 6, 0)",
-      "y <= Date(2026, 6, 30)",
-      "y >= Date(2025, 7, 1)",
-      [
-        "x <= Date(2025, 3, 31)",
-        "x >= Date(2025, 9, 1)"
-      ]
+      "leap == Date(2020, 1, 31)",
+      "month_add == leap + Period(0, 1, 0)",
+      "day_add == leap + Period(0, 0, 31)",
+      "month_add == Date(2020, 2, 29)",
+      "day_add == Date(2020, 3, 2)",
+      "month_add == day_add"
     ],
     "coverage_tags": [
-      "ineq_window"
+      "month_vs_days"
     ],
-    "id": "1763103212-8"
+    "id": "llm-month_vs_days-29",
+    "generated_id": "1766396659-9"
   },
   {
-    "description": "Narrow window around month boundary",
+    "description": "Cross-year month vs days with varying starting points and month lengths",
+    "declarations": [
+      "dec: date",
+      "jan_month: date",
+      "jan_days: date",
+      "feb: date"
+    ],
     "constraints": [
-      "x >= Date(2023, 4, 29)",
-      "x <= Date(2023, 5, 2)",
-      "x != Date(2023, 5, 1)"
+      "dec == Date(2021, 12, 5)",
+      "jan_month == dec + Period(0, 1, 0)",
+      "jan_days == dec + Period(0, 0, 31)",
+      "jan_month == Date(2022, 1, 5)",
+      "jan_days == Date(2022, 1, 5)",
+      "feb == dec + Period(0, 2, 0)",
+      "(feb + Period(0, 1, 0)) != (feb + Period(0, 0, 31))",
+      "(dec + Period(0, 0, 30)) < jan_month"
     ],
     "coverage_tags": [
-      "ineq_window"
+      "month_vs_days"
     ],
-    "id": "1763103212-9"
+    "id": "llm-month_vs_days-30",
+    "generated_id": "1766396659-10"
   },
   {
-    "description": "Complex multi-variable inequality window with period shifts",
+    "description": "February month increment vs 28 days in non-leap year",
+    "declarations": [
+      "x: date",
+      "y: date",
+      "z: date"
+    ],
     "constraints": [
-      "x >= Date(2024, 1, 1)",
-      "x <= Date(2024, 12, 31)",
-      "y == x + Period(0, 3, 0)",
-      "z == y + Period(0, 3, 0)",
-      [
-        "y <= Date(2024, 6, 30)",
-        "z >= Date(2025, 1, 1)"
-      ],
-      "z <= Date(2025, 12, 31)"
-    ],
-    "coverage_tags": [
-      "ineq_window"
-    ],
-    "id": "1763103212-10"
-  },
-  {
-    "description": "Tight inequality window around February 29, 2020 (leap day)",
-    "constraints": [
-      "x >= Date(2020, 2, 28)",
-      "x <= Date(2020, 3, 1)",
-      "x != Date(2020, 3, 1)"
-    ],
-    "coverage_tags": [
-      "ineq_window"
-    ],
-    "id": "1763103212-11"
-  },
-  {
-    "description": "Multi-variable inequality window with relationship constraints",
-    "constraints": [
-      "x >= Date(2000, 1, 1)",
-      "x <= Date(2000, 12, 31)",
-      "y == x + Period(0, 6, 0)",
-      "z == y + Period(0, 6, 0)",
-      "z <= Date(2001, 12, 31)",
-      [
-        "x == Date(2000, 6, 30)",
-        "y == Date(2000, 12, 31)"
-      ]
-    ],
-    "coverage_tags": [
-      "ineq_window"
-    ],
-    "id": "1763103212-12"
-  },
-  {
-    "description": "Inequality window with month-end constraints",
-    "constraints": [
-      "x >= Date(2019, 1, 31)",
-      "x <= Date(2019, 3, 31)",
-      [
-        "x == Date(2019, 1, 31)",
-        "x == Date(2019, 2, 28)",
-        "x == Date(2019, 3, 31)"
-      ],
-      "y == x + Period(0, 1, 0)"
-    ],
-    "coverage_tags": [
-      "ineq_window"
-    ],
-    "id": "1763103212-13"
-  },
-  {
-    "description": "Narrow inequality window around non-leap year February",
-    "constraints": [
-      "x >= Date(2019, 2, 27)",
-      "x <= Date(2019, 3, 1)",
-      [
-        "x == Date(2019, 2, 27)",
-        "x == Date(2019, 2, 28)",
-        "x == Date(2019, 3, 1)"
-      ],
-      "y == x + Period(1, 0, 0)",
-      [
-        "y == Date(2020, 2, 27)",
-        "y == Date(2020, 2, 28)",
-        "y == Date(2020, 2, 29)"
-      ]
-    ],
-    "coverage_tags": [
-      "ineq_window"
-    ],
-    "id": "1763103212-14"
-  },
-  {
-    "description": "Complex inequality window with multiple date variables and period operations",
-    "constraints": [
-      "start_date >= Date(2022, 1, 1)",
-      "start_date <= Date(2022, 1, 31)",
-      "end_date == start_date + Period(0, 11, 0)",
-      [
-        "end_date == Date(2022, 12, 1)",
-        "end_date == Date(2022, 12, 31)"
-      ],
-      "mid_date == start_date + Period(0, 6, 0)"
-    ],
-    "coverage_tags": [
-      "ineq_window"
-    ],
-    "id": "1763103212-15"
-  },
-  {
-    "description": "Narrow date window around leap day in 2024 (satisfiable)",
-    "constraints": [
-      "x >= Date(2024, 2, 28)",
-      "x <= Date(2024, 3, 1)",
-      [
-        "x == Date(2024, 2, 29)",
-        "x == Date(2024, 3, 1)"
-      ]
-    ],
-    "coverage_tags": [
-      "ineq_window"
-    ],
-    "id": "1763103212-16"
-  },
-  {
-    "description": "Tight date window with multiple variables (unsatisfiable)",
-    "constraints": [
-      "x >= Date(2023, 4, 15)",
-      "x <= Date(2023, 4, 20)",
-      "y == x + Period(0, 0, 10)",
-      "z == y + Period(0, 0, 5)",
-      "z <= Date(2023, 4, 25)",
-      "z >= Date(2023, 5, 1)"
-    ],
-    "coverage_tags": [
-      "ineq_window"
-    ],
-    "id": "1763103212-17"
-  },
-  {
-    "description": "Date window with period calculations (satisfiable)",
-    "constraints": [
-      "x >= Date(2022, 1, 1)",
-      "x <= Date(2022, 12, 31)",
-      "y == x + Period(0, 3, 0)",
-      [
-        "y <= Date(2023, 3, 31)",
-        "y >= Date(2023, 4, 1)"
-      ]
-    ],
-    "coverage_tags": [
-      "ineq_window"
-    ],
-    "id": "1763103212-18"
-  },
-  {
-    "description": "Complex inequality window with multiple variables and period calculations",
-    "constraints": [
-      "start_date >= Date(2020, 1, 1)",
-      "start_date <= Date(2020, 12, 31)",
-      "mid_date == start_date + Period(1, 0, 0)",
-      "end_date == mid_date + Period(0, 6, 0)",
-      "end_date >= Date(2022, 1, 1)",
-      "end_date <= Date(2022, 6, 30)"
-    ],
-    "coverage_tags": [
-      "ineq_window"
-    ],
-    "id": "1763103212-19"
-  },
-  {
-    "description": "Narrow window around month boundaries with period adjustments",
-    "constraints": [
-      "base_date >= Date(2025, 1, 28)",
-      "base_date <= Date(2025, 2, 3)",
-      [
-        "base_date + Period(0, 0, 1) > Date(2025, 1, 31)",
-        "base_date + Period(0, 0, 1) < Date(2025, 2, 1)"
-      ]
-    ],
-    "coverage_tags": [
-      "ineq_window"
-    ],
-    "id": "1763103212-20"
-  },
-  {
-    "description": "Tight inequality window around February 29, 2020 (leap year)",
-    "constraints": [
-      "x >= Date(2020, 2, 28)",
-      "x <= Date(2020, 3, 1)",
-      [
-        "x == Date(2020, 2, 29)",
-        "x == Date(2020, 2, 28)"
-      ]
-    ],
-    "coverage_tags": [
-      "ineq_window"
-    ],
-    "id": "1763103212-21"
-  },
-  {
-    "description": "Narrow inequality window with multiple variables forming a chain",
-    "constraints": [
-      "x >= Date(2010, 6, 15)",
-      "x <= Date(2010, 6, 20)",
-      "y == x + Period(0, 0, 3)",
-      "z == y + Period(0, 0, 2)",
-      "z <= Date(2010, 6, 25)"
-    ],
-    "coverage_tags": [
-      "ineq_window"
-    ],
-    "id": "1763103212-22"
-  },
-  {
-    "description": "Inequality window with period calculations crossing month boundaries",
-    "constraints": [
-      "x >= Date(2023, 1, 29)",
-      "x <= Date(2023, 1, 31)",
+      "x == Date(2023, 1, 31)",
       "y == x + Period(0, 1, 0)",
-      [
-        "y == Date(2023, 2, 28)",
-        "y == Date(2023, 3, 1)"
-      ],
-      "z == y + Period(0, 0, 15)",
-      "z <= Date(2023, 3, 16)"
+      "z == x + Period(0, 0, 28)",
+      "y != z",
+      "y == Date(2023, 2, 28)"
     ],
     "coverage_tags": [
-      "ineq_window"
+      "month_vs_days"
     ],
-    "id": "1763103212-23"
+    "id": "llm-month_vs_days-31",
+    "generated_id": "1766396659-11"
   },
   {
-    "description": "Tight inequality window with period arithmetic",
+    "description": "Month vs days comparison across 30-day and 31-day months",
+    "declarations": [
+      "a: date",
+      "b: date",
+      "c: date",
+      "d: date"
+    ],
     "constraints": [
-      "x >= Date(2022, 12, 30)",
-      "x <= Date(2023, 1, 2)",
+      "a == Date(2020, 4, 15)",
+      "b == a + Period(0, 1, 0)",
+      "c == a + Period(0, 0, 30)",
+      "b != c",
+      "b == Date(2020, 5, 15)",
+      "c == Date(2020, 5, 15)",
+      "d == a + Period(0, 0, 31)"
+    ],
+    "coverage_tags": [
+      "month_vs_days"
+    ],
+    "id": "llm-month_vs_days-32",
+    "generated_id": "1766396659-12"
+  },
+  {
+    "description": "Complex multi-variable month vs days with varying starting dates",
+    "declarations": [
+      "x: date",
+      "y: date",
+      "z: date",
+      "w: date",
+      "v: date"
+    ],
+    "constraints": [
+      "x >= Date(2019, 1, 28)",
+      "x <= Date(2019, 1, 31)",
       "y == x + Period(0, 1, 0)",
-      "y != Date(2023, 2, 1)"
+      "z == x + Period(0, 0, 28)",
+      "y > z",
+      "w == x + Period(0, 2, 0)",
+      "v == x + Period(0, 0, 59)",
+      "w != v",
+      "(y.month == 2) && (z.month == 2)",
+      "w.month == 3"
     ],
     "coverage_tags": [
-      "ineq_window"
+      "month_vs_days"
     ],
-    "id": "1763103212-24"
+    "id": "llm-month_vs_days-33",
+    "generated_id": "1766396659-13"
   },
   {
-    "description": "Complex inequality window with multiple variables and OR conditions",
+    "description": "Leap year February month vs days contradiction (UNSAT)",
+    "declarations": [
+      "x: date",
+      "y: date",
+      "z: date"
+    ],
     "constraints": [
-      [
-        "x >= Date(2024, 2, 27)",
-        "x <= Date(2024, 2, 25)"
-      ],
-      "x <= Date(2024, 3, 2)",
-      "y == x + Period(0, 0, 5)",
-      [
-        "y <= Date(2024, 3, 5)",
-        "y >= Date(2024, 3, 7)"
-      ],
-      "z == y + Period(0, 1, 0)",
-      "z != Date(2024, 4, 5)"
+      "x == Date(2024, 1, 29)",
+      "y == x + Period(0, 1, 0)",
+      "z == x + Period(0, 0, 31)",
+      "y == Date(2024, 2, 29)",
+      "z == Date(2024, 2, 29)",
+      "y != z"
     ],
     "coverage_tags": [
-      "ineq_window"
+      "month_vs_days"
     ],
-    "id": "1763103212-25"
+    "id": "llm-month_vs_days-34",
+    "generated_id": "1766396659-14"
   },
   {
-    "description": "Testing leap year boundary conditions for February 29th",
+    "description": "Year boundary month vs days with December to January",
+    "declarations": [
+      "start: date",
+      "month_add: date",
+      "days_add: date",
+      "check: date"
+    ],
     "constraints": [
-      "x >= Date(2020, 2, 28)",
-      "x <= Date(2020, 3, 1)",
-      "x != Date(2020, 3, 1)",
-      [
-        "x == Date(2020, 2, 28)",
-        "x == Date(2020, 2, 29)"
-      ]
+      "start == Date(2021, 11, 30)",
+      "month_add == start + Period(0, 1, 0)",
+      "days_add == start + Period(0, 0, 30)",
+      "month_add == Date(2021, 12, 30)",
+      "days_add == Date(2021, 12, 30)",
+      "check == start + Period(0, 2, 0)",
+      "(check.year == 2022) && (check.month == 1)",
+      "check != (start + Period(0, 0, 61))"
     ],
     "coverage_tags": [
-      "leap_year"
+      "month_vs_days"
     ],
-    "id": "1763102272-1"
+    "id": "llm-month_vs_days-35",
+    "generated_id": "1766396659-15"
   },
   {
-    "description": "Comparing leap year February with non-leap year February",
+    "description": "February month boundary: adding 1 month from Jan 31 vs adding 28 days",
+    "declarations": [
+      "jan_end: date",
+      "feb_month: date",
+      "feb_days: date"
+    ],
     "constraints": [
-      "x == Date(2020, 2, 1)",
-      "y == Date(2019, 2, 1)",
-      "(x + Period(0, 0, 28)) == Date(2020, 2, 29)",
-      "(y + Period(0, 0, 28)) > Date(2019, 2, 28)",
-      "z == (x + Period(0, 0, 29))",
-      "z != (y + Period(0, 0, 29))"
+      "jan_end == Date(2023, 1, 31)",
+      "feb_month == jan_end + Period(0, 1, 0)",
+      "feb_days == jan_end + Period(0, 0, 28)",
+      "feb_month != feb_days",
+      "feb_month > feb_days",
+      "feb_month == Date(2023, 2, 28)",
+      "feb_days == Date(2023, 2, 28)"
     ],
     "coverage_tags": [
-      "leap_year"
+      "month_vs_days"
     ],
-    "id": "1763102272-2"
+    "id": "llm-month_vs_days-36",
+    "generated_id": "1766396659-16"
   },
   {
-    "description": "Testing leap year period calculations across 4-year cycles",
+    "description": "Comparing 1 month vs 30 days across April boundary",
+    "declarations": [
+      "march_start: date",
+      "april_month: date",
+      "april_days: date",
+      "check: date"
+    ],
     "constraints": [
-      "start_date == Date(2020, 2, 29)",
-      "end_date == (start_date + Period(4, 0, 0))",
-      "end_date == Date(2024, 2, 29)"
+      "march_start == Date(2022, 3, 15)",
+      "april_month == march_start + Period(0, 1, 0)",
+      "april_days == march_start + Period(0, 0, 31)",
+      "april_month == Date(2022, 4, 15)",
+      "april_days > april_month",
+      "check == march_start + Period(0, 0, 30)"
     ],
     "coverage_tags": [
-      "leap_year"
+      "month_vs_days"
     ],
-    "id": "1763102272-3"
+    "id": "llm-month_vs_days-37",
+    "generated_id": "1766396659-17"
   },
   {
-    "description": "Verifying leap year existence in century years",
+    "description": "Three months vs 90 days showing inequality across different month lengths",
+    "declarations": [
+      "start: date",
+      "three_months: date",
+      "ninety_days: date"
+    ],
     "constraints": [
-      "date1900 == Date(1900, 2, 28)",
-      "(date1900 + Period(0, 0, 1)) == Date(1900, 3, 1)",
-      "date2000 == Date(2000, 2, 28)",
-      "(date2000 + Period(0, 0, 1)) == Date(2000, 2, 29)",
-      [
-        "date1900 + Period(0, 0, 1) == Date(1900, 2, 29)",
-        "date2000 + Period(0, 0, 2) == Date(2000, 3, 1)"
-      ]
+      "start == Date(2020, 1, 31)",
+      "three_months == start + Period(0, 3, 0)",
+      "ninety_days == start + Period(0, 0, 90)",
+      "three_months == Date(2020, 4, 30)",
+      "ninety_days != three_months",
+      "(start + Period(0, 1, 0)) == Date(2020, 2, 29)",
+      "(start + Period(0, 2, 0)) == Date(2020, 3, 31)",
+      "ninety_days < three_months"
     ],
     "coverage_tags": [
-      "leap_year"
+      "month_vs_days"
     ],
-    "id": "1763102272-4"
+    "id": "llm-month_vs_days-38",
+    "generated_id": "1766396659-18"
   },
   {
-    "description": "Leap year calculations with multiple period operations",
+    "description": "Leap year February: 1 month vs 29 days from leap day",
+    "declarations": [
+      "leap_day: date",
+      "next_month: date"
+    ],
     "constraints": [
-      "leap_date == Date(2020, 2, 29)",
-      "(leap_date + Period(1, 0, 0)) == Date(2021, 2, 28)",
-      "(leap_date + Period(4, 0, 0)) == Date(2024, 2, 29)",
-      "next_date == (leap_date + Period(0, 0, 1))",
-      "next_date == Date(2020, 3, 1)"
+      "leap_day == Date(2000, 2, 29)",
+      "next_month == leap_day + Period(0, 1, 0)",
+      "next_month == Date(2000, 3, 29)",
+      "(leap_day + Period(0, 0, 29)) != next_month",
+      "(leap_day + Period(0, 0, 29)) < next_month"
     ],
     "coverage_tags": [
-      "leap_year"
+      "month_vs_days"
     ],
-    "id": "1763102272-5"
+    "id": "llm-month_vs_days-39",
+    "generated_id": "1766396659-19"
   },
   {
-    "description": "Testing leap year date existence in 2020 (leap year)",
+    "description": "Year boundary: December to January month vs days comparison with multiple checkpoints",
+    "declarations": [
+      "dec_start: date",
+      "jan_month: date",
+      "jan_days: date",
+      "mid_check: date",
+      "end_check: date"
+    ],
     "constraints": [
-      "x >= Date(2020, 2, 28)",
-      "x <= Date(2020, 3, 1)",
-      "x != Date(2020, 2, 29)"
+      "dec_start == Date(2021, 12, 15)",
+      "jan_month == dec_start + Period(0, 1, 0)",
+      "jan_days == dec_start + Period(0, 0, 31)",
+      "jan_month == Date(2022, 1, 15)",
+      "jan_days == Date(2022, 1, 15)",
+      "mid_check == dec_start + Period(0, 0, 15)",
+      "mid_check == Date(2021, 12, 30)",
+      "end_check == dec_start + Period(0, 0, 20)",
+      "(jan_month + Period(0, 1, 0)) != (jan_days + Period(0, 0, 28))",
+      "(dec_start + Period(0, 2, 0)) > (dec_start + Period(0, 0, 59))"
     ],
     "coverage_tags": [
-      "leap_year"
+      "month_vs_days"
     ],
-    "id": "1763102272-6"
+    "id": "llm-month_vs_days-40",
+    "generated_id": "1766396659-20"
   },
   {
-    "description": "Comparing date arithmetic across leap year boundary in 2024",
-    "constraints": [
-      "start_date == Date(2024, 2, 15)",
-      "end_date == start_date + Period(0, 0, 20)",
-      "mid_date == start_date + Period(0, 0, 14)",
-      "end_date == Date(2024, 3, 6)",
-      "mid_date == Date(2024, 2, 29)"
+    "description": "Leap year property checks with one year period addition",
+    "declarations": [
+      "x: date",
+      "y: date"
     ],
-    "coverage_tags": [
-      "leap_year"
-    ],
-    "id": "1763102272-7"
-  },
-  {
-    "description": "Testing leap year vs non-leap year February transitions",
-    "constraints": [
-      "leap_date == Date(2020, 2, 29)",
-      "non_leap_date == Date(2021, 2, 28)",
-      "leap_date + Period(0, 0, 1) == Date(2020, 3, 1)",
-      "non_leap_date + Period(0, 0, 1) == Date(2021, 3, 1)",
-      "leap_date - Period(0, 0, 1) == Date(2020, 2, 28)",
-      "non_leap_date - Period(0, 0, 1) == Date(2021, 2, 27)"
-    ],
-    "coverage_tags": [
-      "leap_year"
-    ],
-    "id": "1763102272-8"
-  },
-  {
-    "description": "Leap year date arithmetic with multiple variables",
-    "constraints": [
-      "x == Date(2016, 2, 29)",
-      "y == x + Period(1, 0, 0)",
-      "z == x + Period(4, 0, 0)",
-      [
-        "y == Date(2017, 2, 28)",
-        "y == Date(2017, 3, 1)"
-      ]
-    ],
-    "coverage_tags": [
-      "leap_year"
-    ],
-    "id": "1763102272-9"
-  },
-  {
-    "description": "Complex leap year constraints with OR clauses",
-    "constraints": [
-      "base_date == Date(2000, 1, 15)",
-      [
-        "base_date + Period(0, 1, 14) == Date(2000, 2, 29)",
-        "base_date + Period(0, 1, 15) == Date(2000, 3, 1)"
-      ],
-      "leap_century == Date(2000, 2, 29)",
-      [
-        "leap_century + Period(100, 0, 0) == Date(2100, 2, 28)",
-        "leap_century + Period(100, 0, 0) == Date(2100, 3, 1)"
-      ],
-      "leap_century - Period(100, 0, 0) == Date(1900, 2, 28)",
-      [
-        "base_date + Period(0, 0, 45) >= Date(2000, 2, 29)",
-        "base_date + Period(0, 0, 45) <= Date(2000, 3, 1)"
-      ]
-    ],
-    "coverage_tags": [
-      "leap_year"
-    ],
-    "id": "1763102272-10"
-  },
-  {
-    "description": "Testing leap year February 29th existence in different years",
     "constraints": [
       "x == Date(2000, 2, 29)",
-      "y == Date(2001, 2, 28)",
-      [
-        "y + Period(0, 0, 1) == Date(2001, 3, 1)",
-        "y == Date(2001, 3, 1)"
-      ],
-      "z == Date(2004, 2, 29)",
-      "w == Date(2100, 2, 28)",
-      [
-        "w + Period(0, 0, 1) == Date(2100, 3, 1)",
-        "w == Date(2100, 3, 1)"
-      ]
+      "y == x + Period(1, 0, 0)",
+      "y.year == 2001",
+      "y.day == 28"
     ],
     "coverage_tags": [
-      "leap_year"
+      "property_access"
     ],
-    "id": "1763102272-11"
+    "id": "llm-property_access-41",
+    "generated_id": "1766408050-1"
   },
   {
-    "description": "Testing date arithmetic around leap year boundaries",
+    "description": "Conflicting property values creating impossible date (UNSAT)",
+    "declarations": [
+      "x: date",
+      "y: date",
+      "z: date"
+    ],
     "constraints": [
-      "start_date == Date(2020, 2, 28)",
-      "end_date == start_date + Period(0, 0, 1)",
-      "end_date == Date(2020, 2, 29)"
+      "x.year == 2000",
+      "x.month == 2",
+      "x.day == 30",
+      "y == x + Period(0, 1, 0)",
+      "z.year == 1999",
+      "z.month == 12",
+      "z.day == 31"
     ],
     "coverage_tags": [
-      "leap_year"
+      "property_access"
     ],
-    "id": "1763102272-12"
+    "id": "llm-property_access-42",
+    "generated_id": "1766408050-2"
   },
   {
-    "description": "Comparing leap year February with the following month",
+    "description": "Complex multi-variable property relationships across seasons",
+    "declarations": [
+      "a: date",
+      "b: date",
+      "c: date",
+      "d: date"
+    ],
     "constraints": [
-      "leap_date == Date(2016, 2, 29)",
-      "next_month == leap_date + Period(0, 1, 0)",
-      "next_month == Date(2016, 3, 29)",
-      "march_first == Date(2016, 3, 1)",
-      [
-        "leap_date + Period(0, 0, 1) == march_first",
-        "leap_date + Period(0, 0, 2) == march_first"
-      ]
+      "a == Date(2020, 3, 15)",
+      "b == a + Period(0, 3, 0)",
+      "c == b + Period(0, 3, 0)",
+      "d == c + Period(0, 3, 0)",
+      "a.month == 3",
+      "b.month == 6",
+      "c.month == 9",
+      "d.month == 12",
+      "a.year == b.year",
+      "d.day == 15"
     ],
     "coverage_tags": [
-      "leap_year"
+      "property_access"
     ],
-    "id": "1763102272-13"
+    "id": "llm-property_access-43",
+    "generated_id": "1766408050-3"
   },
   {
-    "description": "Testing the special case of February 29 across multiple leap years",
+    "description": "Impossible property combination after period addition (UNSAT)",
+    "declarations": [
+      "x: date",
+      "y: date"
+    ],
+    "constraints": [
+      "x == Date(2004, 2, 29)",
+      "y == x + Period(4, 0, 0)",
+      "x.year == 2004",
+      "y.year == 2008",
+      "y.month == 2",
+      "y.day == 30"
+    ],
+    "coverage_tags": [
+      "property_access"
+    ],
+    "id": "llm-property_access-44",
+    "generated_id": "1766408050-4"
+  },
+  {
+    "description": "Property-based date arithmetic over multiple year boundaries",
+    "declarations": [
+      "start: date",
+      "mid: date",
+      "end: date",
+      "check: date"
+    ],
+    "constraints": [
+      "start == Date(1999, 12, 31)",
+      "mid == start + Period(0, 0, 1)",
+      "end == mid + Period(1, 0, 0)",
+      "check == end + Period(0, 0, 365)",
+      "start.year == 1999",
+      "mid.year == 2000",
+      "end.year == 2001",
+      "check.year >= 2002"
+    ],
+    "coverage_tags": [
+      "property_access"
+    ],
+    "id": "llm-property_access-45",
+    "generated_id": "1766408050-5"
+  },
+  {
+    "description": "Leap year property verification with period addition",
+    "declarations": [
+      "x: date",
+      "y: date"
+    ],
+    "constraints": [
+      "x == Date(2000, 2, 29)",
+      "y == x + Period(1, 0, 0)",
+      "x.year == 2000",
+      "y.year == 2001",
+      "y.day == 28"
+    ],
+    "coverage_tags": [
+      "property_access"
+    ],
+    "id": "llm-property_access-46",
+    "generated_id": "1766408050-6"
+  },
+  {
+    "description": "Month boundary crossing with property checks across three dates",
+    "declarations": [
+      "start: date",
+      "end: date",
+      "mid: date"
+    ],
+    "constraints": [
+      "start == Date(2020, 1, 31)",
+      "end == start + Period(0, 1, 0)",
+      "mid == start + Period(0, 0, 15)",
+      "start.month == 1",
+      "end.month == 2",
+      "end.day == 29",
+      "mid.month == 2"
+    ],
+    "coverage_tags": [
+      "property_access"
+    ],
+    "id": "llm-property_access-47",
+    "generated_id": "1766408050-7"
+  },
+  {
+    "description": "Complex multi-variable date relationships with extensive property access",
+    "declarations": [
+      "a: date",
+      "b: date",
+      "c: date",
+      "d: date"
+    ],
+    "constraints": [
+      "a == Date(1950, 6, 15)",
+      "b == a + Period(0, 6, 0)",
+      "c == b + Period(1, 0, 0)",
+      "d == a + Period(1, 6, 0)",
+      "a.year == 1950",
+      "b.month == 12",
+      "c.year == b.year + 1",
+      "d.month == a.month",
+      "c.month == b.month",
+      "d.year == c.year"
+    ],
+    "coverage_tags": [
+      "property_access"
+    ],
+    "id": "llm-property_access-48",
+    "generated_id": "1766408050-8"
+  },
+  {
+    "description": "Unsatisfiable constraint set with impossible property combinations",
+    "declarations": [
+      "x: date",
+      "y: date"
+    ],
+    "constraints": [
+      "x == Date(2001, 2, 28)",
+      "y == x + Period(0, 0, 1)",
+      "x.month == 2",
+      "y.month == 2",
+      "y.day == 29",
+      "y.year == 2001"
+    ],
+    "coverage_tags": [
+      "property_access"
+    ],
+    "id": "llm-property_access-49",
+    "generated_id": "1766408050-9"
+  },
+  {
+    "description": "Period arithmetic verification using year and month properties",
+    "declarations": [
+      "base: date",
+      "next: date",
+      "future: date"
+    ],
+    "constraints": [
+      "base == Date(1975, 3, 31)",
+      "next == base + Period(0, 1, 0)",
+      "future == base + Period(5, 0, 0)",
+      "base.year == 1975",
+      "next.month == 4",
+      "next.day == 30",
+      "future.year == 1980",
+      "future.month == base.month"
+    ],
+    "coverage_tags": [
+      "property_access"
+    ],
+    "id": "llm-property_access-50",
+    "generated_id": "1766408050-10"
+  },
+  {
+    "description": "Leap year property validation with contradictory day constraints",
+    "declarations": [
+      "x: date"
+    ],
+    "constraints": [
+      "x == Date(2000, 2, 29)",
+      "x.year == 2000",
+      "x.month == 2",
+      "x.day > 29",
+      "x.day <= 29"
+    ],
+    "coverage_tags": [
+      "property_access"
+    ],
+    "id": "llm-property_access-51",
+    "generated_id": "1766408050-11"
+  },
+  {
+    "description": "Month boundary transition with property comparisons",
+    "declarations": [
+      "x: date",
+      "y: date"
+    ],
+    "constraints": [
+      "x == Date(2020, 1, 31)",
+      "y == x + Period(0, 1, 0)",
+      "y.year == 2020",
+      "y.month == 2",
+      "y.day == 29",
+      "x.day == 31",
+      "y.day < x.day"
+    ],
+    "coverage_tags": [
+      "property_access"
+    ],
+    "id": "llm-property_access-52",
+    "generated_id": "1766408050-12"
+  },
+  {
+    "description": "Multi-variable property relationships across leap year cycle",
+    "declarations": [
+      "x: date",
+      "y: date",
+      "z: date"
+    ],
     "constraints": [
       "x == Date(2000, 2, 29)",
       "y == x + Period(4, 0, 0)",
+      "z == x + Period(1, 0, 0)",
+      "x.year == 2000",
+      "y.year == 2004",
+      "z.year == 2001",
+      "x.month == y.month",
+      "z.month == 2",
+      "y.day == 30",
+      "z.day == 28"
+    ],
+    "coverage_tags": [
+      "property_access"
+    ],
+    "id": "llm-property_access-53",
+    "generated_id": "1766408050-13"
+  },
+  {
+    "description": "Year component arithmetic spanning 50 years",
+    "declarations": [
+      "a: date",
+      "b: date"
+    ],
+    "constraints": [
+      "a == Date(1950, 6, 15)",
+      "b == a + Period(50, 0, 0)",
+      "b.year == 2000",
+      "b.month == 6",
+      "b.day == 15",
+      "a.year < b.year"
+    ],
+    "coverage_tags": [
+      "property_access"
+    ],
+    "id": "llm-property_access-54",
+    "generated_id": "1766408050-14"
+  },
+  {
+    "description": "Impossible day component constraints for non-leap February",
+    "declarations": [
+      "x: date",
+      "y: date"
+    ],
+    "constraints": [
+      "x == Date(2001, 2, 28)",
+      "y == x + Period(0, 0, 1)",
+      "x.year == 2001",
+      "x.month == 2",
+      "y.month == 2",
+      "y.year == 2001",
+      "x.day == 28",
+      "y.day > 28"
+    ],
+    "coverage_tags": [
+      "property_access"
+    ],
+    "id": "llm-property_access-55",
+    "generated_id": "1766408050-15"
+  },
+  {
+    "description": "Leap year date transition with property verification on year boundary",
+    "declarations": [
+      "x: date",
+      "y: date"
+    ],
+    "constraints": [
+      "x == Date(2000, 2, 29)",
+      "y == x + Period(1, 0, 0)",
+      "y.year == x.year + 1",
+      "y.month == x.month",
+      "y.day == 28"
+    ],
+    "coverage_tags": [
+      "property_access"
+    ],
+    "id": "llm-property_access-56",
+    "generated_id": "1766408050-16"
+  },
+  {
+    "description": "Month boundary property checks across January to March transitions",
+    "declarations": [
+      "x: date",
+      "y: date",
+      "z: date"
+    ],
+    "constraints": [
+      "x == Date(2020, 1, 31)",
+      "y == x + Period(0, 1, 0)",
+      "z == x + Period(0, 2, 0)",
+      "y.month == 2",
+      "y.day == 29",
+      "z.month == 3",
+      "z.day == 31"
+    ],
+    "coverage_tags": [
+      "property_access"
+    ],
+    "id": "llm-property_access-57",
+    "generated_id": "1766408050-17"
+  },
+  {
+    "description": "Conflicting date component properties creating UNSAT scenario",
+    "declarations": [
+      "w: date",
+      "x: date",
+      "y: date",
+      "z: date"
+    ],
+    "constraints": [
+      "w == Date(2020, 2, 29)",
+      "w.year == 2020",
+      "w.day == 29",
+      "x == w + Period(1, 0, 0)",
+      "x.month == 2",
+      "x.day == 29",
+      "y == Date(2024, 3, 15)",
+      "y.month == 2",
+      "z == x + Period(0, 1, 0)",
+      "z.day == 29"
+    ],
+    "coverage_tags": [
+      "property_access"
+    ],
+    "id": "llm-property_access-58",
+    "generated_id": "1766408050-18"
+  },
+  {
+    "description": "Multi-decade year property relationships with range constraints",
+    "declarations": [
+      "x: date",
+      "y: date",
+      "z: date"
+    ],
+    "constraints": [
+      "x >= Date(1950, 6, 15)",
+      "x <= Date(1960, 6, 15)",
+      "y == x + Period(50, 0, 0)",
+      "y.year == x.year + 50",
+      "z == y + Period(25, 0, 0)",
+      "z.year >= 2025 && z.year <= 2035"
+    ],
+    "coverage_tags": [
+      "property_access"
+    ],
+    "id": "llm-property_access-59",
+    "generated_id": "1766408050-19"
+  },
+  {
+    "description": "Day property constraints across month variations in non-leap year",
+    "declarations": [
+      "a: date",
+      "b: date",
+      "c: date",
+      "d: date"
+    ],
+    "constraints": [
+      "a == Date(2019, 1, 31)",
+      "b == a + Period(0, 1, 0)",
+      "b.day == 28",
+      "b.month == 2",
+      "c == b + Period(0, 1, 0)",
+      "c.month == 3",
+      "c.day == 28",
+      "d == c + Period(0, 0, 3)"
+    ],
+    "coverage_tags": [
+      "property_access"
+    ],
+    "id": "llm-property_access-60",
+    "generated_id": "1766408050-20"
+  },
+  {
+    "description": "Symbolic year in date constructor linking leap year dates",
+    "declarations": [
+      "x: date",
+      "y: date"
+    ],
+    "constraints": [
+      "x == Date(2000, 2, 29)",
+      "y == Date(x.year + 4, 2, 29)",
+      "y == Date(2004, 2, 29)"
+    ],
+    "coverage_tags": [
+      "symbolic_date_vars"
+    ],
+    "id": "llm-symbolic_date_vars-61",
+    "generated_id": "1766397208-1"
+  },
+  {
+    "description": "Contradictory symbolic date construction with impossible year relationship",
+    "declarations": [
+      "x: date",
+      "y: date",
+      "z: date"
+    ],
+    "constraints": [
+      "x == Date(2020, 3, 15)",
+      "y == Date(x.year + 1, x.month, x.day)",
+      "z == Date(x.year + 2, x.month, x.day)",
+      "y == Date(2021, 3, 15)",
+      "z == Date(2023, 3, 15)",
+      "z == Date(2022, 3, 15)"
+    ],
+    "coverage_tags": [
+      "symbolic_date_vars"
+    ],
+    "id": "llm-symbolic_date_vars-62",
+    "generated_id": "1766397208-2"
+  },
+  {
+    "description": "Complex symbolic date relationships across leap and non-leap years",
+    "declarations": [
+      "w: date",
+      "x: date",
+      "y: date",
+      "z: date"
+    ],
+    "constraints": [
+      "w == Date(2000, 2, 29)",
+      "x == Date(w.year + 1, w.month, 28)",
+      "y == Date(l, w.month, w.day)",
+      "z == Date(w.year + 100, w.month, 28)",
+      "x.year == 2001",
+      "l >= 2004",
+      "z.year == 2100",
+      "x.month == 2",
       "y == Date(2004, 2, 29)",
-      "z == y + Period(4, 0, 0)",
-      "z == Date(2008, 2, 29)"
-    ],
-    "coverage_tags": [
-      "leap_year"
-    ],
-    "id": "1763102272-14"
-  },
-  {
-    "description": "Handling the century rule for leap years (divisible by 400)",
-    "constraints": [
-      "century1900 == Date(1900, 2, 28)",
-      [
-        "century1900 + Period(0, 0, 1) == Date(1900, 3, 1)",
-        "century1900 == Date(1900, 3, 1)"
-      ],
-      "century2000 == Date(2000, 2, 29)",
-      "century2000 + Period(0, 0, 1) == Date(2000, 3, 1)",
-      "century2100 == Date(2100, 2, 28)",
-      [
-        "century2100 + Period(0, 0, 1) == Date(2100, 3, 1)",
-        "century2100 == Date(2100, 3, 1)"
-      ]
-    ],
-    "coverage_tags": [
-      "leap_year"
-    ],
-    "id": "1763102272-15"
-  },
-  {
-    "description": "Testing leap year February 29 existence across different years",
-    "constraints": [
-      "x == Date(2020, 2, 29)",
-      "y == Date(2019, 2, 28) + Period(1, 0, 1)",
       "z == Date(2100, 2, 28)"
     ],
     "coverage_tags": [
-      "leap_year"
+      "symbolic_date_vars"
     ],
-    "id": "1763102272-16"
+    "id": "llm-symbolic_date_vars-63",
+    "generated_id": "1766397208-3"
   },
   {
-    "description": "Comparing February dates across leap and non-leap years",
+    "description": "Impossible symbolic date construction for February 30th",
+    "declarations": [
+      "x: date",
+      "y: date"
+    ],
     "constraints": [
-      "start_date == Date(2020, 2, 1)",
-      "leap_date == start_date + Period(0, 0, 28)",
-      "nonleap_date == Date(2021, 2, 1) + Period(0, 0, 28)",
-      "leap_date == Date(2020, 2, 29)",
-      "nonleap_date == Date(2021, 2, 28)",
-      "leap_date + Period(0, 0, 1) == Date(2020, 3, 1)"
+      "x == Date(2020, 1, 30)",
+      "y == Date(x.year, 2, x.day)",
+      "x.day == 30"
     ],
     "coverage_tags": [
-      "leap_year"
+      "symbolic_date_vars"
     ],
-    "id": "1763102272-17"
+    "id": "llm-symbolic_date_vars-64",
+    "generated_id": "1766397208-4"
   },
   {
-    "description": "Leap year boundary conditions with OR clauses",
+    "description": "Symbolic dates with period arithmetic and cross-references",
+    "declarations": [
+      "a: date",
+      "b: date",
+      "c: date",
+      "d: date"
+    ],
     "constraints": [
-      [
-        "x == Date(2020, 2, 29)",
-        "x == Date(2024, 2, 29)",
-        "x == Date(2028, 2, 29)"
-      ],
-      "x + Period(1, 0, 0) != Date(2021, 2, 29)",
-      "x + Period(1, 0, 0) == Date(2021, 3, 1)",
-      "x + Period(4, 0, 0) == x"
+      "a == Date(1950, 6, 15)",
+      "b == Date(a.year + 10, a.month, a.day)",
+      "c == Date(a.year + 20, a.month + 1, a.day - 5)",
+      "d == a + Period(50, 0, 0)",
+      "b == Date(1960, 6, 15)",
+      "c == Date(1970, 7, 10)",
+      "d == Date(2000, 6, 15)",
+      "c.day == 10"
     ],
     "coverage_tags": [
-      "leap_year"
+      "symbolic_date_vars"
     ],
-    "id": "1763102272-18"
+    "id": "llm-symbolic_date_vars-65",
+    "generated_id": "1766397208-5"
   },
   {
-    "description": "Multiple leap year date variables with constraints",
-    "constraints": [
-      "leap_day_2020 == Date(2020, 2, 29)",
-      "leap_day_2024 == Date(2024, 2, 29)",
-      "leap_day_2020 + Period(4, 0, 0) == leap_day_2024",
-      "leap_day_2020 + Period(0, 12, 0) != Date(2021, 2, 29)",
-      [
-        "leap_day_2020 + Period(0, 12, 0) == Date(2021, 3, 1)",
-        "leap_day_2020 + Period(0, 12, 0) == Date(2021, 2, 28)"
-      ]
+    "description": "Symbolic year in leap year date with 4-year cycle verification",
+    "declarations": [
+      "x: date",
+      "y: date",
+      "z: date"
     ],
-    "coverage_tags": [
-      "leap_year"
-    ],
-    "id": "1763102272-19"
-  },
-  {
-    "description": "Century leap year rules with 2100 not being a leap year",
-    "constraints": [
-      "d1 == Date(2096, 2, 29)",
-      "d2 == Date(2100, 2, 28)",
-      [
-        "d1 + Period(4, 0, 0) == Date(2100, 3, 1)",
-        "d1 + Period(4, 0, 0) == Date(2100, 2, 28)"
-      ],
-      "d3 == d1 + Period(8, 0, 0)",
-      "d3 == Date(2104, 2, 29)",
-      "d2 + Period(4, 0, 0) == Date(2104, 2, 28)"
-    ],
-    "coverage_tags": [
-      "leap_year"
-    ],
-    "id": "1763102272-20"
-  },
-  {
-    "description": "Checking if a date is February 29 in a leap year",
-    "constraints": [
-      "x >= Date(2000, 2, 28)",
-      "x <= Date(2000, 3, 1)",
-      "x != Date(2000, 3, 1)",
-      "x != Date(2000, 2, 28)",
-      "x == Date(2000, 2, 29)"
-    ],
-    "coverage_tags": [
-      "leap_year"
-    ],
-    "id": "1763102272-21"
-  },
-  {
-    "description": "Testing leap year boundary conditions with multiple variables",
-    "constraints": [
-      "x == Date(2020, 2, 29)",
-      "y == x + Period(1, 0, 0)",
-      "y == Date(2021, 2, 28)"
-    ],
-    "coverage_tags": [
-      "leap_year"
-    ],
-    "id": "1763102272-22"
-  },
-  {
-    "description": "Comparing leap year date arithmetic with non-leap year",
-    "constraints": [
-      "start_date == Date(2019, 2, 28)",
-      "leap_date == Date(2020, 2, 28)",
-      "start_date + Period(0, 0, 1) == Date(2019, 3, 1)",
-      "leap_date + Period(0, 0, 1) == Date(2020, 2, 29)",
-      [
-        "leap_date + Period(0, 0, 2) == Date(2020, 3, 1)",
-        "leap_date + Period(0, 0, 2) == Date(2020, 3, 2)"
-      ],
-      "leap_date + Period(1, 0, 0) == Date(2021, 2, 28)"
-    ],
-    "coverage_tags": [
-      "leap_year"
-    ],
-    "id": "1763102272-23"
-  },
-  {
-    "description": "Checking leap year cycles with 4-year and 100-year rules",
     "constraints": [
       "x == Date(2000, 2, 29)",
-      "y == x + Period(4, 0, 0)",
-      "z == x + Period(100, 0, 0)",
-      "y == Date(2004, 2, 29)",
-      [
-        "z == Date(2100, 2, 28)",
-        "z == Date(2100, 3, 1)"
-      ]
-    ],
-    "coverage_tags": [
-      "leap_year"
-    ],
-    "id": "1763102272-24"
-  },
-  {
-    "description": "Testing leap year date arithmetic with various periods",
-    "constraints": [
-      "x == Date(2020, 2, 29)",
-      "x + Period(0, 12, 0) == Date(2021, 2, 28)",
-      "x + Period(4, 0, 0) == Date(2024, 2, 29)",
-      "x + Period(1, 0, 0) + Period(3, 0, 0) == Date(2024, 2, 29)",
-      "x + Period(0, 0, 366) == Date(2021, 3, 1)",
-      "x + Period(0, 0, 365) == Date(2021, 2, 28)"
-    ],
-    "coverage_tags": [
-      "leap_year"
-    ],
-    "id": "1763102272-25"
-  },
-  {
-    "description": "Testing month vs days in February (28 days vs 1 month)",
-    "constraints": [
-      "x >= Date(2023, 1, 28)",
-      "x <= Date(2023, 1, 31)",
-      "(x + Period(0, 1, 0)) != (x + Period(0, 0, 28))",
-      "(x + Period(0, 1, 0)) > (x + Period(0, 0, 28))",
-      "y == x + Period(0, 1, 0)",
-      "z == x + Period(0, 0, 28)"
-    ],
-    "coverage_tags": [
-      "month_vs_days"
-    ],
-    "id": "1763102795-1"
-  },
-  {
-    "description": "Month vs days comparison across month boundaries with 31 days",
-    "constraints": [
-      "x == Date(2023, 7, 15)",
-      "(x + Period(0, 1, 0)) != (x + Period(0, 0, 31))",
-      "(x + Period(0, 1, 0)) < (x + Period(0, 0, 31))"
-    ],
-    "coverage_tags": [
-      "month_vs_days"
-    ],
-    "id": "1763102795-2"
-  },
-  {
-    "description": "Month vs days with variable constraints and OR clauses",
-    "constraints": [
-      [
-        "x >= Date(2023, 3, 1)",
-        "x <= Date(2023, 3, 15)"
-      ],
-      "y == x + Period(0, 1, 0)",
-      "z == x + Period(0, 0, 30)",
-      "y != z"
-    ],
-    "coverage_tags": [
-      "month_vs_days"
-    ],
-    "id": "1763102795-3"
-  },
-  {
-    "description": "Multiple month additions vs equivalent days in April (30 days)",
-    "constraints": [
-      "x == Date(2023, 4, 1)",
-      "y == x + Period(0, 2, 0)",
-      "z == x + Period(0, 0, 60)",
-      "y != z",
-      [
-        "y < z",
-        "y > z + Period(0, 0, 1)"
-      ]
-    ],
-    "coverage_tags": [
-      "month_vs_days"
-    ],
-    "id": "1763102795-4"
-  },
-  {
-    "description": "Month vs days in leap year February",
-    "constraints": [
-      "x == Date(2020, 1, 31)",
-      "y == x + Period(0, 1, 0)",
-      "z == x + Period(0, 0, 29)",
-      "y != z"
-    ],
-    "coverage_tags": [
-      "month_vs_days"
-    ],
-    "id": "1763102795-5"
-  },
-  {
-    "description": "Testing month vs days equivalence around month boundaries",
-    "constraints": [
-      "x >= Date(2022, 1, 1)",
-      "x <= Date(2022, 1, 31)",
-      "(x + Period(0, 1, 0)) != (x + Period(0, 0, 31))",
-      "(x + Period(0, 1, 0)) == (x + Period(0, 0, 30))",
-      "y == x + Period(0, 1, 0)"
-    ],
-    "coverage_tags": [
-      "month_vs_days"
-    ],
-    "id": "1763102795-6"
-  },
-  {
-    "description": "February month vs days comparison with leap year consideration",
-    "constraints": [
-      "x == Date(2020, 1, 31)",
-      "(x + Period(0, 1, 0)) == Date(2020, 2, 29)",
-      "(x + Period(0, 0, 29)) != (x + Period(0, 1, 0))"
-    ],
-    "coverage_tags": [
-      "month_vs_days"
-    ],
-    "id": "1763102795-7"
-  },
-  {
-    "description": "Complex month vs days comparison across multiple variables",
-    "constraints": [
-      "x >= Date(2023, 3, 15)",
-      "x <= Date(2023, 3, 31)",
-      "y == x + Period(0, 1, 0)",
-      "z == x + Period(0, 0, 30)",
-      "y != z",
-      [
-        "x == Date(2023, 3, 31)",
-        "x == Date(2023, 3, 30)"
-      ]
-    ],
-    "coverage_tags": [
-      "month_vs_days"
-    ],
-    "id": "1763102795-8"
-  },
-  {
-    "description": "Month vs days comparison across year boundary",
-    "constraints": [
-      "x == Date(2021, 12, 31)",
-      "y == x + Period(0, 1, 0)",
-      "z == x + Period(0, 0, 31)",
-      "y == Date(2022, 1, 31)",
-      "z == Date(2022, 1, 31)",
-      "w == y + Period(0, 1, 0)",
-      "w != (z + Period(0, 0, 31))"
-    ],
-    "coverage_tags": [
-      "month_vs_days"
-    ],
-    "id": "1763102795-9"
-  },
-  {
-    "description": "Month vs days with multiple OR conditions",
-    "constraints": [
-      [
-        "x == Date(2023, 1, 31)",
-        "x == Date(2023, 3, 31)",
-        "x == Date(2023, 5, 31)"
-      ],
-      "y == x + Period(0, 1, 0)",
-      "z == x + Period(0, 0, 30)",
-      [
-        "y != z",
-        "x == Date(2023, 2, 28)"
-      ]
-    ],
-    "coverage_tags": [
-      "month_vs_days"
-    ],
-    "id": "1763102795-10"
-  },
-  {
-    "description": "Testing month vs days in February (28 days vs 1 month)",
-    "constraints": [
-      "x >= Date(2023, 1, 28)",
-      "x <= Date(2023, 1, 31)",
-      "(x + Period(0, 1, 0)) != (x + Period(0, 0, 28))"
-    ],
-    "coverage_tags": [
-      "month_vs_days"
-    ],
-    "id": "1763102795-11"
-  },
-  {
-    "description": "Comparing month addition vs day addition across different months",
-    "constraints": [
-      "start_date == Date(2023, 3, 31)",
-      "end_date_months == start_date + Period(0, 2, 0)",
-      "end_date_days == start_date + Period(0, 0, 61)",
-      "end_date_months != end_date_days",
-      [
-        "end_date_months == Date(2023, 5, 31)",
-        "end_date_months == Date(2023, 5, 30)"
-      ]
-    ],
-    "coverage_tags": [
-      "month_vs_days"
-    ],
-    "id": "1763102795-12"
-  },
-  {
-    "description": "Month vs days comparison with multiple variables and leap year",
-    "constraints": [
-      "date1 == Date(2020, 1, 31)",
-      "date2 == date1 + Period(0, 1, 0)",
-      "date3 == date1 + Period(0, 0, 29)",
-      "date4 == date1 + Period(0, 0, 31)",
-      "date2 != date3",
-      "date2 != date4"
-    ],
-    "coverage_tags": [
-      "month_vs_days"
-    ],
-    "id": "1763102795-13"
-  },
-  {
-    "description": "Month vs days with 30-day months",
-    "constraints": [
-      "start_date == Date(2023, 4, 30)",
-      "date_plus_month == start_date + Period(0, 1, 0)",
-      "date_plus_days == start_date + Period(0, 0, 30)",
-      [
-        "date_plus_month == Date(2023, 5, 30)",
-        "date_plus_month == Date(2023, 5, 31)"
-      ]
-    ],
-    "coverage_tags": [
-      "month_vs_days"
-    ],
-    "id": "1763102795-14"
-  },
-  {
-    "description": "Complex month vs days comparison with multiple periods",
-    "constraints": [
-      "base_date >= Date(2022, 1, 1)",
-      "base_date <= Date(2022, 12, 31)",
-      "(base_date + Period(0, 3, 0)) != (base_date + Period(0, 0, 90))",
-      "(base_date + Period(0, 6, 0)) != (base_date + Period(0, 0, 180))",
-      "(base_date + Period(0, 12, 0)) != (base_date + Period(0, 0, 365))",
-      [
-        "base_date == Date(2022, 1, 31)",
-        "base_date == Date(2022, 3, 31)",
-        "base_date == Date(2022, 5, 31)"
-      ]
-    ],
-    "coverage_tags": [
-      "month_vs_days"
-    ],
-    "id": "1763102795-15"
-  },
-  {
-    "description": "Testing that adding 1 month doesn't always equal adding 30 days",
-    "constraints": [
-      "x == Date(2023, 1, 31)",
-      "y == x + Period(0, 1, 0)",
-      "z == x + Period(0, 0, 30)",
-      "y != z"
-    ],
-    "coverage_tags": [
-      "month_vs_days"
-    ],
-    "id": "1763102795-16"
-  },
-  {
-    "description": "Comparing month addition across different month lengths",
-    "constraints": [
-      "start_date == Date(2023, 1, 30)",
-      "feb_date == start_date + Period(0, 1, 0)",
-      "march_date == feb_date + Period(0, 1, 0)",
-      "thirty_days == start_date + Period(0, 0, 30)",
-      "sixty_days == start_date + Period(0, 0, 60)",
-      "march_date != sixty_days"
-    ],
-    "coverage_tags": [
-      "month_vs_days"
-    ],
-    "id": "1763102795-17"
-  },
-  {
-    "description": "Month vs days comparison with leap year February",
-    "constraints": [
-      "base == Date(2020, 1, 31)",
-      "one_month_later == base + Period(0, 1, 0)",
-      "days_later == base + Period(0, 0, 29)"
-    ],
-    "coverage_tags": [
-      "month_vs_days"
-    ],
-    "id": "1763102795-18"
-  },
-  {
-    "description": "Complex month vs days comparison with multiple variables",
-    "constraints": [
-      "start_date >= Date(2023, 4, 1)",
-      "start_date <= Date(2023, 4, 30)",
-      "one_month_later == start_date + Period(0, 1, 0)",
-      "thirty_days_later == start_date + Period(0, 0, 30)",
-      [
-        "one_month_later > thirty_days_later",
-        "one_month_later < thirty_days_later"
-      ]
-    ],
-    "coverage_tags": [
-      "month_vs_days"
-    ],
-    "id": "1763102795-19"
-  },
-  {
-    "description": "Month vs days with February in non-leap year",
-    "constraints": [
-      "x == Date(2023, 1, 31)",
-      "feb_with_month == x + Period(0, 1, 0)",
-      "feb_with_days == x + Period(0, 0, 28)",
-      "march_with_month == x + Period(0, 2, 0)",
-      "march_with_days == x + Period(0, 0, 59)",
-      "march_with_month != march_with_days"
-    ],
-    "coverage_tags": [
-      "month_vs_days"
-    ],
-    "id": "1763102795-20"
-  },
-  {
-    "description": "Testing the difference between adding one month versus 30 days",
-    "constraints": [
-      "x == Date(2023, 1, 31)",
-      "y == x + Period(0, 1, 0)",
-      "z == x + Period(0, 0, 30)",
-      "y != z"
-    ],
-    "coverage_tags": [
-      "month_vs_days"
-    ],
-    "id": "1763102795-21"
-  },
-  {
-    "description": "Exploring month vs days differences across February in a leap year",
-    "constraints": [
-      "start_date == Date(2020, 1, 30)",
-      "date_plus_month == start_date + Period(0, 1, 0)",
-      "date_plus_30days == start_date + Period(0, 0, 30)",
-      "date_plus_31days == start_date + Period(0, 0, 31)",
-      "date_plus_month != date_plus_30days",
-      "date_plus_month != date_plus_31days"
-    ],
-    "coverage_tags": [
-      "month_vs_days"
-    ],
-    "id": "1763102795-22"
-  },
-  {
-    "description": "Comparing month addition vs day addition at month boundaries",
-    "constraints": [
-      "x == Date(2023, 4, 30)",
-      "y == x + Period(0, 1, 0)",
-      "z == x + Period(0, 0, 30)",
-      [
-        "y == Date(2023, 5, 30)",
-        "z == Date(2023, 5, 30)"
-      ],
-      "w == x + Period(0, 2, 0)",
-      "v == x + Period(0, 0, 60)"
-    ],
-    "coverage_tags": [
-      "month_vs_days"
-    ],
-    "id": "1763102795-23"
-  },
-  {
-    "description": "Month vs days addition across multiple variables with constraints",
-    "constraints": [
-      "start_date >= Date(2022, 1, 1)",
-      "start_date <= Date(2022, 12, 31)",
-      [
-        "end_date == start_date + Period(0, 1, 0)",
-        "end_date == start_date + Period(0, 0, 31)"
-      ]
-    ],
-    "coverage_tags": [
-      "month_vs_days"
-    ],
-    "id": "1763102795-24"
-  },
-  {
-    "description": "Complex month vs days comparison with multiple periods",
-    "constraints": [
-      "base_date == Date(2021, 8, 31)",
-      "date1 == base_date + Period(0, 6, 0)",
-      "date2 == base_date + Period(0, 0, 30 * 6)",
-      "date3 == base_date + Period(0, 3, 0) + Period(0, 3, 0)",
-      "date4 == base_date + Period(0, 0, 30 * 3) + Period(0, 0, 30 * 3)",
-      "date1 != date2"
-    ],
-    "coverage_tags": [
-      "month_vs_days"
-    ],
-    "id": "1763102795-25"
-  },
-  {
-    "description": "Three date variables with sequential month constraints",
-    "constraints": [
-      "x >= Date(2020, 1, 15)",
-      "y == x + Period(0, 1, 0)",
-      "z == y + Period(0, 1, 0)",
-      "z < Date(2020, 4, 1)"
-    ],
-    "coverage_tags": [
-      "multi_var"
-    ],
-    "id": "1763103301-1"
-  },
-  {
-    "description": "Two date variables with leap year February constraints",
-    "constraints": [
-      "x == Date(2020, 2, 28)",
-      "y == x + Period(0, 0, 1)",
-      "z == y + Period(0, 0, 1)",
-      "w == z + Period(0, 0, 1)",
-      "w == Date(2020, 3, 2)"
-    ],
-    "coverage_tags": [
-      "multi_var"
-    ],
-    "id": "1763103301-2"
-  },
-  {
-    "description": "Three date variables with complex period relationships",
-    "constraints": [
-      "start_date >= Date(2000, 1, 1)",
-      "start_date <= Date(2000, 12, 31)",
-      "mid_date == start_date + Period(0, 6, 0)",
-      "end_date == mid_date + Period(0, 6, 0)",
-      [
-        "end_date - start_date == Period(1, 0, 0)",
-        "end_date - start_date == Period(0, 12, 0)"
-      ],
-      "end_date <= Date(2001, 12, 31)"
-    ],
-    "coverage_tags": [
-      "multi_var"
-    ],
-    "id": "1763103301-3"
-  },
-  {
-    "description": "Multiple variables with month-end rollover constraints",
-    "constraints": [
-      "date1 == Date(2021, 1, 31)",
-      "date2 == date1 + Period(0, 1, 0)",
-      "date3 == date1 + Period(0, 2, 0)",
-      "date2 == Date(2021, 2, 28)"
-    ],
-    "coverage_tags": [
-      "multi_var"
-    ],
-    "id": "1763103301-4"
-  },
-  {
-    "description": "Complex constraints between three variables with OR clauses",
-    "constraints": [
-      [
-        "x >= Date(2022, 1, 1)",
-        "x <= Date(2021, 12, 31)"
-      ],
-      "y == x + Period(0, 3, 0)",
-      [
-        "z == y + Period(0, 3, 0)",
-        "z == y + Period(0, 4, 0)"
-      ],
-      [
-        "x + Period(1, 0, 0) == z + Period(0, 6, 0)",
-        "x + Period(0, 12, 0) == z + Period(0, 5, 0)"
-      ],
-      "x < Date(2023, 1, 1)"
-    ],
-    "coverage_tags": [
-      "multi_var"
-    ],
-    "id": "1763103301-5"
-  },
-  {
-    "description": "Three date variables with sequential constraints and leap year consideration",
-    "constraints": [
-      "x >= Date(2020, 2, 28)",
-      "y == x + Period(0, 0, 1)",
-      "z == y + Period(0, 0, 1)",
-      "z <= Date(2020, 3, 1)"
-    ],
-    "coverage_tags": [
-      "multi_var"
-    ],
-    "id": "1763103301-6"
-  },
-  {
-    "description": "Complex relationship between three date variables with month-based periods",
-    "constraints": [
-      "start_date >= Date(2023, 1, 1)",
-      "start_date <= Date(2023, 12, 31)",
-      "mid_date == start_date + Period(0, 3, 0)",
-      "end_date == mid_date + Period(0, 6, 0)",
-      "end_date <= Date(2024, 12, 31)",
-      "(end_date - start_date) == Period(0, 9, 0)"
-    ],
-    "coverage_tags": [
-      "multi_var"
-    ],
-    "id": "1763103301-7"
-  },
-  {
-    "description": "Multiple variables with OR conditions across leap year boundary",
-    "constraints": [
-      "date1 >= Date(2024, 2, 25)",
-      [
-        "date1 == Date(2024, 2, 29)",
-        "date1 == Date(2024, 3, 1)"
-      ],
-      "date2 == date1 + Period(0, 0, 7)"
-    ],
-    "coverage_tags": [
-      "multi_var"
-    ],
-    "id": "1763103301-8"
-  },
-  {
-    "description": "Five date variables with sequential relationships",
-    "constraints": [
-      "first >= Date(2022, 1, 1)",
-      "second == first + Period(0, 1, 0)",
-      "third == second + Period(0, 1, 0)",
-      "fourth == third + Period(0, 1, 0)",
-      "fifth == fourth + Period(0, 1, 0)",
-      "fifth <= Date(2022, 6, 1)"
-    ],
-    "coverage_tags": [
-      "multi_var"
-    ],
-    "id": "1763103301-9"
-  },
-  {
-    "description": "Three variables with complex period relationships",
-    "constraints": [
-      "base_date >= Date(2000, 1, 1)",
-      "base_date <= Date(2000, 12, 31)",
-      "date_a == base_date + Period(1, 2, 15)",
-      "date_b == base_date + Period(0, 14, 45)",
-      [
-        "date_a > date_b",
-        "date_a == date_b"
-      ]
-    ],
-    "coverage_tags": [
-      "multi_var"
-    ],
-    "id": "1763103301-10"
-  },
-  {
-    "description": "Three date variables with sequential month relationships",
-    "constraints": [
-      "x >= Date(2020, 1, 15)",
-      "y == x + Period(0, 1, 0)",
-      "z == y + Period(0, 1, 0)",
-      "z < Date(2020, 4, 1)"
-    ],
-    "coverage_tags": [
-      "multi_var"
-    ],
-    "id": "1763103301-11"
-  },
-  {
-    "description": "Two date variables with leap year February constraints",
-    "constraints": [
-      "x == Date(2020, 2, 29)",
-      "y == x + Period(0, 0, 1)",
-      "y == Date(2020, 3, 1)",
-      "z == x - Period(0, 0, 1)",
-      "z == Date(2020, 2, 28)",
-      "w == x + Period(4, 0, 0)"
-    ],
-    "coverage_tags": [
-      "multi_var"
-    ],
-    "id": "1763103301-12"
-  },
-  {
-    "description": "Three variables with complex period relationships",
-    "constraints": [
-      "start_date >= Date(2019, 1, 1)",
-      "start_date <= Date(2019, 12, 31)",
-      [
-        "mid_date == start_date + Period(0, 6, 0)",
-        "mid_date == start_date + Period(0, 0, 180)"
-      ],
-      "end_date == start_date + Period(1, 0, 0)"
-    ],
-    "coverage_tags": [
-      "multi_var"
-    ],
-    "id": "1763103301-13"
-  },
-  {
-    "description": "Multiple variables with month-end transitions",
-    "constraints": [
-      "base_date == Date(2023, 1, 31)",
-      "next_month == base_date + Period(0, 1, 0)",
-      "next_month == Date(2023, 2, 28)",
-      "march_date == next_month + Period(0, 1, 0)",
-      "march_date == Date(2023, 3, 31)",
-      "april_date == march_date + Period(0, 1, 0)"
-    ],
-    "coverage_tags": [
-      "multi_var"
-    ],
-    "id": "1763103301-14"
-  },
-  {
-    "description": "Three variables with different period offsets",
-    "constraints": [
-      "start_date >= Date(2022, 1, 1)",
-      "start_date <= Date(2022, 1, 31)",
-      "date_a == start_date + Period(0, 3, 0)",
-      [
-        "date_b == date_a + Period(0, 6, 0)",
-        "date_b == start_date + Period(0, 9, 0)"
-      ],
-      "date_c == date_b + Period(0, 3, 0)"
-    ],
-    "coverage_tags": [
-      "multi_var"
-    ],
-    "id": "1763103301-15"
-  },
-  {
-    "description": "Three date variables with sequential month relationships",
-    "constraints": [
-      "x == Date(2020, 1, 15)",
-      "y == x + Period(0, 1, 0)",
-      "z == y + Period(0, 1, 0)"
-    ],
-    "coverage_tags": [
-      "multi_var"
-    ],
-    "id": "1763103301-16"
-  },
-  {
-    "description": "Four date variables forming a chain with different period additions",
-    "constraints": [
-      "start_date == Date(2019, 12, 31)",
-      "mid_date == start_date + Period(0, 2, 0)",
-      "end_date == mid_date + Period(0, 0, 15)",
-      "final_date == end_date + Period(1, 0, 0)"
-    ],
-    "coverage_tags": [
-      "multi_var"
-    ],
-    "id": "1763103301-17"
-  },
-  {
-    "description": "Three date variables with complex period relationships crossing leap year",
-    "constraints": [
-      "base_date == Date(2020, 1, 31)",
-      "next_month == base_date + Period(0, 1, 0)",
-      "next_year == base_date + Period(1, 0, 0)",
-      "leap_day == Date(2020, 2, 29)",
-      [
-        "next_month < leap_day",
-        "next_year > Date(2021, 1, 30)"
-      ]
-    ],
-    "coverage_tags": [
-      "multi_var"
-    ],
-    "id": "1763103301-18"
-  },
-  {
-    "description": "Six date variables with various period relationships",
-    "constraints": [
-      "d1 == Date(2022, 3, 15)",
-      "d2 == d1 + Period(0, 3, 0)",
-      "d3 == d2 + Period(0, 0, 45)",
-      "d4 == d1 + Period(0, 6, 0)",
-      "d5 == d4 - Period(0, 1, 15)",
-      "d6 == d3 + Period(0, 2, 10)"
-    ],
-    "coverage_tags": [
-      "multi_var"
-    ],
-    "id": "1763103301-19"
-  },
-  {
-    "description": "Five date variables with inequality constraints forming a complex relationship",
-    "constraints": [
-      "start < Date(2025, 1, 1)",
-      "middle > start + Period(0, 6, 0)",
-      "end > middle + Period(0, 3, 0)",
-      "alternate == start + Period(1, 0, 0)",
-      [
-        "end < alternate",
-        "middle > Date(2025, 6, 30)"
-      ],
-      "final == end + Period(0, 1, 0)"
-    ],
-    "coverage_tags": [
-      "multi_var"
-    ],
-    "id": "1763103301-20"
-  },
-  {
-    "description": "Three variables with constraints on their relationships across a leap year boundary",
-    "constraints": [
-      "x == Date(2020, 2, 28)",
-      "y == x + Period(0, 0, 1)",
-      "z == y + Period(0, 0, 1)",
-      [
-        "z == Date(2020, 3, 1)",
-        "z == Date(2020, 2, 29)"
-      ],
-      "y > x",
+      "y == Date(x.year + 4, x.month, x.day)",
+      "z == Date(l, 2, 29)",
+      "y.year == 2004",
       "z > y"
     ],
     "coverage_tags": [
-      "multi_var"
+      "symbolic_date_vars"
     ],
-    "id": "1763103301-21"
+    "id": "llm-symbolic_date_vars-66",
+    "generated_id": "1766397208-6"
   },
   {
-    "description": "Three dates must be exactly one month apart in sequence",
+    "description": "Symbolic year and month in date constructor with period arithmetic",
+    "declarations": [
+      "base: date",
+      "next_year: date",
+      "offset: date"
+    ],
     "constraints": [
-      "start_date >= Date(2023, 1, 1)",
-      "start_date <= Date(2023, 12, 1)",
-      "middle_date == start_date + Period(0, 1, 0)",
-      "end_date == middle_date + Period(0, 1, 0)"
+      "base == Date(2020, 3, 15)",
+      "next_year == Date(base.year + 1, base.month, base.day)",
+      "offset == Date(base.year + 2, base.month + 1, 10)",
+      "next_year.year == 2021",
+      "offset.year == 2022",
+      "offset.month == 4",
+      "(base + Period(1, 0, 0)) == next_year"
     ],
     "coverage_tags": [
-      "multi_var"
+      "symbolic_date_vars"
     ],
-    "id": "1763103301-22"
+    "id": "llm-symbolic_date_vars-67",
+    "generated_id": "1766397208-7"
   },
   {
-    "description": "Complex relationship between four date variables with month-end constraints",
+    "description": "Complex symbolic date construction with multiple variable transformations",
+    "declarations": [
+      "anchor: date",
+      "derived1: date",
+      "derived2: date",
+      "derived3: date"
+    ],
     "constraints": [
-      "date1 == Date(2024, 1, 31)",
-      "date2 == date1 + Period(0, 1, 0)",
-      "date3 == date2 + Period(0, 1, 0)",
-      [
-        "date2 == Date(2024, 2, 29)",
-        "date3 == Date(2024, 3, 31)"
-      ],
-      "date4 == date3 + Period(0, 1, 0)"
+      "anchor == Date(1950, 6, 15)",
+      "derived1 == Date(anchor.year + 50, anchor.month, anchor.day)",
+      "derived2 == Date(anchor.year + 100, anchor.month + 6, anchor.day - 10)",
+      "derived3 == Date(derived1.year + 10, derived1.month - 3, derived1.day + 5)",
+      "derived1.year == 2000",
+      "derived2.year == 2050",
+      "derived2.month == 12",
+      "derived3.year == 2010",
+      "derived3.month == 3",
+      "derived3.day == 20"
     ],
     "coverage_tags": [
-      "multi_var"
+      "symbolic_date_vars"
     ],
-    "id": "1763103301-23"
+    "id": "llm-symbolic_date_vars-68",
+    "generated_id": "1766397208-8"
   },
   {
-    "description": "Multiple variables with constraints on their relative positions",
+    "description": "Symbolic year crossing leap year boundary with month-end handling",
+    "declarations": [
+      "start: date",
+      "leap_cross: date",
+      "adjusted: date"
+    ],
     "constraints": [
-      "start >= Date(2022, 1, 1)",
-      "middle == start + Period(0, 6, 0)",
-      "end == middle + Period(0, 6, 0)"
+      "start == Date(1999, 2, 28)",
+      "leap_cross == Date(start.year + 1, start.month, start.day + 1)",
+      "adjusted == Date(leap_cross.year + 4, 2, 29)",
+      "leap_cross.year == 2000",
+      "adjusted.year == 2004",
+      "adjusted.day == 29"
     ],
     "coverage_tags": [
-      "multi_var"
+      "symbolic_date_vars"
     ],
-    "id": "1763103301-24"
+    "id": "llm-symbolic_date_vars-69",
+    "generated_id": "1766397208-9"
   },
   {
-    "description": "Five date variables with complex relationships and period calculations",
+    "description": "Symbolic date construction with arithmetic expressions in all components",
+    "declarations": [
+      "origin: date",
+      "computed1: date",
+      "computed2: date",
+      "computed3: date"
+    ],
     "constraints": [
-      "first_date >= Date(2000, 1, 1)",
-      "first_date <= Date(2000, 12, 31)",
-      "second_date == first_date + Period(1, 0, 0)",
-      "third_date == second_date + Period(0, 6, 0)",
-      "fourth_date == third_date + Period(0, 0, 15)",
-      "fifth_date == fourth_date + Period(0, 3, 0)",
-      [
-        "fifth_date < Date(2003, 1, 1)",
-        "fifth_date > Date(2002, 10, 1)"
-      ]
+      "origin == Date(2010, 5, 20)",
+      "computed1 == Date(origin.year + 10, origin.month - 2, origin.day + 5)",
+      "computed2 == Date(origin.year * 2 - 2010, origin.month + 7, origin.day - 15)",
+      "computed3 == Date(computed1.year - 5, computed1.month + 3, computed1.day)",
+      "computed1.year == 2020",
+      "computed1.month == 3",
+      "computed2.year == 2010",
+      "computed3.year == 2015"
     ],
     "coverage_tags": [
-      "multi_var"
+      "symbolic_date_vars"
     ],
-    "id": "1763103301-25"
+    "id": "llm-symbolic_date_vars-70",
+    "generated_id": "1766397208-10"
   },
   {
-    "description": "Testing that 1 year is not always equal to 365 days (leap year case)",
+    "description": "Symbolic year in Date constructor with leap year to non-leap year transition",
+    "declarations": [
+      "x: date",
+      "y: date",
+      "z: date"
+    ],
     "constraints": [
-      "x == Date(2020, 1, 1)",
+      "x == Date(2000, 2, 29)",
+      "y == Date(x.year + 1, 2, 28)",
+      "z == Date(x.year + 4, x.month, x.day)",
+      "y.year == 2001",
+      "z == Date(2004, 2, 29)"
+    ],
+    "coverage_tags": [
+      "symbolic_date_vars"
+    ],
+    "id": "llm-symbolic_date_vars-71",
+    "generated_id": "1766397208-11"
+  },
+  {
+    "description": "Symbolic year and month in Date constructors with month arithmetic",
+    "declarations": [
+      "x: date",
+      "y: date",
+      "z: date",
+      "w: date"
+    ],
+    "constraints": [
+      "x == Date(1995, 6, 15)",
+      "y == Date(x.year + 10, x.month + 3, 1)",
+      "z == Date(x.year * 2 - x.year, x.month, x.day)",
+      "w == Date(y.year - 5, 12, 31)",
+      "y.month == 9",
+      "z.year == 1995",
+      "w >= Date(1999, 12, 1)"
+    ],
+    "coverage_tags": [
+      "symbolic_date_vars"
+    ],
+    "id": "llm-symbolic_date_vars-72",
+    "generated_id": "1766397208-12"
+  },
+  {
+    "description": "Complex symbolic date construction testing leap year boundaries and century transitions",
+    "declarations": [
+      "x: date",
+      "y: date",
+      "z: date",
+      "w: date",
+      "v: date"
+    ],
+    "constraints": [
+      "x == Date(2000, 2, 29)",
+      "y == Date(x.year + 100, x.month, x.day - 1)",
+      "z == Date(x.year / 4, x.month * 6, x.day)",
+      "w == Date(2050, 1, 1)",
+      "v == Date(w.year - x.year, w.month + x.month, 15)",
+      "y.day == 28",
+      "z.year == 500",
+      "v.year == 50",
+      "x.year == 2000",
+      "(x + Period(100, 0, 0)) != Date(2100, 2, 29)"
+    ],
+    "coverage_tags": [
+      "symbolic_date_vars"
+    ],
+    "id": "llm-symbolic_date_vars-73",
+    "generated_id": "1766397208-13"
+  },
+  {
+    "description": "Symbolic day manipulation across month boundaries with February edge cases",
+    "declarations": [
+      "x: date",
+      "y: date",
+      "z: date"
+    ],
+    "constraints": [
+      "x == Date(2020, 2, 15)",
+      "y == Date(x.year, x.month, x.day + 14)",
+      "z == Date(x.year + 1, 2, x.day + 13)",
+      "y == Date(2020, 2, 29)",
+      "z.day == 28",
+      "x.day * 2 - 1 == 29"
+    ],
+    "coverage_tags": [
+      "symbolic_date_vars"
+    ],
+    "id": "llm-symbolic_date_vars-74",
+    "generated_id": "1766397208-14"
+  },
+  {
+    "description": "Multi-variable symbolic dates with arithmetic operations and UNSAT scenario",
+    "declarations": [
+      "x: date",
+      "y: date",
+      "z: date",
+      "w: date"
+    ],
+    "constraints": [
+      "x == Date(1950, 6, 30)",
+      "y == Date(x.year + 50, x.month, x.day)",
+      "z == Date(y.year - x.year, y.month + 6, 1)",
+      "w == Date(z.year * 40, 1, 15)",
+      "y.year == 2000",
+      "z == Date(2000, 12, 1)",
+      "w.year == 2000",
+      "w == Date(2000, 1, 15)"
+    ],
+    "coverage_tags": [
+      "symbolic_date_vars"
+    ],
+    "id": "llm-symbolic_date_vars-75",
+    "generated_id": "1766397208-15"
+  },
+  {
+    "description": "Symbolic year progression through leap years with component linking",
+    "declarations": [
+      "x: date",
+      "y: date",
+      "z: date"
+    ],
+    "constraints": [
+      "x == Date(2000, 2, 29)",
+      "y == Date(x.year + 4, x.month, x.day)",
+      "z == Date(y.year + 4, x.month, x.day)",
+      "y.year == 2004",
+      "z.year == 2008"
+    ],
+    "coverage_tags": [
+      "symbolic_date_vars"
+    ],
+    "id": "llm-symbolic_date_vars-76",
+    "generated_id": "1766397208-16"
+  },
+  {
+    "description": "Symbolic month and day components with arithmetic expressions",
+    "declarations": [
+      "base: date",
+      "next: date",
+      "shifted: date"
+    ],
+    "constraints": [
+      "base == Date(2020, 6, 15)",
+      "next == Date(base.year + 1, base.month - 1, base.day + 10)",
+      "shifted == Date(base.year, base.month + 3, base.day - 5)",
+      "next.year == 2021",
+      "next.month == 5",
+      "shifted.month == 9",
+      "shifted.day == 10"
+    ],
+    "coverage_tags": [
+      "symbolic_date_vars"
+    ],
+    "id": "llm-symbolic_date_vars-77",
+    "generated_id": "1766397208-17"
+  },
+  {
+    "description": "Complex multi-variable symbolic date relationships with year and month variations",
+    "declarations": [
+      "a: date",
+      "b: date",
+      "c: date",
+      "d: date"
+    ],
+    "constraints": [
+      "a == Date(1950, 3, 15)",
+      "b == Date(a.year + 50, a.month, a.day)",
+      "c == Date(b.year - 25, b.month + 6, a.day + 10)",
+      "d == Date(c.year + 10, c.month - 3, c.day - 5)",
+      "b.year == 2000",
+      "c.year == 1975",
+      "c.month == 9",
+      "d.year == 1985",
+      "d.month == 6",
+      "d.day == 20"
+    ],
+    "coverage_tags": [
+      "symbolic_date_vars"
+    ],
+    "id": "llm-symbolic_date_vars-78",
+    "generated_id": "1766397208-18"
+  },
+  {
+    "description": "Symbolic leap year date construction with February edge cases",
+    "declarations": [
+      "leap1: date",
+      "leap2: date",
+      "nonleap: date"
+    ],
+    "constraints": [
+      "leap1 == Date(2000, 2, 29)",
+      "leap2 == Date(leap1.year + 4, leap1.month, leap1.day)",
+      "nonleap == Date(leap1.year + 1, leap1.month, leap1.day - 1)",
+      "leap2.day == 29",
+      "nonleap.year == 2001",
+      "nonleap.day == 28"
+    ],
+    "coverage_tags": [
+      "symbolic_date_vars"
+    ],
+    "id": "llm-symbolic_date_vars-79",
+    "generated_id": "1766397208-19"
+  },
+  {
+    "description": "Symbolic date arithmetic with component-based date construction and boundary crossing",
+    "declarations": [
+      "start: date",
+      "mid: date",
+      "end: date",
+      "wrap: date"
+    ],
+    "constraints": [
+      "start == Date(2010, 12, 25)",
+      "mid == Date(start.year + 5, start.month - 6, start.day + 5)",
+      "end == Date(mid.year + 10, mid.month + 8, mid.day - 15)",
+      "wrap == Date(start.year + 1, start.month - 11, start.day + 6)",
+      "mid.year == 2015",
+      "mid.month == 6",
+      "end.year == 2025",
+      "wrap.month == 1"
+    ],
+    "coverage_tags": [
+      "symbolic_date_vars"
+    ],
+    "id": "llm-symbolic_date_vars-80",
+    "generated_id": "1766397208-20"
+  },
+  {
+    "description": "Leap year comparison: 1 year vs 365 days starting from Feb 29",
+    "declarations": [
+      "x: date",
+      "y: date",
+      "z: date"
+    ],
+    "constraints": [
+      "x == Date(2000, 2, 29)",
       "y == x + Period(1, 0, 0)",
       "z == x + Period(0, 0, 365)",
-      "y != z"
-    ],
-    "coverage_tags": [
-      "year_vs_days"
-    ],
-    "id": "1763102717-1"
-  },
-  {
-    "description": "Comparing 1 year with 366 days across different starting points",
-    "constraints": [
-      "start_date == Date(2019, 6, 15)",
-      "end_date_year == start_date + Period(1, 0, 0)",
-      "end_date_days == start_date + Period(0, 0, 366)",
-      [
-        "end_date_year == end_date_days",
-        "start_date >= Date(2019, 3, 1)"
-      ],
-      [
-        "end_date_year < end_date_days",
-        "start_date < Date(2019, 3, 1)"
-      ],
-      "start_date <= Date(2020, 2, 28)"
-    ],
-    "coverage_tags": [
-      "year_vs_days"
-    ],
-    "id": "1763102717-2"
-  },
-  {
-    "description": "Testing year vs days equivalence in non-leap years",
-    "constraints": [
-      "x == Date(2019, 1, 1)",
-      "y == x + Period(1, 0, 0)",
-      "z == x + Period(0, 0, 365)"
-    ],
-    "coverage_tags": [
-      "year_vs_days"
-    ],
-    "id": "1763102717-3"
-  },
-  {
-    "description": "Multiple year additions compared with equivalent days",
-    "constraints": [
-      "start == Date(2000, 1, 1)",
-      "five_years_later == start + Period(5, 0, 0)",
-      [
-        "days_1826 == start + Period(0, 0, 1826)",
-        "days_1827 == start + Period(0, 0, 1827)"
-      ],
-      "five_years_later <= days_1827",
-      "five_years_later >= days_1826"
-    ],
-    "coverage_tags": [
-      "year_vs_days"
-    ],
-    "id": "1763102717-4"
-  },
-  {
-    "description": "Comparing fractional years with days across century boundary",
-    "constraints": [
-      "base_date == Date(1999, 12, 1)",
-      "three_and_half_years == base_date + Period(3, 6, 0)",
-      "days_1278 == base_date + Period(0, 0, 1278)",
-      "days_1279 == base_date + Period(0, 0, 1279)",
-      "days_1280 == base_date + Period(0, 0, 1280)",
-      [
-        "three_and_half_years == days_1278",
-        "three_and_half_years == days_1279",
-        "three_and_half_years == days_1280"
-      ]
-    ],
-    "coverage_tags": [
-      "year_vs_days"
-    ],
-    "id": "1763102717-5"
-  },
-  {
-    "description": "Testing that a year is not exactly 365 days (non-leap year)",
-    "constraints": [
-      "x == Date(2001, 1, 1)",
-      "y == x + Period(1, 0, 0)",
-      "z == x + Period(0, 0, 365)",
-      "y != z"
-    ],
-    "coverage_tags": [
-      "year_vs_days"
-    ],
-    "id": "1763102717-6"
-  },
-  {
-    "description": "Testing that a year is not exactly 366 days (leap year)",
-    "constraints": [
-      "x == Date(2000, 1, 1)",
-      "y == x + Period(1, 0, 0)",
-      "z == x + Period(0, 0, 366)",
       "y != z",
-      "w == x + Period(0, 0, 365)",
-      "w != y"
+      "y < z"
     ],
     "coverage_tags": [
       "year_vs_days"
     ],
-    "id": "1763102717-7"
+    "id": "llm-year_vs_days-81",
+    "generated_id": "1766396067-1"
   },
   {
-    "description": "Comparing multiple year periods with equivalent days across leap year boundaries",
+    "description": "Non-leap year: 1 year equals 365 days from March 1",
+    "declarations": [
+      "a: date",
+      "b: date",
+      "c: date",
+      "d: date"
+    ],
     "constraints": [
-      "start_date == Date(1999, 12, 31)",
-      "end_date == start_date + Period(4, 0, 0)",
-      "days_date == start_date + Period(0, 0, 1461)",
-      "end_date != days_date"
+      "a == Date(2001, 3, 1)",
+      "b == a + Period(1, 0, 0)",
+      "c == a + Period(0, 0, 365)",
+      "b == c",
+      "d == a + Period(0, 0, 366)",
+      "d > b",
+      "d == Date(2002, 3, 2)"
     ],
     "coverage_tags": [
       "year_vs_days"
     ],
-    "id": "1763102717-8"
+    "id": "llm-year_vs_days-82",
+    "generated_id": "1766396067-2"
   },
   {
-    "description": "Complex year vs days comparison with multiple variables and OR conditions",
+    "description": "Unsatisfiable: contradictory leap year arithmetic constraints",
+    "declarations": [
+      "x: date",
+      "y: date",
+      "z: date",
+      "w: date"
+    ],
     "constraints": [
-      "base == Date(2020, 1, 1)",
-      "one_year == base + Period(1, 0, 0)",
-      [
-        "days_365 == base + Period(0, 0, 365)",
-        "days_366 == base + Period(0, 0, 366)"
-      ],
-      "one_year != days_365",
-      "one_year != days_366",
-      "two_years == base + Period(2, 0, 0)"
-    ],
-    "coverage_tags": [
-      "year_vs_days"
-    ],
-    "id": "1763102717-9"
-  },
-  {
-    "description": "Year vs days comparison across century boundaries (non-leap century year)",
-    "constraints": [
-      "century_end == Date(2100, 2, 28)",
-      "next_year == century_end + Period(1, 0, 0)",
-      "days_365 == century_end + Period(0, 0, 365)",
-      "next_year != days_365"
-    ],
-    "coverage_tags": [
-      "year_vs_days"
-    ],
-    "id": "1763102717-10"
-  },
-  {
-    "description": "Comparing 1 year vs 365 days with leap year consideration",
-    "constraints": [
-      "x == Date(2020, 1, 1)",
-      "(x + Period(1, 0, 0)) == Date(2021, 1, 1)",
-      "(x + Period(0, 0, 365)) == Date(2020, 12, 31)",
-      "(x + Period(0, 0, 366)) == Date(2021, 1, 1)",
+      "x == Date(2004, 2, 29)",
       "y == x + Period(1, 0, 0)",
-      "y == x + Period(0, 0, 366)"
+      "z == x + Period(0, 0, 365)",
+      "w == x + Period(0, 0, 366)",
+      "y == Date(2005, 2, 28)",
+      "z == y",
+      "w == Date(2005, 3, 1)",
+      "z == w",
+      "y.year == 2005",
+      "z.day == 28"
     ],
     "coverage_tags": [
       "year_vs_days"
     ],
-    "id": "1763102717-11"
+    "id": "llm-year_vs_days-83",
+    "generated_id": "1766396067-3"
   },
   {
-    "description": "Year vs days comparison across non-leap year",
-    "constraints": [
-      "x == Date(2019, 1, 1)",
-      "(x + Period(1, 0, 0)) == Date(2020, 1, 1)",
-      "(x + Period(0, 0, 365)) == Date(2019, 12, 31)"
+    "description": "Two years vs 730 days across leap year boundary",
+    "declarations": [
+      "x: date",
+      "y: date",
+      "z: date"
     ],
-    "coverage_tags": [
-      "year_vs_days"
-    ],
-    "id": "1763102717-12"
-  },
-  {
-    "description": "Multiple year vs days comparisons with OR conditions",
     "constraints": [
       "x == Date(2000, 1, 1)",
-      [
-        "(x + Period(4, 0, 0)) == Date(2004, 1, 1)",
-        "(x + Period(0, 0, 1461)) == Date(2004, 1, 1)"
-      ],
-      [
-        "(x + Period(100, 0, 0)) == Date(2100, 1, 1)",
-        "(x + Period(0, 0, 36525)) != Date(2100, 1, 1)"
-      ],
-      "y == x + Period(0, 0, 366)",
-      "z == x + Period(1, 0, 0)"
+      "y == x + Period(2, 0, 0)",
+      "z == x + Period(0, 0, 730)",
+      "y == Date(2002, 1, 1)",
+      "z == Date(2001, 12, 31)",
+      "y > z"
     ],
     "coverage_tags": [
       "year_vs_days"
     ],
-    "id": "1763102717-13"
+    "id": "llm-year_vs_days-84",
+    "generated_id": "1766396067-4"
   },
   {
-    "description": "Year vs days with inequality constraints",
+    "description": "Century leap year behavior: 366 days vs 1 year from Feb 29",
+    "declarations": [
+      "a: date",
+      "b: date",
+      "c: date",
+      "d: date",
+      "e: date"
+    ],
     "constraints": [
-      "x >= Date(2000, 1, 1)",
-      "x <= Date(2000, 12, 31)",
-      "(x + Period(1, 0, 0)) > (x + Period(0, 0, 365))",
-      "(x + Period(4, 0, 0)) < (x + Period(0, 0, 1462))"
+      "a == Date(2000, 2, 29)",
+      "b == a + Period(1, 0, 0)",
+      "c == a + Period(0, 0, 366)",
+      "b == Date(2001, 2, 28)",
+      "c == Date(2001, 3, 1)",
+      "b < c",
+      "d == Date(2000, 3, 1)",
+      "e == d + Period(0, 0, 365)"
     ],
     "coverage_tags": [
       "year_vs_days"
     ],
-    "id": "1763102717-14"
+    "id": "llm-year_vs_days-85",
+    "generated_id": "1766396067-5"
   },
   {
-    "description": "Year vs days with complex period calculations",
+    "description": "Basic year vs 365 days comparison showing they are not equivalent",
+    "declarations": [
+      "x: date",
+      "y: date",
+      "z: date"
+    ],
+    "constraints": [
+      "x == Date(2020, 6, 15)",
+      "y == x + Period(1, 0, 0)",
+      "z == x + Period(0, 0, 365)",
+      "y != z",
+      "y < z"
+    ],
+    "coverage_tags": [
+      "year_vs_days"
+    ],
+    "id": "llm-year_vs_days-86",
+    "generated_id": "1766396067-6"
+  },
+  {
+    "description": "Leap year date showing year addition vs 366 days difference",
+    "declarations": [
+      "leap_start: date",
+      "one_year_later: date",
+      "days_366_later: date"
+    ],
+    "constraints": [
+      "leap_start == Date(2020, 2, 29)",
+      "one_year_later == leap_start + Period(1, 0, 0)",
+      "one_year_later == Date(2021, 2, 28)",
+      "days_366_later == leap_start + Period(0, 0, 366)",
+      "days_366_later != one_year_later",
+      "days_366_later > one_year_later",
+      "days_366_later.year == 2021"
+    ],
+    "coverage_tags": [
+      "year_vs_days"
+    ],
+    "id": "llm-year_vs_days-87",
+    "generated_id": "1766396067-7"
+  },
+  {
+    "description": "Contradictory constraints on year vs days arithmetic leading to UNSAT",
+    "declarations": [
+      "a: date",
+      "b: date",
+      "c: date",
+      "d: date"
+    ],
+    "constraints": [
+      "a == Date(2015, 3, 1)",
+      "b == a + Period(1, 0, 0)",
+      "c == a + Period(0, 0, 365)",
+      "d == a + Period(2, 0, 0)",
+      "b == c",
+      "d == a + Period(0, 0, 730)",
+      "b.year == 2016",
+      "c.year == 2016",
+      "d.year == 2017"
+    ],
+    "coverage_tags": [
+      "year_vs_days"
+    ],
+    "id": "llm-year_vs_days-88",
+    "generated_id": "1766396067-8"
+  },
+  {
+    "description": "Year increment vs 365 days from non-leap year date",
+    "declarations": [
+      "start: date",
+      "year_plus: date",
+      "days_plus: date"
+    ],
+    "constraints": [
+      "start == Date(2019, 7, 4)",
+      "year_plus == start + Period(1, 0, 0)",
+      "days_plus == start + Period(0, 0, 365)",
+      "year_plus == Date(2020, 7, 4)",
+      "days_plus > year_plus",
+      "days_plus.year == 2020"
+    ],
+    "coverage_tags": [
+      "year_vs_days"
+    ],
+    "id": "llm-year_vs_days-89",
+    "generated_id": "1766396067-9"
+  },
+  {
+    "description": "Complex multi-variable year vs days relationships with impossible conditions",
+    "declarations": [
+      "w: date",
+      "x: date",
+      "y: date",
+      "z: date",
+      "v: date"
+    ],
+    "constraints": [
+      "w == Date(2016, 1, 1)",
+      "x == w + Period(1, 0, 0)",
+      "y == w + Period(0, 0, 366)",
+      "z == w + Period(4, 0, 0)",
+      "v == w + Period(0, 0, 1461)",
+      "x == y",
+      "z == v",
+      "x.year == 2017",
+      "z.year == 2020",
+      "v.year == 2020"
+    ],
+    "coverage_tags": [
+      "year_vs_days"
+    ],
+    "id": "llm-year_vs_days-90",
+    "generated_id": "1766396067-10"
+  },
+  {
+    "description": "Leap year start: one year increment differs from 365 days due to leap day",
+    "declarations": [
+      "leap_start: date",
+      "year_later: date",
+      "days_later: date"
+    ],
+    "constraints": [
+      "leap_start == Date(2000, 2, 29)",
+      "year_later == leap_start + Period(1, 0, 0)",
+      "days_later == leap_start + Period(0, 0, 365)",
+      "year_later != days_later",
+      "year_later < days_later"
+    ],
+    "coverage_tags": [
+      "year_vs_days"
+    ],
+    "id": "llm-year_vs_days-91",
+    "generated_id": "1766396067-11"
+  },
+  {
+    "description": "Non-leap year cycle: comparing year increments with 365-day periods",
+    "declarations": [
+      "x: date",
+      "y: date",
+      "z: date",
+      "w: date"
+    ],
+    "constraints": [
+      "x == Date(2019, 3, 1)",
+      "y == x + Period(1, 0, 0)",
+      "z == x + Period(0, 0, 365)",
+      "w == y + Period(0, 0, 366)",
+      "y == z",
+      "(x + Period(2, 0, 0)) != (x + Period(0, 0, 730))",
+      "w.year >= 2021"
+    ],
+    "coverage_tags": [
+      "year_vs_days"
+    ],
+    "id": "llm-year_vs_days-92",
+    "generated_id": "1766396067-12"
+  },
+  {
+    "description": "Multi-year periods: 4 years vs days across leap year cycles",
+    "declarations": [
+      "a: date",
+      "b: date",
+      "c: date",
+      "d: date"
+    ],
+    "constraints": [
+      "a == Date(2000, 1, 1)",
+      "b == a + Period(4, 0, 0)",
+      "c == a + Period(0, 0, 1461)",
+      "d == a + Period(0, 0, 1460)",
+      "b == c",
+      "b != d",
+      "b.year == 2004",
+      "(a + Period(2, 0, 0)) > (a + Period(0, 0, 730))"
+    ],
+    "coverage_tags": [
+      "year_vs_days"
+    ],
+    "id": "llm-year_vs_days-93",
+    "generated_id": "1766396067-13"
+  },
+  {
+    "description": "Year boundary testing: period arithmetic near year transitions",
+    "declarations": [
+      "start: date",
+      "end: date",
+      "middle: date"
+    ],
+    "constraints": [
+      "start >= Date(1999, 12, 15)",
+      "start <= Date(1999, 12, 31)",
+      "end == start + Period(1, 0, 0)",
+      "middle == start + Period(0, 0, 365)",
+      "end != middle",
+      "(start + Period(3, 0, 0)) != (start + Period(0, 0, 1095))"
+    ],
+    "coverage_tags": [
+      "year_vs_days"
+    ],
+    "id": "llm-year_vs_days-94",
+    "generated_id": "1766396067-14"
+  },
+  {
+    "description": "Complex year vs days relationships with multiple variables and leap year interactions",
+    "declarations": [
+      "v1: date",
+      "v2: date",
+      "v3: date",
+      "v4: date",
+      "v5: date"
+    ],
+    "constraints": [
+      "v1 == Date(2000, 2, 29)",
+      "v2 == v1 + Period(1, 0, 0)",
+      "v3 == v1 + Period(0, 0, 366)",
+      "v4 == v1 + Period(4, 0, 0)",
+      "v5 == v1 + Period(0, 0, 1461)",
+      "v2 != v3",
+      "v3.year >= 2001",
+      "v4 == v5",
+      "(v1 + Period(2, 0, 0)) < (v1 + Period(0, 0, 731))",
+      "v2.day == 28"
+    ],
+    "coverage_tags": [
+      "year_vs_days"
+    ],
+    "id": "llm-year_vs_days-95",
+    "generated_id": "1766396067-15"
+  },
+  {
+    "description": "Basic year vs 365 days comparison from leap year date showing inequality",
+    "declarations": [
+      "x: date",
+      "y: date",
+      "z: date"
+    ],
+    "constraints": [
+      "x == Date(2000, 2, 29)",
+      "y == x + Period(1, 0, 0)",
+      "z == x + Period(0, 0, 365)",
+      "y != z",
+      "z < y"
+    ],
+    "coverage_tags": [
+      "year_vs_days"
+    ],
+    "id": "llm-year_vs_days-96",
+    "generated_id": "1766396067-16"
+  },
+  {
+    "description": "Year vs 365 days from non-leap year showing when they are equal",
+    "declarations": [
+      "x: date",
+      "y: date",
+      "z: date",
+      "w: date"
+    ],
+    "constraints": [
+      "x == Date(2001, 3, 1)",
+      "y == x + Period(1, 0, 0)",
+      "z == x + Period(0, 0, 365)",
+      "w == x + Period(0, 0, 366)",
+      "y == z",
+      "y != w",
+      "y > x"
+    ],
+    "coverage_tags": [
+      "year_vs_days"
+    ],
+    "id": "llm-year_vs_days-97",
+    "generated_id": "1766396067-17"
+  },
+  {
+    "description": "Complex year vs days across multiple leap and non-leap years with property checks",
+    "declarations": [
+      "a: date",
+      "b: date",
+      "c: date",
+      "d: date",
+      "e: date"
+    ],
+    "constraints": [
+      "a == Date(1999, 12, 31)",
+      "b == a + Period(1, 0, 0)",
+      "c == a + Period(0, 0, 365)",
+      "d == a + Period(0, 0, 366)",
+      "b == d",
+      "b != c",
+      "e == Date(2000, 12, 30)",
+      "b.year == 2000",
+      "c.year == 2000",
+      "c < e"
+    ],
+    "coverage_tags": [
+      "year_vs_days"
+    ],
+    "id": "llm-year_vs_days-98",
+    "generated_id": "1766396067-18"
+  },
+  {
+    "description": "Impossible year equals 365 days constraint from leap year date (UNSAT)",
+    "declarations": [
+      "x: date",
+      "y: date",
+      "z: date"
+    ],
     "constraints": [
       "x == Date(2020, 2, 29)",
-      "(x + Period(1, 0, 0)) == Date(2021, 2, 28)",
-      "(x + Period(0, 0, 365)) == Date(2021, 2, 28)",
-      "(x + Period(4, 0, 0)) == Date(2024, 2, 29)",
-      [
-        "(x + Period(0, 0, 1461)) == Date(2024, 2, 29)",
-        "(x + Period(0, 0, 1460)) == Date(2024, 2, 28)"
-      ]
-    ],
-    "coverage_tags": [
-      "year_vs_days"
-    ],
-    "id": "1763102717-15"
-  },
-  {
-    "description": "Testing that 1 year is not equal to 365 days across a leap year boundary",
-    "constraints": [
-      "x >= Date(2020, 1, 1)",
-      "x <= Date(2020, 1, 31)",
-      "(x + Period(1, 0, 0)) != (x + Period(0, 0, 365))",
-      "(x + Period(1, 0, 0)) == (x + Period(0, 0, 366))",
-      "y == x + Period(1, 0, 0)",
-      "z == x + Period(0, 0, 366)"
-    ],
-    "coverage_tags": [
-      "year_vs_days"
-    ],
-    "id": "1763102717-16"
-  },
-  {
-    "description": "Testing that 1 year is not equal to 365 days in a non-leap year",
-    "constraints": [
-      "x >= Date(2019, 1, 1)",
-      "x <= Date(2019, 12, 31)",
-      "(x + Period(1, 0, 0)) == (x + Period(0, 0, 365))"
-    ],
-    "coverage_tags": [
-      "year_vs_days"
-    ],
-    "id": "1763102717-17"
-  },
-  {
-    "description": "Testing that 2 years is not equal to 730 days across multiple leap years",
-    "constraints": [
-      "x >= Date(2019, 6, 1)",
-      "x <= Date(2019, 6, 30)",
-      "(x + Period(2, 0, 0)) != (x + Period(0, 0, 730))",
-      "(x + Period(2, 0, 0)) == (x + Period(0, 0, 731))",
-      [
-        "y == x + Period(0, 0, 730)",
-        "y == x + Period(0, 0, 731)"
-      ]
-    ],
-    "coverage_tags": [
-      "year_vs_days"
-    ],
-    "id": "1763102717-18"
-  },
-  {
-    "description": "Testing that 4 years is equal to 1461 days (accounting for leap year)",
-    "constraints": [
-      "x >= Date(2020, 1, 1)",
-      "x <= Date(2020, 12, 31)",
-      "(x + Period(4, 0, 0)) == (x + Period(0, 0, 1461))",
-      "y == x + Period(4, 0, 0)"
-    ],
-    "coverage_tags": [
-      "year_vs_days"
-    ],
-    "id": "1763102717-19"
-  },
-  {
-    "description": "Testing year vs days calculations with multiple variables across century boundaries",
-    "constraints": [
-      "x == Date(1996, 2, 29)",
-      "y == x + Period(4, 0, 0)",
-      "z == x + Period(0, 0, 1461)",
-      "y == z",
-      [
-        "w == x + Period(100, 0, 0)",
-        "w == x + Period(0, 0, 36525)"
-      ],
-      "w != x + Period(0, 0, 36524)"
-    ],
-    "coverage_tags": [
-      "year_vs_days"
-    ],
-    "id": "1763102717-20"
-  },
-  {
-    "description": "Testing that a year is not exactly 365 days in the context of a leap year",
-    "constraints": [
-      "x == Date(2020, 1, 1)",
       "y == x + Period(1, 0, 0)",
       "z == x + Period(0, 0, 365)",
-      "y != z"
+      "y == z",
+      "y.year == 2021",
+      "z.year == 2021"
     ],
     "coverage_tags": [
       "year_vs_days"
     ],
-    "id": "1763102717-21"
+    "id": "llm-year_vs_days-99",
+    "generated_id": "1766396067-19"
   },
   {
-    "description": "Comparing different ways to add approximately 2 years with days and periods",
+    "description": "Multiple year additions vs accumulated days showing compound differences",
+    "declarations": [
+      "start: date",
+      "year2: date",
+      "year4: date",
+      "days730: date",
+      "days1460: date"
+    ],
     "constraints": [
-      "start_date == Date(2019, 6, 15)",
-      "date1 == start_date + Period(2, 0, 0)",
-      "date2 == start_date + Period(0, 0, 730)",
-      "date3 == start_date + Period(0, 0, 731)",
-      [
-        "date1 == date2",
-        "date1 == date3"
-      ],
-      "end_date == Date(2021, 6, 15)"
+      "start == Date(2000, 1, 1)",
+      "year2 == start + Period(2, 0, 0)",
+      "year4 == start + Period(4, 0, 0)",
+      "days730 == start + Period(0, 0, 730)",
+      "days1460 == start + Period(0, 0, 1460)",
+      "year2 != days730",
+      "year4 != days1460",
+      "year4.year == 2004"
     ],
     "coverage_tags": [
       "year_vs_days"
     ],
-    "id": "1763102717-22"
-  },
-  {
-    "description": "Testing year vs days calculations across multiple leap years",
-    "constraints": [
-      "base == Date(2000, 2, 28)",
-      "four_years_period == base + Period(4, 0, 0)",
-      "days_1461 == base + Period(0, 0, 1461)",
-      "four_years_period == days_1461"
-    ],
-    "coverage_tags": [
-      "year_vs_days"
-    ],
-    "id": "1763102717-23"
-  },
-  {
-    "description": "Complex year vs days comparison with multiple variables and leap year boundaries",
-    "constraints": [
-      "start_date >= Date(2000, 1, 1)",
-      "start_date <= Date(2000, 12, 31)",
-      "one_year_later == start_date + Period(1, 0, 0)",
-      "days_365 == start_date + Period(0, 0, 365)",
-      "days_366 == start_date + Period(0, 0, 366)",
-      [
-        "one_year_later == days_365",
-        "one_year_later == days_366"
-      ]
-    ],
-    "coverage_tags": [
-      "year_vs_days"
-    ],
-    "id": "1763102717-24"
-  },
-  {
-    "description": "Testing non-leap year vs leap year day counts",
-    "constraints": [
-      "non_leap_start == Date(2019, 1, 1)",
-      "leap_start == Date(2020, 1, 1)",
-      "non_leap_end == non_leap_start + Period(1, 0, 0)",
-      "leap_end == leap_start + Period(1, 0, 0)",
-      "non_leap_days == non_leap_start + Period(0, 0, 365)",
-      "leap_days == leap_start + Period(0, 0, 366)",
-      "non_leap_end == non_leap_days",
-      "leap_end == leap_days"
-    ],
-    "coverage_tags": [
-      "year_vs_days"
-    ],
-    "id": "1763102717-25"
+    "id": "llm-year_vs_days-100",
+    "generated_id": "1766396067-20"
   }
 ]

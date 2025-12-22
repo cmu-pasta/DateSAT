@@ -147,7 +147,7 @@ class EnumerationComponentVar:
 
 
 class EnumerationComponentExpr:
-    """Expression involving a component variable and a constant (e.g., year_var + 1)."""
+    """Expression involving a component variable and a constant (e.g., year_var + 1, or x.year + 4)."""
     
     def __init__(self, var: EnumerationComponentVar, op: str, constant: int):
         self.var = var
@@ -155,7 +155,12 @@ class EnumerationComponentExpr:
         self.constant = constant
     
     def evaluate(self) -> Optional[int]:
-        val = self.var.get_value()
+        # Check if this expression is based on a parent component (from a date variable)
+        if hasattr(self.var, '_parent_component'):
+            val = self.var._parent_component._get_component_value()
+        else:
+            val = self.var.get_value()
+        
         if val is None:
             return None
         if self.op == 'add':
@@ -351,33 +356,87 @@ class EnumerationDateComponent:
         self.parent = parent
         self.attr = attr
 
-    def _compare(self, op: str, other: int):
+    def _get_component_value(self) -> Optional[int]:
+        """Get the current value of this component."""
+        d = self.parent.get_value()
+        if d is None:
+            return None
+        return getattr(d, self.attr)
+
+    def _compare(self, op: str, other: Union[int, "EnumerationDateComponent", "EnumerationComponentExpr"]):
         def compare():
-            d = self.parent.get_value()
-            if d is None:
+            lhs_val = self._get_component_value()
+            if lhs_val is None:
                 return False
-            lhs = getattr(d, self.attr)
-            return getattr(lhs, f"__{op}__")(other)
+            
+            # Handle EnumerationDateComponent
+            if isinstance(other, EnumerationDateComponent):
+                rhs_val = other._get_component_value()
+                if rhs_val is None:
+                    return False
+                return getattr(lhs_val, f"__{op}__")(rhs_val)
+            # Handle EnumerationComponentExpr
+            elif isinstance(other, EnumerationComponentExpr):
+                rhs_val = other.evaluate()
+                if rhs_val is None:
+                    return False
+                return getattr(lhs_val, f"__{op}__")(rhs_val)
+            # Handle int
+            else:
+                return getattr(lhs_val, f"__{op}__")(int(other))
 
         return compare
 
-    def __eq__(self, other: int) -> ConstraintWrapper:  # type: ignore[override]
-        return ConstraintWrapper(self._compare("eq", int(other)))
+    def __eq__(self, other: Union[int, "EnumerationDateComponent", "EnumerationComponentExpr"]) -> ConstraintWrapper:  # type: ignore[override]
+        return ConstraintWrapper(self._compare("eq", other))
 
-    def __ne__(self, other: int) -> ConstraintWrapper:  # type: ignore[override]
-        return ConstraintWrapper(self._compare("ne", int(other)))
+    def __ne__(self, other: Union[int, "EnumerationDateComponent", "EnumerationComponentExpr"]) -> ConstraintWrapper:  # type: ignore[override]
+        return ConstraintWrapper(self._compare("ne", other))
 
-    def __lt__(self, other: int) -> ConstraintWrapper:
-        return ConstraintWrapper(self._compare("lt", int(other)))
+    def __lt__(self, other: Union[int, "EnumerationDateComponent", "EnumerationComponentExpr"]) -> ConstraintWrapper:
+        return ConstraintWrapper(self._compare("lt", other))
 
-    def __le__(self, other: int) -> ConstraintWrapper:
-        return ConstraintWrapper(self._compare("le", int(other)))
+    def __le__(self, other: Union[int, "EnumerationDateComponent", "EnumerationComponentExpr"]) -> ConstraintWrapper:
+        return ConstraintWrapper(self._compare("le", other))
 
-    def __gt__(self, other: int) -> ConstraintWrapper:
-        return ConstraintWrapper(self._compare("gt", int(other)))
+    def __gt__(self, other: Union[int, "EnumerationDateComponent", "EnumerationComponentExpr"]) -> ConstraintWrapper:
+        return ConstraintWrapper(self._compare("gt", other))
 
-    def __ge__(self, other: int) -> ConstraintWrapper:
-        return ConstraintWrapper(self._compare("ge", int(other)))
+    def __ge__(self, other: Union[int, "EnumerationDateComponent", "EnumerationComponentExpr"]) -> ConstraintWrapper:
+        return ConstraintWrapper(self._compare("ge", other))
+    
+    # Arithmetic operations for expressions like x.year + 4
+    def __add__(self, other: int) -> "EnumerationComponentExpr":
+        if not isinstance(other, int):
+            raise TypeError(f"Cannot add {type(other)} to EnumerationDateComponent")
+        # Create a wrapper that evaluates the component value and adds the constant
+        base_var = EnumerationComponentVar(f"{self.parent.name}_{self.attr}", 
+                                           1900 if self.attr == 'year' else 1,
+                                           2100 if self.attr == 'year' else (12 if self.attr == 'month' else 31),
+                                           self.attr)
+        # Store reference to the parent component for lazy evaluation
+        base_var._parent_component = self
+        return EnumerationComponentExpr(base_var, 'add', other)
+    
+    def __sub__(self, other: int) -> "EnumerationComponentExpr":
+        if not isinstance(other, int):
+            raise TypeError(f"Cannot subtract {type(other)} from EnumerationDateComponent")
+        base_var = EnumerationComponentVar(f"{self.parent.name}_{self.attr}",
+                                           1900 if self.attr == 'year' else 1,
+                                           2100 if self.attr == 'year' else (12 if self.attr == 'month' else 31),
+                                           self.attr)
+        base_var._parent_component = self
+        return EnumerationComponentExpr(base_var, 'sub', other)
+    
+    def __mul__(self, other: int) -> "EnumerationComponentExpr":
+        if not isinstance(other, int):
+            raise TypeError(f"Cannot multiply {type(other)} by EnumerationDateComponent")
+        base_var = EnumerationComponentVar(f"{self.parent.name}_{self.attr}",
+                                           1900 if self.attr == 'year' else 1,
+                                           2100 if self.attr == 'year' else (12 if self.attr == 'month' else 31),
+                                           self.attr)
+        base_var._parent_component = self
+        return EnumerationComponentExpr(base_var, 'mul', other)
 
 
 class EnumerationSolver:

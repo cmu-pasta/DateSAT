@@ -1,387 +1,443 @@
 [
   {
-    "description": "Testing that 1 year is not always equal to 365 days (leap year case)",
+    "description": "Leap year comparison: 1 year vs 365 days starting from Feb 29",
+    "declarations": [
+      "x: date",
+      "y: date",
+      "z: date"
+    ],
     "constraints": [
-      "x == Date(2020, 1, 1)",
+      "x == Date(2000, 2, 29)",
       "y == x + Period(1, 0, 0)",
       "z == x + Period(0, 0, 365)",
-      "y != z"
-    ],
-    "coverage_tags": [
-      "year_vs_days"
-    ],
-    "id": "1763102717-1"
-  },
-  {
-    "description": "Comparing 1 year with 366 days across different starting points",
-    "constraints": [
-      "start_date == Date(2019, 6, 15)",
-      "end_date_year == start_date + Period(1, 0, 0)",
-      "end_date_days == start_date + Period(0, 0, 366)",
-      [
-        "end_date_year == end_date_days",
-        "start_date >= Date(2019, 3, 1)"
-      ],
-      [
-        "end_date_year < end_date_days",
-        "start_date < Date(2019, 3, 1)"
-      ],
-      "start_date <= Date(2020, 2, 28)"
-    ],
-    "coverage_tags": [
-      "year_vs_days"
-    ],
-    "id": "1763102717-2"
-  },
-  {
-    "description": "Testing year vs days equivalence in non-leap years",
-    "constraints": [
-      "x == Date(2019, 1, 1)",
-      "y == x + Period(1, 0, 0)",
-      "z == x + Period(0, 0, 365)"
-    ],
-    "coverage_tags": [
-      "year_vs_days"
-    ],
-    "id": "1763102717-3"
-  },
-  {
-    "description": "Multiple year additions compared with equivalent days",
-    "constraints": [
-      "start == Date(2000, 1, 1)",
-      "five_years_later == start + Period(5, 0, 0)",
-      [
-        "days_1826 == start + Period(0, 0, 1826)",
-        "days_1827 == start + Period(0, 0, 1827)"
-      ],
-      "five_years_later <= days_1827",
-      "five_years_later >= days_1826"
-    ],
-    "coverage_tags": [
-      "year_vs_days"
-    ],
-    "id": "1763102717-4"
-  },
-  {
-    "description": "Comparing fractional years with days across century boundary",
-    "constraints": [
-      "base_date == Date(1999, 12, 1)",
-      "three_and_half_years == base_date + Period(3, 6, 0)",
-      "days_1278 == base_date + Period(0, 0, 1278)",
-      "days_1279 == base_date + Period(0, 0, 1279)",
-      "days_1280 == base_date + Period(0, 0, 1280)",
-      [
-        "three_and_half_years == days_1278",
-        "three_and_half_years == days_1279",
-        "three_and_half_years == days_1280"
-      ]
-    ],
-    "coverage_tags": [
-      "year_vs_days"
-    ],
-    "id": "1763102717-5"
-  },
-  {
-    "description": "Testing that a year is not exactly 365 days (non-leap year)",
-    "constraints": [
-      "x == Date(2001, 1, 1)",
-      "y == x + Period(1, 0, 0)",
-      "z == x + Period(0, 0, 365)",
-      "y != z"
-    ],
-    "coverage_tags": [
-      "year_vs_days"
-    ],
-    "id": "1763102717-6"
-  },
-  {
-    "description": "Testing that a year is not exactly 366 days (leap year)",
-    "constraints": [
-      "x == Date(2000, 1, 1)",
-      "y == x + Period(1, 0, 0)",
-      "z == x + Period(0, 0, 366)",
       "y != z",
-      "w == x + Period(0, 0, 365)",
-      "w != y"
+      "y < z"
     ],
     "coverage_tags": [
       "year_vs_days"
     ],
-    "id": "1763102717-7"
+    "id": "1766396067-1"
   },
   {
-    "description": "Comparing multiple year periods with equivalent days across leap year boundaries",
+    "description": "Non-leap year: 1 year equals 365 days from March 1",
+    "declarations": [
+      "a: date",
+      "b: date",
+      "c: date",
+      "d: date"
+    ],
     "constraints": [
-      "start_date == Date(1999, 12, 31)",
-      "end_date == start_date + Period(4, 0, 0)",
-      "days_date == start_date + Period(0, 0, 1461)",
-      "end_date != days_date"
+      "a == Date(2001, 3, 1)",
+      "b == a + Period(1, 0, 0)",
+      "c == a + Period(0, 0, 365)",
+      "b == c",
+      "d == a + Period(0, 0, 366)",
+      "d > b",
+      "d == Date(2002, 3, 2)"
     ],
     "coverage_tags": [
       "year_vs_days"
     ],
-    "id": "1763102717-8"
+    "id": "1766396067-2"
   },
   {
-    "description": "Complex year vs days comparison with multiple variables and OR conditions",
+    "description": "Unsatisfiable: contradictory leap year arithmetic constraints",
+    "declarations": [
+      "x: date",
+      "y: date",
+      "z: date",
+      "w: date"
+    ],
     "constraints": [
-      "base == Date(2020, 1, 1)",
-      "one_year == base + Period(1, 0, 0)",
-      [
-        "days_365 == base + Period(0, 0, 365)",
-        "days_366 == base + Period(0, 0, 366)"
-      ],
-      "one_year != days_365",
-      "one_year != days_366",
-      "two_years == base + Period(2, 0, 0)"
-    ],
-    "coverage_tags": [
-      "year_vs_days"
-    ],
-    "id": "1763102717-9"
-  },
-  {
-    "description": "Year vs days comparison across century boundaries (non-leap century year)",
-    "constraints": [
-      "century_end == Date(2100, 2, 28)",
-      "next_year == century_end + Period(1, 0, 0)",
-      "days_365 == century_end + Period(0, 0, 365)",
-      "next_year != days_365"
-    ],
-    "coverage_tags": [
-      "year_vs_days"
-    ],
-    "id": "1763102717-10"
-  },
-  {
-    "description": "Comparing 1 year vs 365 days with leap year consideration",
-    "constraints": [
-      "x == Date(2020, 1, 1)",
-      "(x + Period(1, 0, 0)) == Date(2021, 1, 1)",
-      "(x + Period(0, 0, 365)) == Date(2020, 12, 31)",
-      "(x + Period(0, 0, 366)) == Date(2021, 1, 1)",
+      "x == Date(2004, 2, 29)",
       "y == x + Period(1, 0, 0)",
-      "y == x + Period(0, 0, 366)"
+      "z == x + Period(0, 0, 365)",
+      "w == x + Period(0, 0, 366)",
+      "y == Date(2005, 2, 28)",
+      "z == y",
+      "w == Date(2005, 3, 1)",
+      "z == w",
+      "y.year == 2005",
+      "z.day == 28"
     ],
     "coverage_tags": [
       "year_vs_days"
     ],
-    "id": "1763102717-11"
+    "id": "1766396067-3"
   },
   {
-    "description": "Year vs days comparison across non-leap year",
-    "constraints": [
-      "x == Date(2019, 1, 1)",
-      "(x + Period(1, 0, 0)) == Date(2020, 1, 1)",
-      "(x + Period(0, 0, 365)) == Date(2019, 12, 31)"
+    "description": "Two years vs 730 days across leap year boundary",
+    "declarations": [
+      "x: date",
+      "y: date",
+      "z: date"
     ],
-    "coverage_tags": [
-      "year_vs_days"
-    ],
-    "id": "1763102717-12"
-  },
-  {
-    "description": "Multiple year vs days comparisons with OR conditions",
     "constraints": [
       "x == Date(2000, 1, 1)",
-      [
-        "(x + Period(4, 0, 0)) == Date(2004, 1, 1)",
-        "(x + Period(0, 0, 1461)) == Date(2004, 1, 1)"
-      ],
-      [
-        "(x + Period(100, 0, 0)) == Date(2100, 1, 1)",
-        "(x + Period(0, 0, 36525)) != Date(2100, 1, 1)"
-      ],
-      "y == x + Period(0, 0, 366)",
-      "z == x + Period(1, 0, 0)"
+      "y == x + Period(2, 0, 0)",
+      "z == x + Period(0, 0, 730)",
+      "y == Date(2002, 1, 1)",
+      "z == Date(2001, 12, 31)",
+      "y > z"
     ],
     "coverage_tags": [
       "year_vs_days"
     ],
-    "id": "1763102717-13"
+    "id": "1766396067-4"
   },
   {
-    "description": "Year vs days with inequality constraints",
+    "description": "Century leap year behavior: 366 days vs 1 year from Feb 29",
+    "declarations": [
+      "a: date",
+      "b: date",
+      "c: date",
+      "d: date",
+      "e: date"
+    ],
     "constraints": [
-      "x >= Date(2000, 1, 1)",
-      "x <= Date(2000, 12, 31)",
-      "(x + Period(1, 0, 0)) > (x + Period(0, 0, 365))",
-      "(x + Period(4, 0, 0)) < (x + Period(0, 0, 1462))"
+      "a == Date(2000, 2, 29)",
+      "b == a + Period(1, 0, 0)",
+      "c == a + Period(0, 0, 366)",
+      "b == Date(2001, 2, 28)",
+      "c == Date(2001, 3, 1)",
+      "b < c",
+      "d == Date(2000, 3, 1)",
+      "e == d + Period(0, 0, 365)"
     ],
     "coverage_tags": [
       "year_vs_days"
     ],
-    "id": "1763102717-14"
+    "id": "1766396067-5"
   },
   {
-    "description": "Year vs days with complex period calculations",
+    "description": "Basic year vs 365 days comparison showing they are not equivalent",
+    "declarations": [
+      "x: date",
+      "y: date",
+      "z: date"
+    ],
+    "constraints": [
+      "x == Date(2020, 6, 15)",
+      "y == x + Period(1, 0, 0)",
+      "z == x + Period(0, 0, 365)",
+      "y != z",
+      "y < z"
+    ],
+    "coverage_tags": [
+      "year_vs_days"
+    ],
+    "id": "1766396067-6"
+  },
+  {
+    "description": "Leap year date showing year addition vs 366 days difference",
+    "declarations": [
+      "leap_start: date",
+      "one_year_later: date",
+      "days_366_later: date"
+    ],
+    "constraints": [
+      "leap_start == Date(2020, 2, 29)",
+      "one_year_later == leap_start + Period(1, 0, 0)",
+      "one_year_later == Date(2021, 2, 28)",
+      "days_366_later == leap_start + Period(0, 0, 366)",
+      "days_366_later != one_year_later",
+      "days_366_later > one_year_later",
+      "days_366_later.year == 2021"
+    ],
+    "coverage_tags": [
+      "year_vs_days"
+    ],
+    "id": "1766396067-7"
+  },
+  {
+    "description": "Contradictory constraints on year vs days arithmetic leading to UNSAT",
+    "declarations": [
+      "a: date",
+      "b: date",
+      "c: date",
+      "d: date"
+    ],
+    "constraints": [
+      "a == Date(2015, 3, 1)",
+      "b == a + Period(1, 0, 0)",
+      "c == a + Period(0, 0, 365)",
+      "d == a + Period(2, 0, 0)",
+      "b == c",
+      "d == a + Period(0, 0, 730)",
+      "b.year == 2016",
+      "c.year == 2016",
+      "d.year == 2017"
+    ],
+    "coverage_tags": [
+      "year_vs_days"
+    ],
+    "id": "1766396067-8"
+  },
+  {
+    "description": "Year increment vs 365 days from non-leap year date",
+    "declarations": [
+      "start: date",
+      "year_plus: date",
+      "days_plus: date"
+    ],
+    "constraints": [
+      "start == Date(2019, 7, 4)",
+      "year_plus == start + Period(1, 0, 0)",
+      "days_plus == start + Period(0, 0, 365)",
+      "year_plus == Date(2020, 7, 4)",
+      "days_plus > year_plus",
+      "days_plus.year == 2020"
+    ],
+    "coverage_tags": [
+      "year_vs_days"
+    ],
+    "id": "1766396067-9"
+  },
+  {
+    "description": "Complex multi-variable year vs days relationships with impossible conditions",
+    "declarations": [
+      "w: date",
+      "x: date",
+      "y: date",
+      "z: date",
+      "v: date"
+    ],
+    "constraints": [
+      "w == Date(2016, 1, 1)",
+      "x == w + Period(1, 0, 0)",
+      "y == w + Period(0, 0, 366)",
+      "z == w + Period(4, 0, 0)",
+      "v == w + Period(0, 0, 1461)",
+      "x == y",
+      "z == v",
+      "x.year == 2017",
+      "z.year == 2020",
+      "v.year == 2020"
+    ],
+    "coverage_tags": [
+      "year_vs_days"
+    ],
+    "id": "1766396067-10"
+  },
+  {
+    "description": "Leap year start: one year increment differs from 365 days due to leap day",
+    "declarations": [
+      "leap_start: date",
+      "year_later: date",
+      "days_later: date"
+    ],
+    "constraints": [
+      "leap_start == Date(2000, 2, 29)",
+      "year_later == leap_start + Period(1, 0, 0)",
+      "days_later == leap_start + Period(0, 0, 365)",
+      "year_later != days_later",
+      "year_later < days_later"
+    ],
+    "coverage_tags": [
+      "year_vs_days"
+    ],
+    "id": "1766396067-11"
+  },
+  {
+    "description": "Non-leap year cycle: comparing year increments with 365-day periods",
+    "declarations": [
+      "x: date",
+      "y: date",
+      "z: date",
+      "w: date"
+    ],
+    "constraints": [
+      "x == Date(2019, 3, 1)",
+      "y == x + Period(1, 0, 0)",
+      "z == x + Period(0, 0, 365)",
+      "w == y + Period(0, 0, 366)",
+      "y == z",
+      "(x + Period(2, 0, 0)) != (x + Period(0, 0, 730))",
+      "w.year >= 2021"
+    ],
+    "coverage_tags": [
+      "year_vs_days"
+    ],
+    "id": "1766396067-12"
+  },
+  {
+    "description": "Multi-year periods: 4 years vs days across leap year cycles",
+    "declarations": [
+      "a: date",
+      "b: date",
+      "c: date",
+      "d: date"
+    ],
+    "constraints": [
+      "a == Date(2000, 1, 1)",
+      "b == a + Period(4, 0, 0)",
+      "c == a + Period(0, 0, 1461)",
+      "d == a + Period(0, 0, 1460)",
+      "b == c",
+      "b != d",
+      "b.year == 2004",
+      "(a + Period(2, 0, 0)) > (a + Period(0, 0, 730))"
+    ],
+    "coverage_tags": [
+      "year_vs_days"
+    ],
+    "id": "1766396067-13"
+  },
+  {
+    "description": "Year boundary testing: period arithmetic near year transitions",
+    "declarations": [
+      "start: date",
+      "end: date",
+      "middle: date"
+    ],
+    "constraints": [
+      "start >= Date(1999, 12, 15)",
+      "start <= Date(1999, 12, 31)",
+      "end == start + Period(1, 0, 0)",
+      "middle == start + Period(0, 0, 365)",
+      "end != middle",
+      "(start + Period(3, 0, 0)) != (start + Period(0, 0, 1095))"
+    ],
+    "coverage_tags": [
+      "year_vs_days"
+    ],
+    "id": "1766396067-14"
+  },
+  {
+    "description": "Complex year vs days relationships with multiple variables and leap year interactions",
+    "declarations": [
+      "v1: date",
+      "v2: date",
+      "v3: date",
+      "v4: date",
+      "v5: date"
+    ],
+    "constraints": [
+      "v1 == Date(2000, 2, 29)",
+      "v2 == v1 + Period(1, 0, 0)",
+      "v3 == v1 + Period(0, 0, 366)",
+      "v4 == v1 + Period(4, 0, 0)",
+      "v5 == v1 + Period(0, 0, 1461)",
+      "v2 != v3",
+      "v3.year >= 2001",
+      "v4 == v5",
+      "(v1 + Period(2, 0, 0)) < (v1 + Period(0, 0, 731))",
+      "v2.day == 28"
+    ],
+    "coverage_tags": [
+      "year_vs_days"
+    ],
+    "id": "1766396067-15"
+  },
+  {
+    "description": "Basic year vs 365 days comparison from leap year date showing inequality",
+    "declarations": [
+      "x: date",
+      "y: date",
+      "z: date"
+    ],
+    "constraints": [
+      "x == Date(2000, 2, 29)",
+      "y == x + Period(1, 0, 0)",
+      "z == x + Period(0, 0, 365)",
+      "y != z",
+      "z < y"
+    ],
+    "coverage_tags": [
+      "year_vs_days"
+    ],
+    "id": "1766396067-16"
+  },
+  {
+    "description": "Year vs 365 days from non-leap year showing when they are equal",
+    "declarations": [
+      "x: date",
+      "y: date",
+      "z: date",
+      "w: date"
+    ],
+    "constraints": [
+      "x == Date(2001, 3, 1)",
+      "y == x + Period(1, 0, 0)",
+      "z == x + Period(0, 0, 365)",
+      "w == x + Period(0, 0, 366)",
+      "y == z",
+      "y != w",
+      "y > x"
+    ],
+    "coverage_tags": [
+      "year_vs_days"
+    ],
+    "id": "1766396067-17"
+  },
+  {
+    "description": "Complex year vs days across multiple leap and non-leap years with property checks",
+    "declarations": [
+      "a: date",
+      "b: date",
+      "c: date",
+      "d: date",
+      "e: date"
+    ],
+    "constraints": [
+      "a == Date(1999, 12, 31)",
+      "b == a + Period(1, 0, 0)",
+      "c == a + Period(0, 0, 365)",
+      "d == a + Period(0, 0, 366)",
+      "b == d",
+      "b != c",
+      "e == Date(2000, 12, 30)",
+      "b.year == 2000",
+      "c.year == 2000",
+      "c < e"
+    ],
+    "coverage_tags": [
+      "year_vs_days"
+    ],
+    "id": "1766396067-18"
+  },
+  {
+    "description": "Impossible year equals 365 days constraint from leap year date (UNSAT)",
+    "declarations": [
+      "x: date",
+      "y: date",
+      "z: date"
+    ],
     "constraints": [
       "x == Date(2020, 2, 29)",
-      "(x + Period(1, 0, 0)) == Date(2021, 2, 28)",
-      "(x + Period(0, 0, 365)) == Date(2021, 2, 28)",
-      "(x + Period(4, 0, 0)) == Date(2024, 2, 29)",
-      [
-        "(x + Period(0, 0, 1461)) == Date(2024, 2, 29)",
-        "(x + Period(0, 0, 1460)) == Date(2024, 2, 28)"
-      ]
-    ],
-    "coverage_tags": [
-      "year_vs_days"
-    ],
-    "id": "1763102717-15"
-  },
-  {
-    "description": "Testing that 1 year is not equal to 365 days across a leap year boundary",
-    "constraints": [
-      "x >= Date(2020, 1, 1)",
-      "x <= Date(2020, 1, 31)",
-      "(x + Period(1, 0, 0)) != (x + Period(0, 0, 365))",
-      "(x + Period(1, 0, 0)) == (x + Period(0, 0, 366))",
-      "y == x + Period(1, 0, 0)",
-      "z == x + Period(0, 0, 366)"
-    ],
-    "coverage_tags": [
-      "year_vs_days"
-    ],
-    "id": "1763102717-16"
-  },
-  {
-    "description": "Testing that 1 year is not equal to 365 days in a non-leap year",
-    "constraints": [
-      "x >= Date(2019, 1, 1)",
-      "x <= Date(2019, 12, 31)",
-      "(x + Period(1, 0, 0)) == (x + Period(0, 0, 365))"
-    ],
-    "coverage_tags": [
-      "year_vs_days"
-    ],
-    "id": "1763102717-17"
-  },
-  {
-    "description": "Testing that 2 years is not equal to 730 days across multiple leap years",
-    "constraints": [
-      "x >= Date(2019, 6, 1)",
-      "x <= Date(2019, 6, 30)",
-      "(x + Period(2, 0, 0)) != (x + Period(0, 0, 730))",
-      "(x + Period(2, 0, 0)) == (x + Period(0, 0, 731))",
-      [
-        "y == x + Period(0, 0, 730)",
-        "y == x + Period(0, 0, 731)"
-      ]
-    ],
-    "coverage_tags": [
-      "year_vs_days"
-    ],
-    "id": "1763102717-18"
-  },
-  {
-    "description": "Testing that 4 years is equal to 1461 days (accounting for leap year)",
-    "constraints": [
-      "x >= Date(2020, 1, 1)",
-      "x <= Date(2020, 12, 31)",
-      "(x + Period(4, 0, 0)) == (x + Period(0, 0, 1461))",
-      "y == x + Period(4, 0, 0)"
-    ],
-    "coverage_tags": [
-      "year_vs_days"
-    ],
-    "id": "1763102717-19"
-  },
-  {
-    "description": "Testing year vs days calculations with multiple variables across century boundaries",
-    "constraints": [
-      "x == Date(1996, 2, 29)",
-      "y == x + Period(4, 0, 0)",
-      "z == x + Period(0, 0, 1461)",
-      "y == z",
-      [
-        "w == x + Period(100, 0, 0)",
-        "w == x + Period(0, 0, 36525)"
-      ],
-      "w != x + Period(0, 0, 36524)"
-    ],
-    "coverage_tags": [
-      "year_vs_days"
-    ],
-    "id": "1763102717-20"
-  },
-  {
-    "description": "Testing that a year is not exactly 365 days in the context of a leap year",
-    "constraints": [
-      "x == Date(2020, 1, 1)",
       "y == x + Period(1, 0, 0)",
       "z == x + Period(0, 0, 365)",
-      "y != z"
+      "y == z",
+      "y.year == 2021",
+      "z.year == 2021"
     ],
     "coverage_tags": [
       "year_vs_days"
     ],
-    "id": "1763102717-21"
+    "id": "1766396067-19"
   },
   {
-    "description": "Comparing different ways to add approximately 2 years with days and periods",
+    "description": "Multiple year additions vs accumulated days showing compound differences",
+    "declarations": [
+      "start: date",
+      "year2: date",
+      "year4: date",
+      "days730: date",
+      "days1460: date"
+    ],
     "constraints": [
-      "start_date == Date(2019, 6, 15)",
-      "date1 == start_date + Period(2, 0, 0)",
-      "date2 == start_date + Period(0, 0, 730)",
-      "date3 == start_date + Period(0, 0, 731)",
-      [
-        "date1 == date2",
-        "date1 == date3"
-      ],
-      "end_date == Date(2021, 6, 15)"
+      "start == Date(2000, 1, 1)",
+      "year2 == start + Period(2, 0, 0)",
+      "year4 == start + Period(4, 0, 0)",
+      "days730 == start + Period(0, 0, 730)",
+      "days1460 == start + Period(0, 0, 1460)",
+      "year2 != days730",
+      "year4 != days1460",
+      "year4.year == 2004"
     ],
     "coverage_tags": [
       "year_vs_days"
     ],
-    "id": "1763102717-22"
-  },
-  {
-    "description": "Testing year vs days calculations across multiple leap years",
-    "constraints": [
-      "base == Date(2000, 2, 28)",
-      "four_years_period == base + Period(4, 0, 0)",
-      "days_1461 == base + Period(0, 0, 1461)",
-      "four_years_period == days_1461"
-    ],
-    "coverage_tags": [
-      "year_vs_days"
-    ],
-    "id": "1763102717-23"
-  },
-  {
-    "description": "Complex year vs days comparison with multiple variables and leap year boundaries",
-    "constraints": [
-      "start_date >= Date(2000, 1, 1)",
-      "start_date <= Date(2000, 12, 31)",
-      "one_year_later == start_date + Period(1, 0, 0)",
-      "days_365 == start_date + Period(0, 0, 365)",
-      "days_366 == start_date + Period(0, 0, 366)",
-      [
-        "one_year_later == days_365",
-        "one_year_later == days_366"
-      ]
-    ],
-    "coverage_tags": [
-      "year_vs_days"
-    ],
-    "id": "1763102717-24"
-  },
-  {
-    "description": "Testing non-leap year vs leap year day counts",
-    "constraints": [
-      "non_leap_start == Date(2019, 1, 1)",
-      "leap_start == Date(2020, 1, 1)",
-      "non_leap_end == non_leap_start + Period(1, 0, 0)",
-      "leap_end == leap_start + Period(1, 0, 0)",
-      "non_leap_days == non_leap_start + Period(0, 0, 365)",
-      "leap_days == leap_start + Period(0, 0, 366)",
-      "non_leap_end == non_leap_days",
-      "leap_end == leap_days"
-    ],
-    "coverage_tags": [
-      "year_vs_days"
-    ],
-    "id": "1763102717-25"
+    "id": "1766396067-20"
   }
 ]

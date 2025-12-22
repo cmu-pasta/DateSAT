@@ -418,9 +418,9 @@ class ConstraintParser:
                           | bool_atom comparison_op bool_atom
 
             IMPLIES: "->"
-            OR: "||" | "or" | "OR"
-            AND: "&&" | "and" | "AND"
-            NOT: "!" | "not" | "NOT"
+            OR: "||" | /\bor\b/i | /\bOR\b/
+            AND: "&&" | /\band\b/i | /\bAND\b/
+            NOT: "!" | /\bnot\b/i | /\bNOT\b/
             PLUS: "+"
             MINUS: "-"
             STAR: "*"
