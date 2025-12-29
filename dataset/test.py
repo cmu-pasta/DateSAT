@@ -37,33 +37,29 @@ from datesmt.constraint_parser import ConstraintParser
 # Paste a single JSON constraint object here (one from *_constraints*.jsonl)
 CONSTRAINT_JSON = r"""
 {
-    "id": "grammar-17",
+    "id": "grammar-41",
     "declarations": [
-      "B0: bool",
-      "B4: bool",
-      "B7: bool",
-      "B9: bool",
+      "S: date",
+      "I: date",
+      "C: date",
+      "Cm: date",
+      "B1: bool",
+      "B2: bool",
       "D1: date",
-      "D2: date",
-      "D3: date",
-      "D4: date",
-      "D5: date",
-      "D7: date",
-      "D8: date",
-      "D9: date",
-      "I3: int",
-      "I6: int"
+      "D2: date"
     ],
     "constraints": [
-      "(B0 == True) -> (D1 == D1) || D8 <= D5",
-      "I3 == (I6 - 1) || (B7 == False) -> (Date(1926, 6, 11) >= (Date(2044, 3, 16) - (Period(0, 0, 8) * 5))) || D4 > D5 || (B9 != True) -> ((Date(1903, 11, 12) - (Period(9, 1, 4) * 9)) == D7) || D8 <= Date(2068, 5, 4)",
-      "D2 > (D8 - ((Period(5, 1, 5) - ((Period(2, 2, 8) * 2) * 4)) * 1)) || (B4 == True) -> (D3 < (D9 + (((Period(1, 3, 4) - (Period(6, 6, 1) + Period(1, 6, 4))) * 8) * 7)))",
-      "D3.year == (D2.month - 12)",
-      "(B0 == True) -> ((Date(2009, 4, 19) - (Period(8, 9, 1) + (((Period(5, 0, 0) - (((Period(3, 7, 2) - (Period(0, 9, 0) - (((Period(0, 1, 4) * 0) * 5) * 5))) * 4) * 6)) * 4) * 8))) > D7)",
-      "D4 > D9",
-      "D5.day > 2024"
+      "I == S + Period(0,1,0)",
+      "Cm == C - Period(0,1,0)",
+      "B1 == (I <= C) && (C  <= I  + Period(0,0,2))",
+      "B2 == (S <= Cm) && (Cm <= S  + Period(0,0,2))",
+      "(B1  -> (D1 == I + Period(0,0,7)))",
+      "(!B1 -> (D1 == I + Period(0,0,10)))",
+      "(B2  -> (D2 == I + Period(0,0,7)))",
+      "(!B2 -> (D2 == I + Period(0,0,10)))",
+      "D1 != D2"
     ],
-    "size": 7
+    "size": 9
   }
 """
 
@@ -83,7 +79,7 @@ def main():
     # 3) Execute the generated code with a DateSMTBuilder factory
     def create_builder():
         # You can change approach/implementation if you want
-        return DateSMTBuilder(approach="alpha_beta", implementation="bitvector")
+        return DateSMTBuilder(approach="naive", implementation="bitvector")
 
     exec_globals = {
         "Date": Date,

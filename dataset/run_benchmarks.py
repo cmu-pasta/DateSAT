@@ -17,7 +17,7 @@ from datesmt.constraint_parser import ConstraintParser
 from datesmt.core import Date, Period
 from datesmt.enumeration_baseline import EnumerationSolver
 
-TIMEOUT_MS = 10000
+TIMEOUT_MS = 60000
 
 
 def run_constraint_with_approach(
@@ -295,22 +295,22 @@ def main():
     SCRIPT_DIR = Path(__file__).parent
 
     constraint_sets = [
-        {
-            "name": "Grammar Constraints",
-            "constraints_file": SCRIPT_DIR
-            / "grammar_constraints"
-            / "constraints"
-            / "constraints.json",
-            "output_dir": SCRIPT_DIR / "grammar_constraints" / "results",
-        },
         #{
-        #    "name": "LLM Generated Constraints",
+        #    "name": "Grammar Constraints",
         #    "constraints_file": SCRIPT_DIR
-        #    / "llm_constraints"
+        #    / "grammar_constraints"
         #    / "constraints"
         #    / "constraints.json",
-        #    "output_dir": SCRIPT_DIR / "llm_constraints" / "results",
+        #    "output_dir": SCRIPT_DIR / "grammar_constraints" / "results",
         #},
+        {
+            "name": "LLM Generated Constraints",
+            "constraints_file": SCRIPT_DIR
+            / "llm_constraints"
+            / "constraints"
+            / "constraints.json",
+            "output_dir": SCRIPT_DIR / "llm_constraints" / "results",
+        },
         #{
         #    "name": "Legal Document Constraints",
         #    "constraints_file": SCRIPT_DIR
@@ -328,7 +328,7 @@ def main():
         "--timeout",
         type=int,
         default=TIMEOUT_MS,
-        help="Timeout in milliseconds (default: 10000 = 10 seconds)",
+        help="Timeout in milliseconds (default: 60000 = 60 seconds)",
     )
     parser.add_argument(
         "--no-analysis",

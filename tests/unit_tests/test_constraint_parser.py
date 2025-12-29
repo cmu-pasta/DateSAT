@@ -97,12 +97,12 @@ def test_parse_constraint_complex_arithmetic(parser, constraint, expected):
     ("a + b == c", "builder.add_constraint(a + b == c)"),
     ("a - b == c", "builder.add_constraint(a - b == c)"),
     ("a * b == c", "builder.add_constraint(a * b == c)"),
-    ("a // b == c", "builder.add_constraint(a // b == c)"),
+    ("a / b == c", "builder.add_constraint(a / b == c)"),
     ("a % b == c", "builder.add_constraint(a % b == c)"),
     ("a ** b == c", "builder.add_constraint(a ** b == c)"),
 ])
 def test_parse_constraint_integer_operations(parser, constraint, expected):
-    """Test parsing of integer arithmetic operations: +, -, *, //, %, **."""
+    """Test parsing of integer arithmetic operations: +, -, *, /, %, **."""
     result = parser.parse_constraint(constraint)
     assert result == expected
 
@@ -112,11 +112,11 @@ def test_parse_constraint_integer_operations(parser, constraint, expected):
     ("a * b + c == d", "builder.add_constraint(a * b + c == d)"),
     ("a ** b * c == d", "builder.add_constraint(a ** b * c == d)"),
     ("a * b ** c == d", "builder.add_constraint(a * b ** c == d)"),
-    ("a // b + c == d", "builder.add_constraint(a // b + c == d)"),
+    ("a / b + c == d", "builder.add_constraint(a / b + c == d)"),
     ("a % b + c == d", "builder.add_constraint(a % b + c == d)"),
 ])
 def test_parse_constraint_integer_precedence(parser, constraint, expected):
-    """Test that integer operations follow correct precedence: ** > *, //, % > +, -."""
+    """Test that integer operations follow correct precedence: ** > *, /, % > +, -."""
     result = parser.parse_constraint(constraint)
     assert result == expected
 
@@ -131,9 +131,9 @@ def test_integer_operations_with_property_access(parser):
     result = parser.parse_constraint(constraint)
     assert "k.year % 4 == 0" in result
     
-    constraint = "k.year // 100 == century"
+    constraint = "k.year / 100 == century"
     result = parser.parse_constraint(constraint)
-    assert "k.year // 100 == century" in result
+    assert "k.year / 100 == century" in result
 
 
 def test_integer_operations_in_date_constructor(parser):
@@ -153,7 +153,7 @@ def test_generate_builder_code_with_integer_operations(parser):
         "y: int",
         "z: int",
         "x % 4 == 0",
-        "y == x // 10",
+        "y == x / 10",
         "z == x ** 2"
     ]
 
@@ -163,7 +163,7 @@ def test_generate_builder_code_with_integer_operations(parser):
     assert 'y = builder.add_int_var("y")' in result
     assert 'z = builder.add_int_var("z")' in result
     assert "x % 4 == 0" in result
-    assert "x // 10" in result
+    assert "x / 10" in result
     assert "x ** 2" in result
 
 
@@ -195,7 +195,6 @@ def test_parse_constraint_variable_names(parser, constraint, expected):
     "123var >= Date(2000, 1, 1)",  # Invalid variable name
     "var-123 >= Date(2000, 1, 1)",  # Invalid variable name
     "var.123 >= Date(2000, 1, 1)",  # Invalid variable name
-    "a / b == c",  # Float division not supported (use // for floor division)
     "",  # Empty string
     "   ",  # Whitespace only
 ])
@@ -1182,7 +1181,7 @@ def test_infer_variable_types_from_date_constructor(parser):
 
 
 def test_auto_infer_int_from_date_constructor(parser):
-    """Test that variables inside Date() are auto-declared as int."""
+    """Test that variables inside Date() are auto-declared as int with component_type."""
     constraints = [
         "k: date",
         "k == Date(x, 2, 1)"
@@ -1190,7 +1189,8 @@ def test_auto_infer_int_from_date_constructor(parser):
     
     result = parser.generate_builder_code(constraints)
     
-    assert 'x = builder.add_int_var("x")' in result
+    # x is used in the first position (year) of Date(), so component_type="year" is added
+    assert 'x = builder.add_int_var("x", component_type="year")' in result
     assert 'k = builder.add_date_var("k")' in result
 
 
