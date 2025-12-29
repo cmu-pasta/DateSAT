@@ -873,23 +873,24 @@ class ConstraintParser:
         # Add natural bounds constraints for integer variables used in Date() constructors
         # Note: For enumeration baseline, bounds are set at variable creation time,
         # but we still add constraints for other implementations (bitvector/int mode)
-        code_lines.append("")
-        code_lines.append("# Automatic bounds for Date() component variables")
-        for var_name, component_type in sorted(component_bounds.items()):
-            if component_type == 'year':
-                code_lines.append(f'builder.add_constraint({var_name} >= 1900)')
-                code_lines.append(f'builder.add_constraint({var_name} <= 2100)')
-            elif component_type == 'month':
-                code_lines.append(f'builder.add_constraint({var_name} >= 1)')
-                code_lines.append(f'builder.add_constraint({var_name} <= 12)')
-            elif component_type == 'day':
-                code_lines.append(f'builder.add_constraint({var_name} >= 1)')
-                code_lines.append(f'builder.add_constraint({var_name} <= 31)')
-            elif component_type == 'mixed':
-                # Variable used in multiple positions - use most restrictive bounds
-                code_lines.append(f'# Warning: {var_name} used in multiple Date() positions - using conservative bounds')
-                code_lines.append(f'builder.add_constraint({var_name} >= 1)')
-                code_lines.append(f'builder.add_constraint({var_name} <= 2100)')
+        if component_bounds:
+            code_lines.append("")
+            code_lines.append("# Automatic bounds for Date() component variables")
+            for var_name, component_type in sorted(component_bounds.items()):
+                if component_type == 'year':
+                    code_lines.append(f'builder.add_constraint({var_name} >= 1900)')
+                    code_lines.append(f'builder.add_constraint({var_name} <= 2100)')
+                elif component_type == 'month':
+                    code_lines.append(f'builder.add_constraint({var_name} >= 1)')
+                    code_lines.append(f'builder.add_constraint({var_name} <= 12)')
+                elif component_type == 'day':
+                    code_lines.append(f'builder.add_constraint({var_name} >= 1)')
+                    code_lines.append(f'builder.add_constraint({var_name} <= 31)')
+                elif component_type == 'mixed':
+                    # Variable used in multiple positions - use most restrictive bounds
+                    code_lines.append(f'# Warning: {var_name} used in multiple Date() positions - using conservative bounds')
+                    code_lines.append(f'builder.add_constraint({var_name} >= 1)')
+                    code_lines.append(f'builder.add_constraint({var_name} <= 2100)')
 
         # Add constraints (using filtered constraints without declarations)
         # Each constraint is a full boolean expression - parse and add directly
@@ -897,9 +898,6 @@ class ConstraintParser:
         for constraint_str in filtered_constraints:
             constraint_code = self.parse_constraint(constraint_str)
             code_lines.append(constraint_code)
-
-        # Add result assignment
-        code_lines.append("result = builder")
 
         return "\n".join(code_lines)
 

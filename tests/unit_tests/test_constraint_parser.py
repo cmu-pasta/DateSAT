@@ -246,7 +246,6 @@ def test_generate_builder_code_basic(parser):
     assert 'y = builder.add_date_var("y")' in result
     assert "builder.add_constraint(x >= Date(2000, 1, 1))" in result
     assert "builder.add_constraint(y <= Date(2020, 12, 31))" in result
-    assert "result = builder" in result
 
 def test_generate_builder_code_empty(parser):
     """Test builder code generation with empty inputs."""
@@ -256,7 +255,6 @@ def test_generate_builder_code_empty(parser):
 
     assert "from z3 import Or, And, Not" in result
     assert "builder = DateSMTBuilder()" in result
-    assert "result = builder" in result
 
 
 # -------------------------
@@ -277,7 +275,6 @@ def test_parse_constraint_data_basic(parser):
     assert 'y = builder.add_date_var("y")' in result
     assert "builder.add_constraint(x >= Date(2000, 1, 1))" in result
     assert "builder.add_constraint(y <= Date(2020, 12, 31))" in result
-    assert "result = builder" in result
 
 
 def test_parse_constraint_data_backward_compatible(parser):
@@ -293,7 +290,6 @@ def test_parse_constraint_data_backward_compatible(parser):
     assert 'y = builder.add_date_var("y")' in result
     assert "builder.add_constraint(x >= Date(2000, 1, 1))" in result
     assert "builder.add_constraint(y <= Date(2020, 12, 31))" in result
-    assert "result = builder" in result
 
 
 def test_parse_constraint_data_missing_keys(parser):
@@ -304,7 +300,6 @@ def test_parse_constraint_data_missing_keys(parser):
 
     assert "from z3 import Or, And, Not" in result
     assert "builder = DateSMTBuilder()" in result
-    assert "result = builder" in result
 
 
 def test_parse_constraint_data_with_periods(parser):
@@ -318,7 +313,6 @@ def test_parse_constraint_data_with_periods(parser):
     assert "from z3 import Or, And, Not" in result
     assert 'x = builder.add_date_var("x")' in result
     assert "builder.add_constraint(x + Period(0, 1, 1) >= Date(2000, 1, 1))" in result
-    assert "result = builder" in result
 
 
 # -------------------------
@@ -386,7 +380,6 @@ def test_full_workflow(parser):
     assert "builder.add_constraint(start_date >= Date(2000, 1, 1))" in result
     assert "builder.add_constraint(end_date <= Date(2020, 12, 31))" in result
     assert "builder.add_constraint(start_date + Period(1, 1, 1) <= end_date)" in result
-    assert "result = builder" in result
 
 
 def test_parser_state_independence():
@@ -473,7 +466,6 @@ def test_parse_constraint_data_with_one_datevar(parser):
     assert 'x = builder.add_date_var("x")' in result
     assert "builder.add_constraint(x >= Date(2000, 2, 28))" in result
     assert "builder.add_constraint(x <= Date(2000, 3, 1))" in result
-    assert "result = builder" in result
 
 def test_parse_constraint_data_with_multiple_datevar(parser):
     """Test parsing constraint data with multiple date variables."""
@@ -488,7 +480,6 @@ def test_parse_constraint_data_with_multiple_datevar(parser):
     assert 'y = builder.add_date_var("y")' in result
     assert "builder.add_constraint(x >= Date(2000, 2, 28))" in result
     assert "builder.add_constraint(y <= Date(2000, 3, 1))" in result
-    assert "result = builder" in result
 
 
 # -------------------------
@@ -754,7 +745,6 @@ def test_boolean_operators_with_z3_solvers(parser):
                 'Period': __import__('datesmt.core', fromlist=['Period']).Period,
                 'DateSMTBuilder': lambda: builder,
                 'builder': builder,
-                'result': builder,
                 'Or': __import__('z3', fromlist=['Or']).Or,
                 'And': __import__('z3', fromlist=['And']).And,
                 'Not': __import__('z3', fromlist=['Not']).Not,
@@ -798,7 +788,6 @@ def test_boolean_operators_satisfiable_case(parser):
         'Period': __import__('datesmt.core', fromlist=['Period']).Period,
         'DateSMTBuilder': lambda: builder,
         'builder': builder,
-        'result': builder,
     }
     
     exec(code, exec_globals)
@@ -833,7 +822,6 @@ def test_boolean_operators_unsatisfiable_case(parser):
         'Period': __import__('datesmt.core', fromlist=['Period']).Period,
         'DateSMTBuilder': lambda: builder,
         'builder': builder,
-        'result': builder,
         'Or': __import__('z3', fromlist=['Or']).Or,
         'And': __import__('z3', fromlist=['And']).And,
         'Not': __import__('z3', fromlist=['Not']).Not,

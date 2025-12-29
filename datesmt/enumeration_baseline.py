@@ -802,7 +802,6 @@ class EnumerationSolver:
             'SymbolicDate': self.SymbolicDate,
             'DateSMTBuilder': lambda: self,
             'builder': self,
-            'result': self,
             '__builtins__': {**builtins.__dict__, '__import__': mock_import},
             'And': self.And,
             'Or': self.Or,
