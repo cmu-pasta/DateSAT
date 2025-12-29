@@ -51,8 +51,8 @@ CONSTRAINT_JSON = r"""
     "constraints": [
       "I == S + Period(0,1,0)",
       "Cm == C - Period(0,1,0)",
-      "B1 == (I <= C) && (C  <= I  + Period(0,0,2))",
-      "B2 == (S <= Cm) && (Cm <= S  + Period(0,0,2))",
+      "B1 == ((I <= C) && (C  <= I  + Period(0,0,2)))",
+      "B2 == ((S <= Cm) && (Cm <= S  + Period(0,0,2)))",
       "(B1  -> (D1 == I + Period(0,0,7)))",
       "(!B1 -> (D1 == I + Period(0,0,10)))",
       "(B2  -> (D2 == I + Period(0,0,7)))",
@@ -89,10 +89,10 @@ def main():
 
     exec(constraint_code, exec_globals)
 
-    # The generated code sets `result = builder`
-    builder = exec_globals.get("result")
+    # The generated code creates a `builder` variable
+    builder = exec_globals.get("builder")
     if builder is None:
-        raise RuntimeError("Generated code did not create a builder named 'result'")
+        raise RuntimeError("Generated code did not create a builder")
 
     # 4) Solve and print results
     builder.solve()  # DateSMTBuilder.solve() already prints SAT/UNSAT and dates
