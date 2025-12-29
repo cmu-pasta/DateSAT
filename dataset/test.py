@@ -39,31 +39,27 @@ CONSTRAINT_JSON = r"""
 {
     "id": "grammar-41",
     "declarations": [
-      "B0: bool",
-      "D0: date",
+      "S: date",
+      "I: date",
+      "C: date",
+      "Cm: date",
+      "B1: bool",
+      "B2: bool",
       "D1: date",
-      "D2: date",
-      "D4: date",
-      "D6: date",
-      "D7: date",
-      "D8: date",
-      "D9: date",
-      "I0: int",
-      "I3: int",
-      "I4: int",
-      "I6: int",
-      "I8: int",
-      "I9: int"
+      "D2: date"
     ],
     "constraints": [
-      "D9.month > (I3 % (D8.month / 11))",
-      "I9 == 22 || D6 != Date(2003, 11, 30)",
-      "(B0 == False) -> ((D8 - Period(6, 7, 4)) == ((D1 - (Period(4, 7, 6) + ((Period(2, 9, 7) * 9) * 2))) - (Period(9, 2, 4) + ((Period(0, 4, 1) - ((Period(0, 2, 9) * 6) * 6)) * 7))))",
-      "I6 >= 2061 || D4 >= D7",
-      "I9 >= 8 || I0 > (I4 / (D6.day * 2120)) || D9.month >= (D7.year - 2182) || D1 > (Date(2056, 8, 3) - Period(1, 4, 3)) || D6 == Date(1954, 4, 18) || D8 != (D2 + Period(8, 2, 2))",
-      "D1 <= (Date(2093, 7, 3) + Period(8, 8, 1)) || D6.year < 9 || D1.year >= 1965 || D0 >= ((D8 + (Period(3, 9, 4) * 1)) + (Period(2, 9, 2) - (Period(4, 0, 0) * 8))) || (B0 != True) -> ((D7 - ((((Period(8, 7, 8) * 0) * 7) * 2) * 2)) > D0) || D7.day > D1.month || D7 != ((((D9 + Period(0, 5, 5)) - (Period(9, 2, 5) * 9)) + Period(1, 2, 5)) + (Period(7, 9, 8) * 8)) || I8 <= D9.month"
+      "I == S + Period(0,1,0)",
+      "Cm == C - Period(0,1,0)",
+      "B1 == (I <= C) && (C  <= I  + Period(0,0,2))",
+      "B2 == (S <= Cm) && (Cm <= S  + Period(0,0,2))",
+      "(B1  -> (D1 == I + Period(0,0,7)))",
+      "(!B1 -> (D1 == I + Period(0,0,10)))",
+      "(B2  -> (D2 == I + Period(0,0,7)))",
+      "(!B2 -> (D2 == I + Period(0,0,10)))",
+      "D1 != D2"
     ],
-    "size": 6
+    "size": 9
   }
 """
 

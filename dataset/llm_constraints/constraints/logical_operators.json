@@ -97,8 +97,7 @@
       "z == x + Period(0, 12, 0)",
       "(z.year == 2001 && z.month == 2) && (z.day == 29 || z.day == 30)",
       "!(y.day == 28)",
-      "(x.year == 2000 && x.day == 29) -> (y.year == 2001 && y.day == 29)",
-      "y == Date(2001, 2, 29)"
+      "(x.year == 2000 && x.day == 29) -> (y.year == 2001 && y.day == 29)"
     ],
     "coverage_tags": [
       "logical_operators"

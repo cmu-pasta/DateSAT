@@ -174,7 +174,7 @@ class EvalDateComponent:
         # Works for both Date and _UnboundedDate
         return getattr(d, self.attr)
 
-    def _cmp(self, op: str, other: Union[int, "EvalIntVar"]) -> ConstraintWrapper:
+    def _cmp(self, op: str, other: Union[int, "EvalIntVar", "EvalDateComponent"]) -> ConstraintWrapper:
         def compare():
             component_val = self._get_component_value()
             if component_val is None:
@@ -202,22 +202,22 @@ class EvalDateComponent:
 
         return ConstraintWrapper(compare)
 
-    def __eq__(self, other: Union[int, "EvalIntVar"]) -> ConstraintWrapper:  # type: ignore[override]
+    def __eq__(self, other: Union[int, "EvalIntVar", "EvalDateComponent"]) -> ConstraintWrapper:  # type: ignore[override]
         return self._cmp("eq", other)
     
-    def __ne__(self, other: Union[int, "EvalIntVar"]) -> ConstraintWrapper:  # type: ignore[override]
+    def __ne__(self, other: Union[int, "EvalIntVar", "EvalDateComponent"]) -> ConstraintWrapper:  # type: ignore[override]
         return self._cmp("ne", other)
     
-    def __lt__(self, other: Union[int, "EvalIntVar"]) -> ConstraintWrapper:
+    def __lt__(self, other: Union[int, "EvalIntVar", "EvalDateComponent"]) -> ConstraintWrapper:
         return self._cmp("lt", other)
     
-    def __le__(self, other: Union[int, "EvalIntVar"]) -> ConstraintWrapper:
+    def __le__(self, other: Union[int, "EvalIntVar", "EvalDateComponent"]) -> ConstraintWrapper:
         return self._cmp("le", other)
     
-    def __gt__(self, other: Union[int, "EvalIntVar"]) -> ConstraintWrapper:
+    def __gt__(self, other: Union[int, "EvalIntVar", "EvalDateComponent"]) -> ConstraintWrapper:
         return self._cmp("gt", other)
     
-    def __ge__(self, other: Union[int, "EvalIntVar"]) -> ConstraintWrapper:
+    def __ge__(self, other: Union[int, "EvalIntVar", "EvalDateComponent"]) -> ConstraintWrapper:
         return self._cmp("ge", other)
 
     # Arithmetic operations returning EvalIntVar so that expressions like
@@ -228,6 +228,12 @@ class EvalDateComponent:
         def compute():
             lhs = self._get_component_value()
             if lhs is None:
+                # Debug: check if parent is set
+                parent_val = self.parent.get_value()
+                if parent_val is None:
+                    # Parent date variable hasn't been set - this is likely the bug
+                    import warnings
+                    warnings.warn(f"Parent date variable {self.parent.name} not set when evaluating {self.parent.name}.{self.attr} {op} {other}")
                 return None
             if isinstance(other, EvalIntVar):
                 rv = other.get_value()
@@ -407,12 +413,22 @@ class EvalIntVar:
     def __ge__(self, other: Union[int, "EvalIntVar"]) -> ConstraintWrapper:
         return self._cmp("ge", other)
 
-    def __add__(self, other: Union[int, "EvalIntVar"]) -> "EvalIntVar":
+    def __add__(self, other: Union[int, "EvalIntVar", "EvalDateComponent"]) -> "EvalIntVar":
         out = EvalIntVar(f"{self.name}_plus")
 
         def compute():
             lhs = self.get_value()
-            rv = other.get_value() if isinstance(other, EvalIntVar) else int(other)
+            # Support addition with another EvalIntVar
+            if isinstance(other, EvalIntVar):
+                rv = other.get_value()
+            # Support addition with a date component (e.g., I8 + D5.year)
+            elif isinstance(other, EvalDateComponent):
+                rv = other._get_component_value()
+            else:
+                try:
+                    rv = int(other)
+                except Exception:
+                    rv = None
             if lhs is None or rv is None:
                 return None
             return lhs + rv
@@ -425,7 +441,17 @@ class EvalIntVar:
 
         def compute():
             lhs = self.get_value()
-            rv = other.get_value() if isinstance(other, EvalIntVar) else int(other)
+            # Support subtraction with another EvalIntVar
+            if isinstance(other, EvalIntVar):
+                rv = other.get_value()
+            # Support subtraction with a date component (e.g., I8 - D5.year or x.year * 2 - x.year)
+            elif isinstance(other, EvalDateComponent):
+                rv = other._get_component_value()
+            else:
+                try:
+                    rv = int(other)
+                except Exception:
+                    rv = None
             if lhs is None or rv is None:
                 return None
             return lhs - rv
@@ -433,12 +459,22 @@ class EvalIntVar:
         out.get_value = compute  # type: ignore
         return out
 
-    def __mul__(self, other: Union[int, "EvalIntVar"]) -> "EvalIntVar":
+    def __mul__(self, other: Union[int, "EvalIntVar", "EvalDateComponent"]) -> "EvalIntVar":
         out = EvalIntVar(f"{self.name}_times")
 
         def compute():
             lhs = self.get_value()
-            rv = other.get_value() if isinstance(other, EvalIntVar) else int(other)
+            # Support multiplication with another EvalIntVar
+            if isinstance(other, EvalIntVar):
+                rv = other.get_value()
+            # Support multiplication with a date component (e.g., I8 * D5.year)
+            elif isinstance(other, EvalDateComponent):
+                rv = other._get_component_value()
+            else:
+                try:
+                    rv = int(other)
+                except Exception:
+                    rv = None
             if lhs is None or rv is None:
                 return None
             return lhs * rv
@@ -446,12 +482,22 @@ class EvalIntVar:
         out.get_value = compute  # type: ignore
         return out
 
-    def __floordiv__(self, other: Union[int, "EvalIntVar"]) -> "EvalIntVar":
+    def __floordiv__(self, other: Union[int, "EvalIntVar", "EvalDateComponent"]) -> "EvalIntVar":
         out = EvalIntVar(f"{self.name}_div")
 
         def compute():
             lhs = self.get_value()
-            rv = other.get_value() if isinstance(other, EvalIntVar) else int(other)
+            # Support division by another EvalIntVar
+            if isinstance(other, EvalIntVar):
+                rv = other.get_value()
+            # Support division by a date component (e.g., I8 // D5.year)
+            elif isinstance(other, EvalDateComponent):
+                rv = other._get_component_value()
+            else:
+                try:
+                    rv = int(other)
+                except Exception:
+                    rv = None
             if lhs is None or rv is None or rv == 0:
                 return None
             return lhs // rv
@@ -459,12 +505,22 @@ class EvalIntVar:
         out.get_value = compute  # type: ignore
         return out
 
-    def __mod__(self, other: Union[int, "EvalIntVar"]) -> "EvalIntVar":
+    def __mod__(self, other: Union[int, "EvalIntVar", "EvalDateComponent"]) -> "EvalIntVar":
         out = EvalIntVar(f"{self.name}_mod")
 
         def compute():
             lhs = self.get_value()
-            rv = other.get_value() if isinstance(other, EvalIntVar) else int(other)
+            # Support modulo with another EvalIntVar
+            if isinstance(other, EvalIntVar):
+                rv = other.get_value()
+            # Support modulo with a date component (e.g., I8 % D5.year)
+            elif isinstance(other, EvalDateComponent):
+                rv = other._get_component_value()
+            else:
+                try:
+                    rv = int(other)
+                except Exception:
+                    rv = None
             if lhs is None or rv is None or rv == 0:
                 return None
             return lhs % rv
@@ -472,12 +528,22 @@ class EvalIntVar:
         out.get_value = compute  # type: ignore
         return out
 
-    def __pow__(self, other: Union[int, "EvalIntVar"]) -> "EvalIntVar":
+    def __pow__(self, other: Union[int, "EvalIntVar", "EvalDateComponent"]) -> "EvalIntVar":
         out = EvalIntVar(f"{self.name}_pow")
 
         def compute():
             lhs = self.get_value()
-            rv = other.get_value() if isinstance(other, EvalIntVar) else int(other)
+            # Support exponentiation with another EvalIntVar
+            if isinstance(other, EvalIntVar):
+                rv = other.get_value()
+            # Support exponentiation with a date component (e.g., I8 ** D5.year)
+            elif isinstance(other, EvalDateComponent):
+                rv = other._get_component_value()
+            else:
+                try:
+                    rv = int(other)
+                except Exception:
+                    rv = None
             if lhs is None or rv is None:
                 return None
             try:

@@ -74,7 +74,7 @@ class DateSMTBuilder:
         self.bool_vars = {}  # name -> z3 var
 
     def add_date_var(self, name: str) -> "DateVar":
-        """Add a symbolic date variable."""
+        """Solver handles date variables internally."""
         return self.solver.add_date_var(name)
 
     def add_int_var(self, name: str, min_value: int = None, max_value: int = None) -> Any:

@@ -144,6 +144,59 @@ class EnumerationComponentVar:
         if not isinstance(other, int):
             raise TypeError(f"Cannot multiply {type(other)} by EnumerationComponentVar")
         return EnumerationComponentExpr(self, 'mul', other)
+    
+    def __mod__(self, other: int) -> "EnumerationComponentExpr":
+        if not isinstance(other, int):
+            raise TypeError(f"Cannot compute modulo with {type(other)} on EnumerationComponentVar")
+        return EnumerationComponentExpr(self, 'mod', other)
+    
+    # Comparison operations for integer variables
+    def _compare(self, op: str, other: Union[int, "EnumerationComponentVar", "EnumerationComponentExpr"]) -> ConstraintWrapper:
+        """Compare this component variable with an integer, another variable, or expression."""
+        def compare():
+            lhs_val = self.get_value()
+            if lhs_val is None:
+                return False
+            
+            # Handle EnumerationComponentVar
+            if isinstance(other, EnumerationComponentVar):
+                rhs_val = other.get_value()
+            # Handle EnumerationComponentExpr
+            elif isinstance(other, EnumerationComponentExpr):
+                rhs_val = other.evaluate()
+            # Handle int
+            else:
+                try:
+                    rhs_val = int(other)
+                except (ValueError, TypeError):
+                    return False
+            
+            if rhs_val is None:
+                return False
+            
+            try:
+                return getattr(lhs_val, f"__{op}__")(rhs_val)
+            except (ValueError, TypeError):
+                return False
+        return ConstraintWrapper(compare)
+    
+    def __eq__(self, other: Union[int, "EnumerationComponentVar", "EnumerationComponentExpr"]) -> ConstraintWrapper:  # type: ignore[override]
+        return self._compare("eq", other)
+    
+    def __ne__(self, other: Union[int, "EnumerationComponentVar", "EnumerationComponentExpr"]) -> ConstraintWrapper:  # type: ignore[override]
+        return self._compare("ne", other)
+    
+    def __lt__(self, other: Union[int, "EnumerationComponentVar", "EnumerationComponentExpr"]) -> ConstraintWrapper:
+        return self._compare("lt", other)
+    
+    def __le__(self, other: Union[int, "EnumerationComponentVar", "EnumerationComponentExpr"]) -> ConstraintWrapper:
+        return self._compare("le", other)
+    
+    def __gt__(self, other: Union[int, "EnumerationComponentVar", "EnumerationComponentExpr"]) -> ConstraintWrapper:
+        return self._compare("gt", other)
+    
+    def __ge__(self, other: Union[int, "EnumerationComponentVar", "EnumerationComponentExpr"]) -> ConstraintWrapper:
+        return self._compare("ge", other)
 
 
 class EnumerationComponentExpr:
@@ -169,10 +222,74 @@ class EnumerationComponentExpr:
             return val - self.constant
         elif self.op == 'mul':
             return val * self.constant
+        elif self.op == 'mod':
+            if self.constant == 0:
+                return None  # Division by zero
+            return val % self.constant
+        elif self.op == 'floordiv':
+            if self.constant == 0:
+                return None  # Division by zero
+            return val // self.constant
+        elif self.op == 'sub_component':
+            # Subtraction of another component: val - other_component_value
+            # self.constant is not used, other_component is stored separately
+            if hasattr(self, '_other_component'):
+                other_val = self._other_component._get_component_value()
+                if other_val is None:
+                    return None
+                return val - other_val
+            return None
         return None
     
     def get_base_var(self) -> EnumerationComponentVar:
         return self.var
+    
+    def _compare(self, op: str, other: Union[int, "EnumerationDateComponent", "EnumerationComponentExpr"]) -> ConstraintWrapper:
+        """Compare this expression with an integer, date component, or another expression."""
+        def compare():
+            expr_val = self.evaluate()
+            if expr_val is None:
+                return False
+            
+            # Handle EnumerationDateComponent
+            if isinstance(other, EnumerationDateComponent):
+                other_val = other._get_component_value()
+            # Handle EnumerationComponentExpr
+            elif isinstance(other, EnumerationComponentExpr):
+                other_val = other.evaluate()
+            # Handle int
+            else:
+                try:
+                    other_val = int(other)
+                except (ValueError, TypeError):
+                    return False
+            
+            if other_val is None:
+                return False
+            
+            try:
+                return getattr(expr_val, f"__{op}__")(other_val)
+            except (ValueError, TypeError):
+                return False
+        return ConstraintWrapper(compare)
+    
+    def __eq__(self, other: Union[int, "EnumerationDateComponent", "EnumerationComponentExpr"]) -> ConstraintWrapper:  # type: ignore[override]
+        return self._compare("eq", other)
+    
+    def __ne__(self, other: Union[int, "EnumerationDateComponent", "EnumerationComponentExpr"]) -> ConstraintWrapper:  # type: ignore[override]
+        return self._compare("ne", other)
+    
+    def __lt__(self, other: Union[int, "EnumerationDateComponent", "EnumerationComponentExpr"]) -> ConstraintWrapper:
+        return self._compare("lt", other)
+    
+    def __le__(self, other: Union[int, "EnumerationDateComponent", "EnumerationComponentExpr"]) -> ConstraintWrapper:
+        return self._compare("le", other)
+    
+    def __gt__(self, other: Union[int, "EnumerationDateComponent", "EnumerationComponentExpr"]) -> ConstraintWrapper:
+        return self._compare("gt", other)
+    
+    def __ge__(self, other: Union[int, "EnumerationDateComponent", "EnumerationComponentExpr"]) -> ConstraintWrapper:
+        return self._compare("ge", other)
 
 
 class EnumerationDateVar:
@@ -418,15 +535,27 @@ class EnumerationDateComponent:
         base_var._parent_component = self
         return EnumerationComponentExpr(base_var, 'add', other)
     
-    def __sub__(self, other: int) -> "EnumerationComponentExpr":
-        if not isinstance(other, int):
+    def __sub__(self, other: Union[int, "EnumerationDateComponent"]) -> "EnumerationComponentExpr":
+        # Handle subtraction of another EnumerationDateComponent (e.g., y.year - x.year)
+        if isinstance(other, EnumerationDateComponent):
+            base_var = EnumerationComponentVar(f"{self.parent.name}_{self.attr}",
+                                               1900 if self.attr == 'year' else 1,
+                                               2100 if self.attr == 'year' else (12 if self.attr == 'month' else 31),
+                                               self.attr)
+            base_var._parent_component = self
+            expr = EnumerationComponentExpr(base_var, 'sub_component', 0)
+            expr._other_component = other
+            return expr
+        # Handle subtraction of an integer
+        elif isinstance(other, int):
+            base_var = EnumerationComponentVar(f"{self.parent.name}_{self.attr}",
+                                               1900 if self.attr == 'year' else 1,
+                                               2100 if self.attr == 'year' else (12 if self.attr == 'month' else 31),
+                                               self.attr)
+            base_var._parent_component = self
+            return EnumerationComponentExpr(base_var, 'sub', other)
+        else:
             raise TypeError(f"Cannot subtract {type(other)} from EnumerationDateComponent")
-        base_var = EnumerationComponentVar(f"{self.parent.name}_{self.attr}",
-                                           1900 if self.attr == 'year' else 1,
-                                           2100 if self.attr == 'year' else (12 if self.attr == 'month' else 31),
-                                           self.attr)
-        base_var._parent_component = self
-        return EnumerationComponentExpr(base_var, 'sub', other)
     
     def __mul__(self, other: int) -> "EnumerationComponentExpr":
         if not isinstance(other, int):
@@ -437,6 +566,27 @@ class EnumerationDateComponent:
                                            self.attr)
         base_var._parent_component = self
         return EnumerationComponentExpr(base_var, 'mul', other)
+    
+    def __mod__(self, other: int) -> "EnumerationComponentExpr":
+        if not isinstance(other, int):
+            raise TypeError(f"Cannot compute modulo with {type(other)} on EnumerationDateComponent")
+        base_var = EnumerationComponentVar(f"{self.parent.name}_{self.attr}",
+                                           1900 if self.attr == 'year' else 1,
+                                           2100 if self.attr == 'year' else (12 if self.attr == 'month' else 31),
+                                           self.attr)
+        base_var._parent_component = self
+        return EnumerationComponentExpr(base_var, 'mod', other)
+    
+    def __truediv__(self, other: int) -> "EnumerationComponentExpr":
+        """Integer division using / operator (implements floor division semantics)."""
+        if not isinstance(other, int):
+            raise TypeError(f"Cannot divide {type(other)} by EnumerationDateComponent")
+        base_var = EnumerationComponentVar(f"{self.parent.name}_{self.attr}",
+                                           1900 if self.attr == 'year' else 1,
+                                           2100 if self.attr == 'year' else (12 if self.attr == 'month' else 31),
+                                           self.attr)
+        base_var._parent_component = self
+        return EnumerationComponentExpr(base_var, 'floordiv', other)
 
 
 class EnumerationSolver:
@@ -509,6 +659,59 @@ class EnumerationSolver:
             raise ValueError(f"Component variable '{name}' already declared")
         
         var = EnumerationComponentVar(name, 1, 31, 'day')
+        self.component_vars[name] = var
+        return var
+    
+    def add_int_var(self, name: str, min_value: int = None, max_value: int = None, component_type: str = None) -> EnumerationComponentVar:
+        """Declare a symbolic integer variable for use in Date() constructors.
+        
+        Integer variables should only be used in Date() constructors (e.g., Date(l, 1, 1)).
+        The bounds are automatically set based on the component type:
+        - 'year': 1900-2100
+        - 'month': 1-12
+        - 'day': 1-31
+        
+        Args:
+            name: Variable name (must be unique)
+            min_value: Optional minimum value (overrides component_type defaults if provided)
+            max_value: Optional maximum value (overrides component_type defaults if provided)
+            component_type: Optional component type ('year', 'month', 'day'). If provided,
+                           sets appropriate bounds. If not provided, uses min_value/max_value
+                           or defaults to 0-8000.
+        
+        Returns:
+            The created EnumerationComponentVar
+        
+        Raises:
+            ValueError: If a component variable with this name already exists
+        """
+        if name in self.component_vars:
+            raise ValueError(f"Integer variable '{name}' already declared")
+        
+        # Set bounds based on component type if provided
+        if component_type == 'year':
+            if min_value is None:
+                min_value = 1900
+            if max_value is None:
+                max_value = 2100
+        elif component_type == 'month':
+            if min_value is None:
+                min_value = 1
+            if max_value is None:
+                max_value = 12
+        elif component_type == 'day':
+            if min_value is None:
+                min_value = 1
+            if max_value is None:
+                max_value = 31
+        else:
+            # Default bounds (should not be used for Date() components)
+            if min_value is None:
+                min_value = 0
+            if max_value is None:
+                max_value = 8000
+        
+        var = EnumerationComponentVar(name, min_value, max_value, component_type or 'int')
         self.component_vars[name] = var
         return var
     
@@ -870,6 +1073,28 @@ class EnumerationSolver:
                             eval_val = base_val + component_spec.constant
                         elif component_spec.op == 'sub':
                             eval_val = base_val - component_spec.constant
+                        elif component_spec.op == 'mul':
+                            eval_val = base_val * component_spec.constant
+                        elif component_spec.op == 'mod':
+                            if component_spec.constant == 0:
+                                continue  # Skip division by zero
+                            eval_val = base_val % component_spec.constant
+                        elif component_spec.op == 'floordiv':
+                            if component_spec.constant == 0:
+                                continue  # Skip division by zero
+                            eval_val = base_val // component_spec.constant
+                        elif component_spec.op == 'sub_component':
+                            # This is a subtraction of another component (e.g., y.year - x.year)
+                            # We can't enumerate this directly since it depends on two different parents
+                            # Return a placeholder - the actual value will be computed during constraint evaluation
+                            # For enumeration, we'll use a wide range that covers all possible differences
+                            # The actual difference will be computed when both parent components have values
+                            # Use a conservative range based on component type
+                            if component_type == 'year':
+                                # Year differences can range from -200 to 200 (2100 - 1900)
+                                eval_val = base_val  # Placeholder, will be evaluated at constraint time
+                            else:
+                                eval_val = base_val
                         else:
                             eval_val = base_val
                         results.append((eval_val, base_val))

@@ -1181,7 +1181,7 @@ def test_infer_variable_types_from_date_constructor(parser):
 
 
 def test_auto_infer_int_from_date_constructor(parser):
-    """Test that variables inside Date() are auto-declared as int."""
+    """Test that variables inside Date() are auto-declared as int with component_type."""
     constraints = [
         "k: date",
         "k == Date(x, 2, 1)"
@@ -1189,7 +1189,8 @@ def test_auto_infer_int_from_date_constructor(parser):
     
     result = parser.generate_builder_code(constraints)
     
-    assert 'x = builder.add_int_var("x")' in result
+    # x is used in the first position (year) of Date(), so component_type="year" is added
+    assert 'x = builder.add_int_var("x", component_type="year")' in result
     assert 'k = builder.add_date_var("k")' in result
 
 

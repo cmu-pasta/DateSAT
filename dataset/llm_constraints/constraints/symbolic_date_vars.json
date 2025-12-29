@@ -267,7 +267,7 @@
       "z.year == 500",
       "v.year == 50",
       "x.year == 2000",
-      "(x + Period(100, 0, 0)) != Date(2100, 2, 29)"
+      "(x + Period(100, 0, 0)) != Date(2100, 2, 28)"
     ],
     "coverage_tags": [
       "symbolic_date_vars"
