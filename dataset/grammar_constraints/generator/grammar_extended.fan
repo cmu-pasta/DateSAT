@@ -63,7 +63,7 @@ import datetime
 <int_var_expr> ::= <int_var> | <date_year> | <date_month> | <date_day> | "(" <int_var> <arith_op> <int_var_expr> ")"
 <int_var> ::= "I"<digit> | <date_var> "." <date_field>
 <date_field> ::= "year" | "month" | "day"
-<arith_op> ::= " + " | " - " | " * " | " // " | " % "
+<arith_op> ::= " + " | " - " | " * " | " / " | " % "
 
 ##################################################
 # Post-processing
