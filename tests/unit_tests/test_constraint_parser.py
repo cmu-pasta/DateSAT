@@ -97,12 +97,12 @@ def test_parse_constraint_complex_arithmetic(parser, constraint, expected):
     ("a + b == c", "builder.add_constraint(a + b == c)"),
     ("a - b == c", "builder.add_constraint(a - b == c)"),
     ("a * b == c", "builder.add_constraint(a * b == c)"),
-    ("a // b == c", "builder.add_constraint(a // b == c)"),
+    ("a / b == c", "builder.add_constraint(a / b == c)"),
     ("a % b == c", "builder.add_constraint(a % b == c)"),
     ("a ** b == c", "builder.add_constraint(a ** b == c)"),
 ])
 def test_parse_constraint_integer_operations(parser, constraint, expected):
-    """Test parsing of integer arithmetic operations: +, -, *, //, %, **."""
+    """Test parsing of integer arithmetic operations: +, -, *, /, %, **."""
     result = parser.parse_constraint(constraint)
     assert result == expected
 
@@ -112,11 +112,11 @@ def test_parse_constraint_integer_operations(parser, constraint, expected):
     ("a * b + c == d", "builder.add_constraint(a * b + c == d)"),
     ("a ** b * c == d", "builder.add_constraint(a ** b * c == d)"),
     ("a * b ** c == d", "builder.add_constraint(a * b ** c == d)"),
-    ("a // b + c == d", "builder.add_constraint(a // b + c == d)"),
+    ("a / b + c == d", "builder.add_constraint(a / b + c == d)"),
     ("a % b + c == d", "builder.add_constraint(a % b + c == d)"),
 ])
 def test_parse_constraint_integer_precedence(parser, constraint, expected):
-    """Test that integer operations follow correct precedence: ** > *, //, % > +, -."""
+    """Test that integer operations follow correct precedence: ** > *, /, % > +, -."""
     result = parser.parse_constraint(constraint)
     assert result == expected
 
@@ -131,9 +131,9 @@ def test_integer_operations_with_property_access(parser):
     result = parser.parse_constraint(constraint)
     assert "k.year % 4 == 0" in result
     
-    constraint = "k.year // 100 == century"
+    constraint = "k.year / 100 == century"
     result = parser.parse_constraint(constraint)
-    assert "k.year // 100 == century" in result
+    assert "k.year / 100 == century" in result
 
 
 def test_integer_operations_in_date_constructor(parser):
@@ -153,7 +153,7 @@ def test_generate_builder_code_with_integer_operations(parser):
         "y: int",
         "z: int",
         "x % 4 == 0",
-        "y == x // 10",
+        "y == x / 10",
         "z == x ** 2"
     ]
 
@@ -163,7 +163,7 @@ def test_generate_builder_code_with_integer_operations(parser):
     assert 'y = builder.add_int_var("y")' in result
     assert 'z = builder.add_int_var("z")' in result
     assert "x % 4 == 0" in result
-    assert "x // 10" in result
+    assert "x / 10" in result
     assert "x ** 2" in result
 
 
@@ -195,7 +195,6 @@ def test_parse_constraint_variable_names(parser, constraint, expected):
     "123var >= Date(2000, 1, 1)",  # Invalid variable name
     "var-123 >= Date(2000, 1, 1)",  # Invalid variable name
     "var.123 >= Date(2000, 1, 1)",  # Invalid variable name
-    "a / b == c",  # Float division not supported (use // for floor division)
     "",  # Empty string
     "   ",  # Whitespace only
 ])
@@ -247,7 +246,6 @@ def test_generate_builder_code_basic(parser):
     assert 'y = builder.add_date_var("y")' in result
     assert "builder.add_constraint(x >= Date(2000, 1, 1))" in result
     assert "builder.add_constraint(y <= Date(2020, 12, 31))" in result
-    assert "result = builder" in result
 
 def test_generate_builder_code_empty(parser):
     """Test builder code generation with empty inputs."""
@@ -257,7 +255,6 @@ def test_generate_builder_code_empty(parser):
 
     assert "from z3 import Or, And, Not" in result
     assert "builder = DateSMTBuilder()" in result
-    assert "result = builder" in result
 
 
 # -------------------------
@@ -278,7 +275,6 @@ def test_parse_constraint_data_basic(parser):
     assert 'y = builder.add_date_var("y")' in result
     assert "builder.add_constraint(x >= Date(2000, 1, 1))" in result
     assert "builder.add_constraint(y <= Date(2020, 12, 31))" in result
-    assert "result = builder" in result
 
 
 def test_parse_constraint_data_backward_compatible(parser):
@@ -294,7 +290,6 @@ def test_parse_constraint_data_backward_compatible(parser):
     assert 'y = builder.add_date_var("y")' in result
     assert "builder.add_constraint(x >= Date(2000, 1, 1))" in result
     assert "builder.add_constraint(y <= Date(2020, 12, 31))" in result
-    assert "result = builder" in result
 
 
 def test_parse_constraint_data_missing_keys(parser):
@@ -305,7 +300,6 @@ def test_parse_constraint_data_missing_keys(parser):
 
     assert "from z3 import Or, And, Not" in result
     assert "builder = DateSMTBuilder()" in result
-    assert "result = builder" in result
 
 
 def test_parse_constraint_data_with_periods(parser):
@@ -319,7 +313,6 @@ def test_parse_constraint_data_with_periods(parser):
     assert "from z3 import Or, And, Not" in result
     assert 'x = builder.add_date_var("x")' in result
     assert "builder.add_constraint(x + Period(0, 1, 1) >= Date(2000, 1, 1))" in result
-    assert "result = builder" in result
 
 
 # -------------------------
@@ -387,7 +380,6 @@ def test_full_workflow(parser):
     assert "builder.add_constraint(start_date >= Date(2000, 1, 1))" in result
     assert "builder.add_constraint(end_date <= Date(2020, 12, 31))" in result
     assert "builder.add_constraint(start_date + Period(1, 1, 1) <= end_date)" in result
-    assert "result = builder" in result
 
 
 def test_parser_state_independence():
@@ -474,7 +466,6 @@ def test_parse_constraint_data_with_one_datevar(parser):
     assert 'x = builder.add_date_var("x")' in result
     assert "builder.add_constraint(x >= Date(2000, 2, 28))" in result
     assert "builder.add_constraint(x <= Date(2000, 3, 1))" in result
-    assert "result = builder" in result
 
 def test_parse_constraint_data_with_multiple_datevar(parser):
     """Test parsing constraint data with multiple date variables."""
@@ -489,7 +480,6 @@ def test_parse_constraint_data_with_multiple_datevar(parser):
     assert 'y = builder.add_date_var("y")' in result
     assert "builder.add_constraint(x >= Date(2000, 2, 28))" in result
     assert "builder.add_constraint(y <= Date(2000, 3, 1))" in result
-    assert "result = builder" in result
 
 
 # -------------------------
@@ -755,7 +745,6 @@ def test_boolean_operators_with_z3_solvers(parser):
                 'Period': __import__('datesmt.core', fromlist=['Period']).Period,
                 'DateSMTBuilder': lambda: builder,
                 'builder': builder,
-                'result': builder,
                 'Or': __import__('z3', fromlist=['Or']).Or,
                 'And': __import__('z3', fromlist=['And']).And,
                 'Not': __import__('z3', fromlist=['Not']).Not,
@@ -799,7 +788,6 @@ def test_boolean_operators_satisfiable_case(parser):
         'Period': __import__('datesmt.core', fromlist=['Period']).Period,
         'DateSMTBuilder': lambda: builder,
         'builder': builder,
-        'result': builder,
     }
     
     exec(code, exec_globals)
@@ -834,7 +822,6 @@ def test_boolean_operators_unsatisfiable_case(parser):
         'Period': __import__('datesmt.core', fromlist=['Period']).Period,
         'DateSMTBuilder': lambda: builder,
         'builder': builder,
-        'result': builder,
         'Or': __import__('z3', fromlist=['Or']).Or,
         'And': __import__('z3', fromlist=['And']).And,
         'Not': __import__('z3', fromlist=['Not']).Not,
@@ -1182,7 +1169,7 @@ def test_infer_variable_types_from_date_constructor(parser):
 
 
 def test_auto_infer_int_from_date_constructor(parser):
-    """Test that variables inside Date() are auto-declared as int."""
+    """Test that variables inside Date() are auto-declared as int with component_type."""
     constraints = [
         "k: date",
         "k == Date(x, 2, 1)"
@@ -1190,7 +1177,8 @@ def test_auto_infer_int_from_date_constructor(parser):
     
     result = parser.generate_builder_code(constraints)
     
-    assert 'x = builder.add_int_var("x")' in result
+    # x is used in the first position (year) of Date(), so component_type="year" is added
+    assert 'x = builder.add_int_var("x", component_type="year")' in result
     assert 'k = builder.add_date_var("k")' in result
 
 

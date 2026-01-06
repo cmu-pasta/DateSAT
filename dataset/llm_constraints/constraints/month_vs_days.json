@@ -1,382 +1,435 @@
 [
   {
-    "description": "Testing month vs days in February (28 days vs 1 month)",
+    "description": "Basic February month vs days: adding 1 month from Jan 31 produces different result than adding 28 or 31 days",
+    "declarations": [
+      "x: date",
+      "y: date",
+      "z: date"
+    ],
     "constraints": [
-      "x >= Date(2023, 1, 28)",
-      "x <= Date(2023, 1, 31)",
-      "(x + Period(0, 1, 0)) != (x + Period(0, 0, 28))",
-      "(x + Period(0, 1, 0)) > (x + Period(0, 0, 28))",
+      "x == Date(2023, 1, 31)",
       "y == x + Period(0, 1, 0)",
-      "z == x + Period(0, 0, 28)"
-    ],
-    "coverage_tags": [
-      "month_vs_days"
-    ],
-    "id": "1763102795-1"
-  },
-  {
-    "description": "Month vs days comparison across month boundaries with 31 days",
-    "constraints": [
-      "x == Date(2023, 7, 15)",
-      "(x + Period(0, 1, 0)) != (x + Period(0, 0, 31))",
-      "(x + Period(0, 1, 0)) < (x + Period(0, 0, 31))"
-    ],
-    "coverage_tags": [
-      "month_vs_days"
-    ],
-    "id": "1763102795-2"
-  },
-  {
-    "description": "Month vs days with variable constraints and OR clauses",
-    "constraints": [
-      [
-        "x >= Date(2023, 3, 1)",
-        "x <= Date(2023, 3, 15)"
-      ],
-      "y == x + Period(0, 1, 0)",
-      "z == x + Period(0, 0, 30)",
-      "y != z"
-    ],
-    "coverage_tags": [
-      "month_vs_days"
-    ],
-    "id": "1763102795-3"
-  },
-  {
-    "description": "Multiple month additions vs equivalent days in April (30 days)",
-    "constraints": [
-      "x == Date(2023, 4, 1)",
-      "y == x + Period(0, 2, 0)",
-      "z == x + Period(0, 0, 60)",
+      "z == x + Period(0, 0, 28)",
       "y != z",
-      [
-        "y < z",
-        "y > z + Period(0, 0, 1)"
-      ]
+      "y == Date(2023, 2, 28)"
     ],
     "coverage_tags": [
       "month_vs_days"
     ],
-    "id": "1763102795-4"
+    "id": "1766396659-1"
   },
   {
-    "description": "Month vs days in leap year February",
+    "description": "Leap year February: 1 month forward from Jan 31 vs adding 29 days shows difference",
+    "declarations": [
+      "leap_start: date",
+      "month_later: date",
+      "days_later: date"
+    ],
     "constraints": [
-      "x == Date(2020, 1, 31)",
-      "y == x + Period(0, 1, 0)",
-      "z == x + Period(0, 0, 29)",
-      "y != z"
+      "leap_start == Date(2000, 1, 31)",
+      "month_later == leap_start + Period(0, 1, 0)",
+      "days_later == leap_start + Period(0, 0, 29)",
+      "month_later == Date(2000, 2, 29)",
+      "days_later == Date(2000, 2, 29)",
+      "month_later == days_later",
+      "(leap_start + Period(0, 1, 0)) != (leap_start + Period(0, 0, 28))"
     ],
     "coverage_tags": [
       "month_vs_days"
     ],
-    "id": "1763102795-5"
+    "id": "1766396659-2"
   },
   {
-    "description": "Testing month vs days equivalence around month boundaries",
+    "description": "Multi-month comparison: showing month vs days divergence across different month lengths with 5 variables",
+    "declarations": [
+      "jan_date: date",
+      "feb_date: date",
+      "mar_date: date",
+      "apr_date: date",
+      "may_date: date"
+    ],
     "constraints": [
-      "x >= Date(2022, 1, 1)",
-      "x <= Date(2022, 1, 31)",
-      "(x + Period(0, 1, 0)) != (x + Period(0, 0, 31))",
-      "(x + Period(0, 1, 0)) == (x + Period(0, 0, 30))",
-      "y == x + Period(0, 1, 0)"
+      "jan_date == Date(2023, 1, 31)",
+      "feb_date == jan_date + Period(0, 1, 0)",
+      "mar_date == feb_date + Period(0, 1, 0)",
+      "apr_date == mar_date + Period(0, 1, 0)",
+      "may_date == apr_date + Period(0, 1, 0)",
+      "feb_date == Date(2023, 2, 28)",
+      "mar_date == Date(2023, 3, 28)",
+      "apr_date == Date(2023, 4, 28)",
+      "(jan_date + Period(0, 0, 31)) != feb_date",
+      "(feb_date + Period(0, 0, 28)) != mar_date"
     ],
     "coverage_tags": [
       "month_vs_days"
     ],
-    "id": "1763102795-6"
+    "id": "1766396659-3"
   },
   {
-    "description": "February month vs days comparison with leap year consideration",
+    "description": "Month arithmetic across year boundary: December to January month vs days comparison",
+    "declarations": [
+      "dec_start: date",
+      "jan_month: date",
+      "jan_days: date"
+    ],
     "constraints": [
-      "x == Date(2020, 1, 31)",
-      "(x + Period(0, 1, 0)) == Date(2020, 2, 29)",
-      "(x + Period(0, 0, 29)) != (x + Period(0, 1, 0))"
+      "dec_start == Date(2022, 12, 15)",
+      "jan_month == dec_start + Period(0, 1, 0)",
+      "jan_days == dec_start + Period(0, 0, 31)",
+      "jan_month == jan_days"
     ],
     "coverage_tags": [
       "month_vs_days"
     ],
-    "id": "1763102795-7"
+    "id": "1766396659-4"
   },
   {
-    "description": "Complex month vs days comparison across multiple variables",
-    "constraints": [
-      "x >= Date(2023, 3, 15)",
-      "x <= Date(2023, 3, 31)",
-      "y == x + Period(0, 1, 0)",
-      "z == x + Period(0, 0, 30)",
-      "y != z",
-      [
-        "x == Date(2023, 3, 31)",
-        "x == Date(2023, 3, 30)"
-      ]
+    "description": "UNSAT: Contradictory constraints claiming month addition equals specific day count that creates impossible date",
+    "declarations": [
+      "x: date",
+      "y: date",
+      "z: date",
+      "w: date"
     ],
-    "coverage_tags": [
-      "month_vs_days"
-    ],
-    "id": "1763102795-8"
-  },
-  {
-    "description": "Month vs days comparison across year boundary",
     "constraints": [
-      "x == Date(2021, 12, 31)",
+      "x == Date(2023, 1, 31)",
       "y == x + Period(0, 1, 0)",
       "z == x + Period(0, 0, 31)",
-      "y == Date(2022, 1, 31)",
-      "z == Date(2022, 1, 31)",
-      "w == y + Period(0, 1, 0)",
-      "w != (z + Period(0, 0, 31))"
+      "y == z",
+      "y.month == 2",
+      "z.month == 3",
+      "y.day == 28",
+      "z.day == 3"
     ],
     "coverage_tags": [
       "month_vs_days"
     ],
-    "id": "1763102795-9"
+    "id": "1766396659-5"
   },
   {
-    "description": "Month vs days with multiple OR conditions",
+    "description": "Basic month vs days: January plus 1 month differs from plus 30 days",
+    "declarations": [
+      "x: date",
+      "month_later: date",
+      "days_later: date"
+    ],
     "constraints": [
-      [
-        "x == Date(2023, 1, 31)",
-        "x == Date(2023, 3, 31)",
-        "x == Date(2023, 5, 31)"
-      ],
-      "y == x + Period(0, 1, 0)",
-      "z == x + Period(0, 0, 30)",
-      [
-        "y != z",
-        "x == Date(2023, 2, 28)"
-      ]
+      "x == Date(2020, 1, 15)",
+      "month_later == x + Period(0, 1, 0)",
+      "days_later == x + Period(0, 0, 30)",
+      "month_later != days_later",
+      "month_later > days_later"
     ],
     "coverage_tags": [
       "month_vs_days"
     ],
-    "id": "1763102795-10"
+    "id": "1766396659-6"
   },
   {
-    "description": "Testing month vs days in February (28 days vs 1 month)",
+    "description": "February month vs days in non-leap year: 1 month from Jan 31 vs 28 days",
+    "declarations": [
+      "start: date",
+      "plus_month: date",
+      "plus_28: date"
+    ],
     "constraints": [
-      "x >= Date(2023, 1, 28)",
-      "x <= Date(2023, 1, 31)",
-      "(x + Period(0, 1, 0)) != (x + Period(0, 0, 28))"
+      "start == Date(2023, 1, 31)",
+      "plus_month == start + Period(0, 1, 0)",
+      "plus_28 == start + Period(0, 0, 28)",
+      "plus_month == Date(2023, 2, 28)",
+      "plus_28 == Date(2023, 2, 28)",
+      "plus_month == plus_28",
+      "(plus_month + Period(0, 1, 0)) != (plus_28 + Period(0, 0, 31))"
     ],
     "coverage_tags": [
       "month_vs_days"
     ],
-    "id": "1763102795-11"
+    "id": "1766396659-7"
   },
   {
-    "description": "Comparing month addition vs day addition across different months",
+    "description": "Complex month vs day relationships across multiple variables and months",
+    "declarations": [
+      "w: date",
+      "x: date",
+      "y: date",
+      "z: date"
+    ],
     "constraints": [
-      "start_date == Date(2023, 3, 31)",
-      "end_date_months == start_date + Period(0, 2, 0)",
-      "end_date_days == start_date + Period(0, 0, 61)",
-      "end_date_months != end_date_days",
-      [
-        "end_date_months == Date(2023, 5, 31)",
-        "end_date_months == Date(2023, 5, 30)"
-      ]
+      "w == Date(2020, 1, 31)",
+      "x == w + Period(0, 1, 0)",
+      "y == w + Period(0, 0, 31)",
+      "x == Date(2020, 2, 29)",
+      "y == Date(2020, 3, 2)",
+      "z == x + Period(0, 1, 0)",
+      "(x + Period(0, 0, 30)) != z",
+      "z == Date(2020, 3, 29)",
+      "y < z",
+      "(w + Period(0, 2, 0)) != (w + Period(0, 0, 60))"
     ],
     "coverage_tags": [
       "month_vs_days"
     ],
-    "id": "1763102795-12"
+    "id": "1766396659-8"
   },
   {
-    "description": "Month vs days comparison with multiple variables and leap year",
+    "description": "UNSAT: Contradictory leap year month vs day arithmetic",
+    "declarations": [
+      "leap: date",
+      "month_add: date",
+      "day_add: date"
+    ],
     "constraints": [
-      "date1 == Date(2020, 1, 31)",
-      "date2 == date1 + Period(0, 1, 0)",
-      "date3 == date1 + Period(0, 0, 29)",
-      "date4 == date1 + Period(0, 0, 31)",
-      "date2 != date3",
-      "date2 != date4"
+      "leap == Date(2020, 1, 31)",
+      "month_add == leap + Period(0, 1, 0)",
+      "day_add == leap + Period(0, 0, 31)",
+      "month_add == Date(2020, 2, 29)",
+      "day_add == Date(2020, 3, 2)",
+      "month_add == day_add"
     ],
     "coverage_tags": [
       "month_vs_days"
     ],
-    "id": "1763102795-13"
+    "id": "1766396659-9"
   },
   {
-    "description": "Month vs days with 30-day months",
+    "description": "Cross-year month vs days with varying starting points and month lengths",
+    "declarations": [
+      "dec: date",
+      "jan_month: date",
+      "jan_days: date",
+      "feb: date"
+    ],
     "constraints": [
-      "start_date == Date(2023, 4, 30)",
-      "date_plus_month == start_date + Period(0, 1, 0)",
-      "date_plus_days == start_date + Period(0, 0, 30)",
-      [
-        "date_plus_month == Date(2023, 5, 30)",
-        "date_plus_month == Date(2023, 5, 31)"
-      ]
+      "dec == Date(2021, 12, 5)",
+      "jan_month == dec + Period(0, 1, 0)",
+      "jan_days == dec + Period(0, 0, 31)",
+      "jan_month == Date(2022, 1, 5)",
+      "jan_days == Date(2022, 1, 5)",
+      "feb == dec + Period(0, 2, 0)",
+      "(feb + Period(0, 1, 0)) != (feb + Period(0, 0, 31))",
+      "(dec + Period(0, 0, 30)) < jan_month"
     ],
     "coverage_tags": [
       "month_vs_days"
     ],
-    "id": "1763102795-14"
+    "id": "1766396659-10"
   },
   {
-    "description": "Complex month vs days comparison with multiple periods",
-    "constraints": [
-      "base_date >= Date(2022, 1, 1)",
-      "base_date <= Date(2022, 12, 31)",
-      "(base_date + Period(0, 3, 0)) != (base_date + Period(0, 0, 90))",
-      "(base_date + Period(0, 6, 0)) != (base_date + Period(0, 0, 180))",
-      "(base_date + Period(0, 12, 0)) != (base_date + Period(0, 0, 365))",
-      [
-        "base_date == Date(2022, 1, 31)",
-        "base_date == Date(2022, 3, 31)",
-        "base_date == Date(2022, 5, 31)"
-      ]
+    "description": "February month increment vs 28 days in non-leap year",
+    "declarations": [
+      "x: date",
+      "y: date",
+      "z: date"
     ],
-    "coverage_tags": [
-      "month_vs_days"
-    ],
-    "id": "1763102795-15"
-  },
-  {
-    "description": "Testing that adding 1 month doesn't always equal adding 30 days",
-    "constraints": [
-      "x == Date(2023, 1, 31)",
-      "y == x + Period(0, 1, 0)",
-      "z == x + Period(0, 0, 30)",
-      "y != z"
-    ],
-    "coverage_tags": [
-      "month_vs_days"
-    ],
-    "id": "1763102795-16"
-  },
-  {
-    "description": "Comparing month addition across different month lengths",
-    "constraints": [
-      "start_date == Date(2023, 1, 30)",
-      "feb_date == start_date + Period(0, 1, 0)",
-      "march_date == feb_date + Period(0, 1, 0)",
-      "thirty_days == start_date + Period(0, 0, 30)",
-      "sixty_days == start_date + Period(0, 0, 60)",
-      "march_date != sixty_days"
-    ],
-    "coverage_tags": [
-      "month_vs_days"
-    ],
-    "id": "1763102795-17"
-  },
-  {
-    "description": "Month vs days comparison with leap year February",
-    "constraints": [
-      "base == Date(2020, 1, 31)",
-      "one_month_later == base + Period(0, 1, 0)",
-      "days_later == base + Period(0, 0, 29)"
-    ],
-    "coverage_tags": [
-      "month_vs_days"
-    ],
-    "id": "1763102795-18"
-  },
-  {
-    "description": "Complex month vs days comparison with multiple variables",
-    "constraints": [
-      "start_date >= Date(2023, 4, 1)",
-      "start_date <= Date(2023, 4, 30)",
-      "one_month_later == start_date + Period(0, 1, 0)",
-      "thirty_days_later == start_date + Period(0, 0, 30)",
-      [
-        "one_month_later > thirty_days_later",
-        "one_month_later < thirty_days_later"
-      ]
-    ],
-    "coverage_tags": [
-      "month_vs_days"
-    ],
-    "id": "1763102795-19"
-  },
-  {
-    "description": "Month vs days with February in non-leap year",
-    "constraints": [
-      "x == Date(2023, 1, 31)",
-      "feb_with_month == x + Period(0, 1, 0)",
-      "feb_with_days == x + Period(0, 0, 28)",
-      "march_with_month == x + Period(0, 2, 0)",
-      "march_with_days == x + Period(0, 0, 59)",
-      "march_with_month != march_with_days"
-    ],
-    "coverage_tags": [
-      "month_vs_days"
-    ],
-    "id": "1763102795-20"
-  },
-  {
-    "description": "Testing the difference between adding one month versus 30 days",
     "constraints": [
       "x == Date(2023, 1, 31)",
       "y == x + Period(0, 1, 0)",
-      "z == x + Period(0, 0, 30)",
-      "y != z"
+      "z == x + Period(0, 0, 28)",
+      "y != z",
+      "y == Date(2023, 2, 28)"
     ],
     "coverage_tags": [
       "month_vs_days"
     ],
-    "id": "1763102795-21"
+    "id": "1766396659-11"
   },
   {
-    "description": "Exploring month vs days differences across February in a leap year",
+    "description": "Month vs days comparison across 30-day and 31-day months",
+    "declarations": [
+      "a: date",
+      "b: date",
+      "c: date",
+      "d: date"
+    ],
     "constraints": [
-      "start_date == Date(2020, 1, 30)",
-      "date_plus_month == start_date + Period(0, 1, 0)",
-      "date_plus_30days == start_date + Period(0, 0, 30)",
-      "date_plus_31days == start_date + Period(0, 0, 31)",
-      "date_plus_month != date_plus_30days",
-      "date_plus_month != date_plus_31days"
+      "a == Date(2020, 4, 15)",
+      "b == a + Period(0, 1, 0)",
+      "c == a + Period(0, 0, 30)",
+      "b != c",
+      "b == Date(2020, 5, 15)",
+      "c == Date(2020, 5, 15)",
+      "d == a + Period(0, 0, 31)"
     ],
     "coverage_tags": [
       "month_vs_days"
     ],
-    "id": "1763102795-22"
+    "id": "1766396659-12"
   },
   {
-    "description": "Comparing month addition vs day addition at month boundaries",
+    "description": "Complex multi-variable month vs days with varying starting dates",
+    "declarations": [
+      "x: date",
+      "y: date",
+      "z: date",
+      "w: date",
+      "v: date"
+    ],
     "constraints": [
-      "x == Date(2023, 4, 30)",
+      "x >= Date(2019, 1, 28)",
+      "x <= Date(2019, 1, 31)",
       "y == x + Period(0, 1, 0)",
-      "z == x + Period(0, 0, 30)",
-      [
-        "y == Date(2023, 5, 30)",
-        "z == Date(2023, 5, 30)"
-      ],
+      "z == x + Period(0, 0, 28)",
+      "y > z",
       "w == x + Period(0, 2, 0)",
-      "v == x + Period(0, 0, 60)"
+      "v == x + Period(0, 0, 59)",
+      "w != v",
+      "(y.month == 2) && (z.month == 2)",
+      "w.month == 3"
     ],
     "coverage_tags": [
       "month_vs_days"
     ],
-    "id": "1763102795-23"
+    "id": "1766396659-13"
   },
   {
-    "description": "Month vs days addition across multiple variables with constraints",
+    "description": "Leap year February month vs days contradiction (UNSAT)",
+    "declarations": [
+      "x: date",
+      "y: date",
+      "z: date"
+    ],
     "constraints": [
-      "start_date >= Date(2022, 1, 1)",
-      "start_date <= Date(2022, 12, 31)",
-      [
-        "end_date == start_date + Period(0, 1, 0)",
-        "end_date == start_date + Period(0, 0, 31)"
-      ]
+      "x == Date(2024, 1, 29)",
+      "y == x + Period(0, 1, 0)",
+      "z == x + Period(0, 0, 31)",
+      "y == Date(2024, 2, 29)",
+      "z == Date(2024, 2, 29)",
+      "y != z"
     ],
     "coverage_tags": [
       "month_vs_days"
     ],
-    "id": "1763102795-24"
+    "id": "1766396659-14"
   },
   {
-    "description": "Complex month vs days comparison with multiple periods",
+    "description": "Year boundary month vs days with December to January",
+    "declarations": [
+      "start: date",
+      "month_add: date",
+      "days_add: date",
+      "check: date"
+    ],
     "constraints": [
-      "base_date == Date(2021, 8, 31)",
-      "date1 == base_date + Period(0, 6, 0)",
-      "date2 == base_date + Period(0, 0, 30 * 6)",
-      "date3 == base_date + Period(0, 3, 0) + Period(0, 3, 0)",
-      "date4 == base_date + Period(0, 0, 30 * 3) + Period(0, 0, 30 * 3)",
-      "date1 != date2"
+      "start == Date(2021, 11, 30)",
+      "month_add == start + Period(0, 1, 0)",
+      "days_add == start + Period(0, 0, 30)",
+      "month_add == Date(2021, 12, 30)",
+      "days_add == Date(2021, 12, 30)",
+      "check == start + Period(0, 2, 0)",
+      "(check.year == 2022) && (check.month == 1)",
+      "check != (start + Period(0, 0, 61))"
     ],
     "coverage_tags": [
       "month_vs_days"
     ],
-    "id": "1763102795-25"
+    "id": "1766396659-15"
+  },
+  {
+    "description": "February month boundary: adding 1 month from Jan 31 vs adding 28 days",
+    "declarations": [
+      "jan_end: date",
+      "feb_month: date",
+      "feb_days: date"
+    ],
+    "constraints": [
+      "jan_end == Date(2023, 1, 31)",
+      "feb_month == jan_end + Period(0, 1, 0)",
+      "feb_days == jan_end + Period(0, 0, 28)",
+      "feb_month != feb_days",
+      "feb_month > feb_days",
+      "feb_month == Date(2023, 2, 28)",
+      "feb_days == Date(2023, 2, 28)"
+    ],
+    "coverage_tags": [
+      "month_vs_days"
+    ],
+    "id": "1766396659-16"
+  },
+  {
+    "description": "Comparing 1 month vs 30 days across April boundary",
+    "declarations": [
+      "march_start: date",
+      "april_month: date",
+      "april_days: date",
+      "check: date"
+    ],
+    "constraints": [
+      "march_start == Date(2022, 3, 15)",
+      "april_month == march_start + Period(0, 1, 0)",
+      "april_days == march_start + Period(0, 0, 31)",
+      "april_month == Date(2022, 4, 15)",
+      "april_days > april_month",
+      "check == march_start + Period(0, 0, 30)"
+    ],
+    "coverage_tags": [
+      "month_vs_days"
+    ],
+    "id": "1766396659-17"
+  },
+  {
+    "description": "Three months vs 90 days showing inequality across different month lengths",
+    "declarations": [
+      "start: date",
+      "three_months: date",
+      "ninety_days: date"
+    ],
+    "constraints": [
+      "start == Date(2020, 1, 31)",
+      "three_months == start + Period(0, 3, 0)",
+      "ninety_days == start + Period(0, 0, 90)",
+      "three_months == Date(2020, 4, 30)",
+      "ninety_days != three_months",
+      "(start + Period(0, 1, 0)) == Date(2020, 2, 29)",
+      "(start + Period(0, 2, 0)) == Date(2020, 3, 31)",
+      "ninety_days < three_months"
+    ],
+    "coverage_tags": [
+      "month_vs_days"
+    ],
+    "id": "1766396659-18"
+  },
+  {
+    "description": "Leap year February: 1 month vs 29 days from leap day",
+    "declarations": [
+      "leap_day: date",
+      "next_month: date"
+    ],
+    "constraints": [
+      "leap_day == Date(2000, 2, 29)",
+      "next_month == leap_day + Period(0, 1, 0)",
+      "next_month == Date(2000, 3, 29)",
+      "(leap_day + Period(0, 0, 29)) != next_month",
+      "(leap_day + Period(0, 0, 29)) < next_month"
+    ],
+    "coverage_tags": [
+      "month_vs_days"
+    ],
+    "id": "1766396659-19"
+  },
+  {
+    "description": "Year boundary: December to January month vs days comparison with multiple checkpoints",
+    "declarations": [
+      "dec_start: date",
+      "jan_month: date",
+      "jan_days: date",
+      "mid_check: date",
+      "end_check: date"
+    ],
+    "constraints": [
+      "dec_start == Date(2021, 12, 15)",
+      "jan_month == dec_start + Period(0, 1, 0)",
+      "jan_days == dec_start + Period(0, 0, 31)",
+      "jan_month == Date(2022, 1, 15)",
+      "jan_days == Date(2022, 1, 15)",
+      "mid_check == dec_start + Period(0, 0, 15)",
+      "mid_check == Date(2021, 12, 30)",
+      "end_check == dec_start + Period(0, 0, 20)",
+      "(jan_month + Period(0, 1, 0)) != (jan_days + Period(0, 0, 28))",
+      "(dec_start + Period(0, 2, 0)) > (dec_start + Period(0, 0, 59))"
+    ],
+    "coverage_tags": [
+      "month_vs_days"
+    ],
+    "id": "1766396659-20"
   }
 ]

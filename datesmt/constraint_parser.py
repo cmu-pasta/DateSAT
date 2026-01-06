@@ -15,10 +15,6 @@ class ConstraintTransformer(Transformer):
     
     def constraint(self, items) -> str:
         """Transform constraint (top level)."""
-        return self.top_level_constraint(items)
-    
-    def top_level_constraint(self, items) -> str:
-        """Transform a top-level constraint."""
         bool_expr = items[0]
         
         # Check if bool_expr already has builder.add_constraint wrapper (from implication)
@@ -321,19 +317,6 @@ class ConstraintTransformer(Transformer):
             return f"({items[1]})"
         return " ".join(str(item) for item in items)
     
-    def parenthesized_expression(self, items) -> str:
-        """Transform parenthesized expression."""
-        if len(items) == 3:
-            return f"({items[1]})"
-        return " ".join(str(item) for item in items)
-    
-    def parenthesized_bool_expr(self, items) -> str:
-        """Transform parenthesized boolean expression (comparison)."""
-        # items = [LPAR, comparison_expr, RPAR]
-        if len(items) == 3:
-            return f"({items[1]})"
-        return f"({items[0]})"
-    
     def variable(self, items) -> str:
         """Transform variable reference."""
         return str(items[0])
@@ -391,14 +374,10 @@ class ConstraintParser:
         
         # Define the grammar for constraint parsing (LALR, precedence: NOT > AND > OR > IMPLIES)
         self.grammar = r"""
-            constraint: top_level_constraint
+            constraint: bool_expr
 
-            top_level_constraint: bool_expr
-
-            ?bool_expr: implication
-
-            ?implication: or_expr IMPLIES bool_expr -> implication
-                        | or_expr
+            ?bool_expr: or_expr IMPLIES bool_expr -> implication
+                       | or_expr
 
             ?or_expr: and_expr OR or_expr -> or_op
                     | and_expr
@@ -410,26 +389,12 @@ class ConstraintParser:
                      | bool_atom
 
             ?bool_atom: comparison_expr
-                      | variable
+                      | CNAME -> variable
                       | not_expr
                       | LPAR bool_expr RPAR
 
             comparison_expr: expression comparison_op expression
                           | bool_atom comparison_op bool_atom
-
-            IMPLIES: "->"
-            OR: "||" | "or" | "OR"
-            AND: "&&" | "and" | "AND"
-            NOT: "!" | "not" | "NOT"
-            PLUS: "+"
-            MINUS: "-"
-            STAR: "*"
-            DIV:  "/"
-            MOD: "%"
-            POW: "**"
-            LPAR: "("
-            RPAR: ")"
-            DOT: "."
 
             ?expression: term
                        | expression PLUS term   -> add
@@ -443,37 +408,44 @@ class ConstraintParser:
             ?power: factor
                   | factor POW power -> pow
 
-            ?factor: variable
+            ?factor: CNAME -> variable
+                   | SIGNED_NUMBER -> number
                    | date_constructor
                    | period_constructor
-                   | number
                    | property_access
                    | date_property_access
                    | bool_literal
                    | LPAR expression RPAR
                    | LPAR comparison_expr RPAR
 
-            property_access: variable DOT property_name
+            property_access: CNAME DOT property_name
             date_property_access: date_constructor DOT property_name
-
-            variable: CNAME
             property_name: PROPERTY_NAME
             PROPERTY_NAME: "year" | "month" | "day"
             bool_literal: BOOL_LITERAL
             BOOL_LITERAL: "True" | "False"
             date_constructor: "Date" "(" expression "," expression "," expression ")"
-            period_constructor: "Period" "(" number "," number "," number ")"
-
+            period_constructor: "Period" "(" SIGNED_NUMBER "," SIGNED_NUMBER "," SIGNED_NUMBER ")"
             comparison_op: GTE | LTE | EQ | NE | GT | LT
-
             GTE: ">="
             LTE: "<="
             EQ: "=="
             NE: "!="
             GT: ">"
             LT: "<"
-
-            number: SIGNED_NUMBER
+            IMPLIES: "->"
+            OR: "||" | /\bor\b/i | /\bOR\b/
+            AND: "&&" | /\band\b/i | /\bAND\b/
+            NOT: "!" | /\bnot\b/i | /\bNOT\b/
+            PLUS: "+"
+            MINUS: "-"
+            STAR: "*"
+            DIV:  "/"
+            MOD: "%"
+            POW: "**"
+            LPAR: "("
+            RPAR: ")"
+            DOT: "."
 
             %import common.CNAME
             %import common.SIGNED_NUMBER
@@ -770,172 +742,6 @@ class ConstraintParser:
         
         return result
 
-    # ========================================================================
-    # TYPE CHECKING METHODS (CURRENTLY DISABLED)
-    # ========================================================================
-    # These methods were used to enforce strict type checking at parse time,
-    # rejecting comparisons like Bool == Int even though Z3 allows them.
-    # Currently disabled to allow Z3's more permissive runtime type handling.
-    # ========================================================================
-    
-    def _check_comparison_type_mismatches(
-        self, 
-        constraints: List[str], 
-        variable_types: Dict[str, str]
-    ) -> None:
-        """
-        [DISABLED] Check for type mismatches in comparisons between variables.
-        
-        For example, comparing an int variable with a bool variable is invalid.
-        """
-        for constraint in constraints:
-            self._check_constraint_comparisons(constraint, variable_types)
-    
-    def _check_constraint_comparisons(
-        self,
-        constraint: str,
-        variable_types: Dict[str, str]
-    ) -> None:
-        """
-        [DISABLED] Recursively check comparisons in a constraint, handling logical operators.
-        """
-        constraint = constraint.strip()
-        
-        # Handle implication: A -> B
-        # Split by '->' and check both sides
-        if '->' in constraint:
-            # Find '->' outside of parentheses
-            parts = self._split_by_operator(constraint, '->')
-            if len(parts) == 2:
-                # Check both sides of implication
-                self._check_constraint_comparisons(parts[0], variable_types)
-                self._check_constraint_comparisons(parts[1], variable_types)
-                return
-        
-        # Handle logical OR: A || B
-        or_parts = self._split_by_operator(constraint, '||')
-        if len(or_parts) > 1:
-            # Check each part separately
-            for part in or_parts:
-                self._check_constraint_comparisons(part, variable_types)
-            return
-        
-        # Handle logical AND: A && B
-        and_parts = self._split_by_operator(constraint, '&&')
-        if len(and_parts) > 1:
-            # Check each part separately
-            for part in and_parts:
-                self._check_constraint_comparisons(part, variable_types)
-            return
-        
-        # Remove outer parentheses if present
-        if constraint.startswith('(') and constraint.endswith(')'):
-            # Check if these are matching outer parentheses
-            depth = 0
-            for i, c in enumerate(constraint):
-                if c == '(':
-                    depth += 1
-                elif c == ')':
-                    depth -= 1
-                if depth == 0 and i < len(constraint) - 1:
-                    break
-            if depth == 0 and i == len(constraint) - 1:
-                # Outer parentheses match, remove them
-                self._check_constraint_comparisons(constraint[1:-1], variable_types)
-                return
-        
-        # Now check for comparison operators
-        comp_match = re.search(r'(==|!=|>=|<=|>|<)', constraint)
-        if not comp_match:
-            return
-        
-        op = comp_match.group(1)
-        left_expr = constraint[:comp_match.start()].strip()
-        right_expr = constraint[comp_match.end():].strip()
-        
-        # Get types for both sides
-        left_type = self._get_full_expression_type(left_expr, variable_types)
-        right_type = self._get_full_expression_type(right_expr, variable_types)
-        
-        if left_type is None or right_type is None:
-            return
-        
-        if not self._types_compatible(left_type, right_type):
-            raise ValueError(
-                f"Type mismatch in constraint '{constraint}': "
-                f"cannot compare '{left_expr}' (type: {left_type}) with "
-                f"'{right_expr}' (type: {right_type}). "
-                f"Only values of compatible types can be compared."
-            )
-    
-    def _split_by_operator(self, expr: str, op: str) -> List[str]:
-        """
-        [DISABLED - used by type checking] Split expression by operator, respecting parentheses.
-        Returns list with single element if operator not found at depth 0.
-        """
-        parts = []
-        current = []
-        depth = 0
-        i = 0
-        
-        while i < len(expr):
-            if expr[i] == '(':
-                depth += 1
-                current.append(expr[i])
-                i += 1
-            elif expr[i] == ')':
-                depth -= 1
-                current.append(expr[i])
-                i += 1
-            elif depth == 0 and expr[i:i+len(op)] == op:
-                # Found operator at depth 0
-                parts.append(''.join(current).strip())
-                current = []
-                i += len(op)
-            else:
-                current.append(expr[i])
-                i += 1
-        
-        # Add the last part
-        if current:
-            parts.append(''.join(current).strip())
-        
-        return parts if len(parts) > 1 else [expr]
-    
-    def _get_full_expression_type(self, expr: str, variable_types: Dict[str, str]) -> str:
-        """[DISABLED - used by type checking] Get the type of a full expression including Date/Period constructors."""
-        expr = expr.strip()
-        
-        # Check for Date constructor
-        if re.match(r'Date\s*\(', expr):
-            return 'date'
-        
-        # Check for Period constructor
-        if re.match(r'Period\s*\(', expr):
-            return 'period'
-        
-        # Check for property access (e.g., k.year, Date(...).month)
-        if re.search(r'\.(?:year|month|day)$', expr):
-            return 'int'
-        
-        # Check for simple variable
-        if expr in variable_types:
-            return variable_types[expr]
-        
-        # Check for numeric literal
-        if re.match(r'^-?\d+$', expr):
-            return 'int'
-        
-        # Check for boolean literal
-        if expr in ['True', 'False']:
-            return 'bool'
-        
-        return None
-    
-    def _types_compatible(self, type1: str, type2: str) -> bool:
-        """[DISABLED - used by type checking] Check if two types are compatible for comparison."""
-        return type1 == type2
-
     def generate_builder_code(
         self,
         constraints: List[str],
@@ -1041,10 +847,6 @@ class ConstraintParser:
                 f"(where type is 'date', 'int', or 'bool')."
             )
         
-        # Check for type mismatches in comparisons (e.g., int == bool)
-        # NOTE: Type checking disabled - Z3 handles type conversions at runtime
-        # self._check_comparison_type_mismatches(filtered_constraints, variable_types)
-        
         # Infer bounds for integer variables used in Date() constructors
         component_bounds = self.infer_date_component_bounds(filtered_constraints)
         
@@ -1055,28 +857,40 @@ class ConstraintParser:
             elif var_type == 'int':
                 # Use builder.add_int_var() for int variables to ensure compatibility
                 # with the implementation (bitvector or int mode)
-                code_lines.append(f'{var_name} = builder.add_int_var("{var_name}")')
+                # Pass component_type if this variable is used in Date() constructors
+                component_type = component_bounds.get(var_name)
+                if component_type and component_type != 'mixed':
+                    # Pass component type to set appropriate bounds at creation time
+                    code_lines.append(f'{var_name} = builder.add_int_var("{var_name}", component_type="{component_type}")')
+                else:
+                    # Variable not used in Date() or used in multiple positions
+                    # For enumeration baseline, we only support variables used in Date()
+                    # So we'll still create it but with default bounds
+                    code_lines.append(f'{var_name} = builder.add_int_var("{var_name}")')
             elif var_type == 'bool':
                 code_lines.append(f'{var_name} = builder.add_bool_var("{var_name}")')
         
         # Add natural bounds constraints for integer variables used in Date() constructors
-        code_lines.append("")
-        code_lines.append("# Automatic bounds for Date() component variables")
-        for var_name, component_type in sorted(component_bounds.items()):
-            if component_type == 'year':
-                code_lines.append(f'builder.add_constraint({var_name} >= 1900)')
-                code_lines.append(f'builder.add_constraint({var_name} <= 2100)')
-            elif component_type == 'month':
-                code_lines.append(f'builder.add_constraint({var_name} >= 1)')
-                code_lines.append(f'builder.add_constraint({var_name} <= 12)')
-            elif component_type == 'day':
-                code_lines.append(f'builder.add_constraint({var_name} >= 1)')
-                code_lines.append(f'builder.add_constraint({var_name} <= 31)')
-            elif component_type == 'mixed':
-                # Variable used in multiple positions - use most restrictive bounds
-                code_lines.append(f'# Warning: {var_name} used in multiple Date() positions - using conservative bounds')
-                code_lines.append(f'builder.add_constraint({var_name} >= 1)')
-                code_lines.append(f'builder.add_constraint({var_name} <= 2100)')
+        # Note: For enumeration baseline, bounds are set at variable creation time,
+        # but we still add constraints for other implementations (bitvector/int mode)
+        if component_bounds:
+            code_lines.append("")
+            code_lines.append("# Automatic bounds for Date() component variables")
+            for var_name, component_type in sorted(component_bounds.items()):
+                if component_type == 'year':
+                    code_lines.append(f'builder.add_constraint({var_name} >= 1900)')
+                    code_lines.append(f'builder.add_constraint({var_name} <= 2100)')
+                elif component_type == 'month':
+                    code_lines.append(f'builder.add_constraint({var_name} >= 1)')
+                    code_lines.append(f'builder.add_constraint({var_name} <= 12)')
+                elif component_type == 'day':
+                    code_lines.append(f'builder.add_constraint({var_name} >= 1)')
+                    code_lines.append(f'builder.add_constraint({var_name} <= 31)')
+                elif component_type == 'mixed':
+                    # Variable used in multiple positions - use most restrictive bounds
+                    code_lines.append(f'# Warning: {var_name} used in multiple Date() positions - using conservative bounds')
+                    code_lines.append(f'builder.add_constraint({var_name} >= 1)')
+                    code_lines.append(f'builder.add_constraint({var_name} <= 2100)')
 
         # Add constraints (using filtered constraints without declarations)
         # Each constraint is a full boolean expression - parse and add directly
@@ -1084,9 +898,6 @@ class ConstraintParser:
         for constraint_str in filtered_constraints:
             constraint_code = self.parse_constraint(constraint_str)
             code_lines.append(constraint_code)
-
-        # Add result assignment
-        code_lines.append("result = builder")
 
         return "\n".join(code_lines)
 

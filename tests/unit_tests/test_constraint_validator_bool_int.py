@@ -9,7 +9,6 @@ a = builder.add_int_var("a")
 flag = builder.add_bool_var("flag")
 builder.add_constraint(a == 3)
 builder.add_constraint(flag == True)
-result = builder
 """
     ok, msg = validate_constraint_solution(constraint_code, {"a": 3, "flag": True})
     assert ok, msg
@@ -23,7 +22,6 @@ a = builder.add_int_var("a")
 flag = builder.add_bool_var("flag")
 builder.add_constraint(a == 3)
 builder.add_constraint(flag == True)
-result = builder
 """
     ok, msg = validate_constraint_solution(constraint_code, {"a": 2, "flag": False})
     assert not ok

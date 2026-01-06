@@ -2,8 +2,8 @@
 """
 Combine all constraint JSON files from the constraints folder into a single file.
 
-This script reads all JSON files in the constraints folder (excluding all_constraints.json),
-combines all constraints into one array, and saves the result as all_constraints.json.
+This script reads all JSON files in the constraints folder (excluding constraints.json),
+combines all constraints into one array, and saves the result as constraints.json.
 """
 
 import json
@@ -43,7 +43,7 @@ def _resolve_output_path(path_str: str, script_dir: Path) -> Path:
 
 
 def combine_constraints(
-    constraints_dir: str = "constraints", output_file: str = "constraints/all_constraints.json"
+    constraints_dir: str = "constraints", output_file: str = "constraints/constraints.json"
 ) -> None:
     """
     Combine all constraint files from the constraints directory into one file.
@@ -60,21 +60,22 @@ def combine_constraints(
         print(f"Error: Constraints directory '{constraints_dir}' does not exist")
         return
     
-    # Find all JSON files in the constraints directory, excluding all_constraints.json
+    # Find all JSON files in the constraints directory, excluding constraints.json
     json_files = sorted(constraints_path.glob("*.json"))
-    json_files = [f for f in json_files if f.name != "all_constraints.json"]
+    json_files = [f for f in json_files if f.name != "constraints.json"]
     
     if not json_files:
-        print(f"No constraint files found in '{constraints_dir}' (excluding all_constraints.json)")
+        print(f"No constraint files found in '{constraints_dir}' (excluding constraints.json)")
         return
     
     print(f"Found {len(json_files)} constraint file(s) to combine:")
     for f in json_files:
         print(f"  - {f.name}")
     
-    # Load and combine all constraints
+    # Load, re-id, and combine all constraints
     all_constraints: List[Dict] = []
     total_constraints = 0
+    next_id = 1  # Continuous counter across files, in alphabetical file order
     
     for json_file in json_files:
         try:
@@ -84,6 +85,21 @@ def combine_constraints(
             if not isinstance(constraints, list):
                 print(f"Warning: {json_file.name} is not a JSON array, skipping")
                 continue
+
+            base_name = json_file.stem  # e.g., logical_operators from logical_operators.json
+
+            for c in constraints:
+                # Only process dict-style constraint objects
+                if not isinstance(c, dict):
+                    continue
+
+                # Preserve original id (if any) as generated_id
+                if "id" in c:
+                    c["generated_id"] = c["id"]
+
+                # Assign new continuous id: llm-FILENAME-NUM
+                c["id"] = f"llm-{base_name}-{next_id}"
+                next_id += 1
             
             all_constraints.extend(constraints)
             total_constraints += len(constraints)
@@ -116,7 +132,7 @@ def main():
     import argparse
     
     parser = argparse.ArgumentParser(
-        description="Combine all constraint JSON files into all_constraints.json"
+        description="Combine all constraint JSON files into constraints.json"
     )
     parser.add_argument(
         "--constraints-dir",
@@ -125,8 +141,8 @@ def main():
     )
     parser.add_argument(
         "--output",
-        default="constraints/all_constraints.json",
-        help="Output file path (default: constraints/all_constraints.json)"
+        default="constraints/constraints.json",
+        help="Output file path (default: constraints/constraints.json)"
     )
     
     args = parser.parse_args()
