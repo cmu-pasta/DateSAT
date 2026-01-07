@@ -13,15 +13,12 @@ from datetime import datetime
 from pathlib import Path
 
 # Ensure repository root is on sys.path
-REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
 # Import from the LLM run_tests module
-from dataset.LLM_gen_constraints.run_tests import (
-    filter_methods,
-    run_constraints_file,
-)
+from dataset.LLM_gen_constraints.run_tests import filter_methods, run_constraints_file
 
 
 def main():
@@ -60,13 +57,13 @@ def main():
         nargs="+",
         default=None,
         help="Select specific methods to run. Can specify multiple methods. "
-             "Examples: --methods baseline_bitvector enumeration (run only baseline_bitvector and enumeration), "
-             "--methods bitvector (run all bitvector implementations), "
-             "--methods baseline (run baseline with both int and bitvector). "
-             "Default: run all methods. "
-             "Format: 'approach_implementation' (e.g., 'baseline_bitvector'), "
-             "'approach' (e.g., 'baseline'), 'implementation' (e.g., 'bitvector'), "
-             "or 'enumeration'",
+        "Examples: --methods baseline_bitvector enumeration (run only baseline_bitvector and enumeration), "
+        "--methods bitvector (run all bitvector implementations), "
+        "--methods baseline (run baseline with both int and bitvector). "
+        "Default: run all methods. "
+        "Format: 'approach_implementation' (e.g., 'baseline_bitvector'), "
+        "'approach' (e.g., 'baseline'), 'implementation' (e.g., 'bitvector'), "
+        "or 'enumeration'",
     )
 
     args = parser.parse_args()
@@ -93,10 +90,7 @@ def main():
 
     # Run constraint execution using the shared function
     all_results = run_constraints_file(
-        str(constraints_path),
-        args.output_dir,
-        args.timeout,
-        methods=args.methods
+        str(constraints_path), args.output_dir, args.timeout, methods=args.methods
     )
 
     if run_analysis:
@@ -110,7 +104,7 @@ def main():
             return
 
         # Import validation function
-        from dataset.validation import check_results_dir
+        from dataset.utils.validation import check_results_dir
 
         summary = check_results_dir(results_dir, enumeration_filter="supported")
 
@@ -142,13 +136,15 @@ def main():
             )
 
         # Print summary statistics
-        counts = summary.get('counts_by_approach', {})
+        counts = summary.get("counts_by_approach", {})
         if counts:
             print(f"\nSummary by approach (enumeration supported constraints):")
             for approach, counts_dict in counts.items():
                 total = sum(counts_dict.values())
-                correct = counts_dict.get('correct', 0)
-                print(f"  {approach}: {correct}/{total} correct ({correct/total*100:.1f}%)")
+                correct = counts_dict.get("correct", 0)
+                print(
+                    f"  {approach}: {correct}/{total} correct ({correct/total*100:.1f}%)"
+                )
 
 
 if __name__ == "__main__":

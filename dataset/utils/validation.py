@@ -1,8 +1,10 @@
 """
-Enumeration baseline validation for integration test results.
+Concrete validation for integration test results.
 
-This module validates symbolic solver results using the enumeration baseline implementation
-instead of rebuilding constraints and checking them with Z3.
+This module validates symbolic solver results by executing constraints with concrete values
+using Python date arithmetic. The enumeration baseline is used as ground truth for comparing
+different approaches, but actual validation is performed by executing constraints directly
+with concrete solutions rather than rebuilding constraints and checking them with Z3.
 """
 
 import json
@@ -14,18 +16,18 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 # Ensure repository root is on sys.path so `import datesmt` works
-REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
-from datesmt.enumeration_baseline import (
-    EnumerationSolver,
-    EnumerationDateVar,
-    ConstraintWrapper,
-)
-from datesmt.constraint_validator import validate_constraint_solution
 from datesmt.constraint_parser import ConstraintParser
+from datesmt.constraint_validator import validate_constraint_solution
 from datesmt.core import Date, Period
+from datesmt.enumeration_baseline import (
+    ConstraintWrapper,
+    EnumerationDateVar,
+    EnumerationSolver,
+)
 
 # --------------------------
 # Parsing helpers
@@ -77,10 +79,12 @@ def _get_constraint_code(constraint_data: dict) -> str:
 
 
 def execute_constraint_code(
-    constraint_code: str, solution: Dict[str, str], constraint_data: Optional[Dict[str, Any]] = None
+    constraint_code: str,
+    solution: Dict[str, str],
+    constraint_data: Optional[Dict[str, Any]] = None,
 ) -> Tuple[bool, str, Optional[str]]:
     """
-    Execute constraint code with concrete values using Python-based enumeration solver.
+    Execute constraint code with concrete values using Python-based constraint validator.
 
     Args:
         constraint_code: The constraint code to execute
@@ -94,11 +98,11 @@ def execute_constraint_code(
     try:
         # Parse solution values into proper types (Date/int/bool) for the validator
         parsed_solution: Dict[str, Union[Date, int, bool]] = {}
-        
+
         for var_name, var_value in solution.items():
             if isinstance(var_value, str):
                 var_value = var_value.strip()
-                
+
                 # Try to parse as Date
                 try:
                     date_obj = parse_date_string(var_value)
@@ -128,7 +132,11 @@ def execute_constraint_code(
                 except ValueError:
                     pass
 
-                return False, f"Could not parse variable {var_name} value: {var_value}", None
+                return (
+                    False,
+                    f"Could not parse variable {var_name} value: {var_value}",
+                    None,
+                )
             else:
                 # Already parsed (int/bool/Date)
                 parsed_solution[var_name] = var_value
@@ -144,7 +152,7 @@ def execute_constraint_code(
                     constraint_strs.append(constraint_item)
             validated_constraints_str = "\n".join(constraint_strs)
 
-        # Evaluate using the pure-Python validator (supports date/bool/int)
+        # Evaluate using the pure-Python constraint validator (supports date/bool/int)
         ok, msg = validate_constraint_solution(constraint_code, parsed_solution)
         if ok:
             return True, "Solution validated successfully", validated_constraints_str
@@ -162,9 +170,9 @@ def validate_solution_with_concrete(
     approach: str = "concrete",
 ) -> Tuple[bool, str, Optional[str]]:
     """
-    Validate a solution using enumeration baseline (Python-based) implementation.
+    Validate a solution by executing constraints with concrete values.
 
-    This validates constraints using Python date arithmetic via EnumerationSolver,
+    This validates constraints using Python date arithmetic via the constraint validator,
     not SMT-LIB. The validation checks if the solution satisfies the constraints
     by evaluating them concretely in Python.
 
@@ -208,7 +216,11 @@ def validate_solution_with_concrete(
         elif isinstance(var_value, int):
             string_solution[var_name] = str(var_value)
         else:
-            return False, f"Unknown variable type for {var_name}: {type(var_value)}", None
+            return (
+                False,
+                f"Unknown variable type for {var_name}: {type(var_value)}",
+                None,
+            )
 
     # Execute the constraint with concrete values using Python-based enumeration solver.
     # This validates using Python date arithmetic, not SMT-LIB. We also capture any
@@ -230,7 +242,11 @@ def validate_solution_with_concrete(
     if not success:
         # Preserve existing error behavior, but keep the message as-is so callers can
         # decide whether to treat it as a warning or an error.
-        return False, f"Constraint execution failed: {message}", validated_constraints_str
+        return (
+            False,
+            f"Constraint execution failed: {message}",
+            validated_constraints_str,
+        )
 
     # If evaluation succeeded but went outside the supported date range at any point,
     # treat this as a special failure. Upstream, this will be interpreted as a
@@ -243,19 +259,25 @@ def validate_solution_with_concrete(
         )
 
     # Save the solution and constraints with substituted values
-    # This shows what was actually validated using Python enumeration baseline implementation
+    # This shows what was actually validated using Python constraint validator
     # Note: We save as .txt since these are constraint strings, not SMT-LIB
     # The folder name "smt2_assertion" is historical - these files contain constraint strings
     if save_dir is not None and validated_constraints_str:
         # Create a filename based on constraint_id and approach
-        constraint_file = save_dir / f"{constraint_id}_{approach}_concrete_validation.txt"
+        constraint_file = (
+            save_dir / f"{constraint_id}_{approach}_concrete_validation.txt"
+        )
         constraint_file.parent.mkdir(parents=True, exist_ok=True)
 
         try:
             with constraint_file.open("w", encoding="utf-8") as f:
                 # Write header
-                f.write("; Constraints validated through enumeration baseline (Python) validation\n")
-                f.write("; Validation performed using Python date arithmetic (EnumerationSolver), not SMT-LIB\n\n")
+                f.write(
+                    "; Constraints validated through concrete (Python) validation\n"
+                )
+                f.write(
+                    "; Validation performed using Python date arithmetic (constraint validator), not SMT-LIB\n\n"
+                )
 
                 # Write the solution (variable assignments)
                 f.write("; Solution:\n")
@@ -274,7 +296,9 @@ def validate_solution_with_concrete(
                 f.write("\n")
 
                 # Write constraints with solution substituted (what was actually evaluated)
-                f.write("; Constraints with solution substituted (what was validated):\n")
+                f.write(
+                    "; Constraints with solution substituted (what was validated):\n"
+                )
                 for constraint_item in constraint_data.get("constraints", []):
                     # Handle CNF format
                     if isinstance(constraint_item, list):
@@ -295,7 +319,11 @@ def validate_solution_with_concrete(
             pass
 
     if success:
-        return True, "Solution validated successfully with enumeration baseline", validated_constraints_str
+        return (
+            True,
+            "Solution validated successfully with concrete validation",
+            validated_constraints_str,
+        )
     else:
         return False, message, validated_constraints_str
 
@@ -324,7 +352,7 @@ def load_results_files(results_dir: Path) -> List[Dict[str, Any]]:
     for pattern in ["results_*.json", "*_*.json"]:
         for path in sorted(results_dir.glob(pattern)):
             # Skip SMT2 files
-            if path.suffix == '.smt2':
+            if path.suffix == ".smt2":
                 continue
             try:
                 with path.open("r", encoding="utf-8") as f:
@@ -339,7 +367,7 @@ def load_results_files(results_dir: Path) -> List[Dict[str, Any]]:
 
 
 def group_by_constraint(
-    records: List[Dict[str, Any]]
+    records: List[Dict[str, Any]],
 ) -> Dict[str, Dict[str, Dict[str, Dict[str, Any]]]]:
     """
     Groups records by constraint_id, then by approach, then by implementation.
@@ -366,7 +394,7 @@ def validate_sat_record(
     constraint_id: str, rec: Dict[str, Any], save_dir: Optional[Path] = None
 ) -> Tuple[bool, str]:
     """
-    Validates the provided sat solution using enumeration baseline implementation.
+    Validates the provided SAT solution by executing constraints with concrete values.
 
     Returns:
       (is_valid, message)
@@ -385,10 +413,10 @@ def validate_sat_record(
         "coverage_tags": rec.get("coverage_tags", []),
     }
 
-    # Use concrete validation
+    # Use concrete validation (execute constraints with concrete values)
     # Construct approach name from approach and implementation
     approach_name = f"{approach}_{rec.get('implementation', 'unknown')}"
-    is_valid, message, smtlib_constraints = validate_solution_with_concrete(
+    is_valid, message, _ = validate_solution_with_concrete(
         constraint_data, solution, constraint_id, save_dir, approach_name
     )
 
@@ -403,12 +431,13 @@ def summarize_constraint(
     """
     Summarize validation results for a single constraint across all approaches.
 
-    Uses enumeration baseline as ground truth for validation.
+    Uses enumeration baseline results as ground truth for comparing approaches.
+    Validates SAT solutions by executing constraints with concrete values.
 
     Args:
         cid: Constraint ID
         approaches: Nested dict structure {approach: {implementation: record}}
-        save_dir: Optional directory to save SMT-LIB constraints
+        save_dir: Optional directory to save constraint validation files
 
     Returns:
         Dictionary with constraint summary including verdicts and validation results
@@ -445,7 +474,7 @@ def summarize_constraint(
     enumeration_status = (
         normalized_statuses.get(enumeration_key) if enumeration_key else None
     )
-    
+
     # If enumeration is not_applicable, treat it like timeout for comparison purposes
     # but we'll still categorize the constraint as not supported
     enumeration_available = enumeration_status not in ("not_applicable", None)
@@ -454,27 +483,33 @@ def summarize_constraint(
     any_rec = next(iter(sat_recs.values()), next(iter(flattened_approaches.values())))
     description = any_rec.get("description")
 
-    # Validate SAT records using enumeration baseline (only if enumeration is available)
+    # Validate SAT records by executing constraints with concrete values
     sat_validation: Dict[str, Dict[str, Any]] = {}
-    # Always validate SAT records using the Python validator (no dependence on
-    # enumeration baseline availability).
+    # Always validate SAT records using the Python constraint validator
+    # (validation does not depend on enumeration baseline availability).
     for a, r in sat_recs.items():
         ok, msg = validate_sat_record(cid, r, save_dir=save_dir)
         sat_validation[a] = {"valid": ok, "message": msg, "solution": r.get("solution")}
 
-    # New validation logic based on enumeration baseline as ground truth
+    # Determine per-approach verdicts using enumeration baseline results as ground truth
     per_approach_verdict: Dict[str, str] = {}
 
     # Check if all methods are SAT (excluding timeout, error, and not_applicable)
     all_sat = len(normalized_statuses) > 0 and all(
-        s == "sat" for s in normalized_statuses.values() if s not in ("timeout", "error", "not_applicable")
+        s == "sat"
+        for s in normalized_statuses.values()
+        if s not in ("timeout", "error", "not_applicable")
     )
 
     # Check if everything is UNSAT (excluding timeout, error, and not_applicable)
     non_timeout_statuses = [
-        s for s in normalized_statuses.values() if s not in ("timeout", "error", "not_applicable")
+        s
+        for s in normalized_statuses.values()
+        if s not in ("timeout", "error", "not_applicable")
     ]
-    all_unsat = len(non_timeout_statuses) > 0 and all(s == "unsat" for s in non_timeout_statuses)
+    all_unsat = len(non_timeout_statuses) > 0 and all(
+        s == "unsat" for s in non_timeout_statuses
+    )
 
     # Check if enumeration is SAT but others are UNSAT
     # Treat UNSAT approaches as wrong only if there exists at least one SAT approach
@@ -520,8 +555,11 @@ def summarize_constraint(
                 # Fallback to status-based heuristics
                 if not enumeration_available:
                     other_statuses = [
-                        s for k, s in normalized_statuses.items()
-                        if k != enumeration_key and k != a and s not in ("timeout", "error", "not_applicable")
+                        s
+                        for k, s in normalized_statuses.items()
+                        if k != enumeration_key
+                        and k != a
+                        and s not in ("timeout", "error", "not_applicable")
                     ]
                     if not other_statuses or all(s == "sat" for s in other_statuses):
                         per_approach_verdict[a] = "correct"
@@ -538,8 +576,11 @@ def summarize_constraint(
             if not enumeration_available:
                 # Compare this approach against other non-enumeration approaches
                 other_statuses = [
-                    s for k, s in normalized_statuses.items() 
-                    if k != enumeration_key and k != a and s not in ("timeout", "error", "not_applicable")
+                    s
+                    for k, s in normalized_statuses.items()
+                    if k != enumeration_key
+                    and k != a
+                    and s not in ("timeout", "error", "not_applicable")
                 ]
                 if not other_statuses:
                     # Only this approach, can't compare
@@ -578,7 +619,11 @@ def summarize_constraint(
 
     # Retain aggregate verdict fields for backward-compatibility
     any_error = any(s == "error" for s in normalized_statuses.values())
-    if any_error and not any(s == "sat" for s in approach_statuses.values()) and not all_unsat:
+    if (
+        any_error
+        and not any(s == "sat" for s in approach_statuses.values())
+        and not all_unsat
+    ):
         verdict = "error"
         unsat_consensus = False
         wrong_approaches = [a for a, v in per_approach_verdict.items() if v == "wrong"]
@@ -591,8 +636,14 @@ def summarize_constraint(
     else:
         # Aggregate to "correct" if all are correct/correct_unsat; else "wrong" if any wrong; else "correct" if at least one correct
         # Exclude "not_applicable" and "timeout" from the "all correct" check
-        applicable_verdicts = [v for v in per_approach_verdict.values() if v not in ("not_applicable", "timeout")]
-        if applicable_verdicts and all(v in ("correct", "warning") for v in applicable_verdicts):
+        applicable_verdicts = [
+            v
+            for v in per_approach_verdict.values()
+            if v not in ("not_applicable", "timeout")
+        ]
+        if applicable_verdicts and all(
+            v in ("correct", "warning") for v in applicable_verdicts
+        ):
             verdict = "correct"
         elif any(v == "wrong" for v in per_approach_verdict.values()):
             verdict = "wrong"
@@ -699,12 +750,16 @@ def check_results_dir(
             for key in ("approach_statuses", "sat_validation", "verdicts_by_approach"):
                 if key in cleaned and isinstance(cleaned[key], dict):
                     cleaned[key] = {
-                        k: v for k, v in cleaned[key].items() if not k.startswith("enumeration_")
+                        k: v
+                        for k, v in cleaned[key].items()
+                        if not k.startswith("enumeration_")
                     }
             # Remove enumeration entries from wrong_approaches / might_correct_approaches
             for key in ("wrong_approaches", "might_correct_approaches"):
                 if key in cleaned and isinstance(cleaned[key], list):
-                    cleaned[key] = [k for k in cleaned[key] if not str(k).startswith("enumeration_")]
+                    cleaned[key] = [
+                        k for k in cleaned[key] if not str(k).startswith("enumeration_")
+                    ]
             cleaned_summaries.append(cleaned)
         filtered_summaries = cleaned_summaries
 
@@ -736,7 +791,7 @@ def check_results_dir(
                 counts_by_approach[approach].pop("not_applicable", None)
 
     # --------------------------
-    # Metrics: constraint lines and execution time
+    # Metrics: SMT-LIB file size (lines) and execution time
     # --------------------------
     def _smt2_lines(fp: Optional[str]) -> int:
         if not fp:
@@ -796,7 +851,9 @@ def check_results_dir(
                 approach_time_sum[composite_key] = (
                     approach_time_sum.get(composite_key, 0.0) + t
                 )
-                approach_counts[composite_key] = approach_counts.get(composite_key, 0) + 1
+                approach_counts[composite_key] = (
+                    approach_counts.get(composite_key, 0) + 1
+                )
 
                 implementation_line_sum[implementation] = (
                     implementation_line_sum.get(implementation, 0) + lines
@@ -950,7 +1007,7 @@ def check_results_dir(
 
 def validate_results_with_concrete(results_dir: Path) -> Dict[str, Any]:
     """
-    Validate all results in a directory using enumeration baseline implementation.
+    Validate all results in a directory by executing constraints with concrete values.
 
     Supports multiple result file patterns:
     - results_*.json (legacy format)
@@ -972,7 +1029,7 @@ def validate_results_with_concrete(results_dir: Path) -> Dict[str, Any]:
     for pattern in ["results_*.json", "*_*.json"]:
         for path in sorted(results_dir.glob(pattern)):
             # Skip SMT2 files
-            if path.suffix == '.smt2':
+            if path.suffix == ".smt2":
                 continue
             try:
                 with path.open("r", encoding="utf-8") as f:
@@ -1048,7 +1105,7 @@ def validate_results_with_concrete(results_dir: Path) -> Dict[str, Any]:
                     counts_by_approach[approach_key]["wrong"] += 1
                     continue
 
-                # Validate using enumeration baseline implementation
+                # Validate by executing constraints with concrete values
                 is_valid, message, _ = validate_solution_with_concrete(
                     constraint_data, solution, cid, None, approach_key
                 )
@@ -1065,7 +1122,10 @@ def validate_results_with_concrete(results_dir: Path) -> Dict[str, Any]:
                     counts_by_approach[approach_key]["correct"] += 1
                 else:
                     # Treat out-of-bounds concrete evaluation as a warning (not wrong)
-                    if isinstance(message, str) and "Date outside allowed range" in message:
+                    if (
+                        isinstance(message, str)
+                        and "Date outside allowed range" in message
+                    ):
                         verdicts_by_approach[approach_key] = "warning"
                         counts_by_approach[approach_key]["warning"] += 1
                     else:
@@ -1101,13 +1161,15 @@ def validate_results_with_concrete(results_dir: Path) -> Dict[str, Any]:
                 counts_by_approach[approach_key]["wrong"] += 1
 
         # Store per-constraint summary
-        by_constraint.append({
-            "constraint_id": cid,
-            "description": description,
-            "approach_statuses": approach_statuses,
-            "sat_validation": sat_validation,
-            "verdicts_by_approach": verdicts_by_approach,
-        })
+        by_constraint.append(
+            {
+                "constraint_id": cid,
+                "description": description,
+                "approach_statuses": approach_statuses,
+                "sat_validation": sat_validation,
+                "verdicts_by_approach": verdicts_by_approach,
+            }
+        )
 
         validation_results[cid] = constraint_results
 
@@ -1146,27 +1208,27 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="Validate integration test results using enumeration baseline implementation. "
-                    "Supports results from run_tests.py (LLM constraints) and other datasets.",
+        description="Validate integration test results by executing constraints with concrete values. "
+        "Supports results from run_tests.py (LLM constraints) and other datasets.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
   # Validate LLM constraint results
-  python dataset/validation.py dataset/LLM_gen_constraints/results
+  python dataset/utils/validation.py dataset/LLM_gen_constraints/results
 
   # Validate results from a specific dataset
-  python dataset/validation.py dataset/law/results --output dataset/law/validation_results.json
+  python dataset/utils/validation.py dataset/law/results --output dataset/law/validation_results.json
 
   # Validate results that were run without analysis
-  python dataset/validation.py dataset/LLM_gen_constraints/results --output validation_check.json
-        """
+  python dataset/utils/validation.py dataset/LLM_gen_constraints/results --output validation_check.json
+        """,
     )
     parser.add_argument(
         "results_dir",
         nargs="?",
         default="results",
         help="Path to results directory containing result JSON files. "
-             "Supports files matching patterns: results_*.json or *_*.json (e.g., baseline_int_*.json)",
+        "Supports files matching patterns: results_*.json or *_*.json (e.g., baseline_int_*.json)",
     )
     parser.add_argument(
         "--output",
@@ -1196,12 +1258,12 @@ Examples:
     print(f"  Results saved to: {output_path}")
 
     # Print summary statistics
-    counts = summary.get('counts_by_approach', {})
+    counts = summary.get("counts_by_approach", {})
     if counts:
         print(f"\nSummary by approach:")
         for approach, counts_dict in counts.items():
             total = sum(counts_dict.values())
-            correct = counts_dict.get('correct', 0)
+            correct = counts_dict.get("correct", 0)
             print(f"  {approach}: {correct}/{total} correct ({correct/total*100:.1f}%)")
 
 

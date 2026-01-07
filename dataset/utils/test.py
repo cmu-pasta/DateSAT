@@ -30,9 +30,8 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from datesmt.api import DateSMTBuilder
-from datesmt.core import Date, Period
 from datesmt.constraint_parser import ConstraintParser
-
+from datesmt.core import Date, Period
 
 # Paste a single JSON constraint object here (one from *_constraints*.jsonl)
 CONSTRAINT_JSON = r"""

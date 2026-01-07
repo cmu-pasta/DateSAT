@@ -246,7 +246,7 @@ By default, for each constraint, the script tests:
 Use the `--methods` option to selectively run only specific methods, which can significantly reduce execution time for focused testing.
 
 **Validation:**
-The `dataset/validation.py` module provides concrete validation functionality to verify that symbolic solver solutions actually satisfy the constraints. It uses enumeration baseline as the ground truth for validation. This is used automatically by `run_tests.py` when analysis is enabled.
+The `dataset/utils/validation.py` module provides concrete validation functionality to verify that symbolic solver solutions actually satisfy the constraints. It uses enumeration baseline as the ground truth for validation. This is used automatically by `run_tests.py` when analysis is enabled.
 
 For more information on validation logic and workflow, see the dataset-level `README.md`:
 - Validation workflow and usage
