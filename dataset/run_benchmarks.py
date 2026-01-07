@@ -11,7 +11,7 @@ REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
-from dataset.validation import check_results_dir
+from dataset.utils.validation import check_results_dir
 from datesmt.api import DateSMTBuilder
 from datesmt.constraint_parser import ConstraintParser
 from datesmt.core import Date, Period
@@ -74,12 +74,16 @@ def run_constraint_with_approach(
                     )
                     result["solution"] = None
                     result["smtlib"] = None
-                    print("Not applicable: Enumeration baseline doesn't support bool/int variables")
+                    print(
+                        "Not applicable: Enumeration baseline doesn't support bool/int variables"
+                    )
                     return result
                 raise
 
             # Get the solver from the executed code
-            builder = exec_globals.get("result") or exec_globals.get("builder") or solver
+            builder = (
+                exec_globals.get("result") or exec_globals.get("builder") or solver
+            )
             if not builder:
                 raise RuntimeError("Constraint code did not create a solver")
 
@@ -184,7 +188,7 @@ def run_constraints_file(
 ):
     # Load constraints - support both JSON and JSONL formats
     constraints_file_path = Path(constraints_file)
-    
+
     if constraints_file_path.suffix == ".jsonl":
         # JSONL format: one JSON object per line
         constraints = []
@@ -197,7 +201,9 @@ def run_constraints_file(
                     constraint = json.loads(line)
                     constraints.append(constraint)
                 except json.JSONDecodeError as e:
-                    print(f"Warning: Skipping invalid JSON on line {line_num} of {constraints_file}: {e}")
+                    print(
+                        f"Warning: Skipping invalid JSON on line {line_num} of {constraints_file}: {e}"
+                    )
                     continue
     else:
         # JSON format: single JSON array/object
@@ -218,12 +224,13 @@ def run_constraints_file(
     baseline_approaches = ["enumeration"]
     symbolic_approaches = [
         "naive",
-        "epoch_days",
-        "hybrid",
-        "alpha_beta",
-        "alpha_beta_table",
+        # "epoch_days",
+        # "hybrid",
+        # "alpha_beta",
+        # "alpha_beta_table",
     ]
-    implementations = ["int", "bitvector"]
+    # implementations = ["int", "bitvector"]
+    implementations = ["int"]
 
     # Unify all methods into a single list
     # Symbolic approaches with int/bitvector implementations
@@ -250,9 +257,10 @@ def run_constraints_file(
             # Save per-constraint SMT-LIB as .smt2 file
             if result.get("smtlib"):
                 cid = _sanitize_filename(result.get("id", "unknown"))
-                smt_path = os.path.join(
-                    smt_dir, f"{cid}_{approach}_{implementation}.smt2"
-                )
+                # Create nested directory structure: smt_constraints/<approach>/<implementation>/
+                smt_output_dir = os.path.join(smt_dir, approach, implementation)
+                os.makedirs(smt_output_dir, exist_ok=True)
+                smt_path = os.path.join(smt_output_dir, f"{cid}.smt2")
                 try:
                     with open(smt_path, "w") as f:
                         f.write(result["smtlib"])
@@ -260,6 +268,9 @@ def run_constraints_file(
                     result["smtlib_file"] = smt_path
                 except Exception as e:
                     result["smtlib_file_error"] = str(e)
+
+                # Remove smtlib from result to avoid saving it in JSON files
+                del result["smtlib"]
 
             results.append(result)
 
@@ -295,30 +306,30 @@ def main():
     SCRIPT_DIR = Path(__file__).parent
 
     constraint_sets = [
-        #{
-        #    "name": "Grammar Constraints",
-        #    "constraints_file": SCRIPT_DIR
-        #    / "grammar_constraints"
-        #    / "constraints"
-        #    / "constraints.json",
-        #    "output_dir": SCRIPT_DIR / "grammar_constraints" / "results",
-        #},
         {
-            "name": "LLM Generated Constraints",
+            "name": "Grammar Constraints",
             "constraints_file": SCRIPT_DIR
-            / "llm_constraints"
-            / "constraints"
+            / "grammar_constraints"
+            / "benchmarks"
             / "constraints.json",
-            "output_dir": SCRIPT_DIR / "llm_constraints" / "results",
+            "output_dir": SCRIPT_DIR / "grammar_constraints" / "results",
         },
-        #{
+        # {
+        #     "name": "LLM Generated Constraints",
+        #     "constraints_file": SCRIPT_DIR
+        #     / "llm_constraints"
+        #     / "constraints"
+        #     / "constraints.json",
+        #     "output_dir": SCRIPT_DIR / "llm_constraints" / "results",
+        # },
+        # {
         #    "name": "Legal Document Constraints",
         #    "constraints_file": SCRIPT_DIR
         #    / "legal_doc_constraints"
         #    / "constraints"
         #    / "constraints.jsonl",
         #      "output_dir": SCRIPT_DIR / "legal_doc_constraints" / "results",
-        #},
+        # },
     ]
 
     parser = argparse.ArgumentParser(
@@ -358,9 +369,7 @@ def main():
             continue
 
         # Run constraint execution
-        run_constraints_file(
-            str(constraints_file), str(output_dir), args.timeout
-        )
+        # run_constraints_file(str(constraints_file), str(output_dir), args.timeout)
 
         if not args.no_analysis:
             print(f"\n{'='*60}")
@@ -397,7 +406,9 @@ def main():
                 unsupported_summary = check_results_dir(
                     results_dir, enumeration_filter="not_supported"
                 )
-                unsupported_output = results_dir / "checked_summary_without_baseline.json"
+                unsupported_output = (
+                    results_dir / "checked_summary_without_baseline.json"
+                )
                 with open(unsupported_output, "w", encoding="utf-8") as f:
                     json.dump(unsupported_summary, f, indent=2, sort_keys=False)
                 print(

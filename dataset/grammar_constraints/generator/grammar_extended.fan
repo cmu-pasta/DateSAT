@@ -27,7 +27,7 @@ import datetime
 
 <constraint> ::= <unit_constraint> | <unit_constraint> " || " <constraint>
 
-<unit_constraint> ::= <date_var> <cmp_op> <expr> 
+<unit_constraint> ::= <date_var> <cmp_op> <expr> | "(" <bool_var_expr> ") -> (" <expr> <cmp_op> <expr> ")" | <int_var> <cmp_op> <int_var_expr>
 
 <expr> ::= <date_var_expr> | <date_expr>
 
@@ -54,6 +54,16 @@ import datetime
 <period_year> ::= <digit>
 <period_month> ::= <digit>
 <period_day> ::= <digit>
+
+<bool_var_expr> ::= <bool_var> <bool_cmp_op> <bool_val>
+<bool_var> ::= "B"<digit>
+<bool_cmp_op> ::= " == " | " != "
+<bool_val> ::= "True" | "False"
+
+<int_var_expr> ::= <int_var> | <date_year> | <date_month> | <date_day> | "(" <int_var> <arith_op> <int_var_expr> ")"
+<int_var> ::= "I"<digit> | <date_var> "." <date_field>
+<date_field> ::= "year" | "month" | "day"
+<arith_op> ::= " + " | " - " | " * " | " / " | " % "
 
 ##################################################
 # Post-processing

@@ -53,7 +53,7 @@ The validation uses enumeration baseline as the ground truth and follows these r
 
 **Python API Usage:**
 ```python
-from dataset.validation import validate_solution_with_concrete
+from dataset.utils.validation import validate_solution_with_concrete
 
 constraint_data = {
     "constraints": ["x >= Date(2020, 1, 1)"],
@@ -69,13 +69,13 @@ The validation module can be used standalone to validate results from any datase
 
 ```bash
 # Validate results from a dataset
-python dataset/validation.py dataset/LLM_gen_constraints/results
+python dataset/utils/validation.py dataset/LLM_gen_constraints/results
 
 # Validate results from another dataset (e.g., law constraints)
-python dataset/validation.py dataset/law/results --output dataset/law/validation_results.json
+python dataset/utils/validation.py dataset/law/results --output dataset/law/validation_results.json
 
 # Specify custom output location
-python dataset/validation.py path/to/results --output my_validation.json
+python dataset/utils/validation.py path/to/results --output my_validation.json
 ```
 
 The validation script will:
@@ -134,20 +134,20 @@ pytest dataset/test_validation.py
 
 ```bash
 # Basic usage - validate all results in a directory
-python dataset/validation.py path/to/results
+python dataset/utils/validation.py path/to/results
 
 # With custom output location
-python dataset/validation.py path/to/results --output validation_report.json
+python dataset/utils/validation.py path/to/results --output validation_report.json
 
 # View help
-python dataset/validation.py --help
+python dataset/utils/validation.py --help
 ```
 
 ### Programmatic Usage
 
 ```python
 from pathlib import Path
-from dataset.validation import validate_results_with_concrete
+from dataset.utils.validation import validate_results_with_concrete
 
 # Validate all results in a directory
 results_dir = Path("path/to/results")

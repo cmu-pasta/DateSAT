@@ -4,13 +4,13 @@ Test enumeration baseline validation functionality.
 
 import pytest
 
-from datesmt.enumeration_baseline import EnumerationSolver, EnumerationDateVar
-from datesmt.core import Date, Period
-from dataset.validation import (
+from dataset.utils.validation import (
     parse_date_string,
     parse_period_string,
     validate_solution_with_concrete,
 )
+from datesmt.core import Date, Period
+from datesmt.enumeration_baseline import EnumerationDateVar, EnumerationSolver
 
 
 class TestEnumerationBaselineValidation:
@@ -63,7 +63,9 @@ class TestEnumerationBaselineValidation:
             constraint_data, solution, "test_simple_invalid"
         )
         assert not is_valid, "Invalid solution should be rejected"
-        assert "constraint" in message.lower() and ("false" in message.lower() or "failed" in message.lower())
+        assert "constraint" in message.lower() and (
+            "false" in message.lower() or "failed" in message.lower()
+        )
 
     def test_validate_with_periods(self):
         """Test validating constraints with concrete periods."""
@@ -192,7 +194,9 @@ class TestEnumerationBaselineValidation:
             constraint_data, solution, "test_leap_feb28"
         )
         assert not is_valid, f"Invalid solution accepted: {message}"
-        assert "constraint" in message.lower() and ("false" in message.lower() or "failed" in message.lower())
+        assert "constraint" in message.lower() and (
+            "false" in message.lower() or "failed" in message.lower()
+        )
 
         # Invalid solution: Mar 1, 2000 (excluded by constraint)
         solution = {"x": "Date(2000, 3, 1)"}
@@ -244,7 +248,9 @@ class TestEnumerationBaselineValidation:
             constraint_data, solution, "test_invalid_before_epoch"
         )
         assert not is_valid, f"Invalid solution incorrectly accepted: {message}"
-        assert "constraint" in message.lower() and ("false" in message.lower() or "failed" in message.lower())
+        assert "constraint" in message.lower() and (
+            "false" in message.lower() or "failed" in message.lower()
+        )
 
         # Valid solution: Date(2023, 6, 15) satisfies x >= Date(2023, 1, 1)
         solution = {"x": "Date(2023, 6, 15)"}
@@ -273,7 +279,9 @@ class TestEnumerationBaselineValidation:
             constraint_data, solution, "test_month_vs_days_invalid"
         )
         assert not is_valid, f"Invalid solution incorrectly accepted: {message}"
-        assert "constraint" in message.lower() and ("false" in message.lower() or "failed" in message.lower())
+        assert "constraint" in message.lower() and (
+            "false" in message.lower() or "failed" in message.lower()
+        )
 
         # Note: The constraint (x + 1 month) > (x + 31 days) is very rarely satisfiable
         # because for most dates, adding 1 month gives approximately the same result

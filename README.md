@@ -105,7 +105,7 @@ export PYTHONPATH=$PYTHONPATH:$(pwd)
   - `generator/` - Constraint generation scripts (constraint_generator.py, combine_constraints.py)
   - `constraints/` - Generated constraint JSON files
   - `run_tests.py` - Test runner for executing constraints against all DATE-SMT approaches
-- `dataset/validation.py` - Concrete validation for verifying solver solutions
+- `dataset/utils/validation.py` - Concrete validation for verifying solver solutions
 - `dataset/test_validation.py` - Unit tests for validation functionality
 - `requirements/` - Python dependencies
 
