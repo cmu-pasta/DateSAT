@@ -16,16 +16,10 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 # Ensure repository root is on sys.path so `import datesmt` works
-REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
-from datesmt.enumeration_baseline import (
-    EnumerationSolver,
-    EnumerationDateVar,
-    ConstraintWrapper,
-)
-from datesmt.constraint_validator import validate_constraint_solution
 from datesmt.constraint_parser import ConstraintParser
 from datesmt.constraint_validator import validate_constraint_solution
 from datesmt.core import Date, Period
@@ -1220,13 +1214,13 @@ def main():
         epilog="""
 Examples:
   # Validate LLM constraint results
-  python dataset/validation.py dataset/LLM_gen_constraints/results
+  python dataset/utils/validation.py dataset/LLM_gen_constraints/results
 
   # Validate results from a specific dataset
-  python dataset/validation.py dataset/law/results --output dataset/law/validation_results.json
+  python dataset/utils/validation.py dataset/law/results --output dataset/law/validation_results.json
 
   # Validate results that were run without analysis
-  python dataset/validation.py dataset/LLM_gen_constraints/results --output validation_check.json
+  python dataset/utils/validation.py dataset/LLM_gen_constraints/results --output validation_check.json
         """,
     )
     parser.add_argument(

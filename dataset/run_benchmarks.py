@@ -11,7 +11,7 @@ REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
-from dataset.validation import check_results_dir
+from dataset.utils.validation import check_results_dir
 from datesmt.api import DateSMTBuilder
 from datesmt.constraint_parser import ConstraintParser
 from datesmt.core import Date, Period
@@ -306,22 +306,22 @@ def main():
     SCRIPT_DIR = Path(__file__).parent
 
     constraint_sets = [
-        # {
-        #    "name": "Grammar Constraints",
-        #    "constraints_file": SCRIPT_DIR
-        #    / "grammar_constraints"
-        #    / "constraints"
-        #    / "constraints.json",
-        #    "output_dir": SCRIPT_DIR / "grammar_constraints" / "results",
-        # },
         {
-            "name": "LLM Generated Constraints",
+            "name": "Grammar Constraints",
             "constraints_file": SCRIPT_DIR
-            / "llm_constraints"
-            / "constraints"
+            / "grammar_constraints"
+            / "benchmarks"
             / "constraints.json",
-            "output_dir": SCRIPT_DIR / "llm_constraints" / "results",
+            "output_dir": SCRIPT_DIR / "grammar_constraints" / "results",
         },
+        # {
+        #     "name": "LLM Generated Constraints",
+        #     "constraints_file": SCRIPT_DIR
+        #     / "llm_constraints"
+        #     / "constraints"
+        #     / "constraints.json",
+        #     "output_dir": SCRIPT_DIR / "llm_constraints" / "results",
+        # },
         # {
         #    "name": "Legal Document Constraints",
         #    "constraints_file": SCRIPT_DIR
@@ -369,7 +369,7 @@ def main():
             continue
 
         # Run constraint execution
-        run_constraints_file(str(constraints_file), str(output_dir), args.timeout)
+        # run_constraints_file(str(constraints_file), str(output_dir), args.timeout)
 
         if not args.no_analysis:
             print(f"\n{'='*60}")

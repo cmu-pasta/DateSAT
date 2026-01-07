@@ -9,9 +9,9 @@ def pick_benchmarks():
     in their respective json files in the constraints folder.
     """
     # Define paths
-    results_file = Path(__file__).parent / "results" / "naive_int.json"
-    constraints_file = Path(__file__).parent / "constraints" / "constraints.json"
-    output_dir = Path(__file__).parent / "constraints"
+    results_file = Path(__file__).parent.parent / "results" / "naive_int.json"
+    constraints_file = Path(__file__).parent.parent / "constraints" / "constraints.json"
+    output_dir = Path(__file__).parent.parent / "constraints"
 
     # Read the results file
     print(f"Reading results from: {results_file}")
@@ -105,6 +105,13 @@ def pick_benchmarks():
 
         # Append unique items to existing list
         combined_items = existing_items + unique_new_items
+
+        # Sort combined list by execution time in descending order
+        combined_items.sort(key=lambda x: x.get("execution_time", 0), reverse=True)
+
+        # Renumber IDs based on sorted order
+        for i, item in enumerate(combined_items, start=1):
+            item["id"] = f"grammar-{status_name.lower()}-{i}"
 
         # Write combined list back to file
         print(f"Writing to {file_path}:")

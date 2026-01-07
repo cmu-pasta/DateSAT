@@ -232,7 +232,7 @@ Each line is a JSON object representing constraints for a single legal record, w
 Both datasets are tested and validated using a common infrastructure:
 
 - **Benchmark runner**: `dataset/run_benchmarks.py`
-- **Validation logic**: `dataset/validation.py`
+- **Validation logic**: `dataset/utils/validation.py`
 - **Enumeration baseline**: `datesmt/enumeration_baseline.py`
 
 In brief:

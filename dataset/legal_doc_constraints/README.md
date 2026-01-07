@@ -387,7 +387,7 @@ The `run_tests.py` script uses the same validation framework as the LLM constrai
 - Tests with multiple approaches: baseline, epoch_days, hybrid, alpha_beta, alpha_beta_table
 - Both int and bitvector implementations
 - Enumeration baseline for ground truth
-- Automatic validation using `dataset/validation.py`
+- Automatic validation using `dataset/utils/validation.py`
 
 ## Notes
 
