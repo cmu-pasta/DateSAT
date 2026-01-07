@@ -96,29 +96,39 @@ def test_parse_constraint_complex_arithmetic(parser, constraint, expected):
 @pytest.mark.parametrize("constraint,expected", [
     ("a + b == c", "builder.add_constraint(a + b == c)"),
     ("a - b == c", "builder.add_constraint(a - b == c)"),
-    ("a * b == c", "builder.add_constraint(a * b == c)"),
-    ("a / b == c", "builder.add_constraint(a / b == c)"),
-    ("a % b == c", "builder.add_constraint(a % b == c)"),
-    ("a ** b == c", "builder.add_constraint(a ** b == c)"),
+    ("5 * a == c", "builder.add_constraint(5 * a == c)"),
+    ("a * 5 == c", "builder.add_constraint(a * 5 == c)"),
+    ("a / 5 == c", "builder.add_constraint(a / 5 == c)"),
+    ("a % 5 == c", "builder.add_constraint(a % 5 == c)"),
 ])
 def test_parse_constraint_integer_operations(parser, constraint, expected):
-    """Test parsing of integer arithmetic operations: +, -, *, /, %, **."""
+    """Test parsing of integer arithmetic operations: +, -, *, /, % (linear only)."""
     result = parser.parse_constraint(constraint)
     assert result == expected
 
 
 @pytest.mark.parametrize("constraint,expected", [
-    ("a + b * c == d", "builder.add_constraint(a + b * c == d)"),
-    ("a * b + c == d", "builder.add_constraint(a * b + c == d)"),
-    ("a ** b * c == d", "builder.add_constraint(a ** b * c == d)"),
-    ("a * b ** c == d", "builder.add_constraint(a * b ** c == d)"),
-    ("a / b + c == d", "builder.add_constraint(a / b + c == d)"),
-    ("a % b + c == d", "builder.add_constraint(a % b + c == d)"),
+    ("a + 5 * c == d", "builder.add_constraint(a + 5 * c == d)"),
+    ("5 * a + c == d", "builder.add_constraint(5 * a + c == d)"),
+    ("a / 5 + c == d", "builder.add_constraint(a / 5 + c == d)"),
+    ("a % 5 + c == d", "builder.add_constraint(a % 5 + c == d)"),
 ])
 def test_parse_constraint_integer_precedence(parser, constraint, expected):
-    """Test that integer operations follow correct precedence: ** > *, /, % > +, -."""
+    """Test that integer operations follow correct precedence: *, /, % > +, - (linear only)."""
     result = parser.parse_constraint(constraint)
     assert result == expected
+
+
+@pytest.mark.parametrize("constraint", [
+    "a * b == c",  # Nonlinear multiplication
+    "a ** b == c",  # Power operation
+    "a + b * c == d",  # Nonlinear multiplication in expression
+    "a * b + c == d",  # Nonlinear multiplication in expression
+])
+def test_parse_constraint_nonlinear_arithmetic_rejected(parser, constraint):
+    """Test that nonlinear arithmetic (var * var, **) is rejected."""
+    with pytest.raises(ValueError):
+        parser.parse_constraint(constraint)
 
 
 def test_integer_operations_with_property_access(parser):
@@ -147,14 +157,14 @@ def test_integer_operations_in_date_constructor(parser):
 
 
 def test_generate_builder_code_with_integer_operations(parser):
-    """Test generating builder code with integer operations."""
+    """Test generating builder code with integer operations (linear only)."""
     constraints = [
         "x: int",
         "y: int",
         "z: int",
         "x % 4 == 0",
         "y == x / 10",
-        "z == x ** 2"
+        "z == 5 * x"
     ]
 
     result = parser.generate_builder_code(constraints)
@@ -164,7 +174,7 @@ def test_generate_builder_code_with_integer_operations(parser):
     assert 'z = builder.add_int_var("z")' in result
     assert "x % 4 == 0" in result
     assert "x / 10" in result
-    assert "x ** 2" in result
+    assert "5 * x" in result
 
 
 # -------------------------

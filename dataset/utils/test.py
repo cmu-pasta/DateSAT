@@ -24,8 +24,8 @@ import sys
 from pathlib import Path
 
 # Ensure repository root is on sys.path so we can import `datesmt` when running
-# this file as `python dataset/test.py`.
-REPO_ROOT = Path(__file__).resolve().parents[1]
+# this file as `python dataset/utils/test.py`.
+REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
@@ -38,27 +38,34 @@ CONSTRAINT_JSON = r"""
 {
     "id": "grammar-41",
     "declarations": [
-      "S: date",
-      "I: date",
-      "C: date",
-      "Cm: date",
-      "B1: bool",
-      "B2: bool",
-      "D1: date",
-      "D2: date"
+      "B: date",
+      "E: date",
+      "W: date",
+      "by: int",
+      "bm: int",
+      "ey: int",
+      "em: int",
+      "mraw: int",
+      "mb: int",
+      "dlt: bool",
+      "B_bounds: bool",
+      "B_index: bool"
     ],
     "constraints": [
-      "I == S + Period(0,1,0)",
-      "Cm == C - Period(0,1,0)",
-      "B1 == ((I <= C) && (C  <= I  + Period(0,0,2)))",
-      "B2 == ((S <= Cm) && (Cm <= S  + Period(0,0,2)))",
-      "(B1  -> (D1 == I + Period(0,0,7)))",
-      "(!B1 -> (D1 == I + Period(0,0,10)))",
-      "(B2  -> (D2 == I + Period(0,0,7)))",
-      "(!B2 -> (D2 == I + Period(0,0,10)))",
-      "D1 != D2"
+      "W   == B + Period(0, 18, 0)",
+      "by  == B.year",
+      "bm  == B.month",
+      "ey  == E.year",
+      "em  == E.month",
+      "mraw == (ey - by) * 12 + (em - bm)",
+      "dlt == (E.day < B.day)",
+      "(dlt  -> (mb == mraw - 1))",
+      "(!dlt -> (mb == mraw))",
+      "B_bounds == ((E >= B) && (E < W))",
+      "B_index  == ((E >= B) && ((mb / 18) == 0))",
+      "B_bounds != B_index"
     ],
-    "size": 9
+    "size": 11
   }
 """
 
