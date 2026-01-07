@@ -266,13 +266,36 @@ class ConstraintTransformer(Transformer):
         return f"{items[0]} - {items[-1]}"
     
     def mul(self, items) -> str:
-        """Transform multiplication operation."""
+        """Transform multiplication operation (only linear: const * var or var * const).
+        
+        Note: The grammar enforces linearity syntactically, so this validation is primarily
+        a defensive check for edge cases.
+        """
         # Earley parser might include the * token, filter it out
         filtered = [item for item in items if str(item) != '*']
         if len(filtered) == 2:
-            return f"{filtered[0]} * {filtered[1]}"
-        # Fallback: use first two items
-        return f"{items[0]} * {items[-1]}"
+            left = str(filtered[0])
+            right = str(filtered[1])
+        else:
+            # Fallback: use first and last items from original list
+            # This handles edge cases where the parser structure differs (e.g., 3+ items,
+            # or operator token not filtered correctly). For binary operations, items[0] and
+            # items[-1] should be the operands even if the operator is in between.
+            left = str(items[0])
+            right = str(items[-1])
+        
+        # Validate linearity: one side must be a constant (defensive check)
+        # The grammar should prevent nonlinear multiplication, but we check here as a safety measure
+        left_is_const = self._is_constant(left)
+        right_is_const = self._is_constant(right)
+        
+        if not (left_is_const or right_is_const):
+            raise ValueError(
+                f"Nonlinear arithmetic not allowed: '{left} * {right}'. "
+                f"Multiplication must be between a constant and a variable (e.g., '5 * x' or 'x * 5')."
+            )
+        
+        return f"{left} * {right}"
     
     def floordiv(self, items) -> str:
         """Transform integer division operation."""
@@ -292,14 +315,23 @@ class ConstraintTransformer(Transformer):
         # Fallback: use first two items
         return f"{items[0]} % {items[-1]}"
     
-    def pow(self, items) -> str:
-        """Transform exponentiation operation."""
-        # Earley parser might include the ** token, filter it out
-        filtered = [item for item in items if str(item) != '**']
-        if len(filtered) == 2:
-            return f"{filtered[0]} ** {filtered[1]}"
-        # Fallback: use first two items
-        return f"{items[0]} ** {items[-1]}"
+    @staticmethod
+    def _is_constant(expr: str) -> bool:
+        """
+        Check if an expression is a constant (signed number).
+        
+        Args:
+            expr: Expression string to check
+            
+        Returns:
+            True if the expression is a constant number, False otherwise
+        """
+        expr = expr.strip()
+        # Remove parentheses if present
+        if expr.startswith('(') and expr.endswith(')'):
+            expr = expr[1:-1].strip()
+        # Check if it's a signed number
+        return bool(re.match(r'^-?\d+$', expr))
     
     def term(self, items) -> str:
         """Handle term precedence."""
@@ -400,13 +432,13 @@ class ConstraintParser:
                        | expression PLUS term   -> add
                        | expression MINUS term  -> sub
 
-            ?term: power
-                 | term STAR power -> mul
-                 | term DIV power  -> floordiv
-                 | term MOD power  -> mod
+            ?term: linear_mul
+                 | term DIV const_factor  -> floordiv
+                 | term MOD const_factor  -> mod
             
-            ?power: factor
-                  | factor POW power -> pow
+            ?linear_mul: factor
+                       | const_factor STAR linear_mul -> mul
+                       | linear_mul STAR const_factor -> mul
 
             ?factor: CNAME -> variable
                    | SIGNED_NUMBER -> number
@@ -417,6 +449,8 @@ class ConstraintParser:
                    | bool_literal
                    | LPAR expression RPAR
                    | LPAR comparison_expr RPAR
+
+            ?const_factor: SIGNED_NUMBER -> number
 
             property_access: CNAME DOT property_name
             date_property_access: date_constructor DOT property_name
@@ -442,7 +476,6 @@ class ConstraintParser:
             STAR: "*"
             DIV:  "/"
             MOD: "%"
-            POW: "**"
             LPAR: "("
             RPAR: ")"
             DOT: "."
