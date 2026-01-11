@@ -36,36 +36,25 @@ from datesmt.core import Date, Period
 # Paste a single JSON constraint object here (one from *_constraints*.jsonl)
 CONSTRAINT_JSON = r"""
 {
-    "id": "grammar-41",
     "declarations": [
       "B: date",
       "E: date",
-      "W: date",
-      "by: int",
-      "bm: int",
-      "ey: int",
-      "em: int",
-      "mraw: int",
-      "mb: int",
-      "dlt: bool",
-      "B_bounds: bool",
-      "B_index: bool"
+      "window_end: date",
+      "months_diff: int",
+      "months_diff_final: int"
     ],
     "constraints": [
-      "W   == B + Period(0, 18, 0)",
-      "by  == B.year",
-      "bm  == B.month",
-      "ey  == E.year",
-      "em  == E.month",
-      "mraw == (ey - by) * 12 + (em - bm)",
-      "dlt == (E.day < B.day)",
-      "(dlt  -> (mb == mraw - 1))",
-      "(!dlt -> (mb == mraw))",
-      "B_bounds == ((E >= B) && (E < W))",
-      "B_index  == ((E >= B) && ((mb / 18) == 0))",
-      "B_bounds != B_index"
-    ],
-    "size": 11
+      "window_end  == B + Period(0, 18, 0)",
+      "B.month != 3 && B.day != 31",
+      "B.month != 5 && B.day != 31",
+      "B.month != 8 && B.day != 31",
+      "B.month != 10 && B.day != 31",
+      "B.month != 12 && B.day != 31",
+      "months_diff == (E.year - B.year) * 12 + (E.month - B.month)",
+      "((E.day < B.day)  -> (months_diff_final == months_diff - 1))",
+      "(!(E.day < B.day) -> (months_diff_final == months_diff))",
+      "((E >= B) && (E < window_end)) != ((E >= B) && ((months_diff_final / 18) == 0))"
+    ]
   }
 """
 

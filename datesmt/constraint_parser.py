@@ -1151,13 +1151,21 @@ class ConstraintParser:
                 self._infer_types_from_tree(child, inferred_types, skip_declared)
     
     def _extract_vars_as_int(self, tree, inferred_types: Dict[str, str]) -> None:
-        """Extract all variables in a subtree as 'int' type."""
+        """Extract all variables in a subtree as 'int' type.
+        
+        Skip variables that are part of date_field_access (e.g., x in x.year),
+        as those should remain as date type.
+        """
         from lark import Tree, Token
         
         if isinstance(tree, Token):
             return
         
         if isinstance(tree, Tree):
+            # Skip date_field_access nodes - the variable in x.year should remain a date
+            if tree.data == 'date_field_access':
+                return
+            
             if tree.data == 'variable':
                 var_name = str(tree.children[0])
                 # Skip True/False as they're boolean literals
@@ -1350,48 +1358,45 @@ class ConstraintParser:
             if var_type == 'date':
                 code_lines.append(f'{var_name} = builder.add_date_var("{var_name}")')
             elif var_type == 'int':
-                # Use builder.add_int_var() for int variables to ensure compatibility
-                # with the implementation (bitvector or int mode)
-                # Check if this variable (as a simple expression) is used in Date() constructors
-                component_type = component_bounds.get(var_name)
-                if component_type and component_type != 'mixed':
-                    # Pass component type to set appropriate bounds at creation time
-                    code_lines.append(f'{var_name} = builder.add_int_var("{var_name}", component_type="{component_type}")')
-                else:
-                    # Variable not used in Date() as simple variable or used in multiple positions
-                    # For enumeration baseline, we only support variables used in Date()
-                    # So we'll still create it but with default bounds
-                    code_lines.append(f'{var_name} = builder.add_int_var("{var_name}")')
+                # Create int variables without bounds - bounds will be added as constraints
+                code_lines.append(f'{var_name} = builder.add_int_var("{var_name}")')
             elif var_type == 'bool':
                 code_lines.append(f'{var_name} = builder.add_bool_var("{var_name}")')
         
         # Add natural bounds constraints for integer expressions used in Date() constructors
-        # Note: For enumeration baseline, bounds are set at variable creation time,
-        # but we still add constraints for other implementations (bitvector/int mode)
+        # Only add bounds for non-constant expressions (variables or complex expressions)
         if component_bounds:
-            code_lines.append("")
-            code_lines.append("# Automatic bounds for Date() component expressions")
-            for expr, component_type in sorted(component_bounds.items()):
-                # Wrap complex expressions in parentheses for safety
-                if any(op in expr for op in ['+', '-', '*', '/', '%']):
-                    expr_wrapped = f'({expr})'
-                else:
-                    expr_wrapped = expr
-                
-                if component_type == 'year':
-                    code_lines.append(f'builder.add_constraint({expr_wrapped} >= 1900)')
-                    code_lines.append(f'builder.add_constraint({expr_wrapped} <= 2100)')
-                elif component_type == 'month':
-                    code_lines.append(f'builder.add_constraint({expr_wrapped} >= 1)')
-                    code_lines.append(f'builder.add_constraint({expr_wrapped} <= 12)')
-                elif component_type == 'day':
-                    code_lines.append(f'builder.add_constraint({expr_wrapped} >= 1)')
-                    code_lines.append(f'builder.add_constraint({expr_wrapped} <= 31)')
-                elif component_type == 'mixed':
-                    # Expression used in multiple positions - use most restrictive bounds
-                    code_lines.append(f'# Warning: {expr} used in multiple Date() positions - using conservative bounds')
-                    code_lines.append(f'builder.add_constraint({expr_wrapped} >= 1)')
-                    code_lines.append(f'builder.add_constraint({expr_wrapped} <= 2100)')
+            # Filter out constant numbers - they don't need bounds
+            non_constant_bounds = {
+                expr: comp_type 
+                for expr, comp_type in component_bounds.items()
+                if not expr.lstrip('-').isdigit()  # Skip if it's a plain number like "2020" or "-5"
+            }
+            
+            if non_constant_bounds:
+                code_lines.append("")
+                code_lines.append("# Automatic bounds for Date() component expressions")
+                for expr, component_type in sorted(non_constant_bounds.items()):
+                    # Wrap complex expressions in parentheses for safety
+                    if any(op in expr for op in ['+', '-', '*', '/', '%']):
+                        expr_wrapped = f'({expr})'
+                    else:
+                        expr_wrapped = expr
+                    
+                    if component_type == 'year':
+                        code_lines.append(f'builder.add_constraint({expr_wrapped} >= 1900)')
+                        code_lines.append(f'builder.add_constraint({expr_wrapped} <= 2100)')
+                    elif component_type == 'month':
+                        code_lines.append(f'builder.add_constraint({expr_wrapped} >= 1)')
+                        code_lines.append(f'builder.add_constraint({expr_wrapped} <= 12)')
+                    elif component_type == 'day':
+                        code_lines.append(f'builder.add_constraint({expr_wrapped} >= 1)')
+                        code_lines.append(f'builder.add_constraint({expr_wrapped} <= 31)')
+                    elif component_type == 'mixed':
+                        # Expression used in multiple positions - use most restrictive bounds
+                        code_lines.append(f'# Warning: {expr} used in multiple Date() positions - using conservative bounds')
+                        code_lines.append(f'builder.add_constraint({expr_wrapped} >= 1)')
+                        code_lines.append(f'builder.add_constraint({expr_wrapped} <= 2100)')
 
         # Add constraints (using filtered constraints without declarations)
         # Each constraint is a full boolean expression - parse and add directly

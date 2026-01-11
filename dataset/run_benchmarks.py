@@ -3,7 +3,6 @@ import json
 import os
 import re
 import sys
-import time
 from pathlib import Path
 
 # Ensure repository root is on sys.path so `import datesmt` works
@@ -12,12 +11,47 @@ if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
 from dataset.utils.validation import check_results_dir
-from datesmt.api import DateSMTBuilder
-from datesmt.constraint_parser import ConstraintParser
-from datesmt.core import Date, Period
-from datesmt.enumeration_baseline import EnumerationSolver
+import datesmt
 
 TIMEOUT_MS = 60000
+
+
+def _get_smtlib_for_constraint(
+    constraint_data: dict,
+    approach: str,
+    implementation: str,
+    timeout_ms: int,
+) -> str:
+    """Helper function to generate SMT-LIB output for a constraint.
+    
+    This is needed for benchmarking purposes to save SMT-LIB representations.
+    """
+    from datesmt.api import DateSMTBuilder
+    from datesmt.constraint_parser import ConstraintParser
+    from datesmt.core import Date, Period
+    
+    parser = ConstraintParser()
+    constraint_code = parser.parse_constraint_data(constraint_data)
+    
+    def create_builder():
+        return DateSMTBuilder(
+            approach=approach,
+            implementation=implementation,
+            timeout_ms=timeout_ms,
+        )
+    
+    exec_globals = {
+        "Date": Date,
+        "Period": Period,
+        "DateSMTBuilder": create_builder,
+    }
+    
+    exec(constraint_code, exec_globals)
+    builder = exec_globals.get("result") or exec_globals.get("builder")
+    
+    if builder:
+        return builder.to_smt2()
+    return None
 
 
 def run_constraint_with_approach(
@@ -27,19 +61,15 @@ def run_constraint_with_approach(
     timeout_ms: int = TIMEOUT_MS,
 ) -> dict:
     """Run a single constraint with a specific approach and implementation."""
-    constraint_id = constraint_data["id"]
+    constraint_id = constraint_data.get("id", "unknown")
     print(
         f"\n=== Running {constraint_id} ({approach.upper()}, {implementation.upper()}) ==="
     )
 
-    # Get constraint code from new format
-    parser = ConstraintParser()
-    constraint_code = parser.parse_constraint_data(constraint_data)
-
-    print(f"Constraint: {constraint_code}")
+    print(f"Constraint: {constraint_data}")
 
     result = {
-        # New format fields (copied directly from input)
+        # Input constraint information
         "id": constraint_id,
         "constraints": constraint_data.get("constraints", []),
         "declarations": constraint_data.get("declarations", []),
@@ -53,125 +83,90 @@ def run_constraint_with_approach(
         "smtlib": None,
     }
 
-    start_time = time.time()
     try:
-        # Handle enumeration baseline differently (it doesn't use DateSMTBuilder)
+        # Handle enumeration baseline - requires special handling as it's not a standard solver
         if approach == "enumeration":
-            # Create EnumerationSolver directly
+            from datesmt.enumeration_baseline import EnumerationSolver
+            from datesmt.constraint_parser import ConstraintParser
+            import time
+            
+            # Enumeration baseline doesn't use the high-level API
+            parser = ConstraintParser()
+            constraint_code = parser.parse_constraint_data(constraint_data)
+            
             solver = EnumerationSolver(timeout_ms=timeout_ms)
             exec_globals = solver.get_execution_context()
-
+            
+            start_time = time.time()
             try:
                 exec(constraint_code, exec_globals)
             except AttributeError as e:
                 error_msg = str(e)
-                # Treat unhandled add_bool_var/add_int_var as not supported
                 if "add_bool_var" in error_msg or "add_int_var" in error_msg:
                     result["status"] = "not_applicable"
                     result["error_message"] = (
-                        "Enumeration baseline does not support these variable types: "
-                        f"{error_msg}"
+                        f"Enumeration baseline does not support these variable types: {error_msg}"
                     )
-                    result["solution"] = None
-                    result["smtlib"] = None
-                    print(
-                        "Not applicable: Enumeration baseline doesn't support bool/int variables"
-                    )
+                    print("⚠️  Not applicable: Enumeration baseline doesn't support bool/int variables")
                     return result
                 raise
-
-            # Get the solver from the executed code
-            builder = (
-                exec_globals.get("result") or exec_globals.get("builder") or solver
-            )
+            
+            builder = exec_globals.get("result") or exec_globals.get("builder") or solver
             if not builder:
                 raise RuntimeError("Constraint code did not create a solver")
-
-            # Enumeration baseline doesn't generate SMT-LIB
+            
             result["smtlib"] = builder.to_smt2()
-
-            # Solve
             solve_result = builder.solve()
-
+            result["execution_time"] = time.time() - start_time
+            
         else:
-            # Execute the constraint code (which creates its own builder and variables)
-            # This avoids the duplicate constraint issue
-            # Create a DateSMTBuilder factory that injects the approach parameter, implementation, and timeout
-            def create_builder():
-                return DateSMTBuilder(
-                    approach=approach,
-                    implementation=implementation,
-                    timeout_ms=timeout_ms,
-                )
-
-            exec_globals = {
-                "Date": Date,
-                "Period": Period,
-                "DateSMTBuilder": create_builder,
-            }
-
-            exec(constraint_code, exec_globals)
-
-            # Get the builder from the executed code
-            builder = exec_globals.get("result") or exec_globals.get("builder")
-            if not builder:
-                raise RuntimeError("Constraint code did not create a builder")
-
-            # Capture SMT-LIB encoding before solving and store it in result
-            result["smtlib"] = builder.to_smt2()
-
-            # Solve
-            solve_result = builder.solve()
-
-        result["status"] = solve_result["status"]
-
-        # Detect Z3 timeout and normalize status to "timeout" instead of mislabeling as unsat
-        if result["status"] != "sat":
+            # Use the high-level API for all symbolic approaches
+            solve_result = datesmt.solve(
+                constraints=constraint_data,
+                approach=approach,
+                implementation=implementation,
+                timeout_ms=timeout_ms,
+                verbose=False  # Suppress verbose output during benchmarking
+            )
+            
+            # Generate SMT-LIB for benchmarking purposes
             try:
-                # Access underlying z3.Solver via builder.solver.solver
-                solver_wrapper = getattr(builder, "solver", None)
-                z3_solver = getattr(solver_wrapper, "solver", None)
-                if z3_solver is not None:
-                    reason = (
-                        str(getattr(z3_solver, "reason_unknown", lambda: "")())
-                        .strip()
-                        .lower()
-                    )
-                    if "timeout" in reason:
-                        result["status"] = "timeout"
-                        # Preserve the reason for diagnostics
-                        if not result.get("error_message"):
-                            result["error_message"] = reason
-            except Exception:
-                # Best-effort; ignore probing errors
-                pass
+                result["smtlib"] = _get_smtlib_for_constraint(
+                    constraint_data, approach, implementation, timeout_ms
+                )
+            except Exception as e:
+                # SMT-LIB generation is optional for benchmarking
+                result["smtlib_error"] = str(e)
 
-        # Include all variable types in the stored solution
-        solution_dates = solve_result.get("dates", {}) or {}
-        solution_ints = solve_result.get("ints", {}) or {}
-        solution_bools = solve_result.get("bools", {}) or {}
+        # Extract status and solution from solve result
+        result["status"] = solve_result.get("status", "error")
+        result["execution_time"] = solve_result.get("execution_time", result["execution_time"])
+        
+        # Merge solution from all variable types
         merged_solution = {}
-        merged_solution.update({k: str(v) for k, v in solution_dates.items()})
-        merged_solution.update({k: v for k, v in solution_ints.items()})
-        merged_solution.update({k: v for k, v in solution_bools.items()})
-        result["solution"] = merged_solution
+        for var_type in ["dates", "ints", "bools"]:
+            vars_dict = solve_result.get(var_type, {}) or {}
+            for name, value in vars_dict.items():
+                merged_solution[name] = str(value) if var_type == "dates" else value
+        
+        result["solution"] = merged_solution if merged_solution else None
 
+        # Print status
         if result["status"] == "sat":
             print(f"✅ Solution found:")
-            for name, date in result["solution"].items():
-                print(f"  {name} = {date}")
-
+            for name, value in result["solution"].items():
+                print(f"  {name} = {value}")
         elif result["status"] == "timeout":
             print("⏱️ Solver timeout")
+        elif result["status"] == "unsat":
+            print("❌ No solution found (UNSAT)")
         else:
-            print(f"❌ No solution found")
+            print(f"❌ Status: {result['status']}")
+            
     except Exception as e:
         result["error_message"] = str(e)
+        result["status"] = "error"
         print(f"❌ Error: {e}")
-    finally:
-        # Set execution_time
-        end_time = time.time()
-        result["execution_time"] = end_time - start_time
 
     return result
 
@@ -185,6 +180,7 @@ def run_constraints_file(
     constraints_file: str,
     output_dir: str,
     timeout_ms: int = TIMEOUT_MS,
+    skip_enumeration: bool = False,
 ):
     # Load constraints - support both JSON and JSONL formats
     constraints_file_path = Path(constraints_file)
@@ -221,16 +217,15 @@ def run_constraints_file(
     os.makedirs(output_dir, exist_ok=True)
 
     # Define all methods to run
-    baseline_approaches = ["enumeration"]
+    baseline_approaches = [] if skip_enumeration else ["enumeration"]
     symbolic_approaches = [
         "naive",
-        # "epoch_days",
-        # "hybrid",
-        # "alpha_beta",
-        # "alpha_beta_table",
+        "epoch_days",
+        "hybrid",
+        "alpha_beta",
+        "alpha_beta_table",
     ]
-    # implementations = ["int", "bitvector"]
-    implementations = ["int"]
+    implementations = ["int", "bitvector"]
 
     # Unify all methods into a single list
     # Symbolic approaches with int/bitvector implementations
@@ -238,7 +233,12 @@ def run_constraints_file(
         (approach, impl) for approach in symbolic_approaches for impl in implementations
     ]
     # Baseline approaches with "naive" implementation
-    all_methods.extend([(approach, "naive") for approach in baseline_approaches])
+    if baseline_approaches:
+        all_methods.extend([(approach, "naive") for approach in baseline_approaches])
+    
+    if skip_enumeration:
+        print("\n⚠️  Skipping enumeration baseline (--skip-enumeration flag set)")
+        print("   Validation will still work, treating enumeration as not applicable\n")
 
     all_results = {}
 
@@ -306,22 +306,22 @@ def main():
     SCRIPT_DIR = Path(__file__).parent
 
     constraint_sets = [
-        {
-            "name": "Grammar Constraints",
-            "constraints_file": SCRIPT_DIR
-            / "grammar_constraints"
-            / "benchmarks"
-            / "constraints.json",
-            "output_dir": SCRIPT_DIR / "grammar_constraints" / "results",
-        },
-        # {
-        #     "name": "LLM Generated Constraints",
-        #     "constraints_file": SCRIPT_DIR
-        #     / "llm_constraints"
-        #     / "constraints"
-        #     / "constraints.json",
-        #     "output_dir": SCRIPT_DIR / "llm_constraints" / "results",
-        # },
+        #{
+        #    "name": "Grammar Constraints",
+        #    "constraints_file": SCRIPT_DIR
+        #    / "grammar_constraints"
+        #    / "benchmarks"
+        #    / "constraints.json",
+        #    "output_dir": SCRIPT_DIR / "grammar_constraints" / "results",
+        #},
+         {
+             "name": "LLM Generated Constraints",
+             "constraints_file": SCRIPT_DIR
+             / "llm_constraints"
+             / "constraints"
+             / "constraints.json",
+             "output_dir": SCRIPT_DIR / "llm_constraints" / "results",
+         },
         # {
         #    "name": "Legal Document Constraints",
         #    "constraints_file": SCRIPT_DIR
@@ -346,11 +346,17 @@ def main():
         action="store_true",
         help="Skip analysis after constraint execution (default: run analysis)",
     )
+    parser.add_argument(
+        "--skip-enumeration",
+        action="store_true",
+        help="Skip enumeration baseline (validation will still work, treating it as not applicable)",
+    )
 
     args = parser.parse_args()
 
     print(f"Analysis: {'Enabled' if not args.no_analysis else 'Disabled'}")
-    print(f"Timeout: {args.timeout}ms\n")
+    print(f"Timeout: {args.timeout}ms")
+    print(f"Skip Enumeration: {'Yes' if args.skip_enumeration else 'No'}\n")
 
     # Run benchmarks for each constraint set
     for constraint_set in constraint_sets:
@@ -368,8 +374,16 @@ def main():
             print(f"⚠️  Skipping - Constraints file not found: {constraints_file}\n")
             continue
 
+        # Create output directory if it doesn't exist
+        output_dir.mkdir(parents=True, exist_ok=True)
+
         # Run constraint execution
-        # run_constraints_file(str(constraints_file), str(output_dir), args.timeout)
+        run_constraints_file(
+            str(constraints_file), 
+            str(output_dir), 
+            args.timeout,
+            skip_enumeration=args.skip_enumeration
+        )
 
         if not args.no_analysis:
             print(f"\n{'='*60}")

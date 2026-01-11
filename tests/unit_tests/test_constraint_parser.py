@@ -1285,7 +1285,7 @@ def test_infer_variable_types_from_date_constructor(parser):
 
 
 def test_auto_infer_int_from_date_constructor(parser):
-    """Test that variables inside Date() are auto-declared as int with component_type."""
+    """Test that variables inside Date() are auto-declared as int with bounds added as constraints."""
     constraints = [
         "k: date",
         "k == Date(x, 2, 1)"
@@ -1293,10 +1293,26 @@ def test_auto_infer_int_from_date_constructor(parser):
     
     result = parser.generate_builder_code(constraints)
     
-    # x is used in the first position (year) of Date(), so component_type="year" is added
-    assert 'x = builder.add_int_var("x", component_type="year")' in result
+    # x is used in the first position (year) of Date(), so it gets year bounds as constraints
+    assert 'x = builder.add_int_var("x")' in result
     assert 'k = builder.add_date_var("k")' in result
+    assert 'x >= 1900' in result
+    assert 'x <= 2100' in result
 
+def test_auto_infer_int_expr_from_date_constructor(parser):
+    """Test that variables inside Date() are auto-declared as int with bounds added as constraints."""
+    constraints = [
+        "k: date",
+        "k == Date(x+2, 2, 1)"
+    ]
+    
+    result = parser.generate_builder_code(constraints)
+    
+    # x is used in the first position (year) of Date(), so it gets year bounds as constraints
+    assert 'x = builder.add_int_var("x")' in result
+    assert 'k = builder.add_date_var("k")' in result
+    assert '(x+2) >= 1900' in result
+    assert '(x+2) <= 2100' in result
 
 # -------------------------
 # Type conflict detection tests
