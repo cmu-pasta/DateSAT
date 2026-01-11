@@ -21,8 +21,9 @@ from z3 import (
     ModelRef,
     Not,
     Or,
-    Solver,
-    sat
+    Solver,    sat,
+    unsat,
+    unknown,
 )
 from ..core import Date, Period, _UnboundedDate
 from .bitwidths import LEGACY_BITS
@@ -255,8 +256,11 @@ class EpochDaysSolver:
                 'status': 'sat',
                 'dates': self.get_concrete_dates(model),
             }
-        else:
+        elif result == unsat:
             return {'status': 'unsat', 'dates': {}}
+        else:
+            # result == unknown (timeout or resource limit)
+            return {'status': 'timeout', 'dates': {}}
 
     def to_smt2(self) -> str:
         """Return the current problem in SMT-LIB v2 format."""

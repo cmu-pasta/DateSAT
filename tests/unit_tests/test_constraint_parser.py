@@ -30,16 +30,89 @@ def test_parse_constraint_basic_comparisons(parser, constraint, expected):
     assert result == expected
 
 
-@pytest.mark.parametrize("constraint,expected", [
-    ("x >= Period(1, 0, 0)", "builder.add_constraint(x >= Period(1, 0, 0))"),
-    ("y <= Period(0, 6, 15)", "builder.add_constraint(y <= Period(0, 6, 15))"),
-    ("z == Period(0, 0, 30)", "builder.add_constraint(z == Period(0, 0, 30))"),
+@pytest.mark.parametrize("constraint", [
+    "x >= Period(1, 0, 0)",
+    "y <= Period(0, 6, 15)",
+    "z == Period(0, 0, 30)",
 ])
-def test_parse_constraint_period_comparisons(parser, constraint, expected):
-    """Test parsing of Period comparison constraints."""
-    result = parser.parse_constraint(constraint)
-    assert result == expected
+def test_parse_constraint_period_comparisons_rejected(parser, constraint):
+    """Test that period comparisons are rejected by the type-safe grammar.
+    
+    Period comparisons like 'x >= Period(...)' are not semantically meaningful.
+    Periods can only be used in arithmetic operations:
+    - Date arithmetic: date ± period
+    - Period arithmetic: period ± period, int * period
+    """
+    with pytest.raises(ValueError, match="Could not parse constraint"):
+        parser.parse_constraint(constraint)
 
+
+@pytest.mark.parametrize("constraint", [
+    "Period(x, 0, 0)",
+    "Period(1, y, 0)",
+    "Period(0, 0, z)",
+    "Period(x+1, 0, 0)",
+])
+def test_parse_constraint_period_with_variables_rejected(parser, constraint):
+    """Test that Period constructors with variables are rejected.
+    
+    Period constructors must have concrete integer values only.
+    Variables are not allowed in Period(...) arguments.
+    """
+    constraint_str = f"d == Date(2000, 1, 1) + {constraint}"
+    with pytest.raises(ValueError, match="Could not parse constraint"):
+        parser.parse_constraint(constraint_str)
+
+
+@pytest.mark.parametrize("constraint", [
+    "Period(1, 0, 0) * x",
+    "x * Period(1, 0, 0)",
+    "Period(1, 2, 3) * y",
+])
+def test_parse_constraint_period_times_variable_rejected(parser, constraint):
+    """Test that Period * variable is rejected (only concrete int * Period allowed).
+    
+    Period multiplication must be with concrete integers only:
+    - 2 * Period(1, 0, 0) ✓
+    - Period(1, 0, 0) * 2 ✓  
+    - x * Period(1, 0, 0) ✗
+    - Period(1, 0, 0) * x ✗
+    """
+    constraint_str = f"d == Date(2000, 1, 1) + {constraint}"
+    with pytest.raises(ValueError, match="Could not parse constraint"):
+        parser.parse_constraint(constraint_str)
+
+
+def test_date_component_bounds_with_expressions(parser):
+    """Test that automatic bounds are applied to full expressions, not just variables.
+    
+    For Date(x+2000, 1, 1), bounds should be:
+    - (x+2000) >= 1900 and (x+2000) <= 2100
+    NOT:
+    - x >= 1900 and x <= 2100
+    """
+    # Test year expression
+    code = parser.generate_builder_code(['x: int', 'd: date', 'd == Date(x+2000, 1, 1)'])
+    assert '(x+2000) >= 1900' in code
+    assert '(x+2000) <= 2100' in code
+    assert 'x >= 1900' not in code  # Should NOT have bounds on x alone
+    
+    # Test month expression
+    code = parser.generate_builder_code(['x: int', 'd: date', 'd == Date(2020, x+1, 1)'])
+    assert '(x+1) >= 1' in code
+    assert '(x+1) <= 12' in code
+    
+    # Test day expression
+    code = parser.generate_builder_code(['x: int', 'd: date', 'd == Date(2020, 1, x*2)'])
+    assert '(x*2) >= 1' in code
+    assert '(x*2) <= 31' in code
+    
+    # Test mixed: simple variable + expression
+    code = parser.generate_builder_code(['x: int', 'y: int', 'd: date', 'd == Date(y, x*2, 1)'])
+    assert 'y >= 1900' in code  # Simple variable gets bounds without parens
+    assert 'y <= 2100' in code
+    assert '(x*2) >= 1' in code  # Expression gets bounds with parens
+    assert '(x*2) <= 12' in code
 
 # -------------------------
 # Arithmetic expressions
@@ -72,22 +145,24 @@ def test_parse_constraint_parentheses(parser, constraint, expected):
     result = parser.parse_constraint(constraint)
     assert result == expected
 
-
-# -------------------------
-# Complex arithmetic expressions
-# -------------------------
-
-@pytest.mark.parametrize("constraint,expected", [
-    ("a + b - Period(0, 1, 0) >= Date(2020, 1, 1)", 
-     "builder.add_constraint(a + b - Period(0, 1, 0) >= Date(2020, 1, 1))"),
-    ("x - y + Period(1, 0, 0) <= Date(2025, 1, 1)", 
-     "builder.add_constraint(x - y + Period(1, 0, 0) <= Date(2025, 1, 1))"),
+@pytest.mark.parametrize("constraint", [
+    "a + b - Period(0, 1, 0) >= Date(2020, 1, 1)",
+    "x - y + Period(1, 0, 0) <= Date(2025, 1, 1)",
 ])
-def test_parse_constraint_complex_arithmetic(parser, constraint, expected):
-    """Test parsing of complex arithmetic expressions with proper precedence."""
-    result = parser.parse_constraint(constraint)
-    assert result == expected
-
+def test_parse_constraint_complex_arithmetic_rejected(parser, constraint):
+    """Test that type-ambiguous arithmetic is rejected by the type-safe grammar.
+    
+    Expressions like 'a + b - Period(...)' are type-ambiguous:
+    - If a and b are dates: can't add dates together
+    - If a and b are periods: we don't support period variables
+    - If a and b are integers: can't subtract Period from integer
+    
+    Users should write unambiguous expressions like:
+    - (a + Period(0, 1, 0)) - Period(0, 0, 5)  (if 'a' is a date)
+    - a + b  (if comparing integers)
+    """
+    with pytest.raises(ValueError, match="Could not parse constraint"):
+        parser.parse_constraint(constraint)
 
 # -------------------------
 # Integer arithmetic operations
@@ -105,8 +180,7 @@ def test_parse_constraint_integer_operations(parser, constraint, expected):
     """Test parsing of integer arithmetic operations: +, -, *, /, % (linear only)."""
     result = parser.parse_constraint(constraint)
     assert result == expected
-
-
+        
 @pytest.mark.parametrize("constraint,expected", [
     ("a + 5 * c == d", "builder.add_constraint(a + 5 * c == d)"),
     ("5 * a + c == d", "builder.add_constraint(5 * a + c == d)"),
@@ -124,12 +198,14 @@ def test_parse_constraint_integer_precedence(parser, constraint, expected):
     "a ** b == c",  # Power operation
     "a + b * c == d",  # Nonlinear multiplication in expression
     "a * b + c == d",  # Nonlinear multiplication in expression
+    "a ** 3 == c",
+    "a ** b == c",
+    "a * b == c"
 ])
 def test_parse_constraint_nonlinear_arithmetic_rejected(parser, constraint):
     """Test that nonlinear arithmetic (var * var, **) is rejected."""
     with pytest.raises(ValueError):
         parser.parse_constraint(constraint)
-
 
 def test_integer_operations_with_property_access(parser):
     """Test integer operations with property access."""
@@ -950,6 +1026,36 @@ def test_parse_constraint_date_constructor_property_access(parser, constraint, e
     assert result == expected
 
 
+@pytest.mark.parametrize("constraint,expected", [
+    ("(d + Period(1, 0, 0)).year == 2001", "builder.add_constraint((d + Period(1, 0, 0)).year == 2001)"),
+    ("(d + Period(0, 1, 0)).month == 2", "builder.add_constraint((d + Period(0, 1, 0)).month == 2)"),
+    ("(d + Period(0, 0, 1)).day == 26", "builder.add_constraint((d + Period(0, 0, 1)).day == 26)"),
+    ("(Date(2000, 1, 1) + Period(1, 0, 0)).year == 2001", "builder.add_constraint((Date(2000, 1, 1) + Period(1, 0, 0)).year == 2001)"),
+    ("(d - Period(0, 1, 0)).month == 12", "builder.add_constraint((d - Period(0, 1, 0)).month == 12)"),
+])
+def test_parse_constraint_date_expression_property_access(parser, constraint, expected):
+    """Test parsing of property access on date expressions (e.g., (d + Period(...)).year)."""
+    result = parser.parse_constraint(constraint)
+    assert result == expected
+
+
+@pytest.mark.parametrize("constraint", [
+    "Period(2, 1, 1).year == 1",
+    "Period(2, 1, 1).month == 1",
+    "Period(2, 1, 1).day == 1",
+    "(Period(1, 0, 0) + Period(1, 0, 0)).year == 1",
+    "(2 * Period(1, 0, 0)).year == 1",
+])
+def test_parse_constraint_period_field_access_rejected(parser, constraint):
+    """Test that property access on Period objects is rejected.
+    
+    Period objects do not have year, month, or day fields - only Date objects do.
+    The grammar should reject Period(...).year, Period(...).month, etc.
+    """
+    with pytest.raises(ValueError, match="Could not parse constraint"):
+        parser.parse_constraint(constraint)
+
+
 def test_property_access_not_extracted_as_variable(parser):
     """Test that property names (.year, .month, .day) are not extracted as variables."""
     constraints = ["k.year == 2000", "k.month == 2", "a == k.day"]
@@ -1179,7 +1285,7 @@ def test_infer_variable_types_from_date_constructor(parser):
 
 
 def test_auto_infer_int_from_date_constructor(parser):
-    """Test that variables inside Date() are auto-declared as int with component_type."""
+    """Test that variables inside Date() are auto-declared as int with bounds added as constraints."""
     constraints = [
         "k: date",
         "k == Date(x, 2, 1)"
@@ -1187,10 +1293,26 @@ def test_auto_infer_int_from_date_constructor(parser):
     
     result = parser.generate_builder_code(constraints)
     
-    # x is used in the first position (year) of Date(), so component_type="year" is added
-    assert 'x = builder.add_int_var("x", component_type="year")' in result
+    # x is used in the first position (year) of Date(), so it gets year bounds as constraints
+    assert 'x = builder.add_int_var("x")' in result
     assert 'k = builder.add_date_var("k")' in result
+    assert 'x >= 1900' in result
+    assert 'x <= 2100' in result
 
+def test_auto_infer_int_expr_from_date_constructor(parser):
+    """Test that variables inside Date() are auto-declared as int with bounds added as constraints."""
+    constraints = [
+        "k: date",
+        "k == Date(x+2, 2, 1)"
+    ]
+    
+    result = parser.generate_builder_code(constraints)
+    
+    # x is used in the first position (year) of Date(), so it gets year bounds as constraints
+    assert 'x = builder.add_int_var("x")' in result
+    assert 'k = builder.add_date_var("k")' in result
+    assert '(x+2) >= 1900' in result
+    assert '(x+2) <= 2100' in result
 
 # -------------------------
 # Type conflict detection tests
@@ -1216,59 +1338,54 @@ def test_type_conflict_date_used_as_int(parser):
 # -------------------------
 
 def test_type_mismatch_int_vs_bool(parser):
-    """Test that type checking is disabled: int vs bool is now allowed."""
-    # Type checking is disabled - Z3 handles type conversions at runtime
-    # Z3 will convert Bool to 0/1, so this constraint is valid
+    """Test that type mismatches are caught: int vs bool should raise error."""
     constraints = [
         "a: int",
         "b: bool",
         "a == b"
     ]
     
-    # Should NOT raise an error - type checking is disabled
-    result = parser.generate_builder_code(constraints)
-    assert "a == b" in result or "b == a" in result
+    # Should raise type error since validation detects mismatch
+    with pytest.raises(ValueError, match="Type error"):
+        parser.generate_builder_code(constraints)
 
 
 def test_type_mismatch_int_vs_date(parser):
-    """Test that type checking is disabled: int vs date is now allowed."""
-    # Type checking is disabled - will fail at Z3 runtime instead
+    """Test that type mismatches are caught: int vs date should raise error."""
     constraints = [
         "a: int",
         "k: date",
         "a == k"
     ]
     
-    # Should NOT raise an error at parse time - type checking is disabled
-    result = parser.generate_builder_code(constraints)
-    assert "a == k" in result or "k == a" in result
+    # Should raise type error since validation detects mismatch
+    with pytest.raises(ValueError, match="Type error"):
+        parser.generate_builder_code(constraints)
 
 
 def test_type_mismatch_int_vs_date_constructor(parser):
-    """Test that type checking is disabled: int vs Date(...) is now allowed."""
-    # Type checking is disabled - will fail at Z3 runtime instead
+    """Test that type mismatches are caught: int vs Date(...) should raise error."""
     constraints = [
         "a: int",
         "a == Date(2000, 2, 1)"
     ]
     
-    # Should NOT raise an error at parse time - type checking is disabled
-    result = parser.generate_builder_code(constraints)
-    assert "Date(2000, 2, 1)" in result
+    # Should raise type error since validation detects mismatch
+    with pytest.raises(ValueError, match="Type error"):
+        parser.generate_builder_code(constraints)
 
 
 def test_type_mismatch_bool_vs_date(parser):
-    """Test that type checking is disabled: bool vs date is now allowed."""
-    # Type checking is disabled - will fail at Z3 runtime instead
+    """Test that type mismatches are caught: bool vs date should raise error."""
     constraints = [
         "flag: bool",
         "k: date",
         "flag == k"
     ]
     
-    # Should NOT raise an error at parse time - type checking is disabled
-    result = parser.generate_builder_code(constraints)
-    assert "flag == k" in result or "k == flag" in result
+    # Should raise type error since validation detects mismatch
+    with pytest.raises(ValueError, match="Type error"):
+        parser.generate_builder_code(constraints)
 
 
 # -------------------------

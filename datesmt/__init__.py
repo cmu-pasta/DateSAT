@@ -6,6 +6,7 @@ This package provides implementations for expressing and solving date constraint
 
 from .api import DateSMTBuilder
 from .core import Date, Period, _UnboundedDate
+from .solver import solve, solve_from_json
 
 # Import bitvector implementations
 from .symbolic_bitvector.naive_bv import NaiveSolver as BitVectorNaiveSolver
@@ -27,6 +28,9 @@ __all__ = [
     "Date",
     "Period",
     "DateSMTBuilder",
+    # High-level API
+    "solve",
+    "solve_from_json",
     # Bitvector implementations
     "BitVectorNaiveSolver",
     "BitVectorEpochDaysSolver",
