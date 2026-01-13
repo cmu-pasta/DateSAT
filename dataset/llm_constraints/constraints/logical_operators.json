@@ -210,16 +210,16 @@
     "id": "1766408324-10"
   },
   {
-    "description": "Leap year implication logic with Feb 29 validity checks",
+    "description": "Leap year implication logic with Feb 29 validity checks (No Int Vars)",
     "declarations": [
       "x: date",
       "y: date"
     ],
     "constraints": [
       "x == Date(2000, 2, 29)",
-      "(x.day == 29 && x.month == 2) -> (x.year % 4 == 0)",
+      "(x.day == 29 && x.month == 2) -> ((Date(x.year, 2, 28) + Period(0, 0, 1)).month == 2)",
       "y == x + Period(4, 0, 0)",
-      "(x.year % 400 == 0) -> (y == Date(2004, 2, 29))",
+      "((Date(x.year, 2, 28) + Period(0, 0, 1)).month == 2) -> (y == Date(2004, 2, 29))",
       "!(x.year == y.year) && (x.month == y.month) && (x.day == y.day)"
     ],
     "coverage_tags": [
@@ -266,7 +266,7 @@
       "(c >= d && c < d + Period(0, 1, 0)) || (c < d && c > d - Period(0, 1, 0))",
       "!(a.month == b.month) && !(b.month == c.month)",
       "(c.day > 15) -> (c >= b + Period(0, 0, 30))",
-      "(d.month == 2 && d.year % 4 == 0) -> (d + Period(0, 0, 29) == Date(2016, 3, 1))"
+      "(d.month == 2 && (Date(d.year, 2, 28) + Period(0, 0, 1)).month == 2) -> (d + Period(0, 0, 29) == Date(2016, 3, 1))"
     ],
     "coverage_tags": [
       "logical_operators"
@@ -411,7 +411,7 @@
       "d1 == Date(2015, 1, 31)",
       "(d1.day == 31 && d1.month == 1) -> d2 == d1 + Period(0, 1, 0)",
       "d2.month == 2 && (d2.day == 28 || d2.day == 29)",
-      "!(d2.year % 4 == 0) || d2.day == 28",
+      "((Date(d2.year, 2, 28) + Period(0, 0, 1)).month == 3) || d2.day == 28",
       "d3 == Date(2015, 3, 31) && (d3.month == 3 || d3.month == 4)",
       "(d2 < d3 && d1 < d2) -> d4 == d3 + Period(1, 0, 0)",
       "d4.year == 2016 || d4.year == 2015",

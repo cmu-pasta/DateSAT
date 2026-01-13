@@ -24,8 +24,8 @@ import sys
 from pathlib import Path
 
 # Ensure repository root is on sys.path so we can import `datesmt` when running
-# this file as `python dataset/test.py`.
-REPO_ROOT = Path(__file__).resolve().parents[1]
+# this file as `python dataset/utils/test.py`.
+REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
@@ -36,29 +36,25 @@ from datesmt.core import Date, Period
 # Paste a single JSON constraint object here (one from *_constraints*.jsonl)
 CONSTRAINT_JSON = r"""
 {
-    "id": "grammar-41",
     "declarations": [
-      "S: date",
-      "I: date",
-      "C: date",
-      "Cm: date",
-      "B1: bool",
-      "B2: bool",
-      "D1: date",
-      "D2: date"
+      "B: date",
+      "E: date",
+      "window_end: date",
+      "months_diff: int",
+      "months_diff_final: int"
     ],
     "constraints": [
-      "I == S + Period(0,1,0)",
-      "Cm == C - Period(0,1,0)",
-      "B1 == ((I <= C) && (C  <= I  + Period(0,0,2)))",
-      "B2 == ((S <= Cm) && (Cm <= S  + Period(0,0,2)))",
-      "(B1  -> (D1 == I + Period(0,0,7)))",
-      "(!B1 -> (D1 == I + Period(0,0,10)))",
-      "(B2  -> (D2 == I + Period(0,0,7)))",
-      "(!B2 -> (D2 == I + Period(0,0,10)))",
-      "D1 != D2"
-    ],
-    "size": 9
+      "window_end  == B + Period(0, 18, 0)",
+      "B.month != 3 && B.day != 31",
+      "B.month != 5 && B.day != 31",
+      "B.month != 8 && B.day != 31",
+      "B.month != 10 && B.day != 31",
+      "B.month != 12 && B.day != 31",
+      "months_diff == (E.year - B.year) * 12 + (E.month - B.month)",
+      "((E.day < B.day)  -> (months_diff_final == months_diff - 1))",
+      "(!(E.day < B.day) -> (months_diff_final == months_diff))",
+      "((E >= B) && (E < window_end)) != ((E >= B) && ((months_diff_final / 18) == 0))"
+    ]
   }
 """
 

@@ -27,6 +27,8 @@ from z3 import (
     Solver,
     Store,
     sat,
+    unsat,
+    unknown,
 )
 from ..symbolic_int.alpha_beta_table_int import build_dim_dbm_48_from_epoch
 from ..core import Date, Period, _UnboundedDate
@@ -438,8 +440,11 @@ class AlphaBetaTableSolver:
                 'status': 'sat',
                 'dates': self.get_concrete_dates(model),
             }
-        else:
+        elif result == unsat:
             return {'status': 'unsat', 'dates': {}}
+        else:
+            # result == unknown (timeout or resource limit)
+            return {'status': 'timeout', 'dates': {}}
 
     def to_smt2(self) -> str:
         """Return the current problem in SMT-LIB v2 format."""
