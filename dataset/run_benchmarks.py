@@ -166,6 +166,9 @@ def run_constraint_with_approach(
     except Exception as e:
         result["error_message"] = str(e)
         result["status"] = "error"
+        # Errors that occur before/during solving should have 0.0 execution time
+        # to distinguish them from timeouts or successful solves
+        result["execution_time"] = 0.0
         print(f"❌ Error: {e}")
 
     return result
@@ -285,6 +288,7 @@ def run_constraints_file(
         # Print summary
         successful = len([r for r in results if r["status"] == "sat"])
         total = len(results)
+        # Note: execution_time is 0.0 for immediate errors; timeouts use actual measured time
         avg_time = sum(r["execution_time"] for r in results) / total if total > 0 else 0
 
         print(f"\nSummary for {approach} ({implementation}):")
@@ -314,22 +318,22 @@ def main():
         #    / "constraints.json",
         #    "output_dir": SCRIPT_DIR / "grammar_constraints" / "results",
         #},
-         {
+        {
              "name": "LLM Generated Constraints",
              "constraints_file": SCRIPT_DIR
              / "llm_constraints"
              / "constraints"
              / "constraints.json",
              "output_dir": SCRIPT_DIR / "llm_constraints" / "results",
-         },
-        # {
+        },
+        #{
         #    "name": "Legal Document Constraints",
         #    "constraints_file": SCRIPT_DIR
         #    / "legal_doc_constraints"
         #    / "constraints"
         #    / "constraints.jsonl",
-        #      "output_dir": SCRIPT_DIR / "legal_doc_constraints" / "results",
-        # },
+        #    "output_dir": SCRIPT_DIR / "legal_doc_constraints" / "results",
+        #},
     ]
 
     parser = argparse.ArgumentParser(

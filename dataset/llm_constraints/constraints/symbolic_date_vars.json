@@ -260,7 +260,10 @@
     "constraints": [
       "x == Date(2000, 2, 29)",
       "y == Date(x.year + 100, x.month, x.day - 1)",
-      "z == Date(x.year / 4, x.month * 6, x.day)",
+      "4 * z.year <= x.year",
+      "x.year <= 4 * z.year + 3",
+      "z.month == x.month * 6",
+      "z.day == x.day",
       "w == Date(2050, 1, 1)",
       "v == Date(w.year - x.year, w.month + x.month, 15)",
       "y.day == 28",

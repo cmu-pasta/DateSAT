@@ -132,10 +132,33 @@ CRITICAL DATE RANGE RESTRICTIONS
 Allowed operations:
   • Date ± Period → Date
   • Period ± Period → Period
-  • Period × Int → Period
+  • Period × Int → Period (constant integers only)
   • Date ▷◁ Date (▷◁ ∈ {==, !=, <, <=, >, >=})
-- FORBIDDEN: Period comparisons (Period ▷◁ Period). Compare dates after adding periods instead.
-- Example: (x + Period(0,1,0)) > (y + Period(0,0,31))
+  • Integer arithmetic in Date constructors:
+    - Addition/Subtraction: x + 5, x - 3, x.year + 1
+    - Multiplication by constants: 2 * x, x * 5
+    - Negation: -x
+
+FORBIDDEN operations (will cause parsing errors):
+  • Period comparisons: Period ▷◁ Period
+  • Integer division: x / 5, x.year / 100
+  • Integer modulo: x % 4, x.year % 4
+  • Power operations: x ** 2, x ** y
+  • Nonlinear integer multiplication: x * y (variables multiplying variables)
+  • Standalone int/bool variables: Do NOT use "x: int" or "flag: bool" as standalone variables
+    (int variables can ONLY appear as arguments to Date constructors, e.g., Date(x, 2, 1))
+
+Examples of valid integer expressions:
+  • Date(x, 2, 1) - int variable x as year
+  • Date(x + 4, 2, 1) - addition in Date constructor
+  • Date(2 * x, 1, 1) - multiplication by constant
+  • x.year + 1, x.month - 2 - arithmetic on date properties
+
+Examples to AVOID (will fail):
+  • Date(x / 4, 2, 1) - division not allowed
+  • Date(x % 100, 2, 1) - modulo not allowed
+  • Date(x * y, 2, 1) - nonlinear multiplication not allowed
+  • "x: int" with "x > 5" - standalone int variables not supported
 
 DateSMT SYNTAX
 - Constructors: Date(year, month, day), Period(years, months, days)
@@ -186,9 +209,12 @@ AVOID TRIVIAL / MEANINGLESS CONSTRAINTS
   • It is strictly necessary to express a non-trivial constraint
 
 DECLARATIONS AND CONSTRAINTS
-- Separate declarations from constraints: use "declarations" array for variable declarations (e.g., "x: int", "y: date")
+- Separate declarations from constraints: use "declarations" array for variable declarations (ONLY date variables, e.g., "x: date", "y: date")
 - Use "constraints" array for constraint expressions only
-- All variables must be declared in "declarations" before use in "constraints", except int variables used as arguments to Date()
+- ONLY date variables should be declared (e.g., "x: date", "start: date")
+- Do NOT declare "x: int" or "flag: bool" - these are not supported
+- Int variables can appear directly in Date constructors without declaration (e.g., Date(x, 2, 1) where x is inferred as int)
+- All date variables must be declared in "declarations" before use in "constraints"
 
 OUTPUT SCHEMA (STRICT)
 Return ONLY a JSON array (no markdown fences, no commentary).
@@ -298,12 +324,14 @@ STYLE FOR constraints
 
 OUTPUT REQUIREMENTS
 - Output MUST be a valid JSON array of objects with the exact schema above.
-- Each object must have "description", "declarations" (array of variable declarations), "constraints" (array of strings), and "coverage_tags" (array of strings).
-- "declarations" contains variable declarations like "x: date" - all variables used in constraints must be declared here first (except int variables used as arguments to Date()).
+- Each object must have "description", "declarations" (array of date variable declarations ONLY), "constraints" (array of strings), and "coverage_tags" (array of strings).
+- "declarations" contains ONLY date variable declarations like "x: date", "start_date: date" - do NOT include "x: int" or "flag: bool"
+- Int variables used in Date constructors (e.g., Date(x, 2, 1)) are inferred automatically and should NOT be declared
 - "constraints" contains constraint expressions - all constraints in the array are ANDed together.
 - Select appropriate coverage_tags from the CONTENT DIVERSITY section based on what each constraint set covers.
 - CRITICAL: All concrete dates MUST be within 1900-03-01 to 2100-02-28. Check all Date() constructors and ensure period arithmetic results stay in range.
 - CRITICAL: Generate both SAT and UNSAT constraint sets as specified in SATISFIABILITY DIVERSITY section.
+- CRITICAL: Do NOT use forbidden operations (division /, modulo %, power **, nonlinear multiplication x*y, standalone int/bool variables)
 - No code fences, markdown, trailing commas, or comments.
 - Use only ASCII quotes in JSON strings.
 - Each constraint string must be parseable by the constraint parser."""

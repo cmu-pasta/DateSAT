@@ -428,19 +428,6 @@ class ConstraintTransformer(Transformer):
             return f"-{filtered[0]}"
         return f"-{items[-1]}"
     
-    def int_div(self, items) -> str:
-        """Transform integer division operation."""
-        filtered = [item for item in items if str(item) != '/']
-        if len(filtered) == 2:
-            return f"{filtered[0]} / {filtered[1]}"
-        return f"{items[0]} / {items[-1]}"
-    
-    def int_mod(self, items) -> str:
-        """Transform integer modulo operation."""
-        filtered = [item for item in items if str(item) != '%']
-        if len(filtered) == 2:
-            return f"{filtered[0]} % {filtered[1]}"
-        return f"{items[0]} % {items[-1]}"
     
     def int_atom(self, items) -> str:
         """Transform int atom (handle parenthesized expressions). Always preserve parentheses."""
@@ -631,12 +618,7 @@ class ConstraintParser:
             
             ?int_term: int_const STAR int_term -> int_mul
                      | int_term STAR int_const -> int_mul
-                     | int_term DIV int_const -> int_div
-                     | int_term MOD int_const -> int_mod
                      | int_factor
-            
-            DIV: "/"
-            MOD: "%"
             
             ?int_factor: MINUS int_factor -> int_neg
                        | int_atom
@@ -1237,6 +1219,93 @@ class ConstraintParser:
         
         return result
 
+    def _extract_and_replace_parametric_dates(
+        self, 
+        constraints: List[str],
+        variable_types: Dict[str, str]
+    ) -> tuple[List[str], Dict[str, tuple[str, str, str]]]:
+        """
+        Extract parametric Date constructors and replace them with auxiliary variables.
+        
+        A parametric Date constructor has one or more variable arguments, e.g., Date(x.year, 2, 28).
+        These need special handling because they can't be constructed directly at runtime.
+        
+        Args:
+            constraints: List of constraint strings
+            variable_types: Dictionary of declared variable types
+            
+        Returns:
+            Tuple of (modified_constraints, parametric_dates_map)
+            where parametric_dates_map is {aux_var_name: (year_expr, month_expr, day_expr)}
+        """
+        import re
+        
+        parametric_dates = {}  # aux_var -> (year, month, day)
+        aux_counter = [0]  # Use list for mutability in nested function
+        
+        def replace_parametric_date(match):
+            """Replace a parametric Date constructor with an auxiliary variable."""
+            full_match = match.group(0)
+            args = match.group(1)
+            
+            # Parse the three arguments
+            # Simple comma splitting won't work due to nested expressions, so use a proper parser
+            depth = 0
+            current_arg = []
+            parsed_args = []
+            
+            for char in args:
+                if char == '(':
+                    depth += 1
+                    current_arg.append(char)
+                elif char == ')':
+                    depth -= 1
+                    current_arg.append(char)
+                elif char == ',' and depth == 0:
+                    parsed_args.append(''.join(current_arg).strip())
+                    current_arg = []
+                else:
+                    current_arg.append(char)
+            
+            if current_arg:
+                parsed_args.append(''.join(current_arg).strip())
+            
+            if len(parsed_args) != 3:
+                return full_match  # Not a valid Date constructor
+            
+            year_expr, month_expr, day_expr = parsed_args
+            
+            # Check if any argument contains a variable (not just constants)
+            has_variable = (
+                ConstraintTransformer._has_variable(year_expr) or 
+                ConstraintTransformer._has_variable(month_expr) or 
+                ConstraintTransformer._has_variable(day_expr)
+            )
+            
+            if not has_variable:
+                # All concrete - no transformation needed
+                return full_match
+            
+            # This is a parametric Date - create an auxiliary variable
+            aux_var = f"_aux_date_{aux_counter[0]}"
+            aux_counter[0] += 1
+            
+            parametric_dates[aux_var] = (year_expr, month_expr, day_expr)
+            
+            return aux_var
+        
+        # Pattern to match Date(...) constructors
+        # This matches Date( followed by balanced parentheses
+        date_pattern = r'Date\(([^)]+(?:\([^)]*\)[^)]*)*)\)'
+        
+        modified_constraints = []
+        for constraint in constraints:
+            # Replace all parametric Date constructors in this constraint
+            modified = re.sub(date_pattern, replace_parametric_date, constraint)
+            modified_constraints.append(modified)
+        
+        return modified_constraints, parametric_dates
+
     def generate_builder_code(
         self,
         constraints: List[str],
@@ -1250,6 +1319,7 @@ class ConstraintParser:
         - Boolean operators: && (and), || (or), ! (not)
         - Implications: (A) -> (B)
         - Nested expressions: ((a || b) || c) || d
+        - Parametric Date constructors: Date(x.year, 2, 28) in any context
         
         All constraints in the list are ANDed together.
         
@@ -1291,6 +1361,8 @@ class ConstraintParser:
             self._validate_parentheses_balance(constraint)
 
         # Auto-extract variables from remaining constraints
+        # We extract from ORIGINAL constraints (before transformation) to capture
+        # variables inside parametric Date constructors for type inference
         all_variables = self.extract_variables_from_constraints(filtered_constraints)
         
         # Check for common mistakes: lowercase boolean literals (before type inference)
@@ -1378,7 +1450,7 @@ class ConstraintParser:
                 code_lines.append("# Automatic bounds for Date() component expressions")
                 for expr, component_type in sorted(non_constant_bounds.items()):
                     # Wrap complex expressions in parentheses for safety
-                    if any(op in expr for op in ['+', '-', '*', '/', '%']):
+                    if any(op in expr for op in ['+', '-', '*']):
                         expr_wrapped = f'({expr})'
                     else:
                         expr_wrapped = expr
@@ -1398,10 +1470,34 @@ class ConstraintParser:
                         code_lines.append(f'builder.add_constraint({expr_wrapped} >= 1)')
                         code_lines.append(f'builder.add_constraint({expr_wrapped} <= 2100)')
 
-        # Add constraints (using filtered constraints without declarations)
+        # STEP: Transform parametric Date constructors AFTER type inference and bounds checking
+        # This must happen before parsing to avoid runtime errors
+        transformed_constraints, parametric_dates = self._extract_and_replace_parametric_dates(
+            filtered_constraints, variable_types
+        )
+        
+        # Add auxiliary date variables to variable_types
+        for aux_var in parametric_dates:
+            variable_types[aux_var] = 'date'
+        
+        # Add variable declarations for auxiliary date variables
+        for aux_var in sorted(parametric_dates.keys()):
+            code_lines.append(f'{aux_var} = builder.add_date_var("{aux_var}")')
+        
+        # Add constraints for parametric Date constructors (auxiliary variables)
+        if parametric_dates:
+            code_lines.append("")
+            code_lines.append("# Constraints for parametric Date constructors")
+            for aux_var, (year_expr, month_expr, day_expr) in sorted(parametric_dates.items()):
+                # Generate component-wise constraints: aux_var.year == year_expr, etc.
+                code_lines.append(f'builder.add_constraint({aux_var}.year == {year_expr})')
+                code_lines.append(f'builder.add_constraint({aux_var}.month == {month_expr})')
+                code_lines.append(f'builder.add_constraint({aux_var}.day == {day_expr})')
+
+        # Add constraints (using TRANSFORMED constraints)
         # Each constraint is a full boolean expression - parse and add directly
         code_lines.append("")
-        for constraint_str in filtered_constraints:
+        for constraint_str in transformed_constraints:
             constraint_code = self.parse_constraint(constraint_str, variable_types)
             code_lines.append(constraint_code)
 
