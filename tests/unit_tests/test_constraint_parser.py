@@ -173,22 +173,18 @@ def test_parse_constraint_complex_arithmetic_rejected(parser, constraint):
     ("a - b == c", "builder.add_constraint(a - b == c)"),
     ("5 * a == c", "builder.add_constraint(5 * a == c)"),
     ("a * 5 == c", "builder.add_constraint(a * 5 == c)"),
-    ("a / 5 == c", "builder.add_constraint(a / 5 == c)"),
-    ("a % 5 == c", "builder.add_constraint(a % 5 == c)"),
 ])
 def test_parse_constraint_integer_operations(parser, constraint, expected):
-    """Test parsing of integer arithmetic operations: +, -, *, /, % (linear only)."""
+    """Test parsing of integer arithmetic operations: +, -, * (linear only)."""
     result = parser.parse_constraint(constraint)
     assert result == expected
         
 @pytest.mark.parametrize("constraint,expected", [
     ("a + 5 * c == d", "builder.add_constraint(a + 5 * c == d)"),
     ("5 * a + c == d", "builder.add_constraint(5 * a + c == d)"),
-    ("a / 5 + c == d", "builder.add_constraint(a / 5 + c == d)"),
-    ("a % 5 + c == d", "builder.add_constraint(a % 5 + c == d)"),
 ])
 def test_parse_constraint_integer_precedence(parser, constraint, expected):
-    """Test that integer operations follow correct precedence: *, /, % > +, - (linear only)."""
+    """Test that integer operations follow correct precedence: * > +, - (linear only)."""
     result = parser.parse_constraint(constraint)
     assert result == expected
 
@@ -200,7 +196,12 @@ def test_parse_constraint_integer_precedence(parser, constraint, expected):
     "a * b + c == d",  # Nonlinear multiplication in expression
     "a ** 3 == c",
     "a ** b == c",
-    "a * b == c"
+    "a * b == c",
+    "a / 5 == c",
+    "a % 5 == c",
+    "a / 5 + c == d",
+    "a % 5 + c == d",
+    "a ** 3 == c"
 ])
 def test_parse_constraint_nonlinear_arithmetic_rejected(parser, constraint):
     """Test that nonlinear arithmetic (var * var, **) is rejected."""
@@ -213,13 +214,9 @@ def test_integer_operations_with_property_access(parser):
     result = parser.parse_constraint(constraint)
     assert "k.year + 1 == next_year" in result
     
-    constraint = "k.year % 4 == 0"
+    constraint = "k.year * 2 == double_year"
     result = parser.parse_constraint(constraint)
-    assert "k.year % 4 == 0" in result
-    
-    constraint = "k.year / 100 == century"
-    result = parser.parse_constraint(constraint)
-    assert "k.year / 100 == century" in result
+    assert "k.year * 2 == double_year" in result
 
 
 def test_integer_operations_in_date_constructor(parser):
@@ -238,18 +235,18 @@ def test_generate_builder_code_with_integer_operations(parser):
         "x: int",
         "y: int",
         "z: int",
-        "x % 4 == 0",
-        "y == x / 10",
+        "x + 4 == y",
+        "y == x * 10",
         "z == 5 * x"
     ]
-
+    
     result = parser.generate_builder_code(constraints)
-
+    
     assert 'x = builder.add_int_var("x")' in result
     assert 'y = builder.add_int_var("y")' in result
     assert 'z = builder.add_int_var("z")' in result
-    assert "x % 4 == 0" in result
-    assert "x / 10" in result
+    assert "x + 4 == y" in result
+    assert "x * 10" in result
     assert "5 * x" in result
 
 

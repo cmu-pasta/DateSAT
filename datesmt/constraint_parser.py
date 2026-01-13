@@ -428,19 +428,6 @@ class ConstraintTransformer(Transformer):
             return f"-{filtered[0]}"
         return f"-{items[-1]}"
     
-    def int_div(self, items) -> str:
-        """Transform integer division operation."""
-        filtered = [item for item in items if str(item) != '/']
-        if len(filtered) == 2:
-            return f"{filtered[0]} / {filtered[1]}"
-        return f"{items[0]} / {items[-1]}"
-    
-    def int_mod(self, items) -> str:
-        """Transform integer modulo operation."""
-        filtered = [item for item in items if str(item) != '%']
-        if len(filtered) == 2:
-            return f"{filtered[0]} % {filtered[1]}"
-        return f"{items[0]} % {items[-1]}"
     
     def int_atom(self, items) -> str:
         """Transform int atom (handle parenthesized expressions). Always preserve parentheses."""
@@ -631,12 +618,7 @@ class ConstraintParser:
             
             ?int_term: int_const STAR int_term -> int_mul
                      | int_term STAR int_const -> int_mul
-                     | int_term DIV int_const -> int_div
-                     | int_term MOD int_const -> int_mod
                      | int_factor
-            
-            DIV: "/"
-            MOD: "%"
             
             ?int_factor: MINUS int_factor -> int_neg
                        | int_atom
@@ -1378,7 +1360,7 @@ class ConstraintParser:
                 code_lines.append("# Automatic bounds for Date() component expressions")
                 for expr, component_type in sorted(non_constant_bounds.items()):
                     # Wrap complex expressions in parentheses for safety
-                    if any(op in expr for op in ['+', '-', '*', '/', '%']):
+                    if any(op in expr for op in ['+', '-', '*']):
                         expr_wrapped = f'({expr})'
                     else:
                         expr_wrapped = expr

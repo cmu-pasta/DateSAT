@@ -43,11 +43,11 @@ SYMBOLIC VARIABLE TYPES (declare in "declarations" array):
   • bool    — symbolic boolean variable       Example: "is_married: bool"
 
 CONCRETE CONSTRUCTORS (use in "constraints" array):
-  • Date(year, month, day)     — concrete date with literals or int variables
+  • Date(year, month, day)     — concrete date with integer literals or int expressions
                                  Examples: Date(2020, 1, 15) or Date(year_val, 1, 15) or Date(x+1, 1, 15)
-  • Period(years, months, days) — concrete period with integer literals ONLY
+  • Period(years, months, days) — concrete period with integer LITERALS only
                                  Example: Period(3, 0, 0)
-                                 FORBIDDEN: Period(n, 0, 0) where n is symbolic
+                                 FORBIDDEN: Period(n, 0, 0) where n is a variable
 
 DECLARATION RULES:
   - All variables must be declared before use (except int args to Date())
@@ -66,11 +66,17 @@ DATE OPERATIONS:
 
 PERIOD OPERATIONS:
   • Period ± Period → Period
-  • Period * int → Period
+  • int_constant * Period → Period
+  • Period * int_constant → Period
+  • FORBIDDEN: int_var * Period        (variables NOT allowed in Period multiplication)
 
-INTEGER OPERATIONS:
-  • Arithmetic: +, -, *, **, /, %
+INTEGER OPERATIONS (for Date constructor arguments and property access):
+  • Addition/Subtraction: x + 5, x - 3, x.year + 1
+  • Multiplication by constants: 2 * x, x * 5
+  • Negation: -x
   • Comparison: ==, !=, <, <=, >, >=
+  • FORBIDDEN: Division (x / 5), Modulo (x % 4), Power (x ** 2)
+  • FORBIDDEN: Nonlinear multiplication (x * y) - variables multiplying variables
 
 BOOLEAN OPERATIONS:
   • Comparison: == (use True/False literals)
@@ -94,7 +100,10 @@ III. FORBIDDEN EXPRESSIONS
   ✗ Chained implications: (A) -> (B) -> (C)  — use nested: (A) -> ((B) -> (C))
   ✗ Dates outside 1900-03-01 to 2100-02-28
   ✗ Undeclared variables (except int args to Date())
-  ✗ Symbolic period variables
+  ✗ Symbolic period variables (e.g., Period(n, 0, 0) where n is a variable)
+  ✗ Period multiplication with variables (e.g., n * Period(1, 0, 0) where n is a variable)
+  ✗ Integer division, modulo, or power operations
+  ✗ Nonlinear integer arithmetic (e.g., x * y where both are variables)
 
 ═══════════════════════════════════════════════════════════════════
 IV. OUTPUT FORMAT (STRICT)
