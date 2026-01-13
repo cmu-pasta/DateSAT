@@ -479,10 +479,6 @@ def summarize_constraint(
     # but we'll still categorize the constraint as not supported
     enumeration_available = enumeration_status not in ("not_applicable", None)
 
-    # For description, pick SAT one if any, else any
-    any_rec = next(iter(sat_recs.values()), next(iter(flattened_approaches.values())))
-    description = any_rec.get("description")
-
     # Validate SAT records by executing constraints with concrete values
     sat_validation: Dict[str, Dict[str, Any]] = {}
     # Always validate SAT records using the Python constraint validator
@@ -655,7 +651,6 @@ def summarize_constraint(
 
     return {
         "constraint_id": cid,
-        "description": description,
         "approach_statuses": approach_statuses,
         "sat_validation": sat_validation,  # per-sat approach validity and messages
         "unsat_consensus": unsat_consensus,
@@ -986,9 +981,9 @@ def check_results_dir(
             "not_supported_count": len(enumeration_not_supported_constraints),
         },
         "metrics": {
-            "per_constraint": per_constraint_metrics,
-            "per_approach_averages": per_approach_averages,
-            "per_implementation_averages": per_implementation_averages,
+            #"per_constraint": per_constraint_metrics,
+            #"per_approach_averages": per_approach_averages,
+            #"per_implementation_averages": per_implementation_averages,
             "per_approach_sorted": {
                 "avg_lines_sorted": avg_lines_sorted,
                 "avg_time_sorted": avg_time_sorted,
@@ -1064,10 +1059,6 @@ def validate_results_with_concrete(results_dir: Path) -> Dict[str, Any]:
         approach_statuses: Dict[str, str] = {}
         sat_validation: Dict[str, Dict[str, Any]] = {}
         verdicts_by_approach: Dict[str, str] = {}
-
-        # Get description from first record
-        first_record = next(iter(approaches.values()))
-        description = first_record.get("description", "")
 
         for approach_key, record in approaches.items():
             status = record.get("status", "unknown")
@@ -1164,7 +1155,6 @@ def validate_results_with_concrete(results_dir: Path) -> Dict[str, Any]:
         by_constraint.append(
             {
                 "constraint_id": cid,
-                "description": description,
                 "approach_statuses": approach_statuses,
                 "sat_validation": sat_validation,
                 "verdicts_by_approach": verdicts_by_approach,
