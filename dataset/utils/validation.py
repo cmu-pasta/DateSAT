@@ -981,9 +981,9 @@ def check_results_dir(
             "not_supported_count": len(enumeration_not_supported_constraints),
         },
         "metrics": {
-            #"per_constraint": per_constraint_metrics,
-            #"per_approach_averages": per_approach_averages,
-            #"per_implementation_averages": per_implementation_averages,
+            # "per_constraint": per_constraint_metrics,
+            # "per_approach_averages": per_approach_averages,
+            # "per_implementation_averages": per_implementation_averages,
             "per_approach_sorted": {
                 "avg_lines_sorted": avg_lines_sorted,
                 "avg_time_sorted": avg_time_sorted,

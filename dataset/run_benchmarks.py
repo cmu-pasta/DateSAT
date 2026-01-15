@@ -10,8 +10,8 @@ REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
-from dataset.utils.validation import check_results_dir
 import datesmt
+from dataset.utils.validation import check_results_dir
 
 TIMEOUT_MS = 60000
 
@@ -23,32 +23,32 @@ def _get_smtlib_for_constraint(
     timeout_ms: int,
 ) -> str:
     """Helper function to generate SMT-LIB output for a constraint.
-    
+
     This is needed for benchmarking purposes to save SMT-LIB representations.
     """
     from datesmt.api import DateSMTBuilder
     from datesmt.constraint_parser import ConstraintParser
     from datesmt.core import Date, Period
-    
+
     parser = ConstraintParser()
     constraint_code = parser.parse_constraint_data(constraint_data)
-    
+
     def create_builder():
         return DateSMTBuilder(
             approach=approach,
             implementation=implementation,
             timeout_ms=timeout_ms,
         )
-    
+
     exec_globals = {
         "Date": Date,
         "Period": Period,
         "DateSMTBuilder": create_builder,
     }
-    
+
     exec(constraint_code, exec_globals)
     builder = exec_globals.get("result") or exec_globals.get("builder")
-    
+
     if builder:
         return builder.to_smt2()
     return None
@@ -86,17 +86,18 @@ def run_constraint_with_approach(
     try:
         # Handle enumeration baseline - requires special handling as it's not a standard solver
         if approach == "enumeration":
-            from datesmt.enumeration_baseline import EnumerationSolver
-            from datesmt.constraint_parser import ConstraintParser
             import time
-            
+
+            from datesmt.constraint_parser import ConstraintParser
+            from datesmt.enumeration_baseline import EnumerationSolver
+
             # Enumeration baseline doesn't use the high-level API
             parser = ConstraintParser()
             constraint_code = parser.parse_constraint_data(constraint_data)
-            
+
             solver = EnumerationSolver(timeout_ms=timeout_ms)
             exec_globals = solver.get_execution_context()
-            
+
             start_time = time.time()
             try:
                 exec(constraint_code, exec_globals)
@@ -107,18 +108,22 @@ def run_constraint_with_approach(
                     result["error_message"] = (
                         f"Enumeration baseline does not support these variable types: {error_msg}"
                     )
-                    print("⚠️  Not applicable: Enumeration baseline doesn't support bool/int variables")
+                    print(
+                        "⚠️  Not applicable: Enumeration baseline doesn't support bool/int variables"
+                    )
                     return result
                 raise
-            
-            builder = exec_globals.get("result") or exec_globals.get("builder") or solver
+
+            builder = (
+                exec_globals.get("result") or exec_globals.get("builder") or solver
+            )
             if not builder:
                 raise RuntimeError("Constraint code did not create a solver")
-            
+
             result["smtlib"] = builder.to_smt2()
             solve_result = builder.solve()
             result["execution_time"] = time.time() - start_time
-            
+
         else:
             # Use the high-level API for all symbolic approaches
             solve_result = datesmt.solve(
@@ -126,9 +131,9 @@ def run_constraint_with_approach(
                 approach=approach,
                 implementation=implementation,
                 timeout_ms=timeout_ms,
-                verbose=False  # Suppress verbose output during benchmarking
+                verbose=False,  # Suppress verbose output during benchmarking
             )
-            
+
             # Generate SMT-LIB for benchmarking purposes
             try:
                 result["smtlib"] = _get_smtlib_for_constraint(
@@ -140,15 +145,17 @@ def run_constraint_with_approach(
 
         # Extract status and solution from solve result
         result["status"] = solve_result.get("status", "error")
-        result["execution_time"] = solve_result.get("execution_time", result["execution_time"])
-        
+        result["execution_time"] = solve_result.get(
+            "execution_time", result["execution_time"]
+        )
+
         # Merge solution from all variable types
         merged_solution = {}
         for var_type in ["dates", "ints", "bools"]:
             vars_dict = solve_result.get(var_type, {}) or {}
             for name, value in vars_dict.items():
                 merged_solution[name] = str(value) if var_type == "dates" else value
-        
+
         result["solution"] = merged_solution if merged_solution else None
 
         # Print status
@@ -162,7 +169,7 @@ def run_constraint_with_approach(
             print("❌ No solution found (UNSAT)")
         else:
             print(f"❌ Status: {result['status']}")
-            
+
     except Exception as e:
         result["error_message"] = str(e)
         result["status"] = "error"
@@ -238,7 +245,7 @@ def run_constraints_file(
     # Baseline approaches with "naive" implementation
     if baseline_approaches:
         all_methods.extend([(approach, "naive") for approach in baseline_approaches])
-    
+
     if skip_enumeration:
         print("\n⚠️  Skipping enumeration baseline (--skip-enumeration flag set)")
         print("   Validation will still work, treating enumeration as not applicable\n")
@@ -310,30 +317,30 @@ def main():
     SCRIPT_DIR = Path(__file__).parent
 
     constraint_sets = [
-        #{
+        # {
         #    "name": "Grammar Constraints",
         #    "constraints_file": SCRIPT_DIR
         #    / "grammar_constraints"
         #    / "benchmarks"
         #    / "constraints.json",
         #    "output_dir": SCRIPT_DIR / "grammar_constraints" / "results",
-        #},
+        # },
         {
-             "name": "LLM Generated Constraints",
-             "constraints_file": SCRIPT_DIR
-             / "llm_constraints"
-             / "constraints"
-             / "constraints.json",
-             "output_dir": SCRIPT_DIR / "llm_constraints" / "results",
+            "name": "LLM Generated Constraints",
+            "constraints_file": SCRIPT_DIR
+            / "llm_constraints"
+            / "constraints"
+            / "constraints.json",
+            "output_dir": SCRIPT_DIR / "llm_constraints" / "results",
         },
-        #{
+        # {
         #    "name": "Legal Document Constraints",
         #    "constraints_file": SCRIPT_DIR
         #    / "legal_doc_constraints"
         #    / "constraints"
         #    / "constraints.jsonl",
         #    "output_dir": SCRIPT_DIR / "legal_doc_constraints" / "results",
-        #},
+        # },
     ]
 
     parser = argparse.ArgumentParser(
@@ -383,10 +390,10 @@ def main():
 
         # Run constraint execution
         run_constraints_file(
-            str(constraints_file), 
-            str(output_dir), 
+            str(constraints_file),
+            str(output_dir),
             args.timeout,
-            skip_enumeration=args.skip_enumeration
+            skip_enumeration=args.skip_enumeration,
         )
 
         if not args.no_analysis:
