@@ -106,20 +106,9 @@ class EvalDateVar:
             compare, var_ref=self, concrete_value=concrete_value, rhs_ref=other
         )
 
-    def __eq__(self, other: Union[Date, "EvalDateVar"]) -> ConstraintWrapper:  # type: ignore[override]
-        if isinstance(other, _UnboundedDate):
-            raise ValueError(
-                f"Cannot constrain date variable to equal Date({other.year}, {other.month}, {other.day}) "
-                f"which is outside the allowed range [1900-03-01..2100-02-28]. "
-                f"This constraint is always unsatisfiable."
-            )
-        return self._cmp("eq", other)
+    def __eq__(self, other: Union[Date, "EvalDateVar"]) -> ConstraintWrapper:  # type: ignore[override]        return self._cmp("eq", other)
 
-    def __ne__(self, other: Union[Date, "EvalDateVar"]) -> ConstraintWrapper:  # type: ignore[override]
-        if isinstance(other, _UnboundedDate):
-            # Date variable can never equal an out-of-range date, so != is always true
-            return ConstraintWrapper(lambda: True)
-        return self._cmp("ne", other)
+    def __ne__(self, other: Union[Date, "EvalDateVar"]) -> ConstraintWrapper:  # type: ignore[override]        return self._cmp("ne", other)
 
     def __lt__(self, other: Union[Date, "EvalDateVar"]) -> ConstraintWrapper:
         return self._cmp("lt", other)

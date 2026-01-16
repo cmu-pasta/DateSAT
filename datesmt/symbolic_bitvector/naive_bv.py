@@ -21,7 +21,8 @@ from z3 import (
     ModelRef,
     Not,
     Or,
-    Solver,    sat,
+    Solver,    
+    sat,
     unsat,
     unknown,
 )
@@ -378,11 +379,7 @@ class DateVar:
 
     def __ne__(self, other) -> BoolRef:
         """Support x != date comparison using ordinal arithmetic."""
-        if isinstance(other, _UnboundedDate):
-            # Date variable can never equal an out-of-range date, so != is always true
-            from z3 import BoolVal
-            return BoolVal(True)
-        elif isinstance(other, (Date, DateVar)):
+        if isinstance(other, (Date, _UnboundedDate, DateVar)):
             return Not(self.__eq__(other))
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")

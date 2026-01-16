@@ -31,7 +31,8 @@ from z3 import (
     ModelRef,
     Not,
     Or,
-    Solver,    sat,
+    Solver,    
+    sat,
     unsat,
     unknown,
 )
@@ -238,13 +239,7 @@ class DateVar:
         2. Else if both have consistent epoch: compare on epoch_var
         3. Else: derive epoch expressions for both sides (converting Y/M/D to epoch if needed) and compare
         """
-        if isinstance(other, _UnboundedDate):
-            raise ValueError(
-                f"Cannot constrain date variable to equal Date({other.year}, {other.month}, {other.day}) "
-                f"which is outside the allowed range [1900-03-01..2100-02-28]. "
-                f"This constraint is always unsatisfiable."
-            )
-        elif isinstance(other, Date):
+        if isinstance(other, (Date, _UnboundedDate)):
             return self._epoch_expr() == to_days_since_epoch(other)
         elif isinstance(other, DateVar):
             # Case 1: Both have consistent Y/M/D - use Y/M/D comparison
@@ -264,11 +259,7 @@ class DateVar:
 
     def __ne__(self, other) -> BoolRef:
         """Support x != date comparison."""
-        if isinstance(other, _UnboundedDate):
-            # Date variable can never equal an out-of-range date, so != is always true
-            from z3 import BoolVal
-            return BoolVal(True)
-        elif isinstance(other, (Date, DateVar)):
+        if isinstance(other, (Date, _UnboundedDate, DateVar)):
             return Not(self.__eq__(other))
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
