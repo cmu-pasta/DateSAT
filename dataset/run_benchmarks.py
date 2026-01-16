@@ -23,7 +23,6 @@ def _get_smtlib_for_constraint(
     timeout_ms: int,
 ) -> str:
     """Helper function to generate SMT-LIB output for a constraint.
-
     This is needed for benchmarking purposes to save SMT-LIB representations.
     """
     from datesmt.api import DateSMTBuilder
@@ -84,64 +83,23 @@ def run_constraint_with_approach(
     }
 
     try:
-        # Handle enumeration baseline - requires special handling as it's not a standard solver
-        if approach == "enumeration":
-            import time
+        # Use the high-level API for all symbolic approaches
+        solve_result = datesmt.solve(
+            constraints=constraint_data,
+            approach=approach,
+            implementation=implementation,
+            timeout_ms=timeout_ms,
+            verbose=False,  # Suppress verbose output during benchmarking
+        )
 
-            from datesmt.constraint_parser import ConstraintParser
-            from datesmt.enumeration_baseline import EnumerationSolver
-
-            # Enumeration baseline doesn't use the high-level API
-            parser = ConstraintParser()
-            constraint_code = parser.parse_constraint_data(constraint_data)
-
-            solver = EnumerationSolver(timeout_ms=timeout_ms)
-            exec_globals = solver.get_execution_context()
-
-            start_time = time.time()
-            try:
-                exec(constraint_code, exec_globals)
-            except AttributeError as e:
-                error_msg = str(e)
-                if "add_bool_var" in error_msg or "add_int_var" in error_msg:
-                    result["status"] = "not_applicable"
-                    result["error_message"] = (
-                        f"Enumeration baseline does not support these variable types: {error_msg}"
-                    )
-                    print(
-                        "⚠️  Not applicable: Enumeration baseline doesn't support bool/int variables"
-                    )
-                    return result
-                raise
-
-            builder = (
-                exec_globals.get("result") or exec_globals.get("builder") or solver
+        # Generate SMT-LIB for benchmarking purposes
+        try:
+            result["smtlib"] = _get_smtlib_for_constraint(
+                constraint_data, approach, implementation, timeout_ms
             )
-            if not builder:
-                raise RuntimeError("Constraint code did not create a solver")
-
-            result["smtlib"] = builder.to_smt2()
-            solve_result = builder.solve()
-            result["execution_time"] = time.time() - start_time
-
-        else:
-            # Use the high-level API for all symbolic approaches
-            solve_result = datesmt.solve(
-                constraints=constraint_data,
-                approach=approach,
-                implementation=implementation,
-                timeout_ms=timeout_ms,
-                verbose=False,  # Suppress verbose output during benchmarking
-            )
-
-            # Generate SMT-LIB for benchmarking purposes
-            try:
-                result["smtlib"] = _get_smtlib_for_constraint(
-                    constraint_data, approach, implementation, timeout_ms
-                )
-            except Exception as e:
-                # SMT-LIB generation is optional for benchmarking
-                result["smtlib_error"] = str(e)
+        except Exception as e:
+            # SMT-LIB generation is optional for benchmarking
+            result["smtlib_error"] = str(e)
 
         # Extract status and solution from solve result
         result["status"] = solve_result.get("status", "error")
@@ -190,7 +148,6 @@ def run_constraints_file(
     constraints_file: str,
     output_dir: str,
     timeout_ms: int = TIMEOUT_MS,
-    skip_enumeration: bool = False,
 ):
     # Load constraints - support both JSON and JSONL formats
     constraints_file_path = Path(constraints_file)
@@ -222,12 +179,11 @@ def run_constraints_file(
     print(f"Loaded {len(constraints)} constraints from {constraints_file}")
     print(f"Output directory: {output_dir}")
 
+    os.makedirs(output_dir, exist_ok=True)
     smt_dir = os.path.join(output_dir, "smt_constraints")
     os.makedirs(smt_dir, exist_ok=True)
-    os.makedirs(output_dir, exist_ok=True)
 
     # Define all methods to run
-    baseline_approaches = [] if skip_enumeration else ["enumeration"]
     symbolic_approaches = [
         "naive",
         "epoch_days",
@@ -235,20 +191,13 @@ def run_constraints_file(
         "alpha_beta",
         "alpha_beta_table",
     ]
-    implementations = ["int", "bitvector"]
+    # implementations = ["int", "bitvector"]
+    implementations = ["int"]
 
-    # Unify all methods into a single list
     # Symbolic approaches with int/bitvector implementations
     all_methods = [
         (approach, impl) for approach in symbolic_approaches for impl in implementations
     ]
-    # Baseline approaches with "naive" implementation
-    if baseline_approaches:
-        all_methods.extend([(approach, "naive") for approach in baseline_approaches])
-
-    if skip_enumeration:
-        print("\n⚠️  Skipping enumeration baseline (--skip-enumeration flag set)")
-        print("   Validation will still work, treating enumeration as not applicable\n")
 
     all_results = {}
 
@@ -317,30 +266,30 @@ def main():
     SCRIPT_DIR = Path(__file__).parent
 
     constraint_sets = [
-        # {
-        #    "name": "Grammar Constraints",
-        #    "constraints_file": SCRIPT_DIR
-        #    / "grammar_constraints"
-        #    / "benchmarks"
-        #    / "constraints.json",
-        #    "output_dir": SCRIPT_DIR / "grammar_constraints" / "results",
-        # },
-        #{
-        #    "name": "LLM Generated Constraints",
-        #    "constraints_file": SCRIPT_DIR
-        #    / "llm_constraints"
-        #    / "constraints"
-        #    / "constraints.json",
-        #    "output_dir": SCRIPT_DIR / "llm_constraints" / "results",
-        #},
         {
-            "name": "Legal Document Constraints",
+            "name": "Grammar Constraints",
             "constraints_file": SCRIPT_DIR
-            / "legal_doc_constraints"
-            / "constraints"
-            / "constraints.jsonl",
-            "output_dir": SCRIPT_DIR / "legal_doc_constraints" / "results",
+            / "grammar_constraints"
+            / "benchmarks"
+            / "constraints.json",
+            "output_dir": SCRIPT_DIR / "grammar_constraints" / "results",
         },
+        # {
+        #     "name": "LLM Generated Constraints",
+        #     "constraints_file": SCRIPT_DIR
+        #     / "llm_constraints"
+        #     / "constraints"
+        #     / "constraints.json",
+        #     "output_dir": SCRIPT_DIR / "llm_constraints" / "results",
+        # },
+        # {
+        #     "name": "Legal Document Constraints",
+        #     "constraints_file": SCRIPT_DIR
+        #     / "legal_doc_constraints"
+        #     / "constraints"
+        #     / "constraints.jsonl",
+        #     "output_dir": SCRIPT_DIR / "legal_doc_constraints" / "results",
+        # },
     ]
 
     parser = argparse.ArgumentParser(
@@ -357,17 +306,11 @@ def main():
         action="store_true",
         help="Skip analysis after constraint execution (default: run analysis)",
     )
-    parser.add_argument(
-        "--skip-enumeration",
-        action="store_true",
-        help="Skip enumeration baseline (validation will still work, treating it as not applicable)",
-    )
 
     args = parser.parse_args()
 
     print(f"Analysis: {'Enabled' if not args.no_analysis else 'Disabled'}")
-    print(f"Timeout: {args.timeout}ms")
-    print(f"Skip Enumeration: {'Yes' if args.skip_enumeration else 'No'}\n")
+    print(f"Timeout: {args.timeout}ms\n")
 
     # Run benchmarks for each constraint set
     for constraint_set in constraint_sets:
@@ -392,8 +335,7 @@ def main():
         run_constraints_file(
             str(constraints_file),
             str(output_dir),
-            args.timeout,
-            skip_enumeration=args.skip_enumeration,
+            timeout_ms=args.timeout,
         )
 
         if not args.no_analysis:
