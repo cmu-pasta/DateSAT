@@ -24,6 +24,7 @@ def _get_smtlib_for_constraint(
 ) -> str:
     """Helper function to generate SMT-LIB output for a constraint.
 
+
     This is needed for benchmarking purposes to save SMT-LIB representations.
     """
     from datesmt.api import DateSMTBuilder
@@ -111,8 +112,15 @@ def run_constraint_with_approach(
                     print(
                         "⚠️  Not applicable: Enumeration baseline doesn't support bool/int variables"
                     )
+                    print(
+                        "⚠️  Not applicable: Enumeration baseline doesn't support bool/int variables"
+                    )
                     return result
                 raise
+
+            builder = (
+                exec_globals.get("result") or exec_globals.get("builder") or solver
+            )
 
             builder = (
                 exec_globals.get("result") or exec_globals.get("builder") or solver
@@ -132,6 +140,7 @@ def run_constraint_with_approach(
                 implementation=implementation,
                 timeout_ms=timeout_ms,
                 verbose=False,  # Suppress verbose output during benchmarking
+                verbose=False,  # Suppress verbose output during benchmarking
             )
 
             # Generate SMT-LIB for benchmarking purposes
@@ -145,6 +154,10 @@ def run_constraint_with_approach(
 
         # Extract status and solution from solve result
         result["status"] = solve_result.get("status", "error")
+        result["execution_time"] = solve_result.get(
+            "execution_time", result["execution_time"]
+        )
+
         result["execution_time"] = solve_result.get(
             "execution_time", result["execution_time"]
         )
@@ -393,7 +406,10 @@ def main():
         run_constraints_file(
             str(constraints_file),
             str(output_dir),
+            str(constraints_file),
+            str(output_dir),
             args.timeout,
+            skip_enumeration=args.skip_enumeration,
             skip_enumeration=args.skip_enumeration,
         )
 

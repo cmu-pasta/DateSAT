@@ -36,7 +36,8 @@ from z3 import (
     ModelRef,
     Not,
     Or,
-    Solver,    sat,
+    Solver,    
+    sat,
     unsat,
     unknown,
 )
@@ -62,9 +63,11 @@ from .epoch_days_bv import from_days_since_epoch, to_days_since_epoch
 class DateVar:
     """Symbolic date variable with lazy dual representation (epoch + Y/M/D)."""
 
-    def __init__(self, ctx, name: str):
+    def __init__(self, ctx, name: str, is_user_var: bool = True):
         self.ctx = ctx
         self.name = name
+        # Track if this is a user-declared variable (needs bounds) vs intermediate result
+        self._is_user_var = is_user_var
         # Primary epoch representation
         self.epoch_var = BitVec(f"{name}_epoch", LEGACY_BITS)
         # Lazy YMD vars
@@ -153,14 +156,25 @@ class DateVar:
             return self._year_var, self._month_var, self._day_var
         return ymd_from_days_since_epoch(self._epoch_expr())
 
-    def to_concrete_date(self, model: ModelRef) -> Date:
+    def to_concrete_date(self, model: ModelRef) -> Union[Date, _UnboundedDate]:
         if self._ymd_consistent and self._ymd_exists:
             y = model.evaluate(self._year_var, model_completion=True).as_signed_long()
             m = model.evaluate(self._month_var, model_completion=True).as_signed_long()
             d = model.evaluate(self._day_var, model_completion=True).as_signed_long()
-            return Date(y, m, d)
+            try:
+                return Date(y, m, d)
+            except ValueError:
+                # Intermediate result went out of bounds - use unbounded date
+                return _UnboundedDate(y, m, d)
         e = model.evaluate(self._epoch_expr(), model_completion=True).as_signed_long()
-        return from_days_since_epoch(e)
+        try:
+            return from_days_since_epoch(e)
+        except ValueError:
+            # Epoch out of bounds - convert to Y/M/D then create unbounded date
+            from datetime import date, timedelta
+            _EPOCH = date(2000, 3, 1)
+            result_date = _EPOCH + timedelta(days=e)
+            return _UnboundedDate(result_date.year, result_date.month, result_date.day)
 
     def __ge__(self, other) -> BoolRef:
         """Support x >= date comparison.
@@ -240,13 +254,7 @@ class DateVar:
         2. Else if both have consistent epoch: compare on epoch_var
         3. Else: derive epoch expressions for both sides (converting Y/M/D to epoch if needed) and compare
         """
-        if isinstance(other, _UnboundedDate):
-            raise ValueError(
-                f"Cannot constrain date variable to equal Date({other.year}, {other.month}, {other.day}) "
-                f"which is outside the allowed range [1900-03-01..2100-02-28]. "
-                f"This constraint is always unsatisfiable."
-            )
-        elif isinstance(other, Date):
+        if isinstance(other, (Date, _UnboundedDate)):
             return self._epoch_expr() == BitVecVal(to_days_since_epoch(other), LEGACY_BITS)
         elif isinstance(other, DateVar):
             # Case 1: Both have consistent Y/M/D - use Y/M/D comparison
@@ -266,11 +274,7 @@ class DateVar:
 
     def __ne__(self, other) -> BoolRef:
         """Support x != date comparison."""
-        if isinstance(other, _UnboundedDate):
-            # Date variable can never equal an out-of-range date, so != is always true
-            from z3 import BoolVal
-            return BoolVal(True)
-        elif isinstance(other, (Date, DateVar)):
+        if isinstance(other, (Date, _UnboundedDate, DateVar)):
             return Not(self.__eq__(other))
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
@@ -285,7 +289,8 @@ class DateVar:
         if not isinstance(other, Period):
             raise TypeError(f"Cannot add {type(other)} to DateVar")
 
-        result = self.ctx.add_date_var(f"{self.name}_plus")
+        # Don't add bounds for intermediate results to avoid UNSAT when results go out of range
+        result = self.ctx.add_date_var(f"{self.name}_plus", add_bounds=False)
 
         # Concrete Period fast-path for days-only
         if isinstance(other, Period) and other.years == 0 and other.months == 0:
@@ -349,7 +354,7 @@ class HybridSolver:
         self.constraints = []
         self.timeout_ms = timeout_ms
 
-    def add_date_var(self, name: str) -> DateVar:
+    def add_date_var(self, name: str, add_bounds: bool = True) -> DateVar:
         if name is None:
             name = f"d{len(self.date_vars)}"
         # Ensure uniqueness to avoid collisions when creating multiple temporaries
@@ -358,30 +363,48 @@ class HybridSolver:
         while name in self.date_vars:
             suffix += 1
             name = f"{base_name}_{suffix}"
-        dv = DateVar(self, name)
+        # Pass is_user_var flag to DateVar constructor
+        dv = DateVar(self, name, is_user_var=add_bounds)
         self.date_vars[name] = dv
 
         # Basic epoch range constraints [1900-03-01 .. 2100-02-28]
-        self.solver.add(dv.epoch_var >= BitVecVal(-36525, LEGACY_BITS))
-        self.solver.add(dv.epoch_var <= BitVecVal(36523, LEGACY_BITS))
+        # Only add bounds for user-declared variables, not intermediate arithmetic results
+        # to avoid UNSAT when intermediate dates go slightly out of range
+        if add_bounds:
+            self.solver.add(dv.epoch_var >= BitVecVal(-36525, LEGACY_BITS))
+            self.solver.add(dv.epoch_var <= BitVecVal(36523, LEGACY_BITS))
         return dv
 
     def _add_date_constraints(self, dv: DateVar) -> None:
         if not dv._ymd_exists:
             return
         Y, M, D = dv._year_var, dv._month_var, dv._day_var
-        # Year bounds consistent with epoch bounds
-        Y_MIN, Y_MAX = 1900, 2100
-        self.solver.add(
-            And(
-                Y >= BitVecVal(Y_MIN, LEGACY_BITS),
-                Y <= BitVecVal(Y_MAX, LEGACY_BITS),
-                M >= BitVecVal(1, LEGACY_BITS),
-                M <= BitVecVal(12, LEGACY_BITS),
-                D >= BitVecVal(1, LEGACY_BITS),
-                D <= days_in_month(Y, M),
+        
+        # For user-declared variables, add year bounds consistent with epoch bounds
+        # For intermediate results from arithmetic, skip year bounds to avoid UNSAT
+        # when intermediate dates go slightly out of range
+        if dv._is_user_var:
+            Y_MIN, Y_MAX = 1900, 2100
+            self.solver.add(
+                And(
+                    Y >= BitVecVal(Y_MIN, LEGACY_BITS),
+                    Y <= BitVecVal(Y_MAX, LEGACY_BITS),
+                    M >= BitVecVal(1, LEGACY_BITS),
+                    M <= BitVecVal(12, LEGACY_BITS),
+                    D >= BitVecVal(1, LEGACY_BITS),
+                    D <= days_in_month(Y, M),
+                )
             )
-        )
+        else:
+            # For intermediate results, only add month/day validity constraints
+            self.solver.add(
+                And(
+                    M >= BitVecVal(1, LEGACY_BITS),
+                    M <= BitVecVal(12, LEGACY_BITS),
+                    D >= BitVecVal(1, LEGACY_BITS),
+                    D <= days_in_month(Y, M),
+                )
+            )
 
     def add_constraint(self, constraint: BoolRef) -> None:
         """Add a constraint to the solver."""
@@ -397,9 +420,15 @@ class HybridSolver:
         return self.solver.model()
 
     def get_concrete_dates(self, model: ModelRef) -> dict:
-        """Get concrete dates from the model."""
+        """Get concrete dates from the model.
+        
+        Only returns user-declared variables, filtering out intermediate results
+        from arithmetic operations (consistent with other implementations).
+        """
         return {
-            name: var.to_concrete_date(model) for name, var in self.date_vars.items()
+            name: var.to_concrete_date(model)
+            for name, var in self.date_vars.items()
+            if var._is_user_var
         }
 
     def solve(self) -> Union[bool, dict]:
