@@ -169,10 +169,7 @@ conda create -y -n datesmt python=3.10
 conda activate datesmt
 
 # 2. Install dependencies
-pip install -r requirements/core.txt
-# Optionally install the dev dependencies and the llm constraints generation pipeline dependencies
-pip install -r requirements/dev.txt
-pip install -r requirements/llm_pipeline.txt
+pip install -r requirements.txt
 
 # 3. Set PYTHONPATH
 export PYTHONPATH=$PYTHONPATH:$(pwd)
@@ -202,13 +199,14 @@ For most use cases, the default `epoch_days` approach with `int` implementation 
 - `bin/` - Command-line interface
   - `datesmt.py` - CLI tool
 - `tests/` - Test suite (see `tests/README.md` for details)
-- `docs/` - Technical documentation
-- `dataset/` - Benchmark generation and testing tools
-  - `grammar_constraints/` - Grammar-based constraint generation
-  - `llm_constraints/` - LLM-based constraint generation
-  - `legal_doc_constraints/` - Real-world legal document constraints
-  - `run_benchmarks.py` - Benchmark runner
-- `requirements/` - Python dependencies
+- `docs/` - Technical documentation (methods, implementations)
+- `dataset/llm_constraints/` - LLM-based constraint generation and testing tools
+  - `generator/` - Constraint generation scripts (constraint_generator.py, combine_constraints.py)
+  - `constraints/` - Generated constraint JSON files
+  - `run_tests.py` - Test runner for executing constraints against all DATE-SMT approaches
+- `dataset/utils/validation.py` - Concrete validation for verifying solver solutions
+- `dataset/test_validation.py` - Unit tests for validation functionality
+- `requirements.txt` - Python dependencies
 
 ## Usage
 
