@@ -155,7 +155,8 @@ def execute_constraint_code(
         # Evaluate using the pure-Python constraint validator (supports date/bool/int)
         ok, msg = validate_constraint_solution(constraint_code, parsed_solution)
         if ok:
-            return True, "Solution validated successfully", validated_constraints_str
+            # Preserve the message from validate_constraint_solution (may include warning info)
+            return True, msg, validated_constraints_str
         return False, f"Constraint execution failed: {msg}", validated_constraints_str
 
     except Exception as e:
@@ -223,40 +224,31 @@ def validate_solution_with_concrete(
             )
 
     # Execute the constraint with concrete values using Python-based enumeration solver.
-    # This validates using Python date arithmetic, not SMT-LIB. We also capture any
-    # warnings about out-of-bounds intermediate dates so that higher-level summaries
-    # can classify these cases as "warning" instead of fully "wrong".
-    with warnings.catch_warnings(record=True) as caught:
-        warnings.simplefilter("always")
-        success, message, validated_constraints_str = execute_constraint_code(
-            constraint_code, string_solution, constraint_data
-        )
-
-    # Detect out-of-bounds warnings emitted by Date/Period arithmetic
-    oob_warning = any(
-        "Intermediate date computation resulted in date outside allowed range"
-        in str(w.message)
-        for w in caught
+    # This validates using Python date arithmetic, not SMT-LIB. The message from
+    # validate_constraint_solution will include warning information if intermediate
+    # dates went outside the allowed range, which upstream code will use to classify
+    # cases as "warning_correct" or "warning_wrong" based on whether validation
+    # actually succeeded.
+    success, message, validated_constraints_str = execute_constraint_code(
+        constraint_code, string_solution, constraint_data
     )
 
     if not success:
-        # Preserve existing error behavior, but keep the message as-is so callers can
-        # decide whether to treat it as a warning or an error.
+        # Validation actually failed - return False
         return (
             False,
             f"Constraint execution failed: {message}",
             validated_constraints_str,
         )
 
-    # If evaluation succeeded but went outside the supported date range at any point,
-    # treat this as a special failure. Upstream, this will be interpreted as a
-    # "warning" (not a fully wrong model).
-    if oob_warning:
-        return (
-            False,
-            "Constraint execution failed: Date outside allowed range encountered during intermediate computation",
-            validated_constraints_str,
-        )
+    # If evaluation succeeded, return True. The message already includes warning info
+    # if present (from validate_constraint_solution). Upstream code will check both
+    # success and warning status to determine "warning_correct" vs "warning_wrong".
+    return (
+        True,
+        message,  # Preserve message which may include warning info
+        validated_constraints_str,
+    )
 
     # Save the solution and constraints with substituted values
     # This shows what was actually validated using Python constraint validator
@@ -537,14 +529,18 @@ def summarize_constraint(
             # Treat like timeout - don't penalize, but don't count as correct either
             per_approach_verdict[a] = "not_applicable"
         elif status == "sat":
-            # Prefer concrete validation result if available
-            vinfo = sat_validation.get(a)
-            msg = (vinfo or {}).get("message", "")
-            if vinfo and vinfo.get("valid") is True:
-                per_approach_verdict[a] = "correct"
-            elif vinfo and vinfo.get("valid") is False:
-                if isinstance(msg, str) and "Date outside allowed range" in msg:
-                    per_approach_verdict[a] = "warning"
+            # All SAT records were validated, so sat_validation[a] must exist
+            vinfo = sat_validation[a]
+            msg = vinfo["message"]
+            has_warning = isinstance(msg, str) and "Date outside allowed range" in msg
+            if vinfo["valid"] is True:
+                if has_warning:
+                    per_approach_verdict[a] = "warning_correct"
+                else:
+                    per_approach_verdict[a] = "correct"
+            elif vinfo["valid"] is False:
+                if has_warning:
+                    per_approach_verdict[a] = "warning_wrong"
                 else:
                     per_approach_verdict[a] = "wrong"
             else:
@@ -585,8 +581,19 @@ def summarize_constraint(
                     # All other approaches also UNSAT, mark as correct (they agree)
                     per_approach_verdict[a] = "correct"
                 elif any(s == "sat" for s in other_statuses):
-                    # Some others are SAT but this is UNSAT - mark as wrong
-                    per_approach_verdict[a] = "wrong"
+                    # Some others are SAT - check if any SAT solution is valid
+                    # UNSAT is only wrong if at least one SAT solution is valid
+                    # All SAT records were validated, so sat_validation[key] must exist
+                    any_valid_sat = any(
+                        sat_validation[sat_key]["valid"]
+                        for sat_key in sat_recs.keys()
+                        if normalized_statuses.get(sat_key) != "not_applicable"
+                    )
+                    if any_valid_sat:
+                        per_approach_verdict[a] = "wrong"
+                    else:
+                        # No valid SAT solutions, UNSAT is correct
+                        per_approach_verdict[a] = "correct"
                 else:
                     # Mixed results - can't determine, mark as correct (conservative)
                     per_approach_verdict[a] = "correct"
@@ -600,8 +607,9 @@ def summarize_constraint(
             # If at least one SAT is correct, then UNSAT is wrong
             else:
                 # Check if any SAT solution is valid (excluding enumeration if it's not_applicable)
+                # All SAT records were validated, so sat_validation[key] must exist
                 any_valid_sat = any(
-                    sat_validation.get(sat_key, {}).get("valid", False)
+                    sat_validation[sat_key]["valid"]
                     for sat_key in sat_recs.keys()
                     if normalized_statuses.get(sat_key) != "not_applicable"
                 )
@@ -638,7 +646,7 @@ def summarize_constraint(
             if v not in ("not_applicable", "timeout")
         ]
         if applicable_verdicts and all(
-            v in ("correct", "warning") for v in applicable_verdicts
+            v in ("correct", "warning_correct") for v in applicable_verdicts
         ):
             verdict = "correct"
         elif any(v == "wrong" for v in per_approach_verdict.values()):
@@ -768,7 +776,8 @@ def check_results_dir(
                     "wrong": 0,
                     "error": 0,
                     "timeout": 0,
-                    "warning": 0,
+                    "warning_correct": 0,
+                    "warning_wrong": 0,
                     "not_applicable": 0,
                 }
             # Only track not_applicable for enumeration_* approaches; DateSMT methods
@@ -1059,11 +1068,14 @@ def validate_results_with_concrete(results_dir: Path) -> Dict[str, Any]:
         approach_statuses: Dict[str, str] = {}
         sat_validation: Dict[str, Dict[str, Any]] = {}
         verdicts_by_approach: Dict[str, str] = {}
+        normalized_statuses: Dict[str, str] = {}
 
+        # First pass: validate all SAT solutions
         for approach_key, record in approaches.items():
             status = record.get("status", "unknown")
             normalized_status = normalize_status(status)
             approach_statuses[approach_key] = status
+            normalized_statuses[approach_key] = normalized_status
 
             # Initialize counts for this approach
             if approach_key not in counts_by_approach:
@@ -1072,10 +1084,11 @@ def validate_results_with_concrete(results_dir: Path) -> Dict[str, Any]:
                     "wrong": 0,
                     "error": 0,
                     "timeout": 0,
-                    "warning": 0,
+                    "warning_correct": 0,
+                    "warning_wrong": 0,
                 }
 
-            # Handle different statuses
+            # Handle SAT statuses - validate solutions
             if normalized_status == "sat":
                 solution = record.get("solution", {})
 
@@ -1092,8 +1105,6 @@ def validate_results_with_concrete(results_dir: Path) -> Dict[str, Any]:
                         "message": "No constraints available in record",
                         "solution": solution,
                     }
-                    verdicts_by_approach[approach_key] = "wrong"
-                    counts_by_approach[approach_key]["wrong"] += 1
                     continue
 
                 # Validate by executing constraints with concrete values
@@ -1107,18 +1118,35 @@ def validate_results_with_concrete(results_dir: Path) -> Dict[str, Any]:
                     "solution": solution,
                 }
 
+        # Second pass: assign verdicts based on status and SAT validation results
+        # Check if any SAT solution is valid
+        # All SAT approaches were validated in first pass, so sat_validation[key] must exist
+        any_valid_sat = any(
+            sat_validation[approach_key]["valid"]
+            for approach_key in approaches.keys()
+            if normalized_statuses.get(approach_key) == "sat"
+        )
+
+        for approach_key, record in approaches.items():
+            normalized_status = normalized_statuses[approach_key]
+
+            if normalized_status == "sat":
                 # Determine verdict: correct if valid, wrong if invalid
-                if is_valid:
-                    verdicts_by_approach[approach_key] = "correct"
-                    counts_by_approach[approach_key]["correct"] += 1
+                # All SAT approaches were validated in first pass, so sat_validation[key] must exist
+                vinfo = sat_validation[approach_key]
+                message = vinfo["message"]
+                has_warning = isinstance(message, str) and "Date outside allowed range" in message
+                if vinfo["valid"] is True:
+                    if has_warning:
+                        verdicts_by_approach[approach_key] = "warning_correct"
+                        counts_by_approach[approach_key]["warning_correct"] += 1
+                    else:
+                        verdicts_by_approach[approach_key] = "correct"
+                        counts_by_approach[approach_key]["correct"] += 1
                 else:
-                    # Treat out-of-bounds concrete evaluation as a warning (not wrong)
-                    if (
-                        isinstance(message, str)
-                        and "Date outside allowed range" in message
-                    ):
-                        verdicts_by_approach[approach_key] = "warning"
-                        counts_by_approach[approach_key]["warning"] += 1
+                    if has_warning:
+                        verdicts_by_approach[approach_key] = "warning_wrong"
+                        counts_by_approach[approach_key]["warning_wrong"] += 1
                     else:
                         verdicts_by_approach[approach_key] = "wrong"
                         counts_by_approach[approach_key]["wrong"] += 1
@@ -1139,15 +1167,29 @@ def validate_results_with_concrete(results_dir: Path) -> Dict[str, Any]:
                 }
                 verdicts_by_approach[approach_key] = "timeout"
                 counts_by_approach[approach_key]["timeout"] += 1
+            elif normalized_status == "unsat":
+                # UNSAT is only wrong if there exists at least one valid SAT solution
+                # If all SAT solutions are invalid, then UNSAT is correct
+                constraint_results[approach_key] = {
+                    "valid": not any_valid_sat,
+                    "message": f"Status: unsat (valid={not any_valid_sat} based on SAT validation)",
+                    "solution": record.get("solution", {}),
+                }
+                if any_valid_sat:
+                    # At least one SAT solution is valid, so UNSAT is wrong
+                    verdicts_by_approach[approach_key] = "wrong"
+                    counts_by_approach[approach_key]["wrong"] += 1
+                else:
+                    # No valid SAT solutions, UNSAT is correct
+                    verdicts_by_approach[approach_key] = "correct"
+                    counts_by_approach[approach_key]["correct"] += 1
             else:
-                # UNSAT or other statuses
+                # Unknown or other statuses
                 constraint_results[approach_key] = {
                     "valid": False,
                     "message": f"Status: {normalized_status}",
                     "solution": record.get("solution", {}),
                 }
-                # For UNSAT, we'd need to check consensus to determine correct/wrong
-                # For now, mark as wrong (could be enhanced later)
                 verdicts_by_approach[approach_key] = "wrong"
                 counts_by_approach[approach_key]["wrong"] += 1
 

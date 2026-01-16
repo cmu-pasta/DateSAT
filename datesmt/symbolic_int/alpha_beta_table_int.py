@@ -24,7 +24,8 @@ from z3 import (
     Or,
     Select,
     Solver,
-    Store,    sat,
+    Store,    
+    sat,
     unsat,
     unknown,
 )
@@ -205,13 +206,7 @@ class DateVar:
 
     def __eq__(self, other) -> BoolRef:
         """Support x == date comparison."""
-        if isinstance(other, _UnboundedDate):
-            raise ValueError(
-                f"Cannot constrain date variable to equal Date({other.year}, {other.month}, {other.day}) "
-                f"which is outside the allowed range [1900-03-01..2100-02-28]. "
-                f"This constraint is always unsatisfiable."
-            )
-        elif isinstance(other, Date):
+        if isinstance(other, (Date, _UnboundedDate)):
             alpha_o = months_since_epoch_from_ym(
                 IntVal(other.year), IntVal(other.month)
             )
@@ -225,11 +220,7 @@ class DateVar:
 
     def __ne__(self, other) -> BoolRef:
         """Support x != date comparison using ordinal arithmetic."""
-        if isinstance(other, _UnboundedDate):
-            # Date variable can never equal an out-of-range date, so != is always true
-            from z3 import BoolVal
-            return BoolVal(True)
-        elif isinstance(other, (Date, DateVar)):
+        if isinstance(other, (Date, _UnboundedDate, DateVar)):
             return Not(self.__eq__(other))
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")

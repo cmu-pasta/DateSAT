@@ -107,18 +107,9 @@ class EvalDateVar:
         )
 
     def __eq__(self, other: Union[Date, "EvalDateVar"]) -> ConstraintWrapper:  # type: ignore[override]
-        if isinstance(other, _UnboundedDate):
-            raise ValueError(
-                f"Cannot constrain date variable to equal Date({other.year}, {other.month}, {other.day}) "
-                f"which is outside the allowed range [1900-03-01..2100-02-28]. "
-                f"This constraint is always unsatisfiable."
-            )
         return self._cmp("eq", other)
 
     def __ne__(self, other: Union[Date, "EvalDateVar"]) -> ConstraintWrapper:  # type: ignore[override]
-        if isinstance(other, _UnboundedDate):
-            # Date variable can never equal an out-of-range date, so != is always true
-            return ConstraintWrapper(lambda: True)
         return self._cmp("ne", other)
 
     def __lt__(self, other: Union[Date, "EvalDateVar"]) -> ConstraintWrapper:
@@ -885,31 +876,47 @@ def validate_constraint_solution(
                 continue
 
         # Evaluate constraints
+        validation_failed = False
+        failure_message = None
         try:
             for c in solver.constraints:
                 if isinstance(c, bool):
                     if not c:
-                        return False, "Constraint evaluated False"
+                        validation_failed = True
+                        failure_message = "Constraint evaluated False"
+                        break
                 elif isinstance(c, ConstraintWrapper):
                     if not c.evaluate():
-                        return False, "Constraint evaluated False"
+                        validation_failed = True
+                        failure_message = "Constraint evaluated False"
+                        break
                 elif callable(c):
                     if not c():
-                        return False, "Constraint evaluated False"
+                        validation_failed = True
+                        failure_message = "Constraint evaluated False"
+                        break
                 else:
                     if not bool(c):
-                        return False, "Constraint evaluated False"
+                        validation_failed = True
+                        failure_message = "Constraint evaluated False"
+                        break
         except Exception as e:
-            return False, f"Error during constraint evaluation: {e}"
+            validation_failed = True
+            failure_message = f"Error during constraint evaluation: {e}"
+
+    # If validation failed, return False with appropriate message
+    if validation_failed:
+        if _OUT_OF_BOUNDS_USED:
+            return False, f"{failure_message} (with warning: Date outside allowed range encountered during intermediate computation)"
+        return False, failure_message
 
     # If any intermediate date went outside the supported range during evaluation,
-    # treat this as a special validation failure. The higher-level summary code
-    # will classify these as "warning" rather than fully "wrong", but we still
-    # surface a clear message here.
+    # include warning info in the message. The higher-level summary code will classify
+    # these as "warning_correct" or "warning_wrong" based on whether validation actually succeeded.
     if _OUT_OF_BOUNDS_USED:
         return (
-            False,
-            "Date outside allowed range encountered during intermediate computation",
+            True,
+            "Solution validated successfully (with warning: Date outside allowed range encountered during intermediate computation)",
         )
 
     return True, "Solution validated successfully"
