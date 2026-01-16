@@ -229,13 +229,14 @@ def run_constraints_file(
     # Define all methods to run
     baseline_approaches = [] if skip_enumeration else ["enumeration"]
     symbolic_approaches = [
-        "naive",
-        "epoch_days",
-        "hybrid",
-        "alpha_beta",
-        "alpha_beta_table",
+        # "naive",
+        # "epoch_days",
+        # "hybrid",
+        # "alpha_beta",
+        # "alpha_beta_table",
     ]
-    implementations = ["int", "bitvector"]
+    # implementations = ["int", "bitvector"]
+    implementations = ["int"]
 
     # Unify all methods into a single list
     # Symbolic approaches with int/bitvector implementations
@@ -318,12 +319,12 @@ def main():
 
     constraint_sets = [
         # {
-        #    "name": "Grammar Constraints",
-        #    "constraints_file": SCRIPT_DIR
-        #    / "grammar_constraints"
-        #    / "benchmarks"
-        #    / "constraints.json",
-        #    "output_dir": SCRIPT_DIR / "grammar_constraints" / "results",
+        #     "name": "Grammar Constraints",
+        #     "constraints_file": SCRIPT_DIR
+        #     / "grammar_constraints"
+        #     / "benchmarks"
+        #     / "constraints.json",
+        #     "output_dir": SCRIPT_DIR / "grammar_constraints" / "results",
         # },
         {
             "name": "LLM Generated Constraints",
@@ -334,12 +335,12 @@ def main():
             "output_dir": SCRIPT_DIR / "llm_constraints" / "results",
         },
         # {
-        #    "name": "Legal Document Constraints",
-        #    "constraints_file": SCRIPT_DIR
-        #    / "legal_doc_constraints"
-        #    / "constraints"
-        #    / "constraints.jsonl",
-        #    "output_dir": SCRIPT_DIR / "legal_doc_constraints" / "results",
+        #     "name": "Legal Document Constraints",
+        #     "constraints_file": SCRIPT_DIR
+        #     / "legal_doc_constraints"
+        #     / "constraints"
+        #     / "constraints.jsonl",
+        #     "output_dir": SCRIPT_DIR / "legal_doc_constraints" / "results",
         # },
     ]
 
