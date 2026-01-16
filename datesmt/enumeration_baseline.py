@@ -406,7 +406,8 @@ class EnumerationDateVar:
             rhs_ref=other,
         )
 
-    def __ne__(self, other: Union[Date, "EnumerationDateVar"]) -> ConstraintWrapper:  # type: ignore[override]        return ConstraintWrapper(self._get_comparison_func("ne", other), var_ref=self, rhs_ref=other)
+    def __ne__(self, other: Union[Date, "EnumerationDateVar"]) -> ConstraintWrapper:  # type: ignore[override]
+        return ConstraintWrapper(self._get_comparison_func("ne", other), var_ref=self, rhs_ref=other)
 
     def __add__(self, other: Period) -> "EnumerationDateVar":
         if not isinstance(other, Period):
