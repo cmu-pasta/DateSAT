@@ -17,3 +17,7 @@ openai>=1.0.0
 anthropic>=0.3.0
 python-dotenv>=1.0.0
 
+# MCP Server Dependencies
+mcp>=1.0.0
+uvicorn>=0.30.0
+
