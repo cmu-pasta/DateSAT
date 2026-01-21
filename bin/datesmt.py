@@ -135,6 +135,12 @@ Input format:
         help="Suppress solver output (only show final result)"
     )
     
+    parser.add_argument(
+        "--maxsat",
+        action="store_true",
+        help="Use MaxSAT optimization with soft constraints for dates near today"
+    )
+    
     args = parser.parse_args()
     
     # Read input
@@ -172,7 +178,8 @@ Input format:
             approach=args.approach,
             implementation=args.implementation,
             timeout_ms=args.timeout,
-            verbose=not args.quiet
+            verbose=not args.quiet,
+            use_maxsat=args.maxsat
         )
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)

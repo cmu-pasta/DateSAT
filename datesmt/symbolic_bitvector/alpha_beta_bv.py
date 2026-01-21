@@ -16,6 +16,7 @@ from z3 import (
     If,
     ModelRef,
     Not,
+    Optimize,
     Or,
     Solver,    
     sat,
@@ -241,13 +242,18 @@ class DateVar:
 class AlphaBetaSolver:
     """Alpha-beta date constraint solver using epoch-based conversion."""
 
-    def __init__(self, timeout_ms=600000):
+    def __init__(self, timeout_ms=600000, use_maxsat=False):
         """Initialize the solver with timeout.
 
         Args:
             timeout_ms: Timeout in milliseconds (default: 60 seconds)
+            use_maxsat: If True, use MaxSAT optimization with soft constraints
         """
-        self.solver = Solver()
+        self.use_maxsat = use_maxsat
+        if use_maxsat:
+            self.solver = Optimize()
+        else:
+            self.solver = Solver()
         self.solver.set("timeout", timeout_ms)
         self.date_vars = {}
         self.constraints = []
@@ -298,6 +304,33 @@ class AlphaBetaSolver:
 
     def solve(self) -> Union[bool, dict]:
         """Solve the constraints."""
+        # Add MaxSAT soft constraints if enabled
+        if self.use_maxsat:
+            from datetime import date
+            today = date.today()
+            # Calculate months since epoch for today
+            today_months = (today.year - _EPOCH_YEAR) * 12 + (today.month - _EPOCH_MONTH)
+            
+            # Convert years to months
+            months_50_years = 50 * 12  # 600 months
+            months_10_years = 10 * 12   # 120 months
+            
+            # Add soft constraints for each date variable
+            for name, date_var in self.date_vars.items():
+                # Low weight: today ± 50 years
+                within_50_years = And(
+                    date_var.months_var >= BitVecVal(today_months - months_50_years, LEGACY_BITS),
+                    date_var.months_var <= BitVecVal(today_months + months_50_years, LEGACY_BITS)
+                )
+                self.solver.add_soft(within_50_years, weight=10)
+                
+                # High weight: today ± 10 years
+                within_10_years = And(
+                    date_var.months_var >= BitVecVal(today_months - months_10_years, LEGACY_BITS),
+                    date_var.months_var <= BitVecVal(today_months + months_10_years, LEGACY_BITS)
+                )
+                self.solver.add_soft(within_10_years, weight=100)
+        
         result = self.check()
         if result == sat:
             model = self.model()

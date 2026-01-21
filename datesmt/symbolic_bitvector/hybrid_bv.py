@@ -35,6 +35,7 @@ from z3 import (
     BitVecVal,
     ModelRef,
     Not,
+    Optimize,
     Or,
     Solver,    
     sat,
@@ -341,13 +342,18 @@ class DateVar:
 class HybridSolver:
     """Hybrid date constraint solver using dual representation (epoch + YMD)."""
 
-    def __init__(self, timeout_ms=600000):
+    def __init__(self, timeout_ms=600000, use_maxsat=False):
         """Initialize the solver with timeout.
 
         Args:
             timeout_ms: Timeout in milliseconds (default: 60 seconds)
+            use_maxsat: If True, use MaxSAT optimization with soft constraints
         """
-        self.solver = Solver()
+        self.use_maxsat = use_maxsat
+        if use_maxsat:
+            self.solver = Optimize()
+        else:
+            self.solver = Solver()
         self.solver.set("timeout", timeout_ms)
         self.date_vars = {}
         self.constraints = []
@@ -432,6 +438,35 @@ class HybridSolver:
 
     def solve(self) -> Union[bool, dict]:
         """Solve the constraints."""
+        # Add MaxSAT soft constraints if enabled
+        if self.use_maxsat:
+            from datetime import date
+            from .epoch_days_bv import to_days_since_epoch
+            today = date.today()
+            today_days = to_days_since_epoch(Date.from_python_date(today))
+            
+            # Calculate ±50 years and ±10 years in days (approximate)
+            # Using 365.25 days per year for accuracy
+            days_50_years = int(50 * 365.25)
+            days_10_years = int(10 * 365.25)
+            
+            # Add soft constraints for each date variable (only user-declared ones)
+            for name, date_var in self.date_vars.items():
+                if date_var._is_user_var:
+                    # Low weight: today ± 50 years
+                    within_50_years = And(
+                        date_var.epoch_var >= BitVecVal(today_days - days_50_years, LEGACY_BITS),
+                        date_var.epoch_var <= BitVecVal(today_days + days_50_years, LEGACY_BITS)
+                    )
+                    self.solver.add_soft(within_50_years, weight=10)
+                    
+                    # High weight: today ± 10 years
+                    within_10_years = And(
+                        date_var.epoch_var >= BitVecVal(today_days - days_10_years, LEGACY_BITS),
+                        date_var.epoch_var <= BitVecVal(today_days + days_10_years, LEGACY_BITS)
+                    )
+                    self.solver.add_soft(within_10_years, weight=100)
+        
         result = self.check()
         if result == sat:
             model = self.model()
