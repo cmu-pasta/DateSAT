@@ -398,7 +398,8 @@ class EnumerationDateVar:
     def __gt__(self, other: Union[Date, "EnumerationDateVar"]) -> ConstraintWrapper:
         return ConstraintWrapper(self._get_comparison_func("gt", other), var_ref=self, rhs_ref=other)
 
-    def __eq__(self, other: Union[Date, "EnumerationDateVar"]) -> ConstraintWrapper:  # type: ignore[override]        concrete_value = self._get_equality_binding(other)
+    def __eq__(self, other: Union[Date, "EnumerationDateVar"]) -> ConstraintWrapper:  # type: ignore[override]
+        concrete_value = self._get_equality_binding(other)
         return ConstraintWrapper(
             self._get_comparison_func("eq", other),
             var_ref=self,

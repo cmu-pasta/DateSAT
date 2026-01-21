@@ -86,7 +86,7 @@ class DateVar:
         """Get symbolic day component (beta_var + 1, since beta is 0-based)."""
         return self.beta_var + IntVal(1)
 
-    def to_concrete_date(self, model: ModelRef) -> Date:
+    def to_concrete_date(self, model: ModelRef) -> Union[Date, _UnboundedDate]:
         """Convert Z3 model to concrete Date using (alpha, beta)."""
         alpha_val = model.evaluate(self.months_var, model_completion=True).as_long()
         beta_val = model.evaluate(self.beta_var, model_completion=True).as_long()
@@ -94,7 +94,11 @@ class DateVar:
         year = (k - 1) // 12
         month = k - year * 12
         day = beta_val + 1
-        return Date(year, month, day)
+        try:
+            return Date(year, month, day)
+        except ValueError:
+            # Intermediate result went out of bounds - use unbounded date
+            return _UnboundedDate(year, month, day)
 
     def __ge__(self, other) -> BoolRef:
         """Support x >= date comparison."""

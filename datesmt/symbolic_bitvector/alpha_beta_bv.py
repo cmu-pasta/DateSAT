@@ -90,7 +90,7 @@ class DateVar:
         from .bitwidths import LEGACY_BITS
         return self.beta_var + BitVecVal(1, LEGACY_BITS)
 
-    def to_concrete_date(self, model: ModelRef) -> Date:
+    def to_concrete_date(self, model: ModelRef) -> Union[Date, _UnboundedDate]:
         """Convert Z3 model to concrete Date using (alpha, beta)."""
         alpha_val = model.evaluate(
             self.months_var, model_completion=True
@@ -100,7 +100,11 @@ class DateVar:
         year = (k - 1) // 12
         month = k - year * 12
         day = beta_val + 1
-        return Date(year, month, day)
+        try:
+            return Date(year, month, day)
+        except ValueError:
+            # Intermediate result went out of bounds - use unbounded date
+            return _UnboundedDate(year, month, day)
 
     def __ge__(self, other) -> BoolRef:
         """Support x >= date comparison."""

@@ -37,9 +37,6 @@ _EPOCH_MONTH = 3
 _EPOCH_LINEAR = IntVal(_EPOCH_YEAR * 12 + _EPOCH_MONTH)
 _FOUR_YEAR_MONTHS = 48
 _FOUR_YEAR_DAYS = 1461
-_T2100_FEB = IntVal(2100 * 12 + 2)
-_T2100_MAR = IntVal(2100 * 12 + 3)
-
 
 def eom_clamp(dim, beta) -> ArithRef:
     return If(
@@ -95,13 +92,6 @@ def alpha_to_abs_month(alpha):
 def months_since_epoch_from_ym(y, m):
     return (y * IntVal(12) + m) - _EPOCH_LINEAR
 
-def _century_correction(abs_month):
-    # -1 if at/after 2100-03, else 0
-    return If(abs_month >= _T2100_MAR, IntVal(-1), IntVal(0))
-
-def _override_dim_for_century_feb(abs_month, dim):
-    return If(abs_month == _T2100_FEB, IntVal(28), dim)
-
 class DateVar:
     """Symbolic date variable using alpha-beta representation.
 
@@ -140,7 +130,7 @@ class DateVar:
         """Get symbolic day component (beta_var + 1, since beta is 0-based)."""
         return self.beta_var + IntVal(1)
 
-    def to_concrete_date(self, model: ModelRef) -> Date:
+    def to_concrete_date(self, model: ModelRef) -> Union[Date, _UnboundedDate]:
         """Convert Z3 model to concrete Date using (alpha, beta)."""
         alpha_val = model.evaluate(self.months_var, model_completion=True).as_long()
         beta_val = model.evaluate(self.beta_var, model_completion=True).as_long()
@@ -148,7 +138,10 @@ class DateVar:
         year = (k - 1) // 12
         month = k - year * 12
         day = beta_val + 1
-        return Date(year, month, day)
+        try:
+            return Date(year, month, day)
+        except ValueError:
+            return _UnboundedDate(year, month, day)
 
     def __ge__(self, other) -> BoolRef:
         """Support x >= date comparison."""
@@ -241,7 +234,7 @@ class DateVar:
             alpha1 = self.months_var
             idx1 = mod48(alpha1)
             abs1 = alpha_to_abs_month(alpha1)
-            dim1 = _override_dim_for_century_feb(abs1, Select(_DIM48_LIST, idx1))
+            dim1 = Select(_DIM48_LIST, idx1)
             beta1 = eom_clamp(dim1, self.beta_var)
 
             # Within-month fast path: if beta1 + days_delta stays in [0, dim1)
@@ -257,8 +250,7 @@ class DateVar:
 
             # Fallback: use full table lookup (when days cross month boundary)
             base48 = Select(_DBM48_LIST, idx1) + beta1
-            corr1 = _century_correction(abs1)
-            total = base48 + corr1 + days_delta
+            total = base48 + days_delta
 
             q0 = total / IntVal(_FOUR_YEAR_DAYS)
             r0 = total % IntVal(_FOUR_YEAR_DAYS)
@@ -266,19 +258,15 @@ class DateVar:
             # Compute idx2 by scanning all 48 months with century correction at target
             best = IntVal(0)
             for i in range(1, _FOUR_YEAR_MONTHS):
-                diff_i = IntVal(i) - idx1
-                abs_i = alpha_to_abs_month(alpha1 + q0 * IntVal(_FOUR_YEAR_MONTHS) + diff_i)
-                corr_i = _century_correction(abs_i)
-                dbm_i_corr = Select(_DBM48_LIST, IntVal(i)) + corr_i
+                dbm_i_corr = Select(_DBM48_LIST, IntVal(i))
                 best = If(r0 >= dbm_i_corr, IntVal(i), best)
 
             idx2 = best
             diff2 = idx2 - idx1
             abs2 = alpha_to_abs_month(alpha1 + q0 * IntVal(_FOUR_YEAR_MONTHS) + diff2)
-            corr2 = _century_correction(abs2)
-            beta2 = r0 - (Select(_DBM48_LIST, idx2) + corr2)
+            beta2 = r0 - (Select(_DBM48_LIST, idx2))
 
-            dim2 = _override_dim_for_century_feb(abs2, Select(_DIM48_LIST, idx2))
+            dim2 = Select(_DIM48_LIST, idx2)
             carry = If(beta2 >= dim2, IntVal(1), IntVal(0))
 
             alpha_ordinal = alpha1 + q0 * IntVal(_FOUR_YEAR_MONTHS) + diff2 + carry
@@ -293,7 +281,7 @@ class DateVar:
         alpha1 = self.months_var + months_delta
         idx1 = mod48(alpha1)
         abs1 = alpha_to_abs_month(alpha1)
-        dim1 = _override_dim_for_century_feb(abs1, Select(_DIM48_LIST, idx1))
+        dim1 = Select(_DIM48_LIST, idx1)
         beta1 = eom_clamp(dim1, self.beta_var)
 
         # Within-month fast path: if adding days stays in same month
@@ -309,8 +297,7 @@ class DateVar:
 
         # Full table lookup path
         base48 = Select(_DBM48_LIST, idx1) + beta1
-        corr1 = _century_correction(abs1)
-        total = base48 + corr1 + days_delta
+        total = base48 + days_delta
 
         q0 = total / IntVal(_FOUR_YEAR_DAYS)
         r0 = total % IntVal(_FOUR_YEAR_DAYS)
@@ -318,21 +305,17 @@ class DateVar:
         # Compute idx2 by scanning all 48 months with century correction at target
         best = IntVal(0)
         for i in range(1, _FOUR_YEAR_MONTHS):
-            diff_i = IntVal(i) - idx1
-            abs_i = alpha_to_abs_month(alpha1 + q0 * IntVal(_FOUR_YEAR_MONTHS) + diff_i)
-            corr_i = _century_correction(abs_i)
-            dbm_i_corr = Select(_DBM48_LIST, IntVal(i)) + corr_i
+            dbm_i_corr = Select(_DBM48_LIST, IntVal(i))
             best = If(r0 >= dbm_i_corr, IntVal(i), best)
 
         idx2 = best
         diff2 = idx2 - idx1
         abs2 = alpha_to_abs_month(alpha1 + q0 * IntVal(_FOUR_YEAR_MONTHS) + diff2)
-        corr2 = _century_correction(abs2)
-        beta2 = r0 - (Select(_DBM48_LIST, idx2) + corr2)
+        beta2 = r0 - (Select(_DBM48_LIST, idx2))
 
-        # End-of-month overflow carry: if beta2 equals/exceeds the (possibly overridden)
-        # month length, advance one month and wrap beta into the next month.
-        dim2 = _override_dim_for_century_feb(abs2, Select(_DIM48_LIST, idx2))
+        # End-of-month overflow carry: if beta2 equals/exceeds the month length,
+        # advance one month and wrap beta into the next month.
+        dim2 = Select(_DIM48_LIST, idx2)
         carry = If(beta2 >= dim2, IntVal(1), IntVal(0))
 
         alpha_ordinal = alpha1 + q0 * IntVal(_FOUR_YEAR_MONTHS) + diff2 + carry
@@ -382,10 +365,9 @@ class AlphaBetaTableSolver:
             date_var.months_var <= IntVal((2100 - _EPOCH_YEAR) * 12 + (2 - _EPOCH_MONTH))
         )
 
-        # Beta bounds: 0 <= beta < DIM (with century Feb override)
+        # Beta bounds: 0 <= beta < DIM
         idx = mod48(date_var.months_var)
-        absm = alpha_to_abs_month(date_var.months_var)
-        dim = _override_dim_for_century_feb(absm, Select(_DIM48_LIST, idx))
+        dim = Select(_DIM48_LIST, idx)
         self.solver.add(And(date_var.beta_var >= IntVal(0), date_var.beta_var < dim))
         return date_var
 

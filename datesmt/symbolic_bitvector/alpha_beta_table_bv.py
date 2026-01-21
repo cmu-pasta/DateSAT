@@ -40,8 +40,6 @@ _EPOCH_MONTH = 3
 _EPOCH_LINEAR = BitVecVal(_EPOCH_YEAR * 12 + _EPOCH_MONTH, LEGACY_BITS)
 _FOUR_YEAR_MONTHS = 48
 _FOUR_YEAR_DAYS = 1461
-_T2100_FEB = BitVecVal(2100 * 12 + 2, LEGACY_BITS)
-_T2100_MAR = BitVecVal(2100 * 12 + 3, LEGACY_BITS)
 _DIM48_LIST_PY, _DBM48_LIST_PY = build_dim_dbm_48_from_epoch()
 
 
@@ -94,13 +92,6 @@ def eom_clamp(dim, beta) -> BitVecRef:
         If(beta > dim - BitVecVal(1, LEGACY_BITS), dim - BitVecVal(1, LEGACY_BITS), beta),
     )
 
-def _century_correction(abs_month) -> BitVecRef:
-    # -1 if at/after 2100-03, else 0
-    return If(abs_month >= _T2100_MAR, BitVecVal(-1, LEGACY_BITS), BitVecVal(0, LEGACY_BITS))
-
-def _override_dim_for_century_feb(abs_month, dim) -> BitVecRef:
-    return If(abs_month == _T2100_FEB, BitVecVal(28, LEGACY_BITS), dim)
-
 
 class DateVar:
     """Symbolic date variable using alpha-beta representation.
@@ -140,7 +131,7 @@ class DateVar:
         """Get symbolic day component (beta_var + 1, since beta is 0-based)."""
         return self.beta_var + BitVecVal(1, LEGACY_BITS)
 
-    def to_concrete_date(self, model: ModelRef) -> Date:
+    def to_concrete_date(self, model: ModelRef) -> Union[Date, _UnboundedDate]:
         """Convert Z3 model to concrete Date using (alpha, beta)."""
         alpha_val = model.evaluate(self.months_var, model_completion=True).as_signed_long()
         beta_val = model.evaluate(self.beta_var, model_completion=True).as_signed_long()
@@ -148,8 +139,10 @@ class DateVar:
         year = (k - 1) // 12
         month = k - year * 12
         day = beta_val + 1
-
-        return Date(year, month, day)
+        try:
+            return Date(year, month, day)
+        except ValueError:
+            return _UnboundedDate(year, month, day)
 
     def __ge__(self, other) -> BoolRef:
         """Support x >= date comparison."""
@@ -240,7 +233,7 @@ class DateVar:
             alpha1 = self.months_var
             idx1 = mod48(alpha1)
             abs1 = alpha_to_abs_month(alpha1)
-            dim1 = _override_dim_for_century_feb(abs1, Select(_DIM48_LIST, idx1))
+            dim1 = Select(_DIM48_LIST, idx1)
             beta1 = eom_clamp(dim1, self.beta_var)
 
             # Within-month fast path: if beta1 + days_delta stays in [0, dim1)
@@ -256,8 +249,7 @@ class DateVar:
 
             # Fallback: use full table lookup (when days cross month boundary)
             base48 = Select(_DBM48_LIST, idx1) + beta1
-            corr1 = _century_correction(abs1)
-            total = base48 + corr1 + days_delta
+            total = base48 + days_delta
 
             q0 = _floor_div_four_year_days(total)
             r0 = total % BitVecVal(_FOUR_YEAR_DAYS, LEGACY_BITS)
@@ -265,12 +257,7 @@ class DateVar:
             # Compute idx2 by scanning all 48 months with century correction at target
             best = BitVecVal(0, LEGACY_BITS)
             for i in range(1, _FOUR_YEAR_MONTHS):
-                diff_i = BitVecVal(i, LEGACY_BITS) - idx1
-                abs_i = alpha_to_abs_month(
-                    alpha1 + q0 * BitVecVal(_FOUR_YEAR_MONTHS, LEGACY_BITS) + diff_i
-                )
-                corr_i = _century_correction(abs_i)
-                dbm_i_corr = Select(_DBM48_LIST, BitVecVal(i, LEGACY_BITS)) + corr_i
+                dbm_i_corr = Select(_DBM48_LIST, BitVecVal(i, LEGACY_BITS))
                 best = If(r0 >= dbm_i_corr, BitVecVal(i, LEGACY_BITS), best)
 
             idx2 = best
@@ -278,10 +265,9 @@ class DateVar:
             abs2 = alpha_to_abs_month(
                 alpha1 + q0 * BitVecVal(_FOUR_YEAR_MONTHS, LEGACY_BITS) + diff2
             )
-            corr2 = _century_correction(abs2)
-            beta2 = r0 - (Select(_DBM48_LIST, idx2) + corr2)
+            beta2 = r0 - (Select(_DBM48_LIST, idx2))
 
-            dim2 = _override_dim_for_century_feb(abs2, Select(_DIM48_LIST, idx2))
+            dim2 = Select(_DIM48_LIST, idx2)
             carry = If(beta2 >= dim2, BitVecVal(1, LEGACY_BITS), BitVecVal(0, LEGACY_BITS))
 
             alpha_ordinal = alpha1 + q0 * BitVecVal(_FOUR_YEAR_MONTHS, LEGACY_BITS) + diff2 + carry
@@ -296,7 +282,7 @@ class DateVar:
         alpha1 = self.months_var + months_delta
         idx1 = mod48(alpha1)
         abs1 = alpha_to_abs_month(alpha1)
-        dim1 = _override_dim_for_century_feb(abs1, Select(_DIM48_LIST, idx1))
+        dim1 = Select(_DIM48_LIST, idx1)
         beta1 = eom_clamp(dim1, self.beta_var)
 
         # Within-month fast path: if adding days stays in same month
@@ -312,8 +298,7 @@ class DateVar:
 
         # Full table lookup path
         base48 = Select(_DBM48_LIST, idx1) + beta1
-        corr1 = _century_correction(abs1)
-        total = base48 + corr1 + days_delta
+        total = base48 + days_delta
 
         q0 = _floor_div_four_year_days(total)
         r0 = total % BitVecVal(_FOUR_YEAR_DAYS, LEGACY_BITS)
@@ -321,12 +306,7 @@ class DateVar:
         # Compute idx2 by scanning all 48 months with century correction at target
         best = BitVecVal(0, LEGACY_BITS)
         for i in range(1, _FOUR_YEAR_MONTHS):
-            diff_i = BitVecVal(i, LEGACY_BITS) - idx1
-            abs_i = alpha_to_abs_month(
-                alpha1 + q0 * BitVecVal(_FOUR_YEAR_MONTHS, LEGACY_BITS) + diff_i
-            )
-            corr_i = _century_correction(abs_i)
-            dbm_i_corr = Select(_DBM48_LIST, BitVecVal(i, LEGACY_BITS)) + corr_i
+            dbm_i_corr = Select(_DBM48_LIST, BitVecVal(i, LEGACY_BITS))
             best = If(r0 >= dbm_i_corr, BitVecVal(i, LEGACY_BITS), best)
 
         idx2 = best
@@ -334,12 +314,11 @@ class DateVar:
         abs2 = alpha_to_abs_month(
             alpha1 + q0 * BitVecVal(_FOUR_YEAR_MONTHS, LEGACY_BITS) + diff2
         )
-        corr2 = _century_correction(abs2)
-        beta2 = r0 - (Select(_DBM48_LIST, idx2) + corr2)
+        beta2 = r0 - (Select(_DBM48_LIST, idx2))
 
         # End-of-month overflow carry: if beta2 equals/exceeds the month length, advance one month
         # month length, advance one month and wrap beta into the next month.
-        dim2 = _override_dim_for_century_feb(abs2, Select(_DIM48_LIST, idx2))
+        dim2 = Select(_DIM48_LIST, idx2)
         carry = If(beta2 >= dim2, BitVecVal(1, LEGACY_BITS), BitVecVal(0, LEGACY_BITS))
 
         alpha_ordinal = alpha1 + q0 * BitVecVal(_FOUR_YEAR_MONTHS, LEGACY_BITS) + diff2 + carry
@@ -391,12 +370,10 @@ class AlphaBetaTableSolver:
             <= BitVecVal((2100 - _EPOCH_YEAR) * 12 + (2 - _EPOCH_MONTH), LEGACY_BITS)
         )
 
-        # Beta bounds: 0 <= beta < DIM with 2100-02 (non-leap century) override
+        # Beta bounds: 0 <= beta < DIM
         idx = mod48(date_var.months_var)
-        absm = alpha_to_abs_month(date_var.months_var)
         # Use idx directly (mod48 already constrains to [0, 47])
-        dim_raw = Select(_DIM48_LIST, idx)
-        dim = If(absm == _T2100_FEB, BitVecVal(28, LEGACY_BITS), dim_raw)
+        dim = Select(_DIM48_LIST, idx)
         self.solver.add(
             And(date_var.beta_var >= BitVecVal(0, LEGACY_BITS), date_var.beta_var < dim)
         )

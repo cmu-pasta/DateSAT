@@ -72,7 +72,6 @@ def is_valid_date_ctor(date_ctor: str) -> bool:
 
     Examples of invalid:
       Date(1900, 2, 28)    # before lower bound
-      Date(2100, 2, 28)    # valid day but out of range (exclusive upper)
       Date(2023, 2, 29)    # invalid day
     """
 

@@ -166,8 +166,7 @@ class DateVar:
             # Step 1: Combine Y and M with normalization (carry years)
             period_total_months = oy * BitVecVal(12, LEGACY_BITS) + om
             total_months = m0 + period_total_months
-            year_carry, m1 = normalize_month(BitVecVal(0, LEGACY_BITS), total_months)
-            y1 = y0 + year_carry
+            y1, m1 = normalize_month(y0, total_months)
 
             # Step 2: EOM clamp
             d1 = eom_clamp(y1, m1, d0)
