@@ -150,6 +150,110 @@ python bin/datesmt.py --file constraints.json --output json
 python bin/datesmt.py --approach hybrid --implementation bitvector --file constraints.json
 ```
 
+## MCP Server (for AI Agents)
+
+DateSMT includes an MCP (Model Context Protocol) server that allows AI agents to solve date constraints programmatically.
+
+### Starting the Server
+
+```bash
+# Start on default port (8000)
+python bin/datesmt_mcp.py
+
+# Start on custom port
+python bin/datesmt_mcp.py --port 3000
+
+# Listen on all network interfaces
+python bin/datesmt_mcp.py --host 0.0.0.0 --port 8080
+
+# Enable auto-reload for development
+python bin/datesmt_mcp.py --reload
+```
+
+### MCP Endpoint
+
+Once running, the MCP SSE endpoint is available at:
+```
+http://<host>:<port>/sse
+```
+
+AI agents connect to this endpoint to discover and call the `solve` tool.
+
+### The `solve` Tool
+
+The MCP server exposes a single `solve` tool with the following parameters:
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `declarations` | `list[str]` | required | Variable declarations (e.g., `["x: Date", "n: int"]`) |
+| `constraints` | `list[str]` | required | Constraint expressions to satisfy |
+| `approach` | `str` | `"epoch_days"` | Solver approach: `naive`, `epoch_days`, `hybrid`, `alpha_beta`, `alpha_beta_table` |
+| `implementation` | `str` | `"int"` | Implementation type: `int` or `bitvector` |
+| `timeout_ms` | `int` | `600000` | Solver timeout in milliseconds |
+
+### Response Format
+
+The `solve` tool returns a JSON object with:
+
+```json
+{
+  "status": "sat|unsat|timeout|error",
+  "dates": {"x": "Date(2024, 6, 1)", ...},
+  "ints": {"n": 5, ...},
+  "bools": {"flag": true, ...},
+  "execution_time": 0.123,
+  "approach": "epoch_days",
+  "implementation": "int",
+  "error": "Error message (only if status is 'error')"
+}
+```
+
+**Status values:**
+- `sat` - Constraints are satisfiable; solution provided in `dates`, `ints`, `bools`
+- `unsat` - Constraints are unsatisfiable; no solution exists
+- `timeout` - Solver timed out before finding a solution
+- `error` - An error occurred (e.g., syntax error); see `error` field for details
+
+### Example Tool Call
+
+An AI agent would call the tool with:
+
+```json
+{
+  "declarations": ["x: Date", "y: Date"],
+  "constraints": [
+    "x >= Date(2024, 1, 1)",
+    "y == x + Period(1, 0, 0)",
+    "x.month == 6"
+  ]
+}
+```
+
+And receive:
+
+```json
+{
+  "status": "sat",
+  "dates": {
+    "x": "Date(2024, 6, 1)",
+    "y": "Date(2025, 6, 1)"
+  },
+  "execution_time": 0.015,
+  "approach": "epoch_days",
+  "implementation": "int"
+}
+```
+
+### Dependencies
+
+The MCP server requires additional dependencies:
+
+```bash
+pip install mcp uvicorn
+```
+
+These are included in `requirements.txt`.
+
 ## Constraint Language
 
 ### Date and Period Constructors
@@ -199,7 +303,7 @@ Both API and CLI return results with the following structure:
 
 ```python
 {
-    "status": "sat" or "unsat",
+    "status": "sat" or "unsat" or "timeout",
     "dates": {"x": Date(2000, 1, 1), ...},  # If sat
     "ints": {"n": 5, ...},                   # If sat
     "bools": {"flag": True, ...},           # If sat
@@ -208,6 +312,11 @@ Both API and CLI return results with the following structure:
     "implementation": "int"
 }
 ```
+
+**Status values:**
+- `sat` - Constraints are satisfiable; solution fields are populated
+- `unsat` - Constraints are unsatisfiable; no solution exists
+- `timeout` - Solver timed out before determining satisfiability
 
 ## Advanced Usage
 
