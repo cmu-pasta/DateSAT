@@ -8,7 +8,8 @@ Representation:
 We avoid full ordinal decode by using a 48-month DIM/DBM table.
 """
 
-from typing import Union, Tuple, List
+from typing import List, Tuple, Union
+
 from z3 import (
     And,
     ArithRef,
@@ -25,13 +26,15 @@ from z3 import (
     Or,
     Select,
     Solver,
-    Store,    
+    Store,
     sat,
-    unsat,
     unknown,
+    unsat,
 )
+
 from ..core import Date, Period, _UnboundedDate
-from .naive_int import days_in_month, add_days_ordinal
+from .naive_int import add_days_ordinal, days_in_month
+
 _EPOCH_YEAR = 2000
 _EPOCH_MONTH = 3
 # Linearized epoch month as a Z3 Int numeral
@@ -39,13 +42,16 @@ _EPOCH_LINEAR = IntVal(_EPOCH_YEAR * 12 + _EPOCH_MONTH)
 _FOUR_YEAR_MONTHS = 48
 _FOUR_YEAR_DAYS = 1461
 
+
 def eom_clamp(dim, beta) -> ArithRef:
     return If(
         beta < IntVal(0), IntVal(0), If(beta > dim - IntVal(1), dim - IntVal(1), beta)
     )
 
+
 def _is_leap_py(y: int) -> bool:
     return (y % 4 == 0 and y % 100 != 0) or (y % 400 == 0)
+
 
 def _days_in_month_py(y: int, m: int) -> int:
     if m == 2:
@@ -54,11 +60,13 @@ def _days_in_month_py(y: int, m: int) -> int:
         return 30
     return 31
 
+
 def _add_months(y: int, m: int, delta: int) -> tuple[int, int]:
     total = (y * 12 + m) + delta
     y2 = (total - 1) // 12
     m2 = total - y2 * 12
     return y2, m2
+
 
 def build_dim_dbm_48_from_epoch() -> tuple[list[int], list[int]]:
     dim: list[int] = [0] * _FOUR_YEAR_MONTHS
@@ -74,24 +82,30 @@ def build_dim_dbm_48_from_epoch() -> tuple[list[int], list[int]]:
     assert cum == _FOUR_YEAR_DAYS
     return dim, dbm
 
+
 def const_array(values: list[int]):
     a = K(IntSort(), IntVal(0))
     for i, v in enumerate(values):
         a = Store(a, IntVal(i), IntVal(v))
     return a
 
+
 _DIM48_LIST_PY, _DBM48_LIST_PY = build_dim_dbm_48_from_epoch()
 _DIM48_LIST = const_array(_DIM48_LIST_PY)
 _DBM48_LIST = const_array(_DBM48_LIST_PY)
 
+
 def mod48(x):
     return x % IntVal(_FOUR_YEAR_MONTHS)
+
 
 def alpha_to_abs_month(alpha):
     return alpha + _EPOCH_LINEAR
 
+
 def months_since_epoch_from_ym(y, m):
     return (y * IntVal(12) + m) - _EPOCH_LINEAR
+
 
 class DateVar:
     """Symbolic date variable using alpha-beta representation.
@@ -159,7 +173,9 @@ class DateVar:
         elif isinstance(other, DateVar):
             return Or(
                 self.months_var > other.months_var,
-                And(self.months_var == other.months_var, self.beta_var >= other.beta_var),
+                And(
+                    self.months_var == other.months_var, self.beta_var >= other.beta_var
+                ),
             )
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
@@ -179,7 +195,9 @@ class DateVar:
         elif isinstance(other, DateVar):
             return Or(
                 self.months_var < other.months_var,
-                And(self.months_var == other.months_var, self.beta_var <= other.beta_var),
+                And(
+                    self.months_var == other.months_var, self.beta_var <= other.beta_var
+                ),
             )
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
@@ -208,7 +226,9 @@ class DateVar:
 
             return And(self.months_var == alpha_o, self.beta_var == beta_o)
         elif isinstance(other, DateVar):
-            return And(self.months_var == other.months_var, self.beta_var == other.beta_var)
+            return And(
+                self.months_var == other.months_var, self.beta_var == other.beta_var
+            )
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
@@ -219,7 +239,7 @@ class DateVar:
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
-    def __add__(self, other) -> 'DateVar':
+    def __add__(self, other) -> "DateVar":
         result = DateVar(f"{self.name}_plus")
 
         if isinstance(other, Period):
@@ -240,10 +260,7 @@ class DateVar:
 
             # Within-month fast path: if beta1 + days_delta stays in [0, dim1)
             new_beta = beta1 + days_delta
-            stays_in_month = And(
-                new_beta >= IntVal(0),
-                new_beta < dim1
-            )
+            stays_in_month = And(new_beta >= IntVal(0), new_beta < dim1)
 
             # Within-month: simple addition
             alpha_within = alpha1
@@ -287,10 +304,7 @@ class DateVar:
 
         # Within-month fast path: if adding days stays in same month
         new_beta = beta1 + days_delta
-        stays_in_month = And(
-            new_beta >= IntVal(0),
-            new_beta < dim1
-        )
+        stays_in_month = And(new_beta >= IntVal(0), new_beta < dim1)
 
         # Within-month: simple addition
         alpha_within = alpha1
@@ -327,7 +341,7 @@ class DateVar:
         result.beta_var = If(stays_in_month, beta_within, beta_ordinal)
         return result
 
-    def __sub__(self, other) -> 'DateVar':
+    def __sub__(self, other) -> "DateVar":
         """DateVar - Period implemented as DateVar + (-Period)."""
         if isinstance(other, Period):
             neg = Period(-other.years, -other.months, -other.days)
@@ -365,10 +379,12 @@ class AlphaBetaTableSolver:
         # 1900-03 => (1900-2000)*12 + (3-3)
         # 2100-02 => (2100-2000)*12 + (2-3)
         self.solver.add(
-            date_var.months_var >= IntVal((1900 - _EPOCH_YEAR) * 12 + (3 - _EPOCH_MONTH))
+            date_var.months_var
+            >= IntVal((1900 - _EPOCH_YEAR) * 12 + (3 - _EPOCH_MONTH))
         )
         self.solver.add(
-            date_var.months_var <= IntVal((2100 - _EPOCH_YEAR) * 12 + (2 - _EPOCH_MONTH))
+            date_var.months_var
+            <= IntVal((2100 - _EPOCH_YEAR) * 12 + (2 - _EPOCH_MONTH))
         )
 
         # Beta bounds: 0 <= beta < DIM
@@ -401,42 +417,45 @@ class AlphaBetaTableSolver:
         # Add MaxSAT soft constraints if enabled
         if self.use_maxsat:
             from datetime import date
+
             today = date.today()
             # Calculate months since epoch for today
-            today_months = (today.year - _EPOCH_YEAR) * 12 + (today.month - _EPOCH_MONTH)
-            
+            today_months = (today.year - _EPOCH_YEAR) * 12 + (
+                today.month - _EPOCH_MONTH
+            )
+
             # Convert years to months
             months_50_years = 50 * 12  # 600 months
-            months_10_years = 10 * 12   # 120 months
-            
+            months_10_years = 10 * 12  # 120 months
+
             # Add soft constraints for each date variable
             for name, date_var in self.date_vars.items():
-                # Low weight: today ± 50 years
+                # High weight: today ± 50 years
                 within_50_years = And(
                     date_var.months_var >= IntVal(today_months - months_50_years),
-                    date_var.months_var <= IntVal(today_months + months_50_years)
+                    date_var.months_var <= IntVal(today_months + months_50_years),
                 )
-                self.solver.add_soft(within_50_years, weight=10)
-                
-                # High weight: today ± 10 years
+                self.solver.add_soft(within_50_years, weight=100)
+
+                # Low weight: today ± 10 years
                 within_10_years = And(
                     date_var.months_var >= IntVal(today_months - months_10_years),
-                    date_var.months_var <= IntVal(today_months + months_10_years)
+                    date_var.months_var <= IntVal(today_months + months_10_years),
                 )
-                self.solver.add_soft(within_10_years, weight=100)
-        
+                self.solver.add_soft(within_10_years, weight=10)
+
         result = self.check()
         if result == sat:
             model = self.model()
             return {
-                'status': 'sat',
-                'dates': self.get_concrete_dates(model),
+                "status": "sat",
+                "dates": self.get_concrete_dates(model),
             }
         elif result == unsat:
-            return {'status': 'unsat', 'dates': {}}
+            return {"status": "unsat", "dates": {}}
         else:
             # result == unknown (timeout or resource limit)
-            return {'status': 'timeout', 'dates': {}}
+            return {"status": "timeout", "dates": {}}
 
     def to_smt2(self) -> str:
         """Return the current problem in SMT-LIB v2 format."""

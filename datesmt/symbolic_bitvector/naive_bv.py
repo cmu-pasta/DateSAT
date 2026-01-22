@@ -6,7 +6,8 @@ as separate year, month, and day variables, and period arithmetic is done
 component-wise with proper normalization.
 """
 
-from typing import Union, Tuple, List
+from typing import List, Tuple, Union
+
 from z3 import (
     UGE,
     ULT,
@@ -22,11 +23,12 @@ from z3 import (
     Not,
     Optimize,
     Or,
-    Solver,    
+    Solver,
     sat,
-    unsat,
     unknown,
+    unsat,
 )
+
 from ..core import Date, Period, _UnboundedDate
 from .bitwidths import LEGACY_BITS
 
@@ -36,7 +38,10 @@ _LEAP_PREFIX = [0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335]
 # Epoch binding: 2000-03-01
 # -------------------------------
 # _ORD_EPOCH = to_ordinal(BitVecVal(2000, LEGACY_BITS), BitVecVal(3, LEGACY_BITS), BitVecVal(1, LEGACY_BITS))  # original ground Z3 term
-_ORD_EPOCH = BitVecVal(730179, LEGACY_BITS)  # precomputed ordinal of 2000-03-01 (0001-01-01 = 0)
+_ORD_EPOCH = BitVecVal(
+    730179, LEGACY_BITS
+)  # precomputed ordinal of 2000-03-01 (0001-01-01 = 0)
+
 
 def is_leap(year) -> BoolRef:
     """Check if a year is a leap year."""
@@ -47,6 +52,7 @@ def is_leap(year) -> BoolRef:
         ),
         year % BitVecVal(400, LEGACY_BITS) == BitVecVal(0, LEGACY_BITS),
     )
+
 
 def days_in_month(year, month) -> ArithRef:
     """Get the number of days in a month, accounting for leap years."""
@@ -65,13 +71,14 @@ def days_in_month(year, month) -> ArithRef:
         ),
     )
 
+
 def normalize_month(y, m) -> Tuple[BitVecRef, BitVecRef]:
     """
     NormMonth(y,m) = (y + ((m-1) div 12), ((m-1) mod 12) + 1)
     Works for concrete and symbolic inputs.
     """
     # Check if m is negative (>= 2^(LEGACY_BITS-1), the sign bit)
-    sign_bit = 2**(LEGACY_BITS-1)
+    sign_bit = 2 ** (LEGACY_BITS - 1)
     is_negative = UGE(m, BitVecVal(sign_bit, LEGACY_BITS))
 
     # Convert to signed value
@@ -91,6 +98,7 @@ def normalize_month(y, m) -> Tuple[BitVecRef, BitVecRef]:
 
     return y + q, r + BitVecVal(1, LEGACY_BITS)
 
+
 def days_before_year(y) -> ArithRef:
     """
     Days from 0001-01-01 to Jan 1 of year y (0-based), Gregorian rules.
@@ -103,6 +111,7 @@ def days_before_year(y) -> ArithRef:
         + y1 / BitVecVal(400, LEGACY_BITS)
     )
 
+
 def days_before_month(y, m) -> BitVecRef:
     """Z3 piecewise selection (no Python control over symbolic m)."""
     expr = BitVecVal(0, LEGACY_BITS)
@@ -110,9 +119,13 @@ def days_before_month(y, m) -> BitVecRef:
         expr = If(m == BitVecVal(i, LEGACY_BITS), _dbm_index(y, i), expr)
     return expr
 
+
 def to_ordinal(y, m, d) -> ArithRef:
     """Z3-pure ordinal conversion (day 0 = 0001-01-01)."""
-    return days_before_year(y) + days_before_month(y, m) + (d - BitVecVal(1, LEGACY_BITS))
+    return (
+        days_before_year(y) + days_before_month(y, m) + (d - BitVecVal(1, LEGACY_BITS))
+    )
+
 
 def from_ordinal(n) -> Tuple[BitVecRef, BitVecRef, BitVecRef]:
     """Z3-pure ordinal to date conversion using 400/100/4/1 year block decomposition."""
@@ -126,13 +139,17 @@ def from_ordinal(n) -> Tuple[BitVecRef, BitVecRef, BitVecRef]:
     q400, r400 = n / D400, n % D400
 
     q100_raw = r400 / D100
-    q100 = If(q100_raw >= BitVecVal(4, LEGACY_BITS), BitVecVal(3, LEGACY_BITS), q100_raw)  # clamp 0..3
+    q100 = If(
+        q100_raw >= BitVecVal(4, LEGACY_BITS), BitVecVal(3, LEGACY_BITS), q100_raw
+    )  # clamp 0..3
     r100 = r400 - q100 * D100
 
     q4, r4 = r100 / D4, r100 % D4
 
     q1_raw = r4 / D1
-    q1 = If(q1_raw >= BitVecVal(4, LEGACY_BITS), BitVecVal(3, LEGACY_BITS), q1_raw)  # clamp 0..3
+    q1 = If(
+        q1_raw >= BitVecVal(4, LEGACY_BITS), BitVecVal(3, LEGACY_BITS), q1_raw
+    )  # clamp 0..3
     r1 = r4 - q1 * D1  # day-of-year (0..365)
 
     year = (
@@ -152,24 +169,34 @@ def from_ordinal(n) -> Tuple[BitVecRef, BitVecRef, BitVecRef]:
     # day = r1 - DBM(year, month) + 1
     day_expr = r1 - dbm[0] + BitVecVal(1, LEGACY_BITS)
     for i in range(2, 13):
-        day_expr = If(r1 >= dbm[i - 1], r1 - dbm[i - 1] + BitVecVal(1, LEGACY_BITS), day_expr)
+        day_expr = If(
+            r1 >= dbm[i - 1], r1 - dbm[i - 1] + BitVecVal(1, LEGACY_BITS), day_expr
+        )
 
     return year, month, day_expr
+
 
 def ymd_from_days_since_epoch(days_term) -> Tuple[BitVec, BitVec, BitVec]:
     """Decode (y,m,d) from a Z3 Int 'days since 2000-03-01'."""
     return from_ordinal(days_term + _ORD_EPOCH)
 
+
 def days_since_epoch_from_ymd(y, m, d) -> ArithRef:
     """Encode (y,m,d) to Z3 Int 'days since 2000-03-01'."""
     return to_ordinal(y, m, d) - _ORD_EPOCH
+
 
 def eom_clamp(year, month, day) -> BitVecRef:
     """
     End-of-month clamp: ensure day is valid for the given year/month.
     """
     max_day = days_in_month(year, month)
-    return If(day < BitVecVal(1, LEGACY_BITS), BitVecVal(1, LEGACY_BITS), If(day > max_day, max_day, day))
+    return If(
+        day < BitVecVal(1, LEGACY_BITS),
+        BitVecVal(1, LEGACY_BITS),
+        If(day > max_day, max_day, day),
+    )
+
 
 def add_days_ordinal(y, m, d, delta_days) -> Tuple[BitVec, BitVec, BitVec]:
     """
@@ -189,10 +216,7 @@ def add_days_ordinal(y, m, d, delta_days) -> Tuple[BitVec, BitVec, BitVec]:
     # Check if result stays within the same month: 1 <= d0 + delta_days <= days_in_month(y, m)
     new_day = d0 + delta_days
     max_day = days_in_month(y, m)
-    stays_in_month = And(
-        new_day >= BitVecVal(1, LEGACY_BITS),
-        new_day <= max_day
-    )
+    stays_in_month = And(new_day >= BitVecVal(1, LEGACY_BITS), new_day <= max_day)
 
     # Within-month fast path: simple addition
     y_within = y
@@ -210,7 +234,9 @@ def add_days_ordinal(y, m, d, delta_days) -> Tuple[BitVec, BitVec, BitVec]:
     return out_y, out_m, out_d
 
 
-def add_days_componentwise(y, m, d, delta_days: int) -> Tuple[BitVecRef, BitVecRef, BitVecRef]:
+def add_days_componentwise(
+    y, m, d, delta_days: int
+) -> Tuple[BitVecRef, BitVecRef, BitVecRef]:
     """
     Add a concrete day offset by iteratively carrying into months/years.
     """
@@ -277,9 +303,15 @@ class DateVar:
         """Create a symbolic date variable."""
         self.name = name
         # Create separate Z3 bitvector variables for year, month, day
-        self.year = BitVec(f"{name}_year", LEGACY_BITS)  # Use LEGACY_BITS for arithmetic compatibility
-        self.month = BitVec(f"{name}_month", LEGACY_BITS)  # Use LEGACY_BITS for arithmetic compatibility
-        self.day = BitVec(f"{name}_day", LEGACY_BITS)  # Use LEGACY_BITS for arithmetic compatibility
+        self.year = BitVec(
+            f"{name}_year", LEGACY_BITS
+        )  # Use LEGACY_BITS for arithmetic compatibility
+        self.month = BitVec(
+            f"{name}_month", LEGACY_BITS
+        )  # Use LEGACY_BITS for arithmetic compatibility
+        self.day = BitVec(
+            f"{name}_day", LEGACY_BITS
+        )  # Use LEGACY_BITS for arithmetic compatibility
 
     def __str__(self) -> str:
         return f"DateVar({self.name})"
@@ -385,7 +417,7 @@ class DateVar:
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
-    def __add__(self, other) -> 'DateVar':
+    def __add__(self, other) -> "DateVar":
         """
         DateVar + Period following naive semantics:
         1) Combine Y and M (normalize months into 1..12 with year carry)
@@ -417,7 +449,9 @@ class DateVar:
 
             # Full path: Step 1: Combine Y and M (normalize months into 1..12 with year carry)
             # Convert period years to months and combine with period months
-            period_total_months = BitVecVal(period_years, LEGACY_BITS) * BitVecVal(12, LEGACY_BITS) + BitVecVal(period_months, LEGACY_BITS)
+            period_total_months = BitVecVal(period_years, LEGACY_BITS) * BitVecVal(
+                12, LEGACY_BITS
+            ) + BitVecVal(period_months, LEGACY_BITS)
             # Add to current month and normalize
             total_months = self.month + period_total_months
             year_carry, m1 = normalize_month(self.year, total_months)
@@ -434,7 +468,7 @@ class DateVar:
         else:
             raise TypeError(f"Cannot add {type(other)} to DateVar")
 
-    def __sub__(self, other) -> 'DateVar':
+    def __sub__(self, other) -> "DateVar":
         """DateVar - Period implemented as DateVar + (-Period)."""
         if isinstance(other, Period):
             neg = Period(-other.years, -other.months, -other.days)
@@ -526,37 +560,38 @@ class NaiveSolver:
         # Add MaxSAT soft constraints if enabled
         if self.use_maxsat:
             from datetime import date
+
             today = date.today()
             today_year = today.year
-            
+
             # Add soft constraints for each date variable
             for name, date_var in self.date_vars.items():
-                # Low weight: today ± 50 years
+                # High weight: today ± 50 years
                 within_50_years = And(
                     date_var.year >= BitVecVal(today_year - 50, LEGACY_BITS),
-                    date_var.year <= BitVecVal(today_year + 50, LEGACY_BITS)
+                    date_var.year <= BitVecVal(today_year + 50, LEGACY_BITS),
                 )
-                self.solver.add_soft(within_50_years, weight=10)
-                
-                # High weight: today ± 10 years
+                self.solver.add_soft(within_50_years, weight=100)
+
+                # Low weight: today ± 10 years
                 within_10_years = And(
                     date_var.year >= BitVecVal(today_year - 10, LEGACY_BITS),
-                    date_var.year <= BitVecVal(today_year + 10, LEGACY_BITS)
+                    date_var.year <= BitVecVal(today_year + 10, LEGACY_BITS),
                 )
-                self.solver.add_soft(within_10_years, weight=100)
-        
+                self.solver.add_soft(within_10_years, weight=10)
+
         result = self.check()
         if result == sat:
             model = self.model()
             return {
-                'status': 'sat',
-                'dates': self.get_concrete_dates(model),
+                "status": "sat",
+                "dates": self.get_concrete_dates(model),
             }
         elif result == unsat:
-            return {'status': 'unsat', 'dates': {}}
+            return {"status": "unsat", "dates": {}}
         else:
             # result == unknown (timeout or resource limit)
-            return {'status': 'timeout', 'dates': {}}
+            return {"status": "timeout", "dates": {}}
 
     def to_smt2(self) -> str:
         """Return the current problem in SMT-LIB v2 format."""

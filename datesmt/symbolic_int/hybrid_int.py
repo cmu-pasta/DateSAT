@@ -18,8 +18,9 @@ Rules:
   on the fly and compare.
 """
 
-from typing import Union, Tuple, List
 from datetime import date, timedelta
+from typing import List, Tuple, Union
+
 from z3 import (
     And,
     ArithRef,
@@ -32,27 +33,28 @@ from z3 import (
     Not,
     Optimize,
     Or,
-    Solver,    
+    Solver,
     sat,
-    unsat,
     unknown,
+    unsat,
 )
+
 from ..core import Date, Period, _UnboundedDate
+from .epoch_days_int import from_days_since_epoch, to_days_since_epoch
 from .naive_int import (
-    is_leap,
-    days_in_month,
-    normalize_month,
-    days_before_year,
+    _dbm_index,
+    add_days_ordinal,
     days_before_month,
-    to_ordinal,
-    from_ordinal,
-    ymd_from_days_since_epoch,
+    days_before_year,
+    days_in_month,
     days_since_epoch_from_ymd,
     eom_clamp,
-    add_days_ordinal,
-    _dbm_index,
+    from_ordinal,
+    is_leap,
+    normalize_month,
+    to_ordinal,
+    ymd_from_days_since_epoch,
 )
-from .epoch_days_int import from_days_since_epoch, to_days_since_epoch
 
 
 class DateVar:
@@ -72,8 +74,8 @@ class DateVar:
         self._month_var = None
         self._day_var = None
         # Consistency flags: which representation reflects the current value
-        self._epoch_consistent = True   # epoch_var starts as the source of truth
-        self._ymd_consistent = False    # Y/M/D not yet materialized/consistent
+        self._epoch_consistent = True  # epoch_var starts as the source of truth
+        self._ymd_consistent = False  # Y/M/D not yet materialized/consistent
 
     def __str__(self) -> str:
         return f"DateVar({self.name})"
@@ -150,7 +152,10 @@ class DateVar:
         self.ctx._add_date_constraints(self)
         # Link YMD to epoch: When YMD is materialized, it becomes the source of truth
         # Add constraint: epoch_var == days_since_epoch_from_ymd(year_var, month_var, day_var)
-        self.ctx.solver.add(self.epoch_var == days_since_epoch_from_ymd(self._year_var, self._month_var, self._day_var))
+        self.ctx.solver.add(
+            self.epoch_var
+            == days_since_epoch_from_ymd(self._year_var, self._month_var, self._day_var)
+        )
         # Update consistency flags: YMD is now the consistent representation
         self._ymd_consistent = True
         self._epoch_consistent = False
@@ -187,13 +192,15 @@ class DateVar:
             return self._epoch_expr() >= to_days_since_epoch(other)
         elif isinstance(other, DateVar):
             # Case 1: Both have consistent Y/M/D - use Y/M/D comparison
-            if self._ymd_consistent and self._ymd_exists and other._ymd_consistent and other._ymd_exists:
+            if (
+                self._ymd_consistent
+                and self._ymd_exists
+                and other._ymd_consistent
+                and other._ymd_exists
+            ):
                 y1, m1, d1 = self._year_var, self._month_var, self._day_var
                 y2, m2, d2 = other._year_var, other._month_var, other._day_var
-                return Or(
-                    y1 > y2,
-                    And(y1 == y2, Or(m1 > m2, And(m1 == m2, d1 >= d2)))
-                )
+                return Or(y1 > y2, And(y1 == y2, Or(m1 > m2, And(m1 == m2, d1 >= d2))))
             # Case 2: Both have consistent epoch - use epoch comparison
             if self._epoch_consistent and other._epoch_consistent:
                 return self.epoch_var >= other.epoch_var
@@ -215,13 +222,15 @@ class DateVar:
             return self._epoch_expr() <= to_days_since_epoch(other)
         elif isinstance(other, DateVar):
             # Case 1: Both have consistent Y/M/D - use Y/M/D comparison
-            if self._ymd_consistent and self._ymd_exists and other._ymd_consistent and other._ymd_exists:
+            if (
+                self._ymd_consistent
+                and self._ymd_exists
+                and other._ymd_consistent
+                and other._ymd_exists
+            ):
                 y1, m1, d1 = self._year_var, self._month_var, self._day_var
                 y2, m2, d2 = other._year_var, other._month_var, other._day_var
-                return Or(
-                    y1 < y2,
-                    And(y1 == y2, Or(m1 < m2, And(m1 == m2, d1 <= d2)))
-                )
+                return Or(y1 < y2, And(y1 == y2, Or(m1 < m2, And(m1 == m2, d1 <= d2))))
             # Case 2: Both have consistent epoch - use epoch comparison
             if self._epoch_consistent and other._epoch_consistent:
                 return self.epoch_var <= other.epoch_var
@@ -256,7 +265,12 @@ class DateVar:
             return self._epoch_expr() == to_days_since_epoch(other)
         elif isinstance(other, DateVar):
             # Case 1: Both have consistent Y/M/D - use Y/M/D comparison
-            if self._ymd_consistent and self._ymd_exists and other._ymd_consistent and other._ymd_exists:
+            if (
+                self._ymd_consistent
+                and self._ymd_exists
+                and other._ymd_consistent
+                and other._ymd_exists
+            ):
                 return And(
                     self._year_var == other._year_var,
                     self._month_var == other._month_var,
@@ -277,7 +291,7 @@ class DateVar:
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
-    def __add__(self, other) -> 'DateVar':
+    def __add__(self, other) -> "DateVar":
         """Hybrid date + Period: mirror epoch_days semantics, but avoid epoch encode unless days-only.
 
         - days-only: epoch add (O(1))
@@ -292,7 +306,9 @@ class DateVar:
 
         # Concrete Period fast-path for days-only
         if isinstance(other, Period) and other.years == 0 and other.months == 0:
-            self.ctx.solver.add(result.epoch_var == self._epoch_expr() + IntVal(other.days))
+            self.ctx.solver.add(
+                result.epoch_var == self._epoch_expr() + IntVal(other.days)
+            )
             # Result now has epoch consistent; YMD not yet
             result._epoch_consistent = True
             result._ymd_consistent = False
@@ -323,13 +339,14 @@ class DateVar:
         result._epoch_consistent = False
         return result
 
-    def __sub__(self, other) -> 'DateVar':
+    def __sub__(self, other) -> "DateVar":
         """DateVar - Period implemented as DateVar + (-Period)."""
         if isinstance(other, Period):
             neg = Period(-other.years, -other.months, -other.days)
             return self.__add__(neg)
         else:
             raise TypeError(f"Cannot subtract {type(other)} from DateVar")
+
 
 class HybridSolver:
     """Hybrid date constraint solver using dual representation (epoch + YMD)."""
@@ -387,7 +404,7 @@ class HybridSolver:
 
     def get_concrete_dates(self, model: ModelRef) -> dict:
         """Get concrete dates from the model.
-        
+
         Only returns user-declared variables, filtering out intermediate results
         from arithmetic operations (consistent with other implementations).
         """
@@ -402,43 +419,44 @@ class HybridSolver:
         # Add MaxSAT soft constraints if enabled
         if self.use_maxsat:
             from datetime import date
+
             today = date.today()
             today_days = to_days_since_epoch(Date.from_python_date(today))
-            
+
             # Calculate ±50 years and ±10 years in days (approximate)
             # Using 365.25 days per year for accuracy
             days_50_years = int(50 * 365.25)
             days_10_years = int(10 * 365.25)
-            
+
             # Add soft constraints for each date variable (only user-declared ones)
             for name, date_var in self.date_vars.items():
                 if date_var._is_user_var:
-                    # Low weight: today ± 50 years
+                    # High weight: today ± 50 years
                     within_50_years = And(
                         date_var.epoch_var >= IntVal(today_days - days_50_years),
-                        date_var.epoch_var <= IntVal(today_days + days_50_years)
+                        date_var.epoch_var <= IntVal(today_days + days_50_years),
                     )
-                    self.solver.add_soft(within_50_years, weight=10)
-                    
-                    # High weight: today ± 10 years
+                    self.solver.add_soft(within_50_years, weight=100)
+
+                    # Low weight: today ± 10 years
                     within_10_years = And(
                         date_var.epoch_var >= IntVal(today_days - days_10_years),
-                        date_var.epoch_var <= IntVal(today_days + days_10_years)
+                        date_var.epoch_var <= IntVal(today_days + days_10_years),
                     )
-                    self.solver.add_soft(within_10_years, weight=100)
-        
+                    self.solver.add_soft(within_10_years, weight=10)
+
         result = self.check()
         if result == sat:
             model = self.model()
             return {
-                'status': 'sat',
-                'dates': self.get_concrete_dates(model),
+                "status": "sat",
+                "dates": self.get_concrete_dates(model),
             }
         elif result == unsat:
-            return {'status': 'unsat', 'dates': {}}
+            return {"status": "unsat", "dates": {}}
         else:
             # result == unknown (timeout or resource limit)
-            return {'status': 'timeout', 'dates': {}}
+            return {"status": "timeout", "dates": {}}
 
     def to_smt2(self) -> str:
         """Return the current problem in SMT-LIB v2 format."""
@@ -452,7 +470,7 @@ class HybridSolver:
         if not dv._ymd_exists:
             return
         Y, M, D = dv._year_var, dv._month_var, dv._day_var
-        
+
         # For user-declared variables, add year bounds consistent with epoch bounds
         # For intermediate results from arithmetic, skip year bounds to avoid UNSAT
         # when intermediate dates go slightly out of range
