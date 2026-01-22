@@ -21,6 +21,7 @@ def _get_smtlib_for_constraint(
     approach: str,
     implementation: str,
     timeout_ms: int,
+    use_maxsat: bool = False,
 ) -> str:
     """Helper function to generate SMT-LIB output for a constraint.
     This is needed for benchmarking purposes to save SMT-LIB representations.
@@ -37,6 +38,7 @@ def _get_smtlib_for_constraint(
             approach=approach,
             implementation=implementation,
             timeout_ms=timeout_ms,
+            use_maxsat=use_maxsat,
         )
 
     exec_globals = {
@@ -58,6 +60,7 @@ def run_constraint_with_approach(
     approach: str,
     implementation: str,
     timeout_ms: int = TIMEOUT_MS,
+    use_maxsat: bool = False,
 ) -> dict:
     """Run a single constraint with a specific approach and implementation."""
     constraint_id = constraint_data.get("id", "unknown")
@@ -83,23 +86,65 @@ def run_constraint_with_approach(
     }
 
     try:
-        # Use the high-level API for all symbolic approaches
-        solve_result = datesmt.solve(
-            constraints=constraint_data,
-            approach=approach,
-            implementation=implementation,
-            timeout_ms=timeout_ms,
-            verbose=False,  # Suppress verbose output during benchmarking
-        )
+        # Handle enumeration baseline - requires special handling as it's not a standard solver
+        if approach == "enumeration":
+            import time
 
-        # Generate SMT-LIB for benchmarking purposes
-        try:
-            result["smtlib"] = _get_smtlib_for_constraint(
-                constraint_data, approach, implementation, timeout_ms
+            from datesmt.constraint_parser import ConstraintParser
+            from datesmt.enumeration_baseline import EnumerationSolver
+
+            # Enumeration baseline doesn't use the high-level API
+            parser = ConstraintParser()
+            constraint_code = parser.parse_constraint_data(constraint_data)
+
+            solver = EnumerationSolver(timeout_ms=timeout_ms)
+            exec_globals = solver.get_execution_context()
+
+            start_time = time.time()
+            try:
+                exec(constraint_code, exec_globals)
+            except AttributeError as e:
+                error_msg = str(e)
+                if "add_bool_var" in error_msg or "add_int_var" in error_msg:
+                    result["status"] = "not_applicable"
+                    result["error_message"] = (
+                        f"Enumeration baseline does not support these variable types: {error_msg}"
+                    )
+                    print(
+                        "⚠️  Not applicable: Enumeration baseline doesn't support bool/int variables"
+                    )
+                    return result
+                raise
+
+            builder = (
+                exec_globals.get("result") or exec_globals.get("builder") or solver
             )
-        except Exception as e:
-            # SMT-LIB generation is optional for benchmarking
-            result["smtlib_error"] = str(e)
+            if not builder:
+                raise RuntimeError("Constraint code did not create a solver")
+
+            result["smtlib"] = builder.to_smt2()
+            solve_result = builder.solve()
+            result["execution_time"] = time.time() - start_time
+
+        else:
+            # Use the high-level API for all symbolic approaches
+            solve_result = datesmt.solve(
+                constraints=constraint_data,
+                approach=approach,
+                implementation=implementation,
+                timeout_ms=timeout_ms,
+                verbose=False,  # Suppress verbose output during benchmarking
+                use_maxsat=use_maxsat,
+            )
+
+            # Generate SMT-LIB for benchmarking purposes
+            try:
+                result["smtlib"] = _get_smtlib_for_constraint(
+                    constraint_data, approach, implementation, timeout_ms, use_maxsat
+                )
+            except Exception as e:
+                # SMT-LIB generation is optional for benchmarking
+                result["smtlib_error"] = str(e)
 
         # Extract status and solution from solve result
         result["status"] = solve_result.get("status", "error")
@@ -148,6 +193,8 @@ def run_constraints_file(
     constraints_file: str,
     output_dir: str,
     timeout_ms: int = TIMEOUT_MS,
+    skip_enumeration: bool = False,
+    use_maxsat: bool = False,
 ):
     # Load constraints - support both JSON and JSONL formats
     constraints_file_path = Path(constraints_file)
@@ -210,7 +257,7 @@ def run_constraints_file(
         results = []
         for constraint in constraints:
             result = run_constraint_with_approach(
-                constraint, approach, implementation, timeout_ms
+                constraint, approach, implementation, timeout_ms, use_maxsat
             )
 
             # Save per-constraint SMT-LIB as .smt2 file
@@ -306,11 +353,23 @@ def main():
         action="store_true",
         help="Skip analysis after constraint execution (default: run analysis)",
     )
+    parser.add_argument(
+        "--skip-enumeration",
+        action="store_true",
+        help="Skip enumeration baseline (validation will still work, treating it as not applicable)",
+    )
+    parser.add_argument(
+        "--maxsat",
+        action="store_true",
+        help="Use MaxSAT optimization with soft constraints for dates near today",
+    )
 
     args = parser.parse_args()
 
     print(f"Analysis: {'Enabled' if not args.no_analysis else 'Disabled'}")
-    print(f"Timeout: {args.timeout}ms\n")
+    print(f"Timeout: {args.timeout}ms")
+    print(f"Skip Enumeration: {'Yes' if args.skip_enumeration else 'No'}")
+    print(f"MaxSAT: {'Enabled' if args.maxsat else 'Disabled'}\n")
 
     # Run benchmarks for each constraint set
     for constraint_set in constraint_sets:
@@ -335,7 +394,9 @@ def main():
         run_constraints_file(
             str(constraints_file),
             str(output_dir),
-            timeout_ms=args.timeout,
+            args.timeout,
+            skip_enumeration=args.skip_enumeration,
+            use_maxsat=args.maxsat,
         )
 
         if not args.no_analysis:

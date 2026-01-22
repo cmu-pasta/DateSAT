@@ -20,6 +20,7 @@ class DateSMTBuilder:
         approach: str = "epoch_days",
         implementation: str = "int",
         timeout_ms: int = 600000,
+        use_maxsat: bool = False,
     ):
         """Initialize the builder with the specified approach, implementation, and timeout.
 
@@ -27,10 +28,12 @@ class DateSMTBuilder:
             approach: Either "naive", "epoch_days", "hybrid", "alpha_beta", or "alpha_beta_table"
             implementation: Either "int" or "bitvector" (default: "int")
             timeout_ms: Timeout in milliseconds (default: 600000 = 10 minutes)
+            use_maxsat: If True, use MaxSAT optimization with soft constraints for dates near today
         """
         self.approach = approach
         self.implementation = implementation
         self.timeout_ms = timeout_ms
+        self.use_maxsat = use_maxsat
 
         # Import the appropriate solver based on implementation
         if implementation == "bitvector":
@@ -52,15 +55,15 @@ class DateSMTBuilder:
 
         # Initialize the appropriate solver
         if approach == "naive":
-            self.solver = NaiveSolver(timeout_ms=timeout_ms)
+            self.solver = NaiveSolver(timeout_ms=timeout_ms, use_maxsat=use_maxsat)
         elif approach == "epoch_days":
-            self.solver = EpochDaysSolver(timeout_ms=timeout_ms)
+            self.solver = EpochDaysSolver(timeout_ms=timeout_ms, use_maxsat=use_maxsat)
         elif approach == "hybrid":
-            self.solver = HybridSolver(timeout_ms=timeout_ms)
+            self.solver = HybridSolver(timeout_ms=timeout_ms, use_maxsat=use_maxsat)
         elif approach == "alpha_beta":
-            self.solver = AlphaBetaSolver(timeout_ms=timeout_ms)
+            self.solver = AlphaBetaSolver(timeout_ms=timeout_ms, use_maxsat=use_maxsat)
         elif approach == "alpha_beta_table":
-            self.solver = AlphaBetaTableSolver(timeout_ms=timeout_ms)
+            self.solver = AlphaBetaTableSolver(timeout_ms=timeout_ms, use_maxsat=use_maxsat)
         else:
             raise ValueError(
                 f"Unknown approach: {approach}. Must be 'naive', 'epoch_days', 'hybrid', 'alpha_beta', or 'alpha_beta_table'"
@@ -202,6 +205,18 @@ class DateSMTBuilder:
 
     def to_smt2(self) -> str:
         """Return the current problem in SMT-LIB v2 format."""
+        # In MaxSAT mode many solvers use Z3 Optimize, which may not expose `to_smt2()`
+        # depending on Z3 build/bindings. Fall back to `sexpr()` so callers (e.g. benchmarks)
+        # can still persist a textual solver dump.
+        inner = getattr(self.solver, "solver", None)
+        if inner is not None:
+            to_smt2 = getattr(inner, "to_smt2", None)
+            if callable(to_smt2):
+                return to_smt2()
+            sexpr = getattr(inner, "sexpr", None)
+            if callable(sexpr):
+                return sexpr()
+        # Fallback to the solver wrapper API (legacy)
         return self.solver.to_smt2()
 
     def enable_smtlib_print(self, enabled: bool = True) -> None:

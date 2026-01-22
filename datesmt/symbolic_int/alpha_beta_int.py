@@ -5,7 +5,8 @@ This module implements the alpha-beta approach where dates are represented
 as (months, days) since an epoch.
 """
 
-from typing import Union, Tuple, List
+from typing import List, Tuple, Union
+
 from z3 import (
     And,
     ArithRef,
@@ -16,14 +17,17 @@ from z3 import (
     IntVal,
     ModelRef,
     Not,
+    Optimize,
     Or,
-    Solver,    
+    Solver,
     sat,
-    unsat,
     unknown,
+    unsat,
 )
+
 from ..core import Date, Period, _UnboundedDate
-from .naive_int import eom_clamp, days_in_month, add_days_ordinal
+from .naive_int import add_days_ordinal, days_in_month, eom_clamp
+
 # -------------------------------
 # Alpha (months-since-epoch) helpers
 # Epoch month: 2000-03 (alpha = 0)
@@ -42,6 +46,7 @@ _EPOCH_LINEAR = _EPOCH_YEAR * 12 + _EPOCH_MONTH  # 12*2000 + 3
 def months_since_epoch_from_ym(y, m) -> ArithRef:
     """Z3-pure: compute months-since-epoch (alpha) from year/month."""
     return (y * 12 + m) - _EPOCH_LINEAR
+
 
 def ym_from_months_since_epoch(alpha) -> Tuple[ArithRef, ArithRef]:
     """Z3-pure inverse: decode (year, month) from alpha months-since-epoch."""
@@ -86,7 +91,7 @@ class DateVar:
         """Get symbolic day component (beta_var + 1, since beta is 0-based)."""
         return self.beta_var + IntVal(1)
 
-    def to_concrete_date(self, model: ModelRef) -> Date:
+    def to_concrete_date(self, model: ModelRef) -> Union[Date, _UnboundedDate]:
         """Convert Z3 model to concrete Date using (alpha, beta)."""
         alpha_val = model.evaluate(self.months_var, model_completion=True).as_long()
         beta_val = model.evaluate(self.beta_var, model_completion=True).as_long()
@@ -94,7 +99,11 @@ class DateVar:
         year = (k - 1) // 12
         month = k - year * 12
         day = beta_val + 1
-        return Date(year, month, day)
+        try:
+            return Date(year, month, day)
+        except ValueError:
+            # Intermediate result went out of bounds - use unbounded date
+            return _UnboundedDate(year, month, day)
 
     def __ge__(self, other) -> BoolRef:
         """Support x >= date comparison."""
@@ -111,7 +120,9 @@ class DateVar:
         elif isinstance(other, DateVar):
             return Or(
                 self.months_var > other.months_var,
-                And(self.months_var == other.months_var, self.beta_var >= other.beta_var),
+                And(
+                    self.months_var == other.months_var, self.beta_var >= other.beta_var
+                ),
             )
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
@@ -131,7 +142,9 @@ class DateVar:
         elif isinstance(other, DateVar):
             return Or(
                 self.months_var < other.months_var,
-                And(self.months_var == other.months_var, self.beta_var <= other.beta_var),
+                And(
+                    self.months_var == other.months_var, self.beta_var <= other.beta_var
+                ),
             )
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
@@ -160,7 +173,9 @@ class DateVar:
 
             return And(self.months_var == alpha_o, self.beta_var == beta_o)
         elif isinstance(other, DateVar):
-            return And(self.months_var == other.months_var, self.beta_var == other.beta_var)
+            return And(
+                self.months_var == other.months_var, self.beta_var == other.beta_var
+            )
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
@@ -171,7 +186,7 @@ class DateVar:
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
-    def __add__(self, other) -> 'DateVar':
+    def __add__(self, other) -> "DateVar":
         """DateVar + Period using alpha for Y/M and beta for D.
         Steps:
           - Fast path: If days-only period, directly add to beta (within-month check handled by add_days_ordinal).
@@ -218,7 +233,7 @@ class DateVar:
         else:
             raise TypeError(f"Cannot add {type(other)} to DateVar")
 
-    def __sub__(self, other) -> 'DateVar':
+    def __sub__(self, other) -> "DateVar":
         """DateVar - Period implemented as DateVar + (-Period)."""
         if isinstance(other, Period):
             neg = Period(-other.years, -other.months, -other.days)
@@ -230,13 +245,18 @@ class DateVar:
 class AlphaBetaSolver:
     """Alpha-beta date constraint solver using epoch-based conversion."""
 
-    def __init__(self, timeout_ms=600000):
+    def __init__(self, timeout_ms=600000, use_maxsat=False):
         """Initialize the solver with timeout.
 
         Args:
             timeout_ms: Timeout in milliseconds (default: 60 seconds)
+            use_maxsat: If True, use MaxSAT optimization with soft constraints
         """
-        self.solver = Solver()
+        self.use_maxsat = use_maxsat
+        if use_maxsat:
+            self.solver = Optimize()
+        else:
+            self.solver = Solver()
         self.solver.set("timeout", timeout_ms)
         self.date_vars = {}
         self.constraints = []
@@ -251,10 +271,12 @@ class AlphaBetaSolver:
         # 1900-03 => (1900-2000)*12 + (3-3)
         # 2100-02 => (2100-2000)*12 + (2-3)
         self.solver.add(
-            date_var.months_var >= IntVal((1900 - _EPOCH_YEAR) * 12 + (3 - _EPOCH_MONTH))
+            date_var.months_var
+            >= IntVal((1900 - _EPOCH_YEAR) * 12 + (3 - _EPOCH_MONTH))
         )
         self.solver.add(
-            date_var.months_var <= IntVal((2100 - _EPOCH_YEAR) * 12 + (2 - _EPOCH_MONTH))
+            date_var.months_var
+            <= IntVal((2100 - _EPOCH_YEAR) * 12 + (2 - _EPOCH_MONTH))
         )
 
         # Beta bounds depend on month length: 0 <= beta < days_in_month(y,m)
@@ -285,18 +307,48 @@ class AlphaBetaSolver:
 
     def solve(self) -> Union[bool, dict]:
         """Solve the constraints."""
+        # Add MaxSAT soft constraints if enabled
+        if self.use_maxsat:
+            from datetime import date
+
+            today = date.today()
+            # Calculate months since epoch for today
+            today_months = (today.year - _EPOCH_YEAR) * 12 + (
+                today.month - _EPOCH_MONTH
+            )
+
+            # Convert years to months
+            months_50_years = 50 * 12  # 600 months
+            months_10_years = 10 * 12  # 120 months
+
+            # Add soft constraints for each date variable
+            for name, date_var in self.date_vars.items():
+                # High weight: today ± 50 years
+                within_50_years = And(
+                    date_var.months_var >= IntVal(today_months - months_50_years),
+                    date_var.months_var <= IntVal(today_months + months_50_years),
+                )
+                self.solver.add_soft(within_50_years, weight=100)
+
+                # Low weight: today ± 10 years
+                within_10_years = And(
+                    date_var.months_var >= IntVal(today_months - months_10_years),
+                    date_var.months_var <= IntVal(today_months + months_10_years),
+                )
+                self.solver.add_soft(within_10_years, weight=10)
+
         result = self.check()
         if result == sat:
             model = self.model()
             return {
-                'status': 'sat',
-                'dates': self.get_concrete_dates(model),
+                "status": "sat",
+                "dates": self.get_concrete_dates(model),
             }
         elif result == unsat:
-            return {'status': 'unsat', 'dates': {}}
+            return {"status": "unsat", "dates": {}}
         else:
             # result == unknown (timeout or resource limit)
-            return {'status': 'timeout', 'dates': {}}
+            return {"status": "timeout", "dates": {}}
 
     def to_smt2(self) -> str:
         """Return the current problem in SMT-LIB v2 format."""

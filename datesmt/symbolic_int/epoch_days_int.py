@@ -6,8 +6,9 @@ as days since an epoch, and period arithmetic is done using approximate
 day conversions.
 """
 
-from typing import Union, Tuple, List
 from datetime import date, timedelta
+from typing import List, Tuple, Union
+
 from z3 import (
     And,
     ArithRef,
@@ -18,26 +19,28 @@ from z3 import (
     IntVal,
     ModelRef,
     Not,
+    Optimize,
     Or,
     Solver,
     sat,
-    unsat,
     unknown,
+    unsat,
 )
+
 from ..core import Date, Period, _UnboundedDate
 from .naive_int import (
-    is_leap,
-    days_in_month,
-    normalize_month,
-    days_before_year,
+    _dbm_index,
+    add_days_ordinal,
     days_before_month,
-    to_ordinal,
-    from_ordinal,
-    ymd_from_days_since_epoch,
+    days_before_year,
+    days_in_month,
     days_since_epoch_from_ymd,
     eom_clamp,
-    add_days_ordinal,
-    _dbm_index,
+    from_ordinal,
+    is_leap,
+    normalize_month,
+    to_ordinal,
+    ymd_from_days_since_epoch,
 )
 
 _EPOCH = date(2000, 3, 1)
@@ -47,6 +50,7 @@ def from_days_since_epoch(days: int) -> Date:
     """Convert days since epoch to a Date."""
     result_date = _EPOCH + timedelta(days=days)
     return Date(result_date.year, result_date.month, result_date.day)
+
 
 def to_days_since_epoch(date_obj: Date) -> int:
     """Convert a Date to days since epoch (March 1, 2000)."""
@@ -137,7 +141,7 @@ class DateVar:
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
-    def __add__(self, other) -> 'DateVar':
+    def __add__(self, other) -> "DateVar":
         """
         DateVar + Period following semantics.
         Steps: normalize Y/M, EOM clamp, then add D days in ordinal space.
@@ -163,8 +167,7 @@ class DateVar:
             # Step 1: Combine Y and M with normalization (carry years)
             period_total_months = oy * IntVal(12) + om
             total_months = m0 + period_total_months
-            year_carry, m1 = normalize_month(IntVal(0), total_months)
-            y1 = y0 + year_carry
+            y1, m1 = normalize_month(y0, total_months)
 
             # Step 2: EOM clamp
             d1 = eom_clamp(y1, m1, d0)
@@ -178,7 +181,7 @@ class DateVar:
         else:
             raise TypeError(f"Cannot add {type(other)} to DateVar")
 
-    def __sub__(self, other) -> 'DateVar':
+    def __sub__(self, other) -> "DateVar":
         """DateVar - Period implemented as DateVar + (-Period)."""
         if isinstance(other, Period):
             neg = Period(-other.years, -other.months, -other.days)
@@ -190,13 +193,18 @@ class DateVar:
 class EpochDaysSolver:
     """Epoch_days date constraint solver using epoch-based conversion."""
 
-    def __init__(self, timeout_ms=600000):
+    def __init__(self, timeout_ms=600000, use_maxsat=False):
         """Initialize the solver with timeout.
 
         Args:
             timeout_ms: Timeout in milliseconds (default: 60 seconds)
+            use_maxsat: If True, use MaxSAT optimization with soft constraints
         """
-        self.solver = Solver()
+        self.use_maxsat = use_maxsat
+        if use_maxsat:
+            self.solver = Optimize()
+        else:
+            self.solver = Solver()
         self.solver.set("timeout", timeout_ms)
         self.date_vars = {}
         self.constraints = []
@@ -237,18 +245,46 @@ class EpochDaysSolver:
 
     def solve(self) -> Union[bool, dict]:
         """Solve the constraints."""
+        # Add MaxSAT soft constraints if enabled
+        if self.use_maxsat:
+            from datetime import date
+
+            today = date.today()
+            today_days = to_days_since_epoch(Date.from_python_date(today))
+
+            # Calculate ±50 years and ±10 years in days (approximate)
+            # Using 365.25 days per year for accuracy
+            days_50_years = int(50 * 365.25)
+            days_10_years = int(10 * 365.25)
+
+            # Add soft constraints for each date variable
+            for name, date_var in self.date_vars.items():
+                # High weight: today ± 50 years
+                within_50_years = And(
+                    date_var.days_var >= IntVal(today_days - days_50_years),
+                    date_var.days_var <= IntVal(today_days + days_50_years),
+                )
+                self.solver.add_soft(within_50_years, weight=100)
+
+                # Low weight: today ± 10 years
+                within_10_years = And(
+                    date_var.days_var >= IntVal(today_days - days_10_years),
+                    date_var.days_var <= IntVal(today_days + days_10_years),
+                )
+                self.solver.add_soft(within_10_years, weight=10)
+
         result = self.check()
         if result == sat:
             model = self.model()
             return {
-                'status': 'sat',
-                'dates': self.get_concrete_dates(model),
+                "status": "sat",
+                "dates": self.get_concrete_dates(model),
             }
         elif result == unsat:
-            return {'status': 'unsat', 'dates': {}}
+            return {"status": "unsat", "dates": {}}
         else:
             # result == unknown (timeout or resource limit)
-            return {'status': 'timeout', 'dates': {}}
+            return {"status": "timeout", "dates": {}}
 
     def to_smt2(self) -> str:
         """Return the current problem in SMT-LIB v2 format."""
