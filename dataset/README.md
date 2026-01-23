@@ -5,6 +5,23 @@ This directory contains datasets, test constraints, and validation tools for the
 
 ## Components
 
+### Utility Scripts (`utils/`)
+
+The `utils/` directory contains utility scripts for dataset analysis and benchmarking:
+
+- **`plot_benchmark_stats.py`**: Generates publication-quality plots showing benchmark statistics (variables and constraints per dataset) with standard deviation. Outputs PDF figures and console statistics including extreme cases.
+  ```bash
+  python dataset/utils/plot_benchmark_stats.py -o benchmark_stats.pdf
+  ```
+
+- **`compute_time.py`**: Computes execution time statistics from benchmark result files (mean, median, std dev, percentiles).
+
+- **`validation.py`**: Validates solver solutions against constraints using concrete evaluation (see detailed section below).
+
+- **`run_enumeration.py`**: Runs enumeration baseline solver on constraint datasets.
+
+- **`llm.py`**: Universal LLM client supporting OpenAI and Anthropic APIs (see detailed section below).
+
 ### Universal LLM Client (`llm.py`)
 
 The `llm.py` module provides a universal LLM client that can be used by any dataset generator. It supports:

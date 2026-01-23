@@ -12,6 +12,10 @@ pytest-mock>=3.10.0
 pytest-xdist>=3.0.0  # For parallel test execution
 coverage>=7.0.0
 
+# Data Analysis & Visualization Dependencies
+matplotlib>=3.5.0
+numpy>=1.21.0
+
 # LLM Constraint Pipeline Dependencies
 openai>=1.0.0
 anthropic>=0.3.0
