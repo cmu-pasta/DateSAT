@@ -250,6 +250,43 @@ def print_stats_table(stats_dict: dict[str, dict]):
     print("=" * 70 + "\n")
 
 
+def find_extremes(data_dict: dict[str, list[dict]]):
+    """Find benchmarks with minimum and maximum variables and constraints."""
+    all_benchmarks = []
+
+    # Collect all benchmarks with their dataset name
+    for dataset_name, data in data_dict.items():
+        for benchmark in data:
+            all_benchmarks.append(
+                {
+                    "id": benchmark.get("id", "unknown"),
+                    "dataset": dataset_name,
+                    "num_vars": len(benchmark["declarations"]),
+                    "num_constraints": len(benchmark["constraints"]),
+                }
+            )
+
+    # Find extremes
+    min_vars = min(all_benchmarks, key=lambda x: (x["num_vars"], x["num_constraints"]))
+    max_vars = max(all_benchmarks, key=lambda x: (x["num_vars"], x["num_constraints"]))
+
+    print("=" * 70)
+    print("Extreme Cases")
+    print("=" * 70)
+    print("\nSmallest benchmark (least vars + constraints):")
+    print(f"  ID: {min_vars['id']}")
+    print(f"  Dataset: {min_vars['dataset']}")
+    print(f"  Variables: {min_vars['num_vars']}")
+    print(f"  Constraints: {min_vars['num_constraints']}")
+
+    print("\nLargest benchmark (most vars + constraints):")
+    print(f"  ID: {max_vars['id']}")
+    print(f"  Dataset: {max_vars['dataset']}")
+    print(f"  Variables: {max_vars['num_vars']}")
+    print(f"  Constraints: {max_vars['num_constraints']}")
+    print("=" * 70 + "\n")
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Plot benchmark statistics by dataset."
@@ -279,10 +316,12 @@ def main():
     print("Loading benchmark datasets...")
 
     stats_dict = {}
+    data_dict = {}
 
     try:
         llm_data = load_llm_constraints(base_path)
         stats_dict["LLM"] = compute_stats(llm_data)
+        data_dict["LLM"] = llm_data
         print(f"  LLM: {len(llm_data)} benchmarks loaded")
     except FileNotFoundError as e:
         print(f"  Warning: LLM constraints not found: {e}")
@@ -290,6 +329,7 @@ def main():
     try:
         grammar_data = load_grammar_constraints(base_path)
         stats_dict["Grammar"] = compute_stats(grammar_data)
+        data_dict["Grammar"] = grammar_data
         print(f"  Grammar: {len(grammar_data)} benchmarks loaded")
     except FileNotFoundError as e:
         print(f"  Warning: Grammar constraints not found: {e}")
@@ -297,6 +337,7 @@ def main():
     try:
         legal_data = load_legal_constraints(base_path)
         stats_dict["Legal"] = compute_stats(legal_data)
+        data_dict["Legal"] = legal_data
         print(f"  Legal: {len(legal_data)} benchmarks loaded")
     except FileNotFoundError as e:
         print(f"  Warning: Legal constraints not found: {e}")
@@ -307,6 +348,9 @@ def main():
 
     # Print statistics table
     print_stats_table(stats_dict)
+
+    # Print extreme cases
+    find_extremes(data_dict)
 
     # Generate plot
     output_path = Path(args.output)
