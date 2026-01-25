@@ -62,9 +62,18 @@ class DateVar:
     beta  (beta_var):   extra days within that month (0-based), so DOM = 1+beta
     """
 
-    def __init__(self, name: str):
-        """Create a symbolic date variable."""
+    def __init__(self, name: str, bounded: bool = False, solver=None):
+        """Create a symbolic date variable.
+        
+        Args:
+            name: Name of the date variable
+            bounded: If True, add date validation bounds (requires solver)
+            solver: Solver instance for adding constraints (required if bounded=True)
+        """
         self.name = name
+        self._bounded = bounded
+        # Only store solver if bounded (needed to add bounds and equality constraints)
+        self._solver = solver if bounded else None
         # Alpha: Z3 integer variable for months since epoch-month
         self.months_var = Int(f"{name}_months")
         # Beta: Z3 integer variable for extra days (0-based) within month
@@ -185,53 +194,99 @@ class DateVar:
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
+    def _add_bounds(self) -> None:
+        """Add date validation bounds to this DateVar if bounded and solver is available."""
+        if not self._bounded or self._solver is None:
+            return
+        
+        # Alpha bounds: months since 2000-03
+        # 1900-03 => (1900-2000)*12 + (3-3) = -1200
+        # 2100-02 => (2100-2000)*12 + (2-3) = 1199
+        self._solver.add(
+            self.months_var
+            >= IntVal((1900 - _EPOCH_YEAR) * 12 + (3 - _EPOCH_MONTH))
+        )
+        self._solver.add(
+            self.months_var
+            <= IntVal((2100 - _EPOCH_YEAR) * 12 + (2 - _EPOCH_MONTH))
+        )
+
+        # Beta bounds depend on month length: 0 <= beta < days_in_month(y,m)
+        y, m = ym_from_months_since_epoch(self.months_var)
+        self._solver.add(self.beta_var >= 0)
+        self._solver.add(self.beta_var < days_in_month(y, m))
+
     def __add__(self, other) -> "DateVar":
         """DateVar + Period using alpha for Y/M and beta for D.
         Steps:
-          - Fast path: If days-only period, add days using ordinal conversion.
-          - Otherwise add months to alpha, clamp EOM using current day,
-            then add days in ordinal space and re-sync alpha/beta.
+          - Fast path: If days-only period, add days directly to beta, then normalize.
+          - Full path: Add months to alpha, EOM clamp beta, add days to beta, then normalize.
         """
         if isinstance(other, Period):
+            # Create intermediate result with bounds (following naive/epoch_days pattern)
             result = DateVar(
-                f"{self.name}_plus_{other.years}y_{other.months}m_{other.days}d"
+                f"{self.name}_plus_{other.years}y_{other.months}m_{other.days}d",
+                bounded=True,  # Always bound intermediate results
+                solver=self._solver
             )
             months_delta = IntVal(other.years * 12 + other.months)
             days_delta = IntVal(other.days)
 
             # Fast path: days-only period
             if other.years == 0 and other.months == 0:
-                # Add days directly to beta, handling overflow via ordinal conversion
+                # Add days directly to beta
+                new_beta = self.beta_var + days_delta
+                
+                # Normalize: convert (alpha, new_beta) to ordinal, then back to normalized (alpha, beta)
+                # This handles arbitrary month overflows correctly
                 y0, m0 = ym_from_months_since_epoch(self.months_var)
-                d0 = self.beta_var + IntVal(1)
+                d0 = new_beta + IntVal(1)  # Convert 0-based beta to 1-based day
                 
-                # Use ordinal conversion to handle month overflow correctly
+                # Convert to ordinal (this represents the date with potential overflow)
                 ordinal = to_ordinal(y0, m0, d0)
-                new_ordinal = ordinal + days_delta
-                y2, m2, d2 = from_ordinal(new_ordinal)
                 
-                result.months_var = months_since_epoch_from_ym(y2, m2)
-                result.beta_var = d2 - IntVal(1)
+                # Convert back to normalized (alpha, beta) - this handles all overflow cases
+                y2, m2, d2 = from_ordinal(ordinal)
+                
+                months_expr = months_since_epoch_from_ym(y2, m2)
+                beta_expr = d2 - IntVal(1)
+                
+                # Link the computed expressions to the result's variables
+                if result._solver is not None:
+                    result._solver.add(result.months_var == months_expr)
+                    result._solver.add(result.beta_var == beta_expr)
+                
+                # Add bounds to intermediate result
+                result._add_bounds()
                 return result
 
-            # Full path: Decode current (y,m,d) from (alpha,beta)
-            y0, m0 = ym_from_months_since_epoch(self.months_var)
-            d0 = self.beta_var + IntVal(1)
-
-            # Step 1: shift alpha by months
+            # Full path: Add to alpha and beta directly, then normalize
+            # Step 1: Add months to alpha directly
             alpha1 = self.months_var + months_delta
             y1, m1 = ym_from_months_since_epoch(alpha1)
 
-            # Step 2: EOM clamp with current DOM
-            d1 = eom_clamp(y1, m1, d0)
+            # Step 2: EOM clamp beta (needed when adding months - e.g., Jan 31 + 1 month = Feb 28/29)
+            d1 = eom_clamp(y1, m1, self.beta_var + IntVal(1))
+            beta1 = d1 - IntVal(1)  # Convert back to 0-based beta
 
-            # Step 3: add D days in ordinal space and resync alpha/beta
-            ordinal = to_ordinal(y1, m1, d1)
-            new_ordinal = ordinal + days_delta
-            y2, m2, d2 = from_ordinal(new_ordinal)
+            # Step 3: Add days to beta directly
+            new_beta = beta1 + days_delta
 
-            result.months_var = months_since_epoch_from_ym(y2, m2)
-            result.beta_var = d2 - IntVal(1)
+            # Step 4: Normalize via ordinal conversion (handles all overflow cases)
+            d_temp = new_beta + IntVal(1)  # Convert 0-based beta to 1-based day
+            ordinal = to_ordinal(y1, m1, d_temp)
+            y2, m2, d2 = from_ordinal(ordinal)
+
+            months_expr = months_since_epoch_from_ym(y2, m2)
+            beta_expr = d2 - IntVal(1)
+            
+            # Link the computed expressions to the result's variables
+            if result._solver is not None:
+                result._solver.add(result.months_var == months_expr)
+                result._solver.add(result.beta_var == beta_expr)
+            
+            # Add bounds to intermediate result
+            result._add_bounds()
             return result
         else:
             raise TypeError(f"Cannot add {type(other)} to DateVar")
@@ -267,25 +322,11 @@ class AlphaBetaSolver:
 
     def add_date_var(self, name: str) -> DateVar:
         """Add a symbolic date variable with basic constraints."""
-        date_var = DateVar(name)
+        date_var = DateVar(name, bounded=True, solver=self.solver)
         self.date_vars[name] = date_var
 
-        # Alpha bounds: months since 2000-03
-        # 1900-03 => (1900-2000)*12 + (3-3)
-        # 2100-02 => (2100-2000)*12 + (2-3)
-        self.solver.add(
-            date_var.months_var
-            >= IntVal((1900 - _EPOCH_YEAR) * 12 + (3 - _EPOCH_MONTH))
-        )
-        self.solver.add(
-            date_var.months_var
-            <= IntVal((2100 - _EPOCH_YEAR) * 12 + (2 - _EPOCH_MONTH))
-        )
-
-        # Beta bounds depend on month length: 0 <= beta < days_in_month(y,m)
-        y, m = ym_from_months_since_epoch(date_var.months_var)
-        self.solver.add(date_var.beta_var >= 0)
-        self.solver.add(date_var.beta_var < days_in_month(y, m))
+        # Add bounds for valid date ranges [1900-03-01 to 2100-02-28]
+        date_var._add_bounds()
 
         return date_var
 

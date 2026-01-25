@@ -102,21 +102,21 @@ class DateVar:
 
     @property
     def year_var(self) -> BitVecRef:
-        if not self._ymd_exists:
-            self._ensure_ymd()
-        return self._year_var
+        """Get year component, deriving from epoch if needed."""
+        y, _, _ = self._ymd_expr()
+        return y
 
     @property
     def month_var(self) -> BitVecRef:
-        if not self._ymd_exists:
-            self._ensure_ymd()
-        return self._month_var
+        """Get month component, deriving from epoch if needed."""
+        _, m, _ = self._ymd_expr()
+        return m
 
     @property
     def day_var(self) -> BitVecRef:
-        if not self._ymd_exists:
-            self._ensure_ymd()
-        return self._day_var
+        """Get day component, deriving from epoch if needed."""
+        _, _, d = self._ymd_expr()
+        return d
 
     # Alias properties for compatibility with parser-generated code
     # The parser generates code like "x.year == y" which expects .year attribute
@@ -357,8 +357,31 @@ class DateVar:
                     self._month_var == other._month_var,
                     self._day_var == other._day_var,
                 )
-            # Case 3: Inconsistent - derive epoch expressions for both and compare
-            return self._epoch_expr() == other._epoch_expr()
+            # Case 3: Inconsistent - derive missing representation and compare on common representation
+            # If self has epoch consistent, derive other's epoch from Y/M/D and compare on epoch
+            if self._epoch_consistent:
+                # other must have Y/M/D consistent (otherwise we'd be in Case 1 or 2)
+                # Derive other's epoch from its Y/M/D
+                other._epoch_expr()  # This will derive epoch and set other._epoch_consistent = True
+                # Also derive self's Y/M/D from epoch so both are properly linked
+                # This ensures that when self.month is accessed later, it uses Y/M/D derived from epoch
+                self._ymd_expr()  # This will derive Y/M/D from epoch and set self._ymd_consistent = True
+                return self.epoch_var == other.epoch_var
+            # If other has epoch consistent, derive self's epoch from Y/M/D and compare on epoch
+            elif other._epoch_consistent:
+                # self must have Y/M/D consistent (otherwise we'd be in Case 1 or 2)
+                # Derive self's epoch from its Y/M/D
+                self._epoch_expr()  # This will derive epoch and set self._epoch_consistent = True
+                # Also derive other's Y/M/D from epoch so both are properly linked
+                # This ensures that when other.month is accessed later, it uses Y/M/D derived from epoch
+                other._ymd_expr()  # This will derive Y/M/D from epoch and set other._ymd_consistent = True
+                return self.epoch_var == other.epoch_var
+            else:
+                # Neither has epoch consistent - both should have Y/M/D consistent (Case 2 should have caught this)
+                # But if we get here, derive both epochs and compare
+                self._epoch_expr()
+                other._epoch_expr()
+                return self.epoch_var == other.epoch_var
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
