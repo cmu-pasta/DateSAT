@@ -3,14 +3,14 @@ Test that intermediate DateVars created during arithmetic operations are properl
 """
 
 import pytest
-from z3 import And, Or, IntVal, sat, unsat
+from z3 import And, Or, BitVecVal, sat, unsat
 
 from datesmt.core import Date, Period
-from datesmt.symbolic_int.naive_int import NaiveSolver
-from datesmt.symbolic_int.epoch_days_int import EpochDaysSolver
-from datesmt.symbolic_int.hybrid_int import HybridSolver
-from datesmt.symbolic_int.alpha_beta_int import AlphaBetaSolver
-from datesmt.symbolic_int.alpha_beta_table_int import AlphaBetaTableSolver
+from datesmt.symbolic_bitvector.naive_bv import NaiveSolver
+from datesmt.symbolic_bitvector.epoch_days_bv import EpochDaysSolver
+from datesmt.symbolic_bitvector.hybrid_bv import HybridSolver
+from datesmt.symbolic_bitvector.alpha_beta_bv import AlphaBetaSolver
+from datesmt.symbolic_bitvector.alpha_beta_table_bv import AlphaBetaTableSolver
 
 
 @pytest.mark.parametrize("solver_cls", [
@@ -20,7 +20,7 @@ from datesmt.symbolic_int.alpha_beta_table_int import AlphaBetaTableSolver
     pytest.param(AlphaBetaSolver, marks=pytest.mark.alpha_beta),
     pytest.param(AlphaBetaTableSolver, marks=pytest.mark.alpha_beta_table),
 ])
-@pytest.mark.integer
+@pytest.mark.bitvector
 def test_intermediate_date_bounded_in_single_operation(solver_cls):
     """Test that intermediate DateVar from x + Period is bounded."""
     solver = solver_cls()
@@ -69,7 +69,7 @@ def test_intermediate_date_bounded_in_single_operation(solver_cls):
     pytest.param(AlphaBetaSolver, marks=pytest.mark.alpha_beta),
     pytest.param(AlphaBetaTableSolver, marks=pytest.mark.alpha_beta_table),
 ])
-@pytest.mark.integer
+@pytest.mark.bitvector
 def test_intermediate_date_bounded_in_multiple_operations(solver_cls):
     """Test that intermediate DateVars from multiple operations are bounded."""
     solver = solver_cls()
@@ -110,7 +110,7 @@ def test_intermediate_date_bounded_in_multiple_operations(solver_cls):
     pytest.param(AlphaBetaSolver, marks=pytest.mark.alpha_beta),
     pytest.param(AlphaBetaTableSolver, marks=pytest.mark.alpha_beta_table),
 ])
-@pytest.mark.integer
+@pytest.mark.bitvector
 def test_intermediate_date_bounds_enforce_valid_range(solver_cls):
     """Test that intermediate DateVar bounds prevent out-of-range dates."""
     # Test 1: Valid dates should work
@@ -163,7 +163,7 @@ def test_intermediate_date_bounds_enforce_valid_range(solver_cls):
     pytest.param(AlphaBetaSolver, marks=pytest.mark.alpha_beta),
     pytest.param(AlphaBetaTableSolver, marks=pytest.mark.alpha_beta_table),
 ])
-@pytest.mark.integer
+@pytest.mark.bitvector
 def test_intermediate_date_bounded_vs_unbounded(solver_cls):
     """Test that bounded DateVars have bounds but unbounded ones don't."""
     # Test with bounded DateVar (created via add_date_var)
@@ -180,17 +180,17 @@ def test_intermediate_date_bounded_vs_unbounded(solver_cls):
     # Test with unbounded DateVar (created directly)
     # Import the appropriate DateVar class based on solver type
     if solver_cls == NaiveSolver:
-        from datesmt.symbolic_int.naive_int import DateVar
+        from datesmt.symbolic_bitvector.naive_bv import DateVar
     elif solver_cls == EpochDaysSolver:
-        from datesmt.symbolic_int.epoch_days_int import DateVar
+        from datesmt.symbolic_bitvector.epoch_days_bv import DateVar
     elif solver_cls == HybridSolver:
-        from datesmt.symbolic_int.hybrid_int import DateVar
+        from datesmt.symbolic_bitvector.hybrid_bv import DateVar
         # Hybrid DateVar needs ctx, so skip this test for hybrid
         pytest.skip("Hybrid DateVar requires ctx parameter, skipping unbounded test")
     elif solver_cls == AlphaBetaSolver:
-        from datesmt.symbolic_int.alpha_beta_int import DateVar
+        from datesmt.symbolic_bitvector.alpha_beta_bv import DateVar
     elif solver_cls == AlphaBetaTableSolver:
-        from datesmt.symbolic_int.alpha_beta_table_int import DateVar
+        from datesmt.symbolic_bitvector.alpha_beta_table_bv import DateVar
     
     solver_unbounded = solver_cls()
     x_unbounded = DateVar("x_unbounded", bounded=False)  # Explicitly unbounded
@@ -219,7 +219,7 @@ def test_intermediate_date_bounded_vs_unbounded(solver_cls):
     pytest.param(AlphaBetaSolver, marks=pytest.mark.alpha_beta),
     pytest.param(AlphaBetaTableSolver, marks=pytest.mark.alpha_beta_table),
 ])
-@pytest.mark.integer
+@pytest.mark.bitvector
 def test_intermediate_date_bounds_preserved_in_chain(solver_cls):
     """Test that bounds are preserved through a chain of operations."""
     solver = solver_cls()
@@ -262,7 +262,7 @@ def test_intermediate_date_bounds_preserved_in_chain(solver_cls):
     pytest.param(AlphaBetaSolver, marks=pytest.mark.alpha_beta),
     pytest.param(AlphaBetaTableSolver, marks=pytest.mark.alpha_beta_table),
 ])
-@pytest.mark.integer
+@pytest.mark.bitvector
 def test_intermediate_date_bounds_in_subtraction(solver_cls):
     """Test that intermediate DateVar from subtraction is also bounded."""
     solver = solver_cls()

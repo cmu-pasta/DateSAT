@@ -32,7 +32,6 @@ from ..core import Date, Period
 from .bitwidths import LEGACY_BITS
 from .naive_bv import (
     _dbm_index,
-    add_days_ordinal,
     days_before_month,
     days_before_year,
     days_in_month,
@@ -59,13 +58,28 @@ def to_days_since_epoch(date_obj: Date) -> int:
     target_python = date(date_obj.year, date_obj.month, date_obj.day)
     return (target_python - _EPOCH).days
 
+def add_days_ordinal(y, m, d, delta_days) -> BitVecRef:
+    """
+    Exact ordinal-based addition via a single ordinal add.
+    """
+    z = days_since_epoch_from_ymd(y, m, d)
+    return z + delta_days
 
 class DateVar:
     """Symbolic date variable for epoch_days implementation."""
 
-    def __init__(self, name: str):
-        """Create a symbolic date variable."""
+    def __init__(self, name: str, bounded: bool = False, solver=None):
+        """Create a symbolic date variable.
+        
+        Args:
+            name: Name of the date variable
+            bounded: If True, add date validation bounds (requires solver)
+            solver: Solver instance for adding constraints (required if bounded=True)
+        """
         self.name = name
+        self._bounded = bounded
+        # Only store solver if bounded (needed to add bounds and equality constraints)
+        self._solver = solver if bounded else None
         # Use a single Z3 bitvector variable for days since epoch
         self.days_var = BitVec(f"{name}_days", LEGACY_BITS)
 
@@ -143,6 +157,18 @@ class DateVar:
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
+    def _add_bounds(self) -> None:
+        """Add date validation bounds to this DateVar if bounded and solver is available."""
+        if not self._bounded or self._solver is None:
+            return
+        
+        # Add constraints for valid date ranges [1900-03-01 to 2100-02-28]
+        # Epoch is March 1, 2000
+        # 1900-03-01 = -36525 days from epoch
+        # 2100-02-28 = 36523 days from epoch
+        self._solver.add(self.days_var >= BitVecVal(-36525, LEGACY_BITS))
+        self._solver.add(self.days_var <= BitVecVal(36523, LEGACY_BITS))
+
     def __add__(self, other) -> "DateVar":
         """
         DateVar + Period following semantics.
@@ -150,35 +176,47 @@ class DateVar:
         """
         if isinstance(other, Period):
             result = DateVar(
-                f"{self.name}_plus_{other.years}y_{other.months}m_{other.days}d"
+                f"{self.name}_plus_{other.years}y_{other.months}m_{other.days}d",
+                bounded=self._bounded,
+                solver=self._solver
             )
             # Fast-path: only days component (check at Python level since Period components are concrete)
             if other.years == 0 and other.months == 0:
-                result.days_var = self.days_var + BitVecVal(other.days, LEGACY_BITS)
-                return result
+                days_expr = self.days_var + BitVecVal(other.days, LEGACY_BITS)
+            else:
+                oy, om, od = (
+                    BitVecVal(other.years, LEGACY_BITS),
+                    BitVecVal(other.months, LEGACY_BITS),
+                    BitVecVal(other.days, LEGACY_BITS),
+                )
 
-            oy, om, od = (
-                BitVecVal(other.years, LEGACY_BITS),
-                BitVecVal(other.months, LEGACY_BITS),
-                BitVecVal(other.days, LEGACY_BITS),
-            )
+                # Decode current date to Y/M/D
+                y0, m0, d0 = ymd_from_days_since_epoch(self.days_var)
 
-            # Decode current date to Y/M/D
-            y0, m0, d0 = ymd_from_days_since_epoch(self.days_var)
+                # Step 1: Combine Y and M with normalization (carry years)
+                period_total_months = oy * BitVecVal(12, LEGACY_BITS) + om
+                total_months = m0 + period_total_months
+                y1, m1 = normalize_month(y0, total_months)
 
-            # Step 1: Combine Y and M with normalization (carry years)
-            period_total_months = oy * BitVecVal(12, LEGACY_BITS) + om
-            total_months = m0 + period_total_months
-            y1, m1 = normalize_month(y0, total_months)
+                # Step 2: EOM clamp
+                d1 = eom_clamp(y1, m1, d0)
 
-            # Step 2: EOM clamp
-            d1 = eom_clamp(y1, m1, d0)
-
-            # Step 3: add D days in ordinal space
-            y2, m2, d2 = add_days_ordinal(y1, m1, d1, od)
-
-            # Encode back to days-since-epoch
-            result.days_var = days_since_epoch_from_ymd(y2, m2, d2)
+                if od == BitVecVal(0, LEGACY_BITS):
+                    # Encode back to days-since-epoch
+                    days_expr = days_since_epoch_from_ymd(y1, m1, d1)
+                else:
+                    # Step 3: add D days in ordinal space
+                    days_expr = add_days_ordinal(y1, m1, d1, od)
+            
+            # Link the computed expression to the result's days_var
+            if result._solver is not None:
+                result._solver.add(result.days_var == days_expr)
+            else:
+                # If no solver, just assign directly (for backward compatibility)
+                result.days_var = days_expr
+            
+            # Add bounds to intermediate result
+            result._add_bounds()
             return result
         else:
             raise TypeError(f"Cannot add {type(other)} to DateVar")
@@ -214,19 +252,11 @@ class EpochDaysSolver:
 
     def add_date_var(self, name: str) -> DateVar:
         """Add a symbolic date variable with basic constraints."""
-        date_var = DateVar(name)
+        date_var = DateVar(name, bounded=True, solver=self.solver)
         self.date_vars[name] = date_var
 
         # Add constraints for valid date ranges [1900-03-01 to 2100-02-28]
-        # Epoch is March 1, 2000
-        # 1900-03-01 to 2000-03-01
-        # 2000-03-01 to 2100-02-28
-        self.solver.add(
-            date_var.days_var >= BitVecVal(-36525, LEGACY_BITS)
-        )  # 1900-03-01
-        self.solver.add(
-            date_var.days_var <= BitVecVal(36523, LEGACY_BITS)
-        )  # 2100-02-28
+        date_var._add_bounds()
 
         return date_var
 
