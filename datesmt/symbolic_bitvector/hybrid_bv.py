@@ -45,10 +45,9 @@ from z3 import (
 )
 from ..core import Date, Period
 from .bitwidths import LEGACY_BITS
-from .epoch_days_bv import from_days_since_epoch, to_days_since_epoch
+from .epoch_days_bv import from_days_since_epoch, to_days_since_epoch, add_days_ordinal as add_days_ordinal_epoch
 from .naive_bv import (
     _dbm_index,
-    add_days_ordinal,
     days_before_month,
     days_before_year,
     days_in_month,
@@ -125,6 +124,12 @@ class DateVar:
         return self.day_var
 
     def _ensure_ymd(self) -> None:
+        """Ensure Y/M/D variables exist. Creates them if they don't exist.
+        
+        Note: This only creates the vars and links them to epoch. It does NOT
+        set consistency flags - that should be done by the caller based on
+        which representation is the source of truth.
+        """
         if self._ymd_exists:
             return
         self._year_var = BitVec(f"{self.name}_year", LEGACY_BITS)
@@ -133,33 +138,58 @@ class DateVar:
         self._ymd_exists = True
         # Add validity constraints
         self.ctx._add_date_constraints(self)
-        # Link YMD to epoch: When YMD is materialized, it becomes the source of truth
+        # Link YMD to epoch (bidirectional constraint)
         # Add constraint: epoch_var == days_since_epoch_from_ymd(year_var, month_var, day_var)
         self.ctx.solver.add(
             self.epoch_var
             == days_since_epoch_from_ymd(self._year_var, self._month_var, self._day_var)
         )
-        # Update consistency flags: YMD is now the consistent representation
-        self._ymd_consistent = True
-        self._epoch_consistent = False
+        # Note: Consistency flags are NOT set here - caller should set them based on source of truth
 
     def _epoch_expr(self) -> BitVecRef:
         """Return an epoch-days expression consistent with current state (lazy).
 
         If epoch is consistent, return epoch_var directly.
-        Otherwise, derive epoch from Y/M/D (Y/M/D must exist when epoch_consistent is False).
+        Otherwise, derive epoch from Y/M/D (Y/M/D must exist when epoch_consistent is False),
+        store it, and update consistency flags.
         """
         if self._epoch_consistent:
             return self.epoch_var
         # derive from Y/M/D lazily
-        # Invariant: if _epoch_consistent is False, _ymd_exists should be True
-        # (because we only set _epoch_consistent=False after creating Y/M/D in month/year operations)
-        return days_since_epoch_from_ymd(self._year_var, self._month_var, self._day_var)
+        y, m, d = self._year_var, self._month_var, self._day_var
+        epoch_expr = days_since_epoch_from_ymd(y, m, d)
+        # Store the derived representation and update consistency
+        self.ctx.solver.add(self.epoch_var == epoch_expr)
+        self._epoch_consistent = True
+        return self.epoch_var
 
-    def _ymd_expr(self) -> tuple[BitVecRef, BitVecRef, BitVecRef]:
+    def _ymd_expr(self) -> Tuple[BitVecRef, BitVecRef, BitVecRef]:
+        """Return Y/M/D expressions consistent with current state (lazy).
+        
+        If Y/M/D is consistent, return Y/M/D vars directly.
+        Otherwise, derive Y/M/D from epoch, store them, and update consistency flags.
+        """
         if self._ymd_consistent and self._ymd_exists:
             return self._year_var, self._month_var, self._day_var
-        return ymd_from_days_since_epoch(self._epoch_expr())
+        # derive from epoch lazily
+        epoch = self._epoch_expr()
+        y, m, d = ymd_from_days_since_epoch(epoch)
+        # Ensure Y/M/D vars exist
+        if not self._ymd_exists:
+            self._ensure_ymd()
+            # _ensure_ymd() links epoch to Y/M/D, but since epoch is source of truth,
+            # we need to set Y/M/D values from epoch
+            self.ctx.solver.add(self._year_var == y)
+            self.ctx.solver.add(self._month_var == m)
+            self.ctx.solver.add(self._day_var == d)
+        else:
+            # Y/M/D vars exist but not consistent - derive and store
+            self.ctx.solver.add(self._year_var == y)
+            self.ctx.solver.add(self._month_var == m)
+            self.ctx.solver.add(self._day_var == d)
+        # Update consistency flag
+        self._ymd_consistent = True
+        return self._year_var, self._month_var, self._day_var
 
     def to_concrete_date(self, model: ModelRef) -> Date:
         if self._ymd_consistent and self._ymd_exists:
@@ -186,17 +216,28 @@ class DateVar:
         """Support x >= date comparison.
 
         Comparison strategy (dual-lazy):
-        1. If both have consistent Y/M/D: compare lexicographically on (Y, M, D)
-        2. Else if both have consistent epoch: compare on epoch_var
+        1. If both have consistent epoch: compare on epoch_var
+        2. Else if both have consistent Y/M/D: compare lexicographically on (Y, M, D)
         3. Else: derive epoch expressions for both sides (converting Y/M/D to epoch if needed) and compare
         """
         if isinstance(other, Date):
-            # Use signed comparison for epoch values (can be negative)
+            # If we have consistent Y/M/D, use Y/M/D comparison (more efficient)
+            if self._ymd_consistent and self._ymd_exists:
+                y1, m1, d1 = self._year_var, self._month_var, self._day_var
+                y2, m2, d2 = BitVecVal(other.year, LEGACY_BITS), BitVecVal(other.month, LEGACY_BITS), BitVecVal(other.day, LEGACY_BITS)
+                return Or(
+                    UGT(y1, y2),
+                    And(y1 == y2, Or(UGT(m1, m2), And(m1 == m2, UGE(d1, d2)))),
+                )
+            # Otherwise, use epoch comparison
             return self._epoch_expr() >= BitVecVal(
                 to_days_since_epoch(other), LEGACY_BITS
             )
         elif isinstance(other, DateVar):
-            # Case 1: Both have consistent Y/M/D - use Y/M/D comparison
+            # Case 1: Both have consistent epoch - use epoch comparison
+            if self._epoch_consistent and other._epoch_consistent:
+                return self.epoch_var >= other.epoch_var
+            # Case 2: Both have consistent Y/M/D - use Y/M/D comparison
             if (
                 self._ymd_consistent
                 and self._ymd_exists
@@ -209,10 +250,7 @@ class DateVar:
                     UGT(y1, y2),
                     And(y1 == y2, Or(UGT(m1, m2), And(m1 == m2, UGE(d1, d2)))),
                 )
-            # Case 2: Both have consistent epoch - use signed epoch comparison (can be negative)
-            if self._epoch_consistent and other._epoch_consistent:
-                return self.epoch_var >= other.epoch_var
-            # Case 3: Inconsistent - derive epoch expressions for both and compare (signed, can be negative)
+            # Case 3: Inconsistent - derive epoch expressions for both and compare
             return self._epoch_expr() >= other._epoch_expr()
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
@@ -221,17 +259,28 @@ class DateVar:
         """Support x <= date comparison.
 
         Comparison strategy (dual-lazy):
-        1. If both have consistent Y/M/D: compare lexicographically on (Y, M, D)
-        2. Else if both have consistent epoch: compare on epoch_var
+        1. If both have consistent epoch: compare on epoch_var
+        2. Else if both have consistent Y/M/D: compare lexicographically on (Y, M, D)
         3. Else: derive epoch expressions for both sides (converting Y/M/D to epoch if needed) and compare
         """
         if isinstance(other, Date):
-            # Use signed comparison for epoch values (can be negative)
+            # If we have consistent Y/M/D, use Y/M/D comparison (more efficient)
+            if self._ymd_consistent and self._ymd_exists:
+                y1, m1, d1 = self._year_var, self._month_var, self._day_var
+                y2, m2, d2 = BitVecVal(other.year, LEGACY_BITS), BitVecVal(other.month, LEGACY_BITS), BitVecVal(other.day, LEGACY_BITS)
+                return Or(
+                    ULT(y1, y2),
+                    And(y1 == y2, Or(ULT(m1, m2), And(m1 == m2, ULE(d1, d2)))),
+                )
+            # Otherwise, use epoch comparison
             return self._epoch_expr() <= BitVecVal(
                 to_days_since_epoch(other), LEGACY_BITS
             )
         elif isinstance(other, DateVar):
-            # Case 1: Both have consistent Y/M/D - use Y/M/D comparison
+            # Case 1: Both have consistent epoch - use epoch comparison
+            if self._epoch_consistent and other._epoch_consistent:
+                return self.epoch_var <= other.epoch_var
+            # Case 2: Both have consistent Y/M/D - use Y/M/D comparison
             if (
                 self._ymd_consistent
                 and self._ymd_exists
@@ -244,10 +293,7 @@ class DateVar:
                     ULT(y1, y2),
                     And(y1 == y2, Or(ULT(m1, m2), And(m1 == m2, ULE(d1, d2)))),
                 )
-            # Case 2: Both have consistent epoch - use signed epoch comparison (can be negative)
-            if self._epoch_consistent and other._epoch_consistent:
-                return self.epoch_var <= other.epoch_var
-            # Case 3: Inconsistent - derive epoch expressions for both and compare (signed, can be negative)
+            # Case 3: Inconsistent - derive epoch expressions for both and compare
             return self._epoch_expr() <= other._epoch_expr()
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
@@ -270,14 +316,25 @@ class DateVar:
         """Support x == date comparison.
 
         Comparison strategy (dual-lazy):
-        1. If both have consistent Y/M/D: compare on (Y, M, D) components
-        2. Else if both have consistent epoch: compare on epoch_var
+        1. If both have consistent epoch: compare on epoch_var
+        2. Else if both have consistent Y/M/D: compare on (Y, M, D) components
         3. Else: derive epoch expressions for both sides (converting Y/M/D to epoch if needed) and compare
         """
         if isinstance(other, Date):
+            # If we have consistent Y/M/D, use Y/M/D comparison (more efficient)
+            if self._ymd_consistent and self._ymd_exists:
+                return And(
+                    self._year_var == BitVecVal(other.year, LEGACY_BITS),
+                    self._month_var == BitVecVal(other.month, LEGACY_BITS),
+                    self._day_var == BitVecVal(other.day, LEGACY_BITS),
+                )
+            # Otherwise, use epoch comparison
             return self._epoch_expr() == BitVecVal(to_days_since_epoch(other), LEGACY_BITS)
         elif isinstance(other, DateVar):
-            # Case 1: Both have consistent Y/M/D - use Y/M/D comparison
+            # Case 1: Both have consistent epoch - use epoch comparison
+            if self._epoch_consistent and other._epoch_consistent:
+                return self.epoch_var == other.epoch_var
+            # Case 2: Both have consistent Y/M/D - use Y/M/D comparison
             if (
                 self._ymd_consistent
                 and self._ymd_exists
@@ -289,9 +346,6 @@ class DateVar:
                     self._month_var == other._month_var,
                     self._day_var == other._day_var,
                 )
-            # Case 2: Both have consistent epoch - use epoch comparison
-            if self._epoch_consistent and other._epoch_consistent:
-                return self.epoch_var == other.epoch_var
             # Case 3: Inconsistent - derive epoch expressions for both and compare
             return self._epoch_expr() == other._epoch_expr()
         else:
@@ -314,8 +368,8 @@ class DateVar:
         if not isinstance(other, Period):
             raise TypeError(f"Cannot add {type(other)} to DateVar")
 
-        # Don't add bounds for intermediate results to avoid UNSAT when results go out of range
-        result = self.ctx.add_date_var(f"{self.name}_plus", add_bounds=False)
+        # Add bounds for intermediate results to ensure they stay within valid range
+        result = self.ctx.add_date_var(f"{self.name}_plus", add_bounds=True)
 
         # Concrete Period fast-path for days-only
         if isinstance(other, Period) and other.years == 0 and other.months == 0:
@@ -337,23 +391,33 @@ class DateVar:
         else:
             oy, om, od = other.years, other.months, other.days
 
-        # Get base Y/M/D terms lazily from whichever side is consistent
+        # Decode current date to Y/M/D
         y0, m0, d0 = self._ymd_expr()
-        # Step 1: combine years/months with AMI normalization
+
+        # Step 1: Combine Y and M with normalization (carry years)
         period_total_months = oy * BitVecVal(12, LEGACY_BITS) + om
         total_months = m0 + period_total_months
-        y1, m1 = normalize_month(y0, total_months)
+        year_carry, m1 = normalize_month(BitVecVal(0, LEGACY_BITS), total_months)
+        y1 = y0 + year_carry
+
         # Step 2: EOM clamp
         d1 = eom_clamp(y1, m1, d0)
-        # Step 3: add days in ordinal space
-        y2, m2, d2 = add_days_ordinal(y1, m1, d1, od)
-        # Constrain result Y/M/D only; leave epoch to be derived on demand
-        self.ctx.solver.add(result.year_var == y2)
-        self.ctx.solver.add(result.month_var == m2)
-        self.ctx.solver.add(result.day_var == d2)
-        result._ymd_consistent = True
-        result._epoch_consistent = False
-        return result
+
+        if od == BitVecVal(0, LEGACY_BITS):
+            # No need to re-encode to epoch
+            self.ctx.solver.add(result.year_var == y1)
+            self.ctx.solver.add(result.month_var == m1)
+            self.ctx.solver.add(result.day_var == d1)
+            result._epoch_consistent = False
+            result._ymd_consistent = True
+            return result
+        else:
+            # Step 3: add D days in ordinal space
+            epoch_expr = add_days_ordinal_epoch(y1, m1, d1, od)
+            self.ctx.solver.add(result.epoch_var == epoch_expr)
+            result._epoch_consistent = True
+            result._ymd_consistent = False
+            return result
 
     def __sub__(self, other) -> "DateVar":
         """DateVar - Period implemented as DateVar + (-Period)."""
