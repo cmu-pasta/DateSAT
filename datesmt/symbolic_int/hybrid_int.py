@@ -334,8 +334,8 @@ class DateVar:
         Steps: normalize Y/M, EOM clamp, then add D days in ordinal space.
         """
         if isinstance(other, Period):
-            # Don't add bounds for intermediate results to avoid UNSAT when results go out of range
-            result = self.ctx.add_date_var(f"{self.name}_plus", add_bounds=False)
+            # Add bounds for intermediate results to ensure they stay within valid range
+            result = self.ctx.add_date_var(f"{self.name}_plus", add_bounds=True)
             
             # Fast-path: only days component (check at Python level since Period components are concrete)
             if other.years == 0 and other.months == 0:
