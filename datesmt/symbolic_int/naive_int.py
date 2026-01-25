@@ -181,9 +181,18 @@ def _dbm_index(y, idx) -> ArithRef:
 class DateVar:
     """Symbolic date variable for naive implementation."""
 
-    def __init__(self, name: str):
-        """Create a symbolic date variable."""
+    def __init__(self, name: str, bounded: bool = False, solver=None):
+        """Create a symbolic date variable.
+        
+        Args:
+            name: Name of the date variable
+            bounded: If True, add date validation bounds (requires solver)
+            solver: Solver instance for adding constraints (required if bounded=True)
+        """
         self.name = name
+        self._bounded = bounded
+        # Only store solver if bounded (needed to add bounds and equality constraints)
+        self._solver = solver if bounded else None
         # Create separate Z3 integer variables for year, month, day
         self.year = Int(f"{name}_year")
         self.month = Int(f"{name}_month")
@@ -263,6 +272,43 @@ class DateVar:
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
+    def _add_bounds(self) -> None:
+        """Add date validation bounds to this DateVar if bounded and solver is available."""
+        if not self._bounded or self._solver is None:
+            return
+        
+        # Add comprehensive date validation constraints
+        # Valid range is 1900-03-01 to 2100-02-28
+        self._solver.add(
+            Or(
+                # 1900-03-01 to 1900-12-31
+                And(
+                    self.year == 1900,
+                    self.month >= 3,
+                    self.month <= 12,
+                    self.day >= 1,
+                    self.day <= days_in_month(self.year, self.month),
+                ),
+                # 1901-01-01 to 2099-12-31
+                And(
+                    self.year >= 1901,
+                    self.year <= 2099,
+                    self.month >= 1,
+                    self.month <= 12,
+                    self.day >= 1,
+                    self.day <= days_in_month(self.year, self.month),
+                ),
+                # 2100-01-01 to 2100-02-28
+                And(
+                    self.year == 2100,
+                    self.month >= 1,
+                    self.month <= 2,
+                    self.day >= 1,
+                    self.day <= days_in_month(self.year, self.month),
+                ),
+            )
+        )
+
     def __add__(self, other) -> 'DateVar':
         """
         DateVar + Period following naive semantics:
@@ -275,7 +321,9 @@ class DateVar:
         """
         if isinstance(other, Period):
             result = DateVar(
-                f"{self.name}_plus_{other.years}y_{other.months}m_{other.days}d"
+                f"{self.name}_plus_{other.years}y_{other.months}m_{other.days}d",
+                bounded=self._bounded,
+                solver=self._solver
             )
 
             # Extract period components
@@ -290,24 +338,34 @@ class DateVar:
                 y2, m2, d2 = add_days_componentwise(
                     self.year, self.month, self.day, period_days
                 )
+            else:
+                # Full path: Step 1: Combine Y and M (normalize months into 1..12 with year carry)
+                # Convert period years to months and combine with period months
+                period_total_months = IntVal(period_years) * IntVal(12) + IntVal(period_months)
+                # Add to current month and normalize
+                total_months = self.month + period_total_months
+                year_carry, m1 = normalize_month(IntVal(0), total_months)
+                y1 = self.year + year_carry
+
+                # Step 2: Apply EOM clamp: day := min(original_day, days_in_month(new_year,new_month))
+                d1 = eom_clamp(y1, m1, self.day)
+
+                # Step 3: Add D days via iterative carry across month/year boundaries
+                y2, m2, d2 = add_days_componentwise(y1, m1, d1, period_days)
+
+            # Link the computed expressions to the result's Z3 variables
+            if result._solver is not None:
+                result._solver.add(And(
+                    result.year == y2,
+                    result.month == m2,
+                    result.day == d2
+                ))
+            else:
+                # If no solver, just assign directly (for backward compatibility)
                 result.year, result.month, result.day = y2, m2, d2
-                return result
-
-            # Full path: Step 1: Combine Y and M (normalize months into 1..12 with year carry)
-            # Convert period years to months and combine with period months
-            period_total_months = IntVal(period_years) * IntVal(12) + IntVal(period_months)
-            # Add to current month and normalize
-            total_months = self.month + period_total_months
-            year_carry, m1 = normalize_month(IntVal(0), total_months)
-            y1 = self.year + year_carry
-
-            # Step 2: Apply EOM clamp: day := min(original_day, days_in_month(new_year,new_month))
-            d1 = eom_clamp(y1, m1, self.day)
-
-            # Step 3: Add D days via iterative carry across month/year boundaries
-            y2, m2, d2 = add_days_componentwise(y1, m1, d1, period_days)
-
-            result.year, result.month, result.day = y2, m2, d2
+            
+            # Add bounds to intermediate result (bounds are on the Z3 variables)
+            result._add_bounds()
             return result
         else:
             raise TypeError(f"Cannot add {type(other)} to DateVar")
@@ -343,40 +401,12 @@ class NaiveSolver:
 
     def add_date_var(self, name: str) -> DateVar:
         """Add a symbolic date variable with comprehensive date validation."""
-        date_var = DateVar(name)
+        date_var = DateVar(name, bounded=True, solver=self.solver)
         self.date_vars[name] = date_var
 
         # Add comprehensive date validation constraints
         # Valid range is 1900-03-01 to 2100-02-28
-        self.solver.add(
-            Or(
-                # 1900-03-01 to 1900-12-31
-                And(
-                    date_var.year == 1900,
-                    date_var.month >= 3,
-                    date_var.month <= 12,
-                    date_var.day >= 1,
-                    date_var.day <= days_in_month(date_var.year, date_var.month),
-                ),
-                # 1901-01-01 to 2099-12-31
-                And(
-                    date_var.year >= 1901,
-                    date_var.year <= 2099,
-                    date_var.month >= 1,
-                    date_var.month <= 12,
-                    date_var.day >= 1,
-                    date_var.day <= days_in_month(date_var.year, date_var.month),
-                ),
-                # 2100-01-01 to 2100-02-28
-                And(
-                    date_var.year == 2100,
-                    date_var.month >= 1,
-                    date_var.month <= 2,
-                    date_var.day >= 1,
-                    date_var.day <= days_in_month(date_var.year, date_var.month),
-                ),
-            )
-        )
+        date_var._add_bounds()
 
         return date_var
 
