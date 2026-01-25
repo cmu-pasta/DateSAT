@@ -22,9 +22,12 @@ def _get_smtlib_for_constraint(
     implementation: str,
     timeout_ms: int,
     use_maxsat: bool = False,
-) -> str:
-    """Helper function to generate SMT-LIB output for a constraint.
-    This is needed for benchmarking purposes to save SMT-LIB representations.
+) -> str | None:
+    """
+    Generate SMT-LIB representation for a constraint.
+
+    This is used for benchmarking purposes to save SMT-LIB files
+    that can be replayed with other SMT solvers.
     """
     from datesmt.api import DateSMTBuilder
     from datesmt.constraint_parser import ConstraintParser
@@ -50,9 +53,7 @@ def _get_smtlib_for_constraint(
     exec(constraint_code, exec_globals)
     builder = exec_globals.get("result") or exec_globals.get("builder")
 
-    if builder:
-        return builder.to_smt2()
-    return None
+    return builder.to_smt2() if builder else None
 
 
 def run_constraint_with_approach(
@@ -62,20 +63,23 @@ def run_constraint_with_approach(
     timeout_ms: int = TIMEOUT_MS,
     use_maxsat: bool = False,
 ) -> dict:
-    """Run a single constraint with a specific approach and implementation."""
+    """
+    Run a single constraint with a specific solver approach and implementation.
+
+    Returns a dict containing the constraint ID, status, execution time,
+    solution (if SAT), and optionally SMT-LIB representation.
+    """
     constraint_id = constraint_data.get("id", "unknown")
     print(
         f"\n=== Running {constraint_id} ({approach.upper()}, {implementation.upper()}) ==="
     )
-
     print(f"Constraint: {constraint_data}")
 
+    # Initialize result dictionary with default values
     result = {
-        # Input constraint information
         "id": constraint_id,
         "constraints": constraint_data.get("constraints", []),
         "declarations": constraint_data.get("declarations", []),
-        # Execution metadata
         "approach": approach,
         "implementation": implementation,
         "status": "error",
@@ -86,80 +90,37 @@ def run_constraint_with_approach(
     }
 
     try:
-        # Handle enumeration baseline - requires special handling as it's not a standard solver
-        if approach == "enumeration":
-            import time
-
-            from datesmt.constraint_parser import ConstraintParser
-            from datesmt.enumeration_baseline import EnumerationSolver
-
-            # Enumeration baseline doesn't use the high-level API
-            parser = ConstraintParser()
-            constraint_code = parser.parse_constraint_data(constraint_data)
-
-            solver = EnumerationSolver(timeout_ms=timeout_ms)
-            exec_globals = solver.get_execution_context()
-
-            start_time = time.time()
-            try:
-                exec(constraint_code, exec_globals)
-            except AttributeError as e:
-                error_msg = str(e)
-                if "add_bool_var" in error_msg or "add_int_var" in error_msg:
-                    result["status"] = "not_applicable"
-                    result["error_message"] = (
-                        f"Enumeration baseline does not support these variable types: {error_msg}"
-                    )
-                    print(
-                        "⚠️  Not applicable: Enumeration baseline doesn't support bool/int variables"
-                    )
-                    return result
-                raise
-
-            builder = (
-                exec_globals.get("result") or exec_globals.get("builder") or solver
-            )
-            if not builder:
-                raise RuntimeError("Constraint code did not create a solver")
-
-            result["smtlib"] = builder.to_smt2()
-            solve_result = builder.solve()
-            result["execution_time"] = time.time() - start_time
-
-        else:
-            # Use the high-level API for all symbolic approaches
-            solve_result = datesmt.solve(
-                constraints=constraint_data,
-                approach=approach,
-                implementation=implementation,
-                timeout_ms=timeout_ms,
-                verbose=False,  # Suppress verbose output during benchmarking
-                use_maxsat=use_maxsat,
-            )
-
-            # Generate SMT-LIB for benchmarking purposes
-            try:
-                result["smtlib"] = _get_smtlib_for_constraint(
-                    constraint_data, approach, implementation, timeout_ms, use_maxsat
-                )
-            except Exception as e:
-                # SMT-LIB generation is optional for benchmarking
-                result["smtlib_error"] = str(e)
-
-        # Extract status and solution from solve result
-        result["status"] = solve_result.get("status", "error")
-        result["execution_time"] = solve_result.get(
-            "execution_time", result["execution_time"]
+        # Solve using the high-level API
+        solve_result = datesmt.solve(
+            constraints=constraint_data,
+            approach=approach,
+            implementation=implementation,
+            timeout_ms=timeout_ms,
+            verbose=False,  # Suppress verbose output during benchmarking
+            use_maxsat=use_maxsat,
         )
+
+        # Extract status and execution time
+        result["status"] = solve_result.get("status", "error")
+        result["execution_time"] = solve_result.get("execution_time", 0.0)
 
         # Merge solution from all variable types
         merged_solution = {}
         for var_type in ["dates", "ints", "bools"]:
-            vars_dict = solve_result.get(var_type, {}) or {}
-            for name, value in vars_dict.items():
-                merged_solution[name] = str(value) if var_type == "dates" else value
+            vars_dict = solve_result.get(var_type, {})
+            if vars_dict:
+                for name, value in vars_dict.items():
+                    merged_solution[name] = str(value) if var_type == "dates" else value
 
-        result["solution"] = merged_solution if merged_solution else None
+        result["solution"] = merged_solution or None
+
+        # Generate SMT-LIB for benchmarking purposes (optional)
+        try:
+            result["smtlib"] = _get_smtlib_for_constraint(
+                constraint_data, approach, implementation, timeout_ms, use_maxsat
+            )
+        except Exception as e:
+            result["smtlib_error"] = str(e)
 
         # Print status
         if result["status"] == "sat":
@@ -174,10 +135,8 @@ def run_constraint_with_approach(
             print(f"❌ Status: {result['status']}")
 
     except Exception as e:
-        result["error_message"] = str(e)
         result["status"] = "error"
-        # Errors that occur before/during solving should have 0.0 execution time
-        # to distinguish them from timeouts or successful solves
+        result["error_message"] = str(e)
         result["execution_time"] = 0.0
         print(f"❌ Error: {e}")
 
@@ -189,14 +148,8 @@ def _sanitize_filename(name: str) -> str:
     return re.sub(r"[^A-Za-z0-9._-]+", "_", name)
 
 
-def run_constraints_file(
-    constraints_file: str,
-    output_dir: str,
-    timeout_ms: int = TIMEOUT_MS,
-    skip_enumeration: bool = False,
-    use_maxsat: bool = False,
-):
-    # Load constraints - support both JSON and JSONL formats
+def _load_constraints(constraints_file: str) -> list[dict]:
+    """Load constraints from JSON or JSONL file."""
     constraints_file_path = Path(constraints_file)
 
     if constraints_file_path.suffix == ".jsonl":
@@ -214,7 +167,6 @@ def run_constraints_file(
                     print(
                         f"Warning: Skipping invalid JSON on line {line_num} of {constraints_file}: {e}"
                     )
-                    continue
     else:
         # JSON format: single JSON array/object
         with open(constraints_file, "r") as f:
@@ -223,14 +175,28 @@ def run_constraints_file(
             if isinstance(constraints, dict):
                 constraints = [constraints]
 
+    return constraints
+
+
+def run_constraints_file(
+    constraints_file: str,
+    output_dir: str,
+    timeout_ms: int = TIMEOUT_MS,
+    use_maxsat: bool = False,
+):
+    """Run benchmarks on constraints from a file with all solver approaches."""
+    # Load constraints (supports both JSON and JSONL formats)
+    constraints = _load_constraints(constraints_file)
     print(f"Loaded {len(constraints)} constraints from {constraints_file}")
     print(f"Output directory: {output_dir}")
 
-    os.makedirs(output_dir, exist_ok=True)
-    smt_dir = os.path.join(output_dir, "smt_constraints")
-    os.makedirs(smt_dir, exist_ok=True)
+    # Create output directories
+    output_dir_path = Path(output_dir)
+    output_dir_path.mkdir(parents=True, exist_ok=True)
+    smt_dir = output_dir_path / "smt_constraints"
+    smt_dir.mkdir(parents=True, exist_ok=True)
 
-    # Define all methods to run
+    # Define all solver approaches and implementations to test
     symbolic_approaches = [
         "naive",
         "epoch_days",
@@ -238,78 +204,73 @@ def run_constraints_file(
         "alpha_beta",
         "alpha_beta_table",
     ]
-    # implementations = ["int", "bitvector"]
-    implementations = ["int"]
-
-    # Symbolic approaches with int/bitvector implementations
-    all_methods = [
-        (approach, impl) for approach in symbolic_approaches for impl in implementations
-    ]
+    implementations = ["int"]  # Can add "bitvector" if needed
 
     all_results = {}
 
     # Run all approaches with their respective implementations
-    for approach, implementation in all_methods:
-        print(f"\n{'='*60}")
-        print(f"TESTING WITH {approach.upper()} APPROACH ({implementation.upper()})")
-        print(f"{'='*60}")
+    for approach in symbolic_approaches:
+        for implementation in implementations:
+            print(f"\n{'='*60}")
+            print(
+                f"TESTING WITH {approach.upper()} APPROACH ({implementation.upper()})"
+            )
+            print(f"{'='*60}")
 
-        results = []
-        for constraint in constraints:
-            result = run_constraint_with_approach(
-                constraint, approach, implementation, timeout_ms, use_maxsat
+            results = []
+            for constraint in constraints:
+                result = run_constraint_with_approach(
+                    constraint, approach, implementation, timeout_ms, use_maxsat
+                )
+
+                # Save SMT-LIB representation to file if available
+                if result.get("smtlib"):
+                    constraint_id = _sanitize_filename(result.get("id", "unknown"))
+                    smt_output_dir = smt_dir / approach / implementation
+                    smt_output_dir.mkdir(parents=True, exist_ok=True)
+                    smt_file_path = smt_output_dir / f"{constraint_id}.smt2"
+
+                    try:
+                        smt_file_path.write_text(result["smtlib"])
+                        result["smtlib_file"] = str(smt_file_path)
+                    except Exception as e:
+                        result["smtlib_file_error"] = str(e)
+
+                    # Remove smtlib from result to avoid bloating JSON files
+                    del result["smtlib"]
+
+                results.append(result)
+
+            all_results[f"{approach}_{implementation}"] = results
+
+            # Save results for this approach and implementation
+            output_file = output_dir_path / f"{approach}_{implementation}.json"
+            output_file.write_text(json.dumps(results, indent=2, default=str))
+            print(f"\nResults saved to: {output_file}")
+
+            # Print summary statistics
+            total = len(results)
+            successful = sum(1 for r in results if r["status"] == "sat")
+            avg_time = (
+                sum(r["execution_time"] for r in results) / total if total > 0 else 0.0
             )
 
-            # Save per-constraint SMT-LIB as .smt2 file
-            if result.get("smtlib"):
-                cid = _sanitize_filename(result.get("id", "unknown"))
-                # Create nested directory structure: smt_constraints/<approach>/<implementation>/
-                smt_output_dir = os.path.join(smt_dir, approach, implementation)
-                os.makedirs(smt_output_dir, exist_ok=True)
-                smt_path = os.path.join(smt_output_dir, f"{cid}.smt2")
-                try:
-                    with open(smt_path, "w") as f:
-                        f.write(result["smtlib"])
-                    # Attach path for traceability
-                    result["smtlib_file"] = smt_path
-                except Exception as e:
-                    result["smtlib_file_error"] = str(e)
-
-                # Remove smtlib from result to avoid saving it in JSON files
-                del result["smtlib"]
-
-            results.append(result)
-
-        all_results[f"{approach}_{implementation}"] = results
-
-        # Save results for this approach and implementation
-        output_file = os.path.join(output_dir, f"{approach}_{implementation}.json")
-        with open(output_file, "w") as f:
-            json.dump(results, f, indent=2, default=str)
-        print(f"\nResults saved to: {output_file}")
-
-        # Print summary
-        successful = len([r for r in results if r["status"] == "sat"])
-        total = len(results)
-        # Note: execution_time is 0.0 for immediate errors; timeouts use actual measured time
-        avg_time = sum(r["execution_time"] for r in results) / total if total > 0 else 0
-
-        print(f"\nSummary for {approach} ({implementation}):")
-        print(f"  Successful: {successful}/{total} ({successful/total*100:.1f}%)")
-        print(f"  Avg time: {avg_time:.4f}s")
+            print(f"\nSummary for {approach} ({implementation}):")
+            print(f"  Successful: {successful}/{total} ({successful/total*100:.1f}%)")
+            print(f"  Avg time: {avg_time:.4f}s")
 
     return all_results
 
 
-# =========================
-# Results Analysis
-# =========================
-# Note: Analysis functions have been moved to dataset.validation
-
-
 def main():
-    """Main function to run constraint testing and analysis."""
-    # Predetermined paths for both constraint sets
+    """
+    Run benchmarks on all constraint sets and optionally analyze results.
+
+    Processes three constraint datasets:
+    - Grammar Constraints
+    - LLM Generated Constraints
+    - Legal Document Constraints
+    """
     SCRIPT_DIR = Path(__file__).parent
 
     constraint_sets = [
@@ -329,14 +290,22 @@ def main():
              / "constraints.json",
              "output_dir": SCRIPT_DIR / "llm_constraints" / "results",
         },
-        # {
-        #     "name": "Legal Document Constraints",
-        #     "constraints_file": SCRIPT_DIR
-        #     / "legal_doc_constraints"
-        #     / "constraints"
-        #     / "constraints.jsonl",
-        #     "output_dir": SCRIPT_DIR / "legal_doc_constraints" / "results",
-        # },
+        {
+            "name": "LLM Generated Constraints",
+            "constraints_file": SCRIPT_DIR
+            / "llm_constraints"
+            / "constraints"
+            / "constraints.json",
+            "output_dir": SCRIPT_DIR / "llm_constraints" / "results",
+        },
+        {
+            "name": "Legal Document Constraints",
+            "constraints_file": SCRIPT_DIR
+            / "legal_doc_constraints"
+            / "constraints"
+            / "constraints.jsonl",
+            "output_dir": SCRIPT_DIR / "legal_doc_constraints" / "results",
+        },
     ]
 
     parser = argparse.ArgumentParser(
@@ -354,11 +323,6 @@ def main():
         help="Skip analysis after constraint execution (default: run analysis)",
     )
     parser.add_argument(
-        "--skip-enumeration",
-        action="store_true",
-        help="Skip enumeration baseline (validation will still work, treating it as not applicable)",
-    )
-    parser.add_argument(
         "--maxsat",
         action="store_true",
         help="Use MaxSAT optimization with soft constraints for dates near today",
@@ -366,10 +330,11 @@ def main():
 
     args = parser.parse_args()
 
-    print(f"Analysis: {'Enabled' if not args.no_analysis else 'Disabled'}")
-    print(f"Timeout: {args.timeout}ms")
-    print(f"Skip Enumeration: {'Yes' if args.skip_enumeration else 'No'}")
-    print(f"MaxSAT: {'Enabled' if args.maxsat else 'Disabled'}\n")
+    # Print configuration
+    print(f"Configuration:")
+    print(f"  Timeout: {args.timeout}ms")
+    print(f"  MaxSAT: {'Enabled' if args.maxsat else 'Disabled'}")
+    print(f"  Analysis: {'Enabled' if not args.no_analysis else 'Disabled'}\n")
 
     # Run benchmarks for each constraint set
     for constraint_set in constraint_sets:
@@ -395,64 +360,62 @@ def main():
             str(constraints_file),
             str(output_dir),
             args.timeout,
-            skip_enumeration=args.skip_enumeration,
             use_maxsat=args.maxsat,
         )
 
+        # Run analysis if enabled
         if not args.no_analysis:
             print(f"\n{'='*60}")
             print("RUNNING ANALYSIS")
             print(f"{'='*60}")
 
             results_dir = Path(output_dir)
-
             if not results_dir.exists() or not results_dir.is_dir():
-                print(f"Error: Results directory not found: {results_dir}")
+                print(f"❌ Error: Results directory not found: {results_dir}")
                 continue
 
+            # Analyze constraints supported by enumeration baseline
             summary_supported = check_results_dir(
                 results_dir, enumeration_filter="supported"
             )
 
-            # Save analysis results for constraints supported by enumeration baseline
             analysis_output = results_dir / "checked_summary_with_baseline.json"
-            with open(analysis_output, "w", encoding="utf-8") as f:
-                json.dump(summary_supported, f, indent=2, sort_keys=False)
+            analysis_output.write_text(
+                json.dumps(summary_supported, indent=2, sort_keys=False)
+            )
 
-            print(f"\nAnalysis complete!")
             print(
-                f"Checked {summary_supported['constraints_checked']} constraints "
+                f"\n✅ Analyzed {summary_supported['constraints_checked']} constraints "
                 "(enumeration supported)"
             )
-            print(f"Analysis results saved to: {analysis_output}")
+            print(f"Analysis saved to: {analysis_output}")
 
-            # If there are constraints the enumeration baseline does not support,
-            # save their stats separately.
+            # Handle constraints not supported by enumeration baseline
             enum_support = summary_supported.get("enumeration_support", {})
             not_supported_count = enum_support.get("not_supported_count", 0)
-            if not_supported_count:
+            if not_supported_count > 0:
                 unsupported_summary = check_results_dir(
                     results_dir, enumeration_filter="not_supported"
                 )
                 unsupported_output = (
                     results_dir / "checked_summary_without_baseline.json"
                 )
-                with open(unsupported_output, "w", encoding="utf-8") as f:
-                    json.dump(unsupported_summary, f, indent=2, sort_keys=False)
+                unsupported_output.write_text(
+                    json.dumps(unsupported_summary, indent=2, sort_keys=False)
+                )
                 print(
-                    f"Constraints without enumeration support: {not_supported_count} "
+                    f"⚠️  {not_supported_count} constraints without enumeration support "
                     f"(saved to: {unsupported_output})"
                 )
 
-            # Print summary statistics for supported constraints
+            # Print summary statistics
             counts = summary_supported["counts_by_approach"]
-            print(f"\nSummary by approach (enumeration supported constraints):")
+            print(f"\nSummary by approach (enumeration supported):")
             for approach, counts_dict in counts.items():
                 total = sum(counts_dict.values())
                 correct = counts_dict.get("correct", 0)
-                print(
-                    f"  {approach}: {correct}/{total} correct ({correct/total*100:.1f}%)"
-                )
+                percentage = correct / total * 100 if total > 0 else 0
+                print(f"  {approach}: {correct}/{total} correct ({percentage:.1f}%)")
 
         print()  # Blank line between constraint sets
 
