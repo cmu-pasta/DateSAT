@@ -24,7 +24,6 @@ def _get_smtlib_for_constraint(
     use_maxsat: bool = False,
 ) -> str:
     """Helper function to generate SMT-LIB output for a constraint.
-
     This is needed for benchmarking purposes to save SMT-LIB representations.
     """
     from datesmt.api import DateSMTBuilder
@@ -227,12 +226,11 @@ def run_constraints_file(
     print(f"Loaded {len(constraints)} constraints from {constraints_file}")
     print(f"Output directory: {output_dir}")
 
+    os.makedirs(output_dir, exist_ok=True)
     smt_dir = os.path.join(output_dir, "smt_constraints")
     os.makedirs(smt_dir, exist_ok=True)
-    os.makedirs(output_dir, exist_ok=True)
 
     # Define all methods to run
-    baseline_approaches = [] if skip_enumeration else ["enumeration"]
     symbolic_approaches = [
         "naive",
         "epoch_days",
@@ -240,20 +238,13 @@ def run_constraints_file(
         "alpha_beta",
         "alpha_beta_table",
     ]
-    implementations = ["int", "bitvector"]
+    # implementations = ["int", "bitvector"]
+    implementations = ["int"]
 
-    # Unify all methods into a single list
     # Symbolic approaches with int/bitvector implementations
     all_methods = [
         (approach, impl) for approach in symbolic_approaches for impl in implementations
     ]
-    # Baseline approaches with "naive" implementation
-    if baseline_approaches:
-        all_methods.extend([(approach, "naive") for approach in baseline_approaches])
-
-    if skip_enumeration:
-        print("\n⚠️  Skipping enumeration baseline (--skip-enumeration flag set)")
-        print("   Validation will still work, treating enumeration as not applicable\n")
 
     all_results = {}
 
@@ -322,30 +313,30 @@ def main():
     SCRIPT_DIR = Path(__file__).parent
 
     constraint_sets = [
-        # {
-        #    "name": "Grammar Constraints",
-        #    "constraints_file": SCRIPT_DIR
-        #    / "grammar_constraints"
-        #    / "benchmarks"
-        #    / "constraints.json",
-        #    "output_dir": SCRIPT_DIR / "grammar_constraints" / "results",
-        # },
-        #{
-        #    "name": "LLM Generated Constraints",
-        #    "constraints_file": SCRIPT_DIR
-        #    / "llm_constraints"
-        #    / "constraints"
-        #    / "constraints.json",
-        #    "output_dir": SCRIPT_DIR / "llm_constraints" / "results",
-        #},
         {
-            "name": "Legal Document Constraints",
+            "name": "Grammar Constraints",
             "constraints_file": SCRIPT_DIR
-            / "legal_doc_constraints"
-            / "constraints"
-            / "constraints.jsonl",
-            "output_dir": SCRIPT_DIR / "legal_doc_constraints" / "results",
+            / "grammar_constraints"
+            / "benchmarks"
+            / "constraints.json",
+            "output_dir": SCRIPT_DIR / "grammar_constraints" / "results",
         },
+        # {
+        #     "name": "LLM Generated Constraints",
+        #     "constraints_file": SCRIPT_DIR
+        #     / "llm_constraints"
+        #     / "constraints"
+        #     / "constraints.json",
+        #     "output_dir": SCRIPT_DIR / "llm_constraints" / "results",
+        # },
+        # {
+        #     "name": "Legal Document Constraints",
+        #     "constraints_file": SCRIPT_DIR
+        #     / "legal_doc_constraints"
+        #     / "constraints"
+        #     / "constraints.jsonl",
+        #     "output_dir": SCRIPT_DIR / "legal_doc_constraints" / "results",
+        # },
     ]
 
     parser = argparse.ArgumentParser(

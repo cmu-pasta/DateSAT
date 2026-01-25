@@ -70,6 +70,20 @@ python bin/datesmt.py --file constraints.json
 python bin/datesmt.py --approach hybrid --implementation bitvector --output json < constraints.json
 ```
 
+### MCP Server (for AI Agents)
+
+DateSMT includes an MCP (Model Context Protocol) server that allows AI agents to solve date constraints:
+
+```bash
+# Start MCP server on default port (8000)
+python bin/datesmt_mcp.py
+
+# Start on custom port
+python bin/datesmt_mcp.py --port 3000
+```
+
+The server exposes a `solve` tool at `http://localhost:<port>/sse` that AI agents can use to solve date constraints programmatically.
+
 See [USAGE.md](USAGE.md) for comprehensive documentation and examples.
 
 ## Constraint Format
@@ -196,8 +210,10 @@ For most use cases, the default `epoch_days` approach with `int` implementation 
   - `core.py` - Date and Period data structures
   - `symbolic_int/` - Integer-based backends (naive, epoch_days, hybrid, alpha_beta, alpha_beta_table)
   - `symbolic_bitvector/` - Bitvector-based backends (naive, epoch_days, hybrid, alpha_beta, alpha_beta_table)
-- `bin/` - Command-line interface
+- `bin/` - Command-line tools
   - `datesmt.py` - CLI tool
+  - `datesmt_mcp.py` - MCP server launch script
+  - `mcp_server.py` - MCP server implementation
 - `tests/` - Test suite (see `tests/README.md` for details)
 - `docs/` - Technical documentation (methods, implementations)
 - `dataset/llm_constraints/` - LLM-based constraint generation and testing tools
@@ -254,6 +270,15 @@ python bin/datesmt.py --approach hybrid --implementation bitvector < constraints
 python bin/datesmt.py --output json < constraints.json
 python bin/datesmt.py --quiet < constraints.json
 python bin/datesmt.py --help
+```
+
+### MCP Server
+
+```bash
+# Start MCP server
+python bin/datesmt_mcp.py --port 8000
+
+# The server exposes a 'solve' tool via MCP protocol at http://localhost:8000/sse
 ```
 
 For comprehensive documentation, see [USAGE.md](USAGE.md).

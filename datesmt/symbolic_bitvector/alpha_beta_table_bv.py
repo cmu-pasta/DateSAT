@@ -8,7 +8,8 @@ Representation:
 We avoid full ordinal decode by using a 48-month DIM/DBM table.
 """
 
-from typing import Union, Tuple, List
+from typing import List, Tuple, Union
+
 from z3 import (
     UGE,
     And,
@@ -28,12 +29,13 @@ from z3 import (
     Solver,
     Store,
     sat,
-    unsat,
     unknown,
+    unsat,
 )
 from ..symbolic_int.alpha_beta_table_int import build_dim_dbm_48_from_epoch
 from ..core import Date, Period
 from .bitwidths import LEGACY_BITS
+
 # Epoch constants as Python ints for table construction and concrete decoding
 _EPOCH_YEAR = 2000
 _EPOCH_MONTH = 3
@@ -50,47 +52,62 @@ def const_array(values: list[int]) -> BitVecRef:
         a = Store(a, BitVecVal(i, LEGACY_BITS), BitVecVal(v, LEGACY_BITS))
     return a
 
+
 _DIM48_LIST = const_array(_DIM48_LIST_PY)
 _DBM48_LIST = const_array(_DBM48_LIST_PY)
+
 
 def mod48(x) -> BitVecRef:
     return x % BitVecVal(_FOUR_YEAR_MONTHS, LEGACY_BITS)
 
+
 def _floor_div_12(x) -> BitVecRef:
     """Implement floor division by 12 for bitvectors to match Python's // behavior."""
-    sign_bit = 2**(LEGACY_BITS-1)
+    sign_bit = 2 ** (LEGACY_BITS - 1)
     wrap_around = 2**LEGACY_BITS
     is_negative = UGE(x, BitVecVal(sign_bit, LEGACY_BITS))
     signed_x = If(is_negative, x - BitVecVal(wrap_around, LEGACY_BITS), x)
     q_trunc = signed_x / BitVecVal(12, LEGACY_BITS)
     r = signed_x % BitVecVal(12, LEGACY_BITS)
-    is_negative_and_has_remainder = And(UGE(signed_x, BitVecVal(sign_bit, LEGACY_BITS)), r != BitVecVal(0, LEGACY_BITS))
+    is_negative_and_has_remainder = And(
+        UGE(signed_x, BitVecVal(sign_bit, LEGACY_BITS)), r != BitVecVal(0, LEGACY_BITS)
+    )
     q = If(is_negative_and_has_remainder, q_trunc - BitVecVal(1, LEGACY_BITS), q_trunc)
     return q
 
+
 def _floor_div_four_year_days(x) -> BitVecRef:
     """Implement floor division by FOUR_YEAR_DAYS for bitvectors to match Python's // behavior."""
-    sign_bit = 2**(LEGACY_BITS-1)
+    sign_bit = 2 ** (LEGACY_BITS - 1)
     wrap_around = 2**LEGACY_BITS
     is_negative = UGE(x, BitVecVal(sign_bit, LEGACY_BITS))
     signed_x = If(is_negative, x - BitVecVal(wrap_around, LEGACY_BITS), x)
     q_trunc = signed_x / BitVecVal(_FOUR_YEAR_DAYS, LEGACY_BITS)
     r = signed_x % BitVecVal(_FOUR_YEAR_DAYS, LEGACY_BITS)
-    is_negative_and_has_remainder = And(UGE(signed_x, BitVecVal(sign_bit, LEGACY_BITS)), r != BitVecVal(0, LEGACY_BITS))
+    is_negative_and_has_remainder = And(
+        UGE(signed_x, BitVecVal(sign_bit, LEGACY_BITS)), r != BitVecVal(0, LEGACY_BITS)
+    )
     q = If(is_negative_and_has_remainder, q_trunc - BitVecVal(1, LEGACY_BITS), q_trunc)
     return q
+
 
 def months_since_epoch_from_ym(y, m) -> BitVecRef:
     return (y * BitVecVal(12, LEGACY_BITS) + m) - _EPOCH_LINEAR
 
+
 def alpha_to_abs_month(alpha) -> BitVecRef:
     return alpha + _EPOCH_LINEAR
+
 
 def eom_clamp(dim, beta) -> BitVecRef:
     return If(
         beta < BitVecVal(0, LEGACY_BITS),
         BitVecVal(0, LEGACY_BITS),
-        If(beta > dim - BitVecVal(1, LEGACY_BITS), dim - BitVecVal(1, LEGACY_BITS), beta),
+        If(
+            beta > dim - BitVecVal(1, LEGACY_BITS),
+            dim - BitVecVal(1, LEGACY_BITS),
+            beta,
+        ),
     )
 
 
@@ -134,7 +151,9 @@ class DateVar:
 
     def to_concrete_date(self, model: ModelRef) -> Date:
         """Convert Z3 model to concrete Date using (alpha, beta)."""
-        alpha_val = model.evaluate(self.months_var, model_completion=True).as_signed_long()
+        alpha_val = model.evaluate(
+            self.months_var, model_completion=True
+        ).as_signed_long()
         beta_val = model.evaluate(self.beta_var, model_completion=True).as_signed_long()
         k = alpha_val + (_EPOCH_YEAR * 12 + _EPOCH_MONTH)
         year = (k - 1) // 12
@@ -159,7 +178,9 @@ class DateVar:
         elif isinstance(other, DateVar):
             return Or(
                 self.months_var > other.months_var,
-                And(self.months_var == other.months_var, self.beta_var >= other.beta_var),
+                And(
+                    self.months_var == other.months_var, self.beta_var >= other.beta_var
+                ),
             )
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
@@ -178,7 +199,9 @@ class DateVar:
         elif isinstance(other, DateVar):
             return Or(
                 self.months_var < other.months_var,
-                And(self.months_var == other.months_var, self.beta_var <= other.beta_var),
+                And(
+                    self.months_var == other.months_var, self.beta_var <= other.beta_var
+                ),
             )
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
@@ -206,7 +229,9 @@ class DateVar:
             beta_o = BitVecVal(other.day - 1, LEGACY_BITS)
             return And(self.months_var == alpha_o, self.beta_var == beta_o)
         elif isinstance(other, DateVar):
-            return And(self.months_var == other.months_var, self.beta_var == other.beta_var)
+            return And(
+                self.months_var == other.months_var, self.beta_var == other.beta_var
+            )
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
@@ -217,7 +242,7 @@ class DateVar:
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
-    def __add__(self, other) -> 'DateVar':
+    def __add__(self, other) -> "DateVar":
         result = DateVar(f"{self.name}_plus")
 
         if isinstance(other, Period):
@@ -239,10 +264,7 @@ class DateVar:
 
             # Within-month fast path: if beta1 + days_delta stays in [0, dim1)
             new_beta = beta1 + days_delta
-            stays_in_month = And(
-                new_beta >= BitVecVal(0, LEGACY_BITS),
-                new_beta < dim1
-            )
+            stays_in_month = And(new_beta >= BitVecVal(0, LEGACY_BITS), new_beta < dim1)
 
             # Within-month: simple addition
             alpha_within = alpha1
@@ -269,9 +291,13 @@ class DateVar:
             beta2 = r0 - (Select(_DBM48_LIST, idx2))
 
             dim2 = Select(_DIM48_LIST, idx2)
-            carry = If(beta2 >= dim2, BitVecVal(1, LEGACY_BITS), BitVecVal(0, LEGACY_BITS))
+            carry = If(
+                beta2 >= dim2, BitVecVal(1, LEGACY_BITS), BitVecVal(0, LEGACY_BITS)
+            )
 
-            alpha_ordinal = alpha1 + q0 * BitVecVal(_FOUR_YEAR_MONTHS, LEGACY_BITS) + diff2 + carry
+            alpha_ordinal = (
+                alpha1 + q0 * BitVecVal(_FOUR_YEAR_MONTHS, LEGACY_BITS) + diff2 + carry
+            )
             beta_ordinal = If(carry == BitVecVal(1, LEGACY_BITS), beta2 - dim2, beta2)
 
             # Select result based on within-month condition
@@ -288,10 +314,7 @@ class DateVar:
 
         # Within-month fast path: if adding days stays in same month
         new_beta = beta1 + days_delta
-        stays_in_month = And(
-            new_beta >= BitVecVal(0, LEGACY_BITS),
-            new_beta < dim1
-        )
+        stays_in_month = And(new_beta >= BitVecVal(0, LEGACY_BITS), new_beta < dim1)
 
         # Within-month: simple addition
         alpha_within = alpha1
@@ -322,7 +345,9 @@ class DateVar:
         dim2 = Select(_DIM48_LIST, idx2)
         carry = If(beta2 >= dim2, BitVecVal(1, LEGACY_BITS), BitVecVal(0, LEGACY_BITS))
 
-        alpha_ordinal = alpha1 + q0 * BitVecVal(_FOUR_YEAR_MONTHS, LEGACY_BITS) + diff2 + carry
+        alpha_ordinal = (
+            alpha1 + q0 * BitVecVal(_FOUR_YEAR_MONTHS, LEGACY_BITS) + diff2 + carry
+        )
         beta_ordinal = If(carry == BitVecVal(1, LEGACY_BITS), beta2 - dim2, beta2)
 
         # Select result based on within-month condition
@@ -330,7 +355,7 @@ class DateVar:
         result.beta_var = If(stays_in_month, beta_within, beta_ordinal)
         return result
 
-    def __sub__(self, other) -> 'DateVar':
+    def __sub__(self, other) -> "DateVar":
         """DateVar - Period implemented as DateVar + (-Period). Date difference returns Int."""
         if isinstance(other, Period):
             neg = Period(-other.years, -other.months, -other.days)
@@ -409,42 +434,49 @@ class AlphaBetaTableSolver:
         # Add MaxSAT soft constraints if enabled
         if self.use_maxsat:
             from datetime import date
+
             today = date.today()
             # Calculate months since epoch for today
-            today_months = (today.year - _EPOCH_YEAR) * 12 + (today.month - _EPOCH_MONTH)
-            
+            today_months = (today.year - _EPOCH_YEAR) * 12 + (
+                today.month - _EPOCH_MONTH
+            )
+
             # Convert years to months
             months_50_years = 50 * 12  # 600 months
-            months_10_years = 10 * 12   # 120 months
-            
+            months_10_years = 10 * 12  # 120 months
+
             # Add soft constraints for each date variable
             for name, date_var in self.date_vars.items():
-                # Low weight: today ± 50 years
+                # High weight: today ± 50 years
                 within_50_years = And(
-                    date_var.months_var >= BitVecVal(today_months - months_50_years, LEGACY_BITS),
-                    date_var.months_var <= BitVecVal(today_months + months_50_years, LEGACY_BITS)
+                    date_var.months_var
+                    >= BitVecVal(today_months - months_50_years, LEGACY_BITS),
+                    date_var.months_var
+                    <= BitVecVal(today_months + months_50_years, LEGACY_BITS),
                 )
-                self.solver.add_soft(within_50_years, weight=10)
-                
-                # High weight: today ± 10 years
+                self.solver.add_soft(within_50_years, weight=100)
+
+                # Low weight: today ± 10 years
                 within_10_years = And(
-                    date_var.months_var >= BitVecVal(today_months - months_10_years, LEGACY_BITS),
-                    date_var.months_var <= BitVecVal(today_months + months_10_years, LEGACY_BITS)
+                    date_var.months_var
+                    >= BitVecVal(today_months - months_10_years, LEGACY_BITS),
+                    date_var.months_var
+                    <= BitVecVal(today_months + months_10_years, LEGACY_BITS),
                 )
-                self.solver.add_soft(within_10_years, weight=100)
-        
+                self.solver.add_soft(within_10_years, weight=10)
+
         result = self.check()
         if result == sat:
             model = self.model()
             return {
-                'status': 'sat',
-                'dates': self.get_concrete_dates(model),
+                "status": "sat",
+                "dates": self.get_concrete_dates(model),
             }
         elif result == unsat:
-            return {'status': 'unsat', 'dates': {}}
+            return {"status": "unsat", "dates": {}}
         else:
             # result == unknown (timeout or resource limit)
-            return {'status': 'timeout', 'dates': {}}
+            return {"status": "timeout", "dates": {}}
 
     def to_smt2(self) -> str:
         """Return the current problem in SMT-LIB v2 format."""

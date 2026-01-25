@@ -18,8 +18,9 @@ Rules:
   on the fly and compare.
 """
 
-from typing import Union, Tuple, List
 from datetime import date, timedelta
+from typing import List, Tuple, Union
+
 from z3 import (
     And,
     ArithRef,
@@ -32,21 +33,19 @@ from z3 import (
     Not,
     Optimize,
     Or,
-    Solver,    
+    Solver,
     sat,
-    unsat,
     unknown,
+    unsat,
 )
 from ..core import Date, Period
 from .naive_int import (
-    is_leap,
-    days_in_month,
-    normalize_month,
-    days_before_year,
-    days_before_month,
-    to_ordinal,
-    from_ordinal,
+    _dbm_index,
     ymd_from_days_since_epoch,
+    normalize_month,
+    days_before_month,
+    days_before_year,
+    days_in_month,
     days_since_epoch_from_ymd,
     eom_clamp,
     _dbm_index,
@@ -70,8 +69,8 @@ class DateVar:
         self._month_var = None
         self._day_var = None
         # Consistency flags: which representation reflects the current value
-        self._epoch_consistent = True   # epoch_var starts as the source of truth
-        self._ymd_consistent = False    # Y/M/D not yet materialized/consistent
+        self._epoch_consistent = True  # epoch_var starts as the source of truth
+        self._ymd_consistent = False  # Y/M/D not yet materialized/consistent
 
     def __str__(self) -> str:
         return f"DateVar({self.name})"
@@ -382,13 +381,14 @@ class DateVar:
         else:
             raise TypeError(f"Cannot add {type(other)} to DateVar")
 
-    def __sub__(self, other) -> 'DateVar':
+    def __sub__(self, other) -> "DateVar":
         """DateVar - Period implemented as DateVar + (-Period)."""
         if isinstance(other, Period):
             neg = Period(-other.years, -other.months, -other.days)
             return self.__add__(neg)
         else:
             raise TypeError(f"Cannot subtract {type(other)} from DateVar")
+
 
 class HybridSolver:
     """Hybrid date constraint solver using dual representation (epoch + YMD)."""
@@ -446,7 +446,7 @@ class HybridSolver:
 
     def get_concrete_dates(self, model: ModelRef) -> dict:
         """Get concrete dates from the model.
-        
+
         Only returns user-declared variables, filtering out intermediate results
         from arithmetic operations (consistent with other implementations).
         """
@@ -461,43 +461,44 @@ class HybridSolver:
         # Add MaxSAT soft constraints if enabled
         if self.use_maxsat:
             from datetime import date
+
             today = date.today()
             today_days = to_days_since_epoch(Date.from_python_date(today))
-            
+
             # Calculate ±50 years and ±10 years in days (approximate)
             # Using 365.25 days per year for accuracy
             days_50_years = int(50 * 365.25)
             days_10_years = int(10 * 365.25)
-            
+
             # Add soft constraints for each date variable (only user-declared ones)
             for name, date_var in self.date_vars.items():
                 if date_var._is_user_var:
-                    # Low weight: today ± 50 years
+                    # High weight: today ± 50 years
                     within_50_years = And(
                         date_var.epoch_var >= IntVal(today_days - days_50_years),
-                        date_var.epoch_var <= IntVal(today_days + days_50_years)
+                        date_var.epoch_var <= IntVal(today_days + days_50_years),
                     )
-                    self.solver.add_soft(within_50_years, weight=10)
-                    
-                    # High weight: today ± 10 years
+                    self.solver.add_soft(within_50_years, weight=100)
+
+                    # Low weight: today ± 10 years
                     within_10_years = And(
                         date_var.epoch_var >= IntVal(today_days - days_10_years),
-                        date_var.epoch_var <= IntVal(today_days + days_10_years)
+                        date_var.epoch_var <= IntVal(today_days + days_10_years),
                     )
-                    self.solver.add_soft(within_10_years, weight=100)
-        
+                    self.solver.add_soft(within_10_years, weight=10)
+
         result = self.check()
         if result == sat:
             model = self.model()
             return {
-                'status': 'sat',
-                'dates': self.get_concrete_dates(model),
+                "status": "sat",
+                "dates": self.get_concrete_dates(model),
             }
         elif result == unsat:
-            return {'status': 'unsat', 'dates': {}}
+            return {"status": "unsat", "dates": {}}
         else:
             # result == unknown (timeout or resource limit)
-            return {'status': 'timeout', 'dates': {}}
+            return {"status": "timeout", "dates": {}}
 
     def to_smt2(self) -> str:
         """Return the current problem in SMT-LIB v2 format."""
@@ -511,7 +512,7 @@ class HybridSolver:
         if not dv._ymd_exists:
             return
         Y, M, D = dv._year_var, dv._month_var, dv._day_var
-        
+
         # For user-declared variables, add year bounds consistent with epoch bounds
         # For intermediate results from arithmetic, skip year bounds to avoid UNSAT
         # when intermediate dates go slightly out of range

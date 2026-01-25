@@ -6,7 +6,8 @@ as separate year, month, and day variables, and period arithmetic is done
 component-wise with proper normalization.
 """
 
-from typing import Union, Tuple, List
+from typing import List, Tuple, Union
+
 from z3 import (
     And,
     ArithRef,
@@ -21,8 +22,8 @@ from z3 import (
     Or,
     Solver,
     sat,
-    unsat,
     unknown,
+    unsat,
 )
 from ..core import Date, Period
 
@@ -34,9 +35,11 @@ _LEAP_PREFIX = [0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335]
 # _ORD_EPOCH = to_ordinal(IntVal(2000), IntVal(3), IntVal(1))  # original ground Z3 term
 _ORD_EPOCH = IntVal(730179)  # precomputed ordinal of 2000-03-01 (0001-01-01 = 0)
 
+
 def is_leap(year) -> BoolRef:
     """Check if a year is a leap year."""
     return Or(And(year % 4 == 0, year % 100 != 0), year % 400 == 0)
+
 
 def days_in_month(year, month) -> ArithRef:
     """Get the number of days in a month, accounting for leap years."""
@@ -45,6 +48,7 @@ def days_in_month(year, month) -> ArithRef:
         If(is_leap(year), 29, 28),
         If(Or(month == 4, month == 6, month == 9, month == 11), 30, 31),
     )
+
 
 def normalize_month(y, m) -> Tuple[ArithRef, ArithRef]:
     """
@@ -56,12 +60,14 @@ def normalize_month(y, m) -> Tuple[ArithRef, ArithRef]:
     r = t % 12  # Z3 modulo
     return y + q, r + 1
 
+
 def days_before_year(y) -> ArithRef:
     """
     Days from 0001-01-01 to Jan 1 of year y (0-based), Gregorian rules.
     """
     y1 = y - 1
     return 365 * y1 + y1 / 4 - y1 / 100 + y1 / 400
+
 
 def days_before_month(y, m) -> ArithRef:
     """Z3 piecewise selection (no Python control over symbolic m)."""
@@ -70,9 +76,11 @@ def days_before_month(y, m) -> ArithRef:
         expr = If(m == IntVal(i), _dbm_index(y, i), expr)
     return expr
 
+
 def to_ordinal(y, m, d) -> ArithRef:
     """Z3-pure ordinal conversion (day 0 = 0001-01-01)."""
     return days_before_year(y) + days_before_month(y, m) + (d - IntVal(1))
+
 
 def from_ordinal(n) -> Tuple[ArithRef, ArithRef, ArithRef]:
     """Z3-pure ordinal to date conversion using 400/100/4/1 year block decomposition."""
@@ -105,13 +113,16 @@ def from_ordinal(n) -> Tuple[ArithRef, ArithRef, ArithRef]:
 
     return year, month, day_expr
 
+
 def ymd_from_days_since_epoch(days_term) -> Tuple[ArithRef, ArithRef, ArithRef]:
     """Decode (y,m,d) from a Z3 Int 'days since 2000-03-01'."""
     return from_ordinal(days_term + _ORD_EPOCH)
 
+
 def days_since_epoch_from_ymd(y, m, d) -> ArithRef:
     """Encode (y,m,d) to Z3 Int 'days since 2000-03-01'."""
     return to_ordinal(y, m, d) - _ORD_EPOCH
+
 
 def eom_clamp(year, month, day) -> ArithRef:
     """
@@ -172,11 +183,13 @@ def add_days_componentwise(y, m, d, delta_days: int) -> Tuple[ArithRef, ArithRef
 
     return cur_y, cur_m, cur_d
 
+
 def _dbm_index(y, idx) -> ArithRef:
     """days_before_month for fixed idx∈{1..12} as a Z3 term."""
     non = IntVal(_NONLEAP_PREFIX[idx - 1])
     lep = IntVal(_LEAP_PREFIX[idx - 1])
     return If(is_leap(y), lep, non)
+
 
 class DateVar:
     """Symbolic date variable for naive implementation."""
@@ -370,7 +383,7 @@ class DateVar:
         else:
             raise TypeError(f"Cannot add {type(other)} to DateVar")
 
-    def __sub__(self, other) -> 'DateVar':
+    def __sub__(self, other) -> "DateVar":
         """DateVar - Period implemented as DateVar + (-Period)."""
         if isinstance(other, Period):
             neg = Period(-other.years, -other.months, -other.days)
@@ -434,37 +447,38 @@ class NaiveSolver:
         # Add MaxSAT soft constraints if enabled
         if self.use_maxsat:
             from datetime import date
+
             today = date.today()
             today_year = today.year
-            
+
             # Add soft constraints for each date variable
             for name, date_var in self.date_vars.items():
-                # Low weight: today ± 50 years
+                # High weight: today ± 50 years
                 within_50_years = And(
                     date_var.year >= IntVal(today_year - 50),
-                    date_var.year <= IntVal(today_year + 50)
+                    date_var.year <= IntVal(today_year + 50),
                 )
-                self.solver.add_soft(within_50_years, weight=10)
-                
-                # High weight: today ± 10 years
+                self.solver.add_soft(within_50_years, weight=100)
+
+                # Low weight: today ± 10 years
                 within_10_years = And(
                     date_var.year >= IntVal(today_year - 10),
-                    date_var.year <= IntVal(today_year + 10)
+                    date_var.year <= IntVal(today_year + 10),
                 )
-                self.solver.add_soft(within_10_years, weight=100)
-        
+                self.solver.add_soft(within_10_years, weight=10)
+
         result = self.check()
         if result == sat:
             model = self.model()
             return {
-                'status': 'sat',
-                'dates': self.get_concrete_dates(model),
+                "status": "sat",
+                "dates": self.get_concrete_dates(model),
             }
         elif result == unsat:
-            return {'status': 'unsat', 'dates': {}}
+            return {"status": "unsat", "dates": {}}
         else:
             # result == unknown (timeout or resource limit)
-            return {'status': 'timeout', 'dates': {}}
+            return {"status": "timeout", "dates": {}}
 
     def to_smt2(self) -> str:
         """Return the current problem in SMT-LIB v2 format."""
