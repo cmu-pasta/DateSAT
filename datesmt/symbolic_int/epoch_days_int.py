@@ -53,7 +53,7 @@ def to_days_since_epoch(date_obj: Date) -> int:
     target_python = date(date_obj.year, date_obj.month, date_obj.day)
     return (target_python - _EPOCH).days
 
-def add_days_ordinal(y, m, d, delta_days) -> int:
+def add_days_ordinal(y, m, d, delta_days) -> ArithRef:
     """
     Exact ordinal-based addition via a single ordinal add.
     """

@@ -64,11 +64,23 @@ from .naive_bv import (
 class DateVar:
     """Symbolic date variable with lazy dual representation (epoch + Y/M/D)."""
 
-    def __init__(self, ctx, name: str, is_user_var: bool = True):
+    def __init__(self, ctx, name: str, is_user_var: bool = True, bounded: bool = False, solver=None):
+        """Create a symbolic date variable.
+        
+        Args:
+            ctx: Solver context (HybridSolver instance)
+            name: Name of the date variable
+            is_user_var: If True, this is a user-declared variable (for filtering in get_concrete_dates)
+            bounded: If True, add date validation bounds (requires solver)
+            solver: Solver instance for adding constraints (required if bounded=True)
+        """
         self.ctx = ctx
         self.name = name
         # Track if this is a user-declared variable (needs bounds) vs intermediate result
         self._is_user_var = is_user_var
+        # Boundedness flag and solver (for consistency with naive/epoch_days pattern)
+        self._bounded = bounded
+        self._solver = solver if bounded else (ctx.solver if ctx else None)
         # Primary epoch representation
         self.epoch_var = BitVec(f"{name}_epoch", LEGACY_BITS)
         # Lazy YMD vars
@@ -136,9 +148,8 @@ class DateVar:
         self._month_var = BitVec(f"{self.name}_month", LEGACY_BITS)
         self._day_var = BitVec(f"{self.name}_day", LEGACY_BITS)
         self._ymd_exists = True
-        # Add validity constraints
-        self.ctx._add_date_constraints(self)
         # Link YMD to epoch (bidirectional constraint)
+        # The epoch bounds (added in add_date_var) ensure Y/M/D stays within valid range
         # Add constraint: epoch_var == days_since_epoch_from_ymd(year_var, month_var, day_var)
         self.ctx.solver.add(
             self.epoch_var
@@ -358,6 +369,18 @@ class DateVar:
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
+    def _add_bounds(self) -> None:
+        """Add date validation bounds to this DateVar if bounded and solver is available."""
+        if not self._bounded or self._solver is None:
+            return
+        
+        # Add constraints for valid date ranges [1900-03-01 to 2100-02-28]
+        # Epoch is March 1, 2000
+        # 1900-03-01 = -36525 days from epoch
+        # 2100-02-28 = 36523 days from epoch
+        self._solver.add(self.epoch_var >= BitVecVal(-36525, LEGACY_BITS))
+        self._solver.add(self.epoch_var <= BitVecVal(36523, LEGACY_BITS))
+
     def __add__(self, other) -> "DateVar":
         """Hybrid date + Period: mirror epoch_days semantics, but avoid epoch encode unless days-only.
 
@@ -368,8 +391,24 @@ class DateVar:
         if not isinstance(other, Period):
             raise TypeError(f"Cannot add {type(other)} to DateVar")
 
-        # Add bounds for intermediate results to ensure they stay within valid range
-        result = self.ctx.add_date_var(f"{self.name}_plus", add_bounds=True)
+        # Create intermediate result with bounds (following naive/epoch_days pattern)
+        # Ensure unique name to avoid collisions
+        base_name = f"{self.name}_plus_{other.years}y_{other.months}m_{other.days}d"
+        name = base_name
+        suffix = 0
+        while name in self.ctx.date_vars:
+            suffix += 1
+            name = f"{base_name}_{suffix}"
+        
+        # Create DateVar directly with bounded=True to ensure intermediate dates are always bounded
+        result = DateVar(
+            self.ctx,
+            name,
+            is_user_var=False,  # Intermediate result, not user-declared
+            bounded=True,  # Always bound intermediate results
+            solver=self.ctx.solver
+        )
+        self.ctx.date_vars[name] = result
 
         # Concrete Period fast-path for days-only
         if isinstance(other, Period) and other.years == 0 and other.months == 0:
@@ -379,45 +418,46 @@ class DateVar:
             )
             result._epoch_consistent = True
             result._ymd_consistent = False
-            return result
-
-        # Extract period components as Z3 terms
-        if isinstance(other, Period):
-            oy, om, od = (
-                BitVecVal(other.years, LEGACY_BITS),
-                BitVecVal(other.months, LEGACY_BITS),
-                BitVecVal(other.days, LEGACY_BITS),
-            )
         else:
-            oy, om, od = other.years, other.months, other.days
+            # Extract period components as Z3 terms
+            if isinstance(other, Period):
+                oy, om, od = (
+                    BitVecVal(other.years, LEGACY_BITS),
+                    BitVecVal(other.months, LEGACY_BITS),
+                    BitVecVal(other.days, LEGACY_BITS),
+                )
+            else:
+                oy, om, od = other.years, other.months, other.days
 
-        # Decode current date to Y/M/D
-        y0, m0, d0 = self._ymd_expr()
+            # Decode current date to Y/M/D
+            y0, m0, d0 = self._ymd_expr()
 
-        # Step 1: Combine Y and M with normalization (carry years)
-        period_total_months = oy * BitVecVal(12, LEGACY_BITS) + om
-        total_months = m0 + period_total_months
-        year_carry, m1 = normalize_month(BitVecVal(0, LEGACY_BITS), total_months)
-        y1 = y0 + year_carry
+            # Step 1: Combine Y and M with normalization (carry years)
+            period_total_months = oy * BitVecVal(12, LEGACY_BITS) + om
+            total_months = m0 + period_total_months
+            year_carry, m1 = normalize_month(BitVecVal(0, LEGACY_BITS), total_months)
+            y1 = y0 + year_carry
 
-        # Step 2: EOM clamp
-        d1 = eom_clamp(y1, m1, d0)
+            # Step 2: EOM clamp
+            d1 = eom_clamp(y1, m1, d0)
 
-        if od == BitVecVal(0, LEGACY_BITS):
-            # No need to re-encode to epoch
-            self.ctx.solver.add(result.year_var == y1)
-            self.ctx.solver.add(result.month_var == m1)
-            self.ctx.solver.add(result.day_var == d1)
-            result._epoch_consistent = False
-            result._ymd_consistent = True
-            return result
-        else:
-            # Step 3: add D days in ordinal space
-            epoch_expr = add_days_ordinal_epoch(y1, m1, d1, od)
-            self.ctx.solver.add(result.epoch_var == epoch_expr)
-            result._epoch_consistent = True
-            result._ymd_consistent = False
-            return result
+            if od == BitVecVal(0, LEGACY_BITS):
+                # No need to re-encode to epoch
+                self.ctx.solver.add(result.year_var == y1)
+                self.ctx.solver.add(result.month_var == m1)
+                self.ctx.solver.add(result.day_var == d1)
+                result._epoch_consistent = False
+                result._ymd_consistent = True
+            else:
+                # Step 3: add D days in ordinal space
+                epoch_expr = add_days_ordinal_epoch(y1, m1, d1, od)
+                self.ctx.solver.add(result.epoch_var == epoch_expr)
+                result._epoch_consistent = True
+                result._ymd_consistent = False
+        
+        # Add bounds to intermediate result (following naive/epoch_days pattern)
+        result._add_bounds()
+        return result
 
     def __sub__(self, other) -> "DateVar":
         """DateVar - Period implemented as DateVar + (-Period)."""
@@ -457,48 +497,13 @@ class HybridSolver:
         while name in self.date_vars:
             suffix += 1
             name = f"{base_name}_{suffix}"
-        # Pass is_user_var flag to DateVar constructor
-        dv = DateVar(self, name, is_user_var=add_bounds)
+        # Create DateVar with bounded flag (following naive/epoch_days pattern)
+        dv = DateVar(self, name, is_user_var=add_bounds, bounded=add_bounds, solver=self.solver if add_bounds else None)
         self.date_vars[name] = dv
 
-        # Basic epoch range constraints [1900-03-01 .. 2100-02-28]
-        # Only add bounds for user-declared variables, not intermediate arithmetic results
-        # to avoid UNSAT when intermediate dates go slightly out of range
-        if add_bounds:
-            self.solver.add(dv.epoch_var >= BitVecVal(-36525, LEGACY_BITS))
-            self.solver.add(dv.epoch_var <= BitVecVal(36523, LEGACY_BITS))
+        # Add bounds using _add_bounds method (following naive/epoch_days pattern)
+        dv._add_bounds()
         return dv
-
-    def _add_date_constraints(self, dv: DateVar) -> None:
-        if not dv._ymd_exists:
-            return
-        Y, M, D = dv._year_var, dv._month_var, dv._day_var
-
-        # For user-declared variables, add year bounds consistent with epoch bounds
-        # For intermediate results from arithmetic, skip year bounds to avoid UNSAT
-        # when intermediate dates go slightly out of range
-        if dv._is_user_var:
-            Y_MIN, Y_MAX = 1900, 2100
-            self.solver.add(
-                And(
-                    Y >= BitVecVal(Y_MIN, LEGACY_BITS),
-                    Y <= BitVecVal(Y_MAX, LEGACY_BITS),
-                    M >= BitVecVal(1, LEGACY_BITS),
-                    M <= BitVecVal(12, LEGACY_BITS),
-                    D >= BitVecVal(1, LEGACY_BITS),
-                    D <= days_in_month(Y, M),
-                )
-            )
-        else:
-            # For intermediate results, only add month/day validity constraints
-            self.solver.add(
-                And(
-                    M >= BitVecVal(1, LEGACY_BITS),
-                    M <= BitVecVal(12, LEGACY_BITS),
-                    D >= BitVecVal(1, LEGACY_BITS),
-                    D <= days_in_month(Y, M),
-                )
-            )
 
     def add_constraint(self, constraint: BoolRef) -> None:
         """Add a constraint to the solver."""
