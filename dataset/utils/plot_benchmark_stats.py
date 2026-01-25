@@ -132,7 +132,7 @@ def plot_benchmark_stats(
         constraints_means,
         width,
         yerr=constraints_stds,
-        label="Constraints",
+        label="Atoms",
         color=colors[1],
         edgecolor="white",
         linewidth=1.5,
@@ -146,7 +146,7 @@ def plot_benchmark_stats(
         for bar, std in zip(bars, stds):
             height = bar.get_height()
             ax.annotate(
-                f"{height:.1f}",
+                f"{height:.1f} ± {std:.1f}",
                 xy=(bar.get_x() + bar.get_width() / 2, height + std + 0.3),
                 ha="center",
                 va="bottom",
@@ -250,6 +250,43 @@ def print_stats_table(stats_dict: dict[str, dict]):
     print("=" * 70 + "\n")
 
 
+def print_example_benchmark(data_dict: dict[str, list[dict]]):
+    """Print an example benchmark from each dataset showing variables and atoms."""
+    print("=" * 70)
+    print("Example Benchmarks (Variables and Atoms)")
+    print("=" * 70)
+
+    for dataset_name, data in data_dict.items():
+        if not data:
+            continue
+
+        # Pick the first benchmark as an example
+        example = data[0]
+
+        print(f"\n{dataset_name} Dataset Example:")
+        print(f"  ID: {example.get('id', 'unknown')}")
+        print(f"  Number of Variables: {len(example['declarations'])}")
+        print(f"  Number of Atoms: {len(example['constraints'])}")
+
+        # Show variables (declarations)
+        print("\n  Variables:")
+        for i, var in enumerate(example["declarations"][:3]):  # Show first 3
+            print(f"    {i+1}. {var}")
+        if len(example["declarations"]) > 3:
+            print(f"    ... and {len(example['declarations']) - 3} more")
+
+        # Show atoms (constraints)
+        print("\n  Atoms:")
+        for i, constraint in enumerate(example["constraints"][:3]):  # Show first 3
+            print(f"    {i+1}. {constraint}")
+        if len(example["constraints"]) > 3:
+            print(f"    ... and {len(example['constraints']) - 3} more")
+
+        print()
+
+    print("=" * 70 + "\n")
+
+
 def find_extremes(data_dict: dict[str, list[dict]]):
     """Find benchmarks with minimum and maximum variables and constraints."""
     all_benchmarks = []
@@ -348,6 +385,9 @@ def main():
 
     # Print statistics table
     print_stats_table(stats_dict)
+
+    # Print example benchmarks
+    print_example_benchmark(data_dict)
 
     # Print extreme cases
     find_extremes(data_dict)
