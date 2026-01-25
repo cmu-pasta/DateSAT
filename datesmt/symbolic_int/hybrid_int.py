@@ -211,6 +211,15 @@ class DateVar:
         3. Else: derive epoch expressions for both sides (converting Y/M/D to epoch if needed) and compare
         """
         if isinstance(other, Date):
+            # If we have consistent Y/M/D, use Y/M/D comparison (more efficient)
+            if self._ymd_consistent and self._ymd_exists:
+                y1, m1, d1 = self._year_var, self._month_var, self._day_var
+                y2, m2, d2 = IntVal(other.year), IntVal(other.month), IntVal(other.day)
+                return Or(
+                    y1 > y2,
+                    And(y1 == y2, Or(m1 > m2, And(m1 == m2, d1 >= d2)))
+                )
+            # Otherwise, use epoch comparison
             return self._epoch_expr() >= to_days_since_epoch(other)
         elif isinstance(other, DateVar):
             # Case 1: Both have consistent epoch - use epoch comparison
@@ -238,6 +247,15 @@ class DateVar:
         3. Else: derive epoch expressions for both sides (converting Y/M/D to epoch if needed) and compare
         """
         if isinstance(other, Date):
+            # If we have consistent Y/M/D, use Y/M/D comparison (more efficient)
+            if self._ymd_consistent and self._ymd_exists:
+                y1, m1, d1 = self._year_var, self._month_var, self._day_var
+                y2, m2, d2 = IntVal(other.year), IntVal(other.month), IntVal(other.day)
+                return Or(
+                    y1 < y2,
+                    And(y1 == y2, Or(m1 < m2, And(m1 == m2, d1 <= d2)))
+                )
+            # Otherwise, use epoch comparison
             return self._epoch_expr() <= to_days_since_epoch(other)
         elif isinstance(other, DateVar):
             # Case 1: Both have consistent epoch - use epoch comparison
@@ -278,7 +296,15 @@ class DateVar:
         2. Else if both have consistent Y/M/D: compare on (Y, M, D) components
         3. Else: derive epoch expressions for both sides (converting Y/M/D to epoch if needed) and compare
         """
-        if isinstance(other, (Date, DateVar)):
+        if isinstance(other, Date):
+            # If we have consistent Y/M/D, use Y/M/D comparison (more efficient)
+            if self._ymd_consistent and self._ymd_exists:
+                return And(
+                    self._year_var == IntVal(other.year),
+                    self._month_var == IntVal(other.month),
+                    self._day_var == IntVal(other.day),
+                )
+            # Otherwise, use epoch comparison
             return self._epoch_expr() == to_days_since_epoch(other)
         elif isinstance(other, DateVar):
             # Case 1: Both have consistent epoch - use epoch comparison
