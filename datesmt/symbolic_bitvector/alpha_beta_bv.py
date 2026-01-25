@@ -24,7 +24,7 @@ from z3 import (
     unknown,
 )
 
-from ..core import Date, Period, _UnboundedDate
+from ..core import Date, Period
 from .naive_bv import eom_clamp, days_in_month, add_days_ordinal
 from .bitwidths import LEGACY_BITS
 # -------------------------------
@@ -91,7 +91,7 @@ class DateVar:
         from .bitwidths import LEGACY_BITS
         return self.beta_var + BitVecVal(1, LEGACY_BITS)
 
-    def to_concrete_date(self, model: ModelRef) -> Union[Date, _UnboundedDate]:
+    def to_concrete_date(self, model: ModelRef) -> Date:
         """Convert Z3 model to concrete Date using (alpha, beta)."""
         alpha_val = model.evaluate(
             self.months_var, model_completion=True
@@ -105,11 +105,11 @@ class DateVar:
             return Date(year, month, day)
         except ValueError:
             # Intermediate result went out of bounds - use unbounded date
-            return _UnboundedDate(year, month, day)
+            return Date(year, month, day, bounded=False)
 
     def __ge__(self, other) -> BoolRef:
         """Support x >= date comparison."""
-        if isinstance(other, (Date, _UnboundedDate)):
+        if isinstance(other, Date):
             # Convert Date to bitvector values if needed
             alpha_o = months_since_epoch_from_ym(
                 BitVecVal(other.year, LEGACY_BITS), BitVecVal(other.month, LEGACY_BITS)
@@ -130,7 +130,7 @@ class DateVar:
 
     def __le__(self, other) -> BoolRef:
         """Support x <= date comparison."""
-        if isinstance(other, (Date, _UnboundedDate)):
+        if isinstance(other, Date):
             alpha_o = months_since_epoch_from_ym(
                 BitVecVal(other.year, LEGACY_BITS), BitVecVal(other.month, LEGACY_BITS)
             )
@@ -150,21 +150,21 @@ class DateVar:
 
     def __lt__(self, other) -> BoolRef:
         """Support x < date comparison."""
-        if isinstance(other, (Date, _UnboundedDate, DateVar)):
+        if isinstance(other, (Date, DateVar)):
             return Not(self.__ge__(other))
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
     def __gt__(self, other) -> BoolRef:
         """Support x > date comparison."""
-        if isinstance(other, (Date, _UnboundedDate, DateVar)):
+        if isinstance(other, (Date, DateVar)):
             return Not(self.__le__(other))
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
     def __eq__(self, other) -> BoolRef:
         """Support x == date comparison."""
-        if isinstance(other, (Date, _UnboundedDate)):
+        if isinstance(other, Date):
             alpha_o = months_since_epoch_from_ym(
                 BitVecVal(other.year, LEGACY_BITS), BitVecVal(other.month, LEGACY_BITS)
             )
@@ -178,7 +178,7 @@ class DateVar:
 
     def __ne__(self, other) -> BoolRef:
         """Support x != date comparison using ordinal arithmetic."""
-        if isinstance(other, (Date, _UnboundedDate, DateVar)):
+        if isinstance(other, (Date, DateVar)):
             return Not(self.__eq__(other))
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")

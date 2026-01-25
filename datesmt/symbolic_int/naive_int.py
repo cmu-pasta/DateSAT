@@ -24,7 +24,7 @@ from z3 import (
     unsat,
     unknown,
 )
-from ..core import Date, Period, _UnboundedDate
+from ..core import Date, Period
 
 _NONLEAP_PREFIX = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334]
 _LEAP_PREFIX = [0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335]
@@ -120,42 +120,6 @@ def eom_clamp(year, month, day) -> ArithRef:
     max_day = days_in_month(year, month)
     return If(day < 1, 1, If(day > max_day, max_day, day))
 
-def add_days_ordinal(y, m, d, delta_days) -> Tuple[ArithRef, ArithRef, ArithRef]:
-    """
-    Exact ordinal-based addition via a single ordinal add with optimizations.
-    Steps:
-      - Fast path 1: If delta_days == 0 → return (y,m,d).
-      - Fast path 2: If result stays within same month → simple addition without ordinal conversion.
-      - Otherwise: Add delta_days in days-since-epoch space and decode.
-    """
-
-    # Fast path 1: no day shift → avoid any ordinal math.
-    no_shift = delta_days == IntVal(0)
-
-    # Fast path 2: within-month addition (handles both positive and negative)
-    # Check if result stays within the same month: 1 <= d + delta_days <= days_in_month(y, m)
-    new_day = d + delta_days
-    max_day = days_in_month(y, m)
-    stays_in_month = And(
-        new_day >= IntVal(1),
-        new_day <= max_day
-    )
-
-    # Within-month fast path: simple addition
-    y_within = y
-    m_within = m
-    d_within = new_day
-
-    # Single-step ordinal addition (fallback path)
-    z = days_since_epoch_from_ymd(y, m, d)
-    y_ordinal, m_ordinal, d_ordinal = ymd_from_days_since_epoch(z + delta_days)
-
-    # Select result: no_shift > stays_in_month > ordinal path
-    out_y = If(no_shift, y, If(stays_in_month, y_within, y_ordinal))
-    out_m = If(no_shift, m, If(stays_in_month, m_within, m_ordinal))
-    out_d = If(no_shift, d, If(stays_in_month, d_within, d_ordinal))
-    return out_y, out_m, out_d
-
 def add_days_componentwise(y, m, d, delta_days: int) -> Tuple[ArithRef, ArithRef, ArithRef]:
     """
     Add a concrete day offset by iteratively carrying into months/years.
@@ -237,7 +201,7 @@ class DateVar:
 
     def __ge__(self, other) -> BoolRef:
         """Support x >= date comparison."""
-        if isinstance(other, (Date, _UnboundedDate, DateVar)):
+        if isinstance(other, (Date, DateVar)):
             return Or(
                 self.year > other.year,
                 And(
@@ -253,7 +217,7 @@ class DateVar:
 
     def __le__(self, other) -> BoolRef:
         """Support x <= date comparison."""
-        if isinstance(other, (Date, _UnboundedDate, DateVar)):
+        if isinstance(other, (Date, DateVar)):
             return Or(
                 self.year < other.year,
                 And(
@@ -269,21 +233,21 @@ class DateVar:
 
     def __lt__(self, other) -> BoolRef:
         """Support x < date comparison."""
-        if isinstance(other, (Date, _UnboundedDate, DateVar)):
+        if isinstance(other, (Date, DateVar)):
             return Not(self.__ge__(other))
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
     def __gt__(self, other) -> BoolRef:
         """Support x > date comparison."""
-        if isinstance(other, (Date, _UnboundedDate, DateVar)):
+        if isinstance(other, (Date, DateVar)):
             return Not(self.__le__(other))
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
     def __eq__(self, other) -> BoolRef:
         """Support x == date comparison."""
-        if isinstance(other, (Date, _UnboundedDate, DateVar)):
+        if isinstance(other, (Date, DateVar)):
             return And(
                 self.year == other.year,
                 self.month == other.month,
@@ -294,7 +258,7 @@ class DateVar:
 
     def __ne__(self, other) -> BoolRef:
         """Support x != date comparison."""
-        if isinstance(other, (Date, _UnboundedDate, DateVar)):
+        if isinstance(other, (Date, DateVar)):
             return Not(self.__eq__(other))
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")

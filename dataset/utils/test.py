@@ -44,16 +44,7 @@ CONSTRAINT_JSON = r"""
       "months_diff_final: int"
     ],
     "constraints": [
-      "window_end  == B + Period(0, 18, 0)",
-      "B.month != 3 && B.day != 31",
-      "B.month != 5 && B.day != 31",
-      "B.month != 8 && B.day != 31",
-      "B.month != 10 && B.day != 31",
-      "B.month != 12 && B.day != 31",
-      "months_diff == (E.year - B.year) * 12 + (E.month - B.month)",
-      "((E.day < B.day)  -> (months_diff_final == months_diff - 1))",
-      "(!(E.day < B.day) -> (months_diff_final == months_diff))",
-      "((E >= B) && (E < window_end)) != ((E >= B) && ((months_diff_final / 18) == 0))"
+      "window_end  == B + Period(0, 18, 0)"
     ]
   }
 """
@@ -74,7 +65,7 @@ def main():
     # 3) Execute the generated code with a DateSMTBuilder factory
     def create_builder():
         # You can change approach/implementation if you want
-        return DateSMTBuilder(approach="naive", implementation="bitvector")
+        return DateSMTBuilder(approach="hybrid", implementation="int")
 
     exec_globals = {
         "Date": Date,

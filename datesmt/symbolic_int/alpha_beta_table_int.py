@@ -30,8 +30,10 @@ from z3 import (
     unsat,
     unknown,
 )
-from ..core import Date, Period, _UnboundedDate
-from .naive_int import days_in_month, add_days_ordinal
+from ..core import Date, Period
+from .naive_int import days_in_month
+from .epoch_days_int import add_days_ordinal
+
 _EPOCH_YEAR = 2000
 _EPOCH_MONTH = 3
 # Linearized epoch month as a Z3 Int numeral
@@ -131,7 +133,7 @@ class DateVar:
         """Get symbolic day component (beta_var + 1, since beta is 0-based)."""
         return self.beta_var + IntVal(1)
 
-    def to_concrete_date(self, model: ModelRef) -> Union[Date, _UnboundedDate]:
+    def to_concrete_date(self, model: ModelRef) -> Date:
         """Convert Z3 model to concrete Date using (alpha, beta)."""
         alpha_val = model.evaluate(self.months_var, model_completion=True).as_long()
         beta_val = model.evaluate(self.beta_var, model_completion=True).as_long()
@@ -142,11 +144,11 @@ class DateVar:
         try:
             return Date(year, month, day)
         except ValueError:
-            return _UnboundedDate(year, month, day)
+            return Date(year, month, day, bounded=False)
 
     def __ge__(self, other) -> BoolRef:
         """Support x >= date comparison."""
-        if isinstance(other, (Date, _UnboundedDate)):
+        if isinstance(other, Date):
             alpha_o = months_since_epoch_from_ym(
                 IntVal(other.year), IntVal(other.month)
             )
@@ -166,7 +168,7 @@ class DateVar:
 
     def __le__(self, other) -> BoolRef:
         """Support x <= date comparison."""
-        if isinstance(other, (Date, _UnboundedDate)):
+        if isinstance(other, Date):
             alpha_o = months_since_epoch_from_ym(
                 IntVal(other.year), IntVal(other.month)
             )
@@ -186,21 +188,21 @@ class DateVar:
 
     def __lt__(self, other) -> BoolRef:
         """Support x < date comparison."""
-        if isinstance(other, (Date, _UnboundedDate, DateVar)):
+        if isinstance(other, (Date, DateVar)):
             return Not(self.__ge__(other))
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
     def __gt__(self, other) -> BoolRef:
         """Support x > date comparison."""
-        if isinstance(other, (Date, _UnboundedDate, DateVar)):
+        if isinstance(other, (Date, DateVar)):
             return Not(self.__le__(other))
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
     def __eq__(self, other) -> BoolRef:
         """Support x == date comparison."""
-        if isinstance(other, (Date, _UnboundedDate)):
+        if isinstance(other, Date):
             alpha_o = months_since_epoch_from_ym(
                 IntVal(other.year), IntVal(other.month)
             )
@@ -214,7 +216,7 @@ class DateVar:
 
     def __ne__(self, other) -> BoolRef:
         """Support x != date comparison using ordinal arithmetic."""
-        if isinstance(other, (Date, _UnboundedDate, DateVar)):
+        if isinstance(other, (Date, DateVar)):
             return Not(self.__eq__(other))
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")

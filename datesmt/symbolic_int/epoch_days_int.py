@@ -25,7 +25,7 @@ from z3 import (
     unsat,
     unknown,
 )
-from ..core import Date, Period, _UnboundedDate
+from ..core import Date, Period
 from .naive_int import (
     is_leap,
     days_in_month,
@@ -37,7 +37,6 @@ from .naive_int import (
     ymd_from_days_since_epoch,
     days_since_epoch_from_ymd,
     eom_clamp,
-    add_days_ordinal,
     _dbm_index,
 )
 
@@ -54,6 +53,12 @@ def to_days_since_epoch(date_obj: Date) -> int:
     target_python = date(date_obj.year, date_obj.month, date_obj.day)
     return (target_python - _EPOCH).days
 
+def add_days_ordinal(y, m, d, delta_days) -> Tuple[ArithRef, ArithRef, ArithRef]:
+    """
+    Exact ordinal-based addition via a single ordinal add.
+    """
+    z = days_since_epoch_from_ymd(y, m, d)
+    return z + delta_days
 
 class DateVar:
     """Symbolic date variable for epoch_days implementation."""
@@ -92,7 +97,7 @@ class DateVar:
 
     def __ge__(self, other) -> BoolRef:
         """Support x >= date comparison."""
-        if isinstance(other, (Date, _UnboundedDate)):
+        if isinstance(other, Date):
             return self.days_var >= to_days_since_epoch(other)
         elif isinstance(other, DateVar):
             return self.days_var >= other.days_var
@@ -101,7 +106,7 @@ class DateVar:
 
     def __le__(self, other) -> BoolRef:
         """Support x <= date comparison."""
-        if isinstance(other, (Date, _UnboundedDate)):
+        if isinstance(other, Date):
             return self.days_var <= to_days_since_epoch(other)
         elif isinstance(other, DateVar):
             return self.days_var <= other.days_var
@@ -110,21 +115,21 @@ class DateVar:
 
     def __lt__(self, other) -> BoolRef:
         """Support x < date comparison."""
-        if isinstance(other, (Date, _UnboundedDate, DateVar)):
+        if isinstance(other, (Date, DateVar)):
             return Not(self.__ge__(other))
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
     def __gt__(self, other) -> BoolRef:
         """Support x > date comparison."""
-        if isinstance(other, (Date, _UnboundedDate, DateVar)):
+        if isinstance(other, (Date, DateVar)):
             return Not(self.__le__(other))
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
     def __eq__(self, other) -> BoolRef:
         """Support x == date comparison."""
-        if isinstance(other, (Date, _UnboundedDate)):
+        if isinstance(other, Date):
             return self.days_var == to_days_since_epoch(other)
         elif isinstance(other, DateVar):
             return self.days_var == other.days_var
@@ -133,7 +138,7 @@ class DateVar:
 
     def __ne__(self, other) -> BoolRef:
         """Support x != date comparison."""
-        if isinstance(other, (Date, _UnboundedDate, DateVar)):
+        if isinstance(other, (Date, DateVar)):
             return Not(self.__eq__(other))
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
@@ -152,29 +157,32 @@ class DateVar:
                 result.days_var = self.days_var + IntVal(other.days)
                 return result
 
-            oy, om, od = (
-                IntVal(other.years),
-                IntVal(other.months),
-                IntVal(other.days),
-            )
+            else:
+                oy, om, od = (
+                    IntVal(other.years),
+                    IntVal(other.months),
+                    IntVal(other.days),
+                )
 
-            # Decode current date to Y/M/D
-            y0, m0, d0 = ymd_from_days_since_epoch(self.days_var)
+                # Decode current date to Y/M/D
+                y0, m0, d0 = ymd_from_days_since_epoch(self.days_var)
 
-            # Step 1: Combine Y and M with normalization (carry years)
-            period_total_months = oy * IntVal(12) + om
-            total_months = m0 + period_total_months
-            y1, m1 = normalize_month(y0, total_months)
+                # Step 1: Combine Y and M with normalization (carry years)
+                period_total_months = oy * IntVal(12) + om
+                total_months = m0 + period_total_months
+                y1, m1 = normalize_month(y0, total_months)
 
-            # Step 2: EOM clamp
-            d1 = eom_clamp(y1, m1, d0)
+                # Step 2: EOM clamp
+                d1 = eom_clamp(y1, m1, d0)
 
-            # Step 3: add D days in ordinal space
-            y2, m2, d2 = add_days_ordinal(y1, m1, d1, od)
-
-            # Encode back to days-since-epoch
-            result.days_var = days_since_epoch_from_ymd(y2, m2, d2)
-            return result
+                if od == 0:
+                    # Encode back to days-since-epoch
+                    result.days_var = days_since_epoch_from_ymd(y1, m1, d1)
+                    return result
+                else:
+                    # Step 3: add D days in ordinal space
+                    result.days_var = add_days_ordinal(y1, m1, d1, od)
+                    return result
         else:
             raise TypeError(f"Cannot add {type(other)} to DateVar")
 
