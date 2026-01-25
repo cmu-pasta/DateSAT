@@ -24,9 +24,8 @@ from z3 import (
     unknown,
     unsat,
 )
-
-from ..core import Date, Period, _UnboundedDate
-from .naive_int import add_days_ordinal, days_in_month, eom_clamp
+from ..core import Date, Period
+from .naive_int import eom_clamp, days_in_month, to_ordinal, from_ordinal
 
 # -------------------------------
 # Alpha (months-since-epoch) helpers
@@ -91,7 +90,7 @@ class DateVar:
         """Get symbolic day component (beta_var + 1, since beta is 0-based)."""
         return self.beta_var + IntVal(1)
 
-    def to_concrete_date(self, model: ModelRef) -> Union[Date, _UnboundedDate]:
+    def to_concrete_date(self, model: ModelRef) -> Date:
         """Convert Z3 model to concrete Date using (alpha, beta)."""
         alpha_val = model.evaluate(self.months_var, model_completion=True).as_long()
         beta_val = model.evaluate(self.beta_var, model_completion=True).as_long()
@@ -103,11 +102,11 @@ class DateVar:
             return Date(year, month, day)
         except ValueError:
             # Intermediate result went out of bounds - use unbounded date
-            return _UnboundedDate(year, month, day)
+            return Date(year, month, day, bounded=False)
 
     def __ge__(self, other) -> BoolRef:
         """Support x >= date comparison."""
-        if isinstance(other, (Date, _UnboundedDate)):
+        if isinstance(other, Date):
             alpha_o = months_since_epoch_from_ym(
                 IntVal(other.year), IntVal(other.month)
             )
@@ -129,7 +128,7 @@ class DateVar:
 
     def __le__(self, other) -> BoolRef:
         """Support x <= date comparison."""
-        if isinstance(other, (Date, _UnboundedDate)):
+        if isinstance(other, Date):
             alpha_o = months_since_epoch_from_ym(
                 IntVal(other.year), IntVal(other.month)
             )
@@ -151,21 +150,21 @@ class DateVar:
 
     def __lt__(self, other) -> BoolRef:
         """Support x < date comparison."""
-        if isinstance(other, (Date, _UnboundedDate, DateVar)):
+        if isinstance(other, (Date, DateVar)):
             return Not(self.__ge__(other))
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
     def __gt__(self, other) -> BoolRef:
         """Support x > date comparison."""
-        if isinstance(other, (Date, _UnboundedDate, DateVar)):
+        if isinstance(other, (Date, DateVar)):
             return Not(self.__le__(other))
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
     def __eq__(self, other) -> BoolRef:
         """Support x == date comparison."""
-        if isinstance(other, (Date, _UnboundedDate)):
+        if isinstance(other, Date):
             alpha_o = months_since_epoch_from_ym(
                 IntVal(other.year), IntVal(other.month)
             )
@@ -181,7 +180,7 @@ class DateVar:
 
     def __ne__(self, other) -> BoolRef:
         """Support x != date comparison using ordinal arithmetic."""
-        if isinstance(other, (Date, _UnboundedDate, DateVar)):
+        if isinstance(other, (Date, DateVar)):
             return Not(self.__eq__(other))
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
@@ -189,7 +188,7 @@ class DateVar:
     def __add__(self, other) -> "DateVar":
         """DateVar + Period using alpha for Y/M and beta for D.
         Steps:
-          - Fast path: If days-only period, directly add to beta (within-month check handled by add_days_ordinal).
+          - Fast path: If days-only period, add days using ordinal conversion.
           - Otherwise add months to alpha, clamp EOM using current day,
             then add days in ordinal space and re-sync alpha/beta.
         """
@@ -200,15 +199,17 @@ class DateVar:
             months_delta = IntVal(other.years * 12 + other.months)
             days_delta = IntVal(other.days)
 
-            # Fast path: days-only period (skip month shift and EOM clamp)
+            # Fast path: days-only period
             if other.years == 0 and other.months == 0:
-                # Decode current (y,m,d) from (alpha,beta)
+                # Add days directly to beta, handling overflow via ordinal conversion
                 y0, m0 = ym_from_months_since_epoch(self.months_var)
                 d0 = self.beta_var + IntVal(1)
-
-                # Add days (add_days_ordinal handles within-month fast path)
-                y2, m2, d2 = add_days_ordinal(y0, m0, d0, days_delta)
-
+                
+                # Use ordinal conversion to handle month overflow correctly
+                ordinal = to_ordinal(y0, m0, d0)
+                new_ordinal = ordinal + days_delta
+                y2, m2, d2 = from_ordinal(new_ordinal)
+                
                 result.months_var = months_since_epoch_from_ym(y2, m2)
                 result.beta_var = d2 - IntVal(1)
                 return result
@@ -225,7 +226,9 @@ class DateVar:
             d1 = eom_clamp(y1, m1, d0)
 
             # Step 3: add D days in ordinal space and resync alpha/beta
-            y2, m2, d2 = add_days_ordinal(y1, m1, d1, days_delta)
+            ordinal = to_ordinal(y1, m1, d1)
+            new_ordinal = ordinal + days_delta
+            y2, m2, d2 = from_ordinal(new_ordinal)
 
             result.months_var = months_since_epoch_from_ym(y2, m2)
             result.beta_var = d2 - IntVal(1)

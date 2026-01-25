@@ -8,16 +8,13 @@ This is a brute-force approach that guarantees
 finding a solution if one exists, but may be very slow.
 """
 
-import builtins
-import itertools
-import time
 from datetime import date, timedelta
-from typing import Any, Dict, List, Optional, Tuple, Union
-
 from dateutil.relativedelta import relativedelta
-
-from .core import Date, Period, _UnboundedDate
-
+from typing import Any, Dict, Optional, Union, List, Tuple
+import time
+from .core import Date, Period
+import itertools
+import builtins
 
 # Module-level wrapper functions for Z3 boolean operators that work with ConstraintWrapper objects
 def _wrap_constraint_for_enumeration(constraint: Any) -> "ConstraintWrapper":

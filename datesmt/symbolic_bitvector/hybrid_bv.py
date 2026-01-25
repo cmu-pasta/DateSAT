@@ -43,8 +43,7 @@ from z3 import (
     unknown,
     unsat,
 )
-
-from ..core import Date, Period, _UnboundedDate
+from ..core import Date, Period
 from .bitwidths import LEGACY_BITS
 from .epoch_days_bv import from_days_since_epoch, to_days_since_epoch
 from .naive_bv import (
@@ -162,7 +161,7 @@ class DateVar:
             return self._year_var, self._month_var, self._day_var
         return ymd_from_days_since_epoch(self._epoch_expr())
 
-    def to_concrete_date(self, model: ModelRef) -> Union[Date, _UnboundedDate]:
+    def to_concrete_date(self, model: ModelRef) -> Date:
         if self._ymd_consistent and self._ymd_exists:
             y = model.evaluate(self._year_var, model_completion=True).as_signed_long()
             m = model.evaluate(self._month_var, model_completion=True).as_signed_long()
@@ -171,7 +170,7 @@ class DateVar:
                 return Date(y, m, d)
             except ValueError:
                 # Intermediate result went out of bounds - use unbounded date
-                return _UnboundedDate(y, m, d)
+                return Date(y, m, d, bounded=False)
         e = model.evaluate(self._epoch_expr(), model_completion=True).as_signed_long()
         try:
             return from_days_since_epoch(e)
@@ -181,7 +180,7 @@ class DateVar:
 
             _EPOCH = date(2000, 3, 1)
             result_date = _EPOCH + timedelta(days=e)
-            return _UnboundedDate(result_date.year, result_date.month, result_date.day)
+            return Date(result_date.year, result_date.month, result_date.day, bounded=False)
 
     def __ge__(self, other) -> BoolRef:
         """Support x >= date comparison.
@@ -191,7 +190,7 @@ class DateVar:
         2. Else if both have consistent epoch: compare on epoch_var
         3. Else: derive epoch expressions for both sides (converting Y/M/D to epoch if needed) and compare
         """
-        if isinstance(other, (Date, _UnboundedDate)):
+        if isinstance(other, Date):
             # Use signed comparison for epoch values (can be negative)
             return self._epoch_expr() >= BitVecVal(
                 to_days_since_epoch(other), LEGACY_BITS
@@ -226,7 +225,7 @@ class DateVar:
         2. Else if both have consistent epoch: compare on epoch_var
         3. Else: derive epoch expressions for both sides (converting Y/M/D to epoch if needed) and compare
         """
-        if isinstance(other, (Date, _UnboundedDate)):
+        if isinstance(other, Date):
             # Use signed comparison for epoch values (can be negative)
             return self._epoch_expr() <= BitVecVal(
                 to_days_since_epoch(other), LEGACY_BITS
@@ -255,14 +254,14 @@ class DateVar:
 
     def __lt__(self, other) -> BoolRef:
         """Support x < date comparison."""
-        if isinstance(other, (Date, _UnboundedDate, DateVar)):
+        if isinstance(other, (Date, DateVar)):
             return Not(self.__ge__(other))
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
     def __gt__(self, other) -> BoolRef:
         """Support x > date comparison."""
-        if isinstance(other, (Date, _UnboundedDate, DateVar)):
+        if isinstance(other, (Date, DateVar)):
             return Not(self.__le__(other))
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
@@ -275,10 +274,8 @@ class DateVar:
         2. Else if both have consistent epoch: compare on epoch_var
         3. Else: derive epoch expressions for both sides (converting Y/M/D to epoch if needed) and compare
         """
-        if isinstance(other, (Date, _UnboundedDate)):
-            return self._epoch_expr() == BitVecVal(
-                to_days_since_epoch(other), LEGACY_BITS
-            )
+        if isinstance(other, Date):
+            return self._epoch_expr() == BitVecVal(to_days_since_epoch(other), LEGACY_BITS)
         elif isinstance(other, DateVar):
             # Case 1: Both have consistent Y/M/D - use Y/M/D comparison
             if (
@@ -302,7 +299,7 @@ class DateVar:
 
     def __ne__(self, other) -> BoolRef:
         """Support x != date comparison."""
-        if isinstance(other, (Date, _UnboundedDate, DateVar)):
+        if isinstance(other, (Date, DateVar)):
             return Not(self.__eq__(other))
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")

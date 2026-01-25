@@ -11,7 +11,7 @@ from dateutil.relativedelta import relativedelta
 import datetime
 import warnings
 
-from .core import Date, Period, _UnboundedDate
+from .core import Date, Period
 from .enumeration_baseline import (
     ConstraintWrapper,
     Or_enumeration,
@@ -80,9 +80,9 @@ class EvalDateVar:
                     stacklevel=2,
                 )
 
-                # Construct _UnboundedDate with explicit Y/M/D components
-                self._value = _UnboundedDate(
-                    result_date.year, result_date.month, result_date.day
+                # Construct Date with bounded=False for dates outside allowed range
+                self._value = Date(
+                    result_date.year, result_date.month, result_date.day, bounded=False
                 )
         return self._value
 
@@ -92,8 +92,8 @@ class EvalDateVar:
             lhs = self.get_value()
             if lhs is None:
                 return False
-            rhs_val: Optional[Union[Date, _UnboundedDate]]
-            if isinstance(other, (Date, _UnboundedDate)):
+            rhs_val: Optional[Date]
+            if isinstance(other, Date):
                 rhs_val = other
             else:
                 rhs_val = other.get_value()
@@ -101,7 +101,7 @@ class EvalDateVar:
                 return False
             return getattr(lhs.to_python_date(), f"__{op}__")(rhs_val.to_python_date())
 
-        concrete_value = other if isinstance(other, (Date, _UnboundedDate)) else None
+        concrete_value = other if isinstance(other, Date) else None
         return ConstraintWrapper(
             compare, var_ref=self, concrete_value=concrete_value, rhs_ref=other
         )
@@ -162,7 +162,7 @@ class EvalDateComponent:
         d = self.parent.get_value()
         if d is None:
             return None
-        # Works for both Date and _UnboundedDate
+        # Works for both bounded and unbounded Date
         return getattr(d, self.attr)
 
     def _cmp(self, op: str, other: Union[int, "EvalIntVar", "EvalDateComponent"]) -> ConstraintWrapper:

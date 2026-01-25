@@ -28,8 +28,7 @@ from z3 import (
     unknown,
     unsat,
 )
-
-from ..core import Date, Period, _UnboundedDate
+from ..core import Date, Period
 from .bitwidths import LEGACY_BITS
 from .naive_bv import (
     _dbm_index,
@@ -98,7 +97,7 @@ class DateVar:
 
     def __ge__(self, other) -> BoolRef:
         """Support x >= date comparison."""
-        if isinstance(other, (Date, _UnboundedDate)):
+        if isinstance(other, Date):
             return self.days_var >= to_days_since_epoch(other)
         elif isinstance(other, DateVar):
             return self.days_var >= other.days_var
@@ -107,7 +106,7 @@ class DateVar:
 
     def __le__(self, other) -> BoolRef:
         """Support x <= date comparison."""
-        if isinstance(other, (Date, _UnboundedDate)):
+        if isinstance(other, Date):
             return self.days_var <= to_days_since_epoch(other)
         elif isinstance(other, DateVar):
             return self.days_var <= other.days_var
@@ -116,21 +115,21 @@ class DateVar:
 
     def __lt__(self, other) -> BoolRef:
         """Support x < date comparison."""
-        if isinstance(other, (Date, _UnboundedDate, DateVar)):
+        if isinstance(other, (Date, DateVar)):
             return Not(self.__ge__(other))
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
     def __gt__(self, other) -> BoolRef:
         """Support x > date comparison."""
-        if isinstance(other, (Date, _UnboundedDate, DateVar)):
+        if isinstance(other, (Date, DateVar)):
             return Not(self.__le__(other))
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
     def __eq__(self, other) -> BoolRef:
         """Support x == date comparison."""
-        if isinstance(other, (Date, _UnboundedDate)):
+        if isinstance(other, Date):
             return self.days_var == to_days_since_epoch(other)
         elif isinstance(other, DateVar):
             return self.days_var == other.days_var
@@ -139,7 +138,7 @@ class DateVar:
 
     def __ne__(self, other) -> BoolRef:
         """Support x != date comparison."""
-        if isinstance(other, (Date, _UnboundedDate, DateVar)):
+        if isinstance(other, (Date, DateVar)):
             return Not(self.__eq__(other))
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
