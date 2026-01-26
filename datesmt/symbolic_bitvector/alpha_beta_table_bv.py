@@ -121,22 +121,15 @@ class DateVar:
     beta  (beta_var):   extra days within that month (0-based), so DOM = 1+beta
     """
 
-    def __init__(self, name: str, bounded: bool = False, solver=None):
-        """Create a symbolic date variable.
-        
-        Args:
-            name: Name of the date variable
-            bounded: If True, add date validation bounds (requires solver)
-            solver: Solver instance for adding constraints (required if bounded=True)
-        """
+    def __init__(self, name: str):
+        """Create a symbolic date variable."""
         self.name = name
-        self._bounded = bounded
-        # Only store solver if bounded (needed to add bounds)
-        self._solver = solver if bounded else None
         # Alpha: Z3 bitvector variable for months since epoch-month
         self.months_var = BitVec(f"{name}_months", LEGACY_BITS)
         # Beta: Z3 bitvector variable for extra days (0-based) within month
         self.beta_var = BitVec(f"{name}_beta", LEGACY_BITS)
+        # Solver reference for adding bounds to intermediate dates (set after creation if needed)
+        self._solver = None
 
     def __str__(self) -> str:
         return f"DateVar({self.name})"
@@ -177,8 +170,8 @@ class DateVar:
             return Date(year, month, day, bounded=False)
 
     def _add_bounds(self) -> None:
-        """Add date validation bounds to this DateVar if bounded and solver is available."""
-        if not self._bounded or self._solver is None:
+        """Add date validation bounds to this DateVar if solver is available."""
+        if self._solver is None:
             return
         
         # Alpha bounds: months since 2000-03
@@ -270,20 +263,7 @@ class DateVar:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
     def __add__(self, other) -> "DateVar":
-        # Create intermediate result with bounds (following naive/epoch_days pattern)
-        if isinstance(other, Period):
-            result = DateVar(
-                f"{self.name}_plus_{other.years}y_{other.months}m_{other.days}d",
-                bounded=self._bounded,  # Inherit boundedness from parent
-                solver=self._solver
-            )
-        else:
-            # For symbolic Period, use generic name
-            result = DateVar(
-                f"{self.name}_plus",
-                bounded=self._bounded,  # Inherit boundedness from parent
-                solver=self._solver
-            )
+        result = DateVar(f"{self.name}_plus")
 
         if isinstance(other, Period):
             months_delta = BitVecVal(other.years * 12 + other.months, LEGACY_BITS)
@@ -295,75 +275,99 @@ class DateVar:
 
         # Fast path: days-only period (skip month shift)
         if isinstance(other, Period) and other.years == 0 and other.months == 0:
+            # Check if result stays within same month
             alpha1 = self.months_var
-            idx1   = mod48(alpha1)
-
-            dim1  = Select(_DIM48_LIST, idx1)
+            idx1 = mod48(alpha1)
+            abs1 = alpha_to_abs_month(alpha1)
+            dim1 = Select(_DIM48_LIST, idx1)
             beta1 = eom_clamp(dim1, self.beta_var)
 
-            # Full ordinal update (always)
+            # Within-month fast path: if beta1 + days_delta stays in [0, dim1)
+            new_beta = beta1 + days_delta
+            stays_in_month = And(new_beta >= BitVecVal(0, LEGACY_BITS), new_beta < dim1)
+
+            # Within-month: simple addition
+            alpha_within = alpha1
+            beta_within = new_beta
+
+            # Fallback: use full table lookup (when days cross month boundary)
             base48 = Select(_DBM48_LIST, idx1) + beta1
-            total  = base48 + days_delta
+            total = base48 + days_delta
 
             q0 = _floor_div_four_year_days(total)
             r0 = total % BitVecVal(_FOUR_YEAR_DAYS, LEGACY_BITS)
 
-            # idx2 = max i s.t. r0 >= DBM48[i]
-            idx2 = BitVecVal(0, LEGACY_BITS)
+            # Compute idx2 by scanning all 48 months with century correction at target
+            best = BitVecVal(0, LEGACY_BITS)
             for i in range(1, _FOUR_YEAR_MONTHS):
-                dbm_i = Select(_DBM48_LIST, BitVecVal(i, LEGACY_BITS))
-                idx2 = If(r0 >= dbm_i, BitVecVal(i, LEGACY_BITS), idx2)
+                dbm_i_corr = Select(_DBM48_LIST, BitVecVal(i, LEGACY_BITS))
+                best = If(r0 >= dbm_i_corr, BitVecVal(i, LEGACY_BITS), best)
 
-            beta2 = r0 - Select(_DBM48_LIST, idx2)
+            idx2 = best
+            diff2 = idx2 - idx1
+            abs2 = alpha_to_abs_month(alpha1 + q0 * BitVecVal(_FOUR_YEAR_MONTHS, LEGACY_BITS) + diff2)
+            beta2 = r0 - (Select(_DBM48_LIST, idx2))
 
-            dim2  = Select(_DIM48_LIST, idx2)
+            dim2 = Select(_DIM48_LIST, idx2)
             carry = If(beta2 >= dim2, BitVecVal(1, LEGACY_BITS), BitVecVal(0, LEGACY_BITS))
 
-            months_expr = alpha1 + q0 * BitVecVal(_FOUR_YEAR_MONTHS, LEGACY_BITS) + (idx2 - idx1) + carry
-            beta_expr   = If(carry == BitVecVal(1, LEGACY_BITS), beta2 - dim2, beta2)
-            
-            # Link the computed expressions to the result's variables
-            if result._solver is not None:
-                result._solver.add(result.months_var == months_expr)
-                result._solver.add(result.beta_var == beta_expr)
-            
+            alpha_ordinal = alpha1 + q0 * BitVecVal(_FOUR_YEAR_MONTHS, LEGACY_BITS) + diff2 + carry
+            beta_ordinal = If(carry == BitVecVal(1, LEGACY_BITS), beta2 - dim2, beta2)
+
+            # Select result based on within-month condition
+            result.months_var = If(stays_in_month, alpha_within, alpha_ordinal)
+            result.beta_var = If(stays_in_month, beta_within, beta_ordinal)
             # Add bounds to intermediate result
+            result._solver = self._solver
             result._add_bounds()
             return result
 
-        # Full path: month shift + day shift
+        # Full path: with month shift
         alpha1 = self.months_var + months_delta
-        idx1   = mod48(alpha1)
-
-        dim1  = Select(_DIM48_LIST, idx1)
+        idx1 = mod48(alpha1)
+        abs1 = alpha_to_abs_month(alpha1)
+        dim1 = Select(_DIM48_LIST, idx1)
         beta1 = eom_clamp(dim1, self.beta_var)
 
-        # Convert (alpha1, beta1) to 4-year-ordinal, add days, then convert back.
-        total = Select(_DBM48_LIST, idx1) + beta1 + days_delta
+        # Within-month fast path: if adding days stays in same month
+        new_beta = beta1 + days_delta
+        stays_in_month = And(new_beta >= BitVecVal(0, LEGACY_BITS), new_beta < dim1)
+
+        # Within-month: simple addition
+        alpha_within = alpha1
+        beta_within = new_beta
+
+        # Full table lookup path
+        base48 = Select(_DBM48_LIST, idx1) + beta1
+        total = base48 + days_delta
 
         q0 = _floor_div_four_year_days(total)
         r0 = total % BitVecVal(_FOUR_YEAR_DAYS, LEGACY_BITS)
 
-        # idx2 = max i in [0,47] such that r0 >= DBM48[i]
-        idx2 = BitVecVal(0, LEGACY_BITS)
+        # Compute idx2 by scanning all 48 months with century correction at target
+        best = BitVecVal(0, LEGACY_BITS)
         for i in range(1, _FOUR_YEAR_MONTHS):
-            dbm_i = Select(_DBM48_LIST, BitVecVal(i, LEGACY_BITS))
-            idx2 = If(r0 >= dbm_i, BitVecVal(i, LEGACY_BITS), idx2)
+            dbm_i_corr = Select(_DBM48_LIST, BitVecVal(i, LEGACY_BITS))
+            best = If(r0 >= dbm_i_corr, BitVecVal(i, LEGACY_BITS), best)
 
-        beta2 = r0 - Select(_DBM48_LIST, idx2)
+        idx2 = best
+        diff2 = idx2 - idx1
+        abs2 = alpha_to_abs_month(alpha1 + q0 * BitVecVal(_FOUR_YEAR_MONTHS, LEGACY_BITS) + diff2)
+        beta2 = r0 - (Select(_DBM48_LIST, idx2))
 
-        dim2  = Select(_DIM48_LIST, idx2)
+        # End-of-month overflow carry: if beta2 equals/exceeds the month length,
+        # advance one month and wrap beta into the next month.
+        dim2 = Select(_DIM48_LIST, idx2)
         carry = If(beta2 >= dim2, BitVecVal(1, LEGACY_BITS), BitVecVal(0, LEGACY_BITS))
 
-        months_expr = alpha1 + q0 * BitVecVal(_FOUR_YEAR_MONTHS, LEGACY_BITS) + (idx2 - idx1) + carry
-        beta_expr   = If(carry == BitVecVal(1, LEGACY_BITS), beta2 - dim2, beta2)
-        
-        # Link the computed expressions to the result's variables
-        if result._solver is not None:
-            result._solver.add(result.months_var == months_expr)
-            result._solver.add(result.beta_var == beta_expr)
-        
+        alpha_ordinal = alpha1 + q0 * BitVecVal(_FOUR_YEAR_MONTHS, LEGACY_BITS) + diff2 + carry
+        beta_ordinal = If(carry == BitVecVal(1, LEGACY_BITS), beta2 - dim2, beta2)
+
+        # Select result based on within-month condition
+        result.months_var = If(stays_in_month, alpha_within, alpha_ordinal)
+        result.beta_var = If(stays_in_month, beta_within, beta_ordinal)
         # Add bounds to intermediate result
+        result._solver = self._solver
         result._add_bounds()
         return result
 
@@ -398,7 +402,8 @@ class AlphaBetaTableSolver:
 
     def add_date_var(self, name: str) -> DateVar:
         """Add a symbolic date variable with basic constraints."""
-        date_var = DateVar(name, bounded=True, solver=self.solver)
+        date_var = DateVar(name)
+        date_var._solver = self.solver
         self.date_vars[name] = date_var
 
         # Add bounds using _add_bounds method

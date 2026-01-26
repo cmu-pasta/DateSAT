@@ -102,8 +102,22 @@ def solve(
         "Period": Period,
     }
     
-    # Execute the constraint code
-    exec(constraint_code, exec_globals)
+    # Execute the constraint code, catching ValueError for out-of-bounds dates and converting to UNSAT
+    try:
+        exec(constraint_code, exec_globals)
+    except ValueError as e:
+        # Check if this is a date out of bounds error
+        if "Date outside allowed range" in str(e):
+            # Intermediate date went out of bounds - add a False constraint to make it UNSAT
+            builder = exec_globals.get("builder")
+            if builder:
+                builder.add_constraint(BoolVal(False))
+            else:
+                # If builder doesn't exist yet, we can't add constraint, so re-raise
+                raise RuntimeError(f"Date out of bounds during constraint setup: {e}") from e
+        else:
+            # Re-raise if it's a different ValueError
+            raise
     
     # Get the builder from executed code
     builder = exec_globals.get("builder")
