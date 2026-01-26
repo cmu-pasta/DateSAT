@@ -1,9 +1,24 @@
 """
-Test that intermediate DateVars created during arithmetic operations are properly bounded.
+Test that *intermediate* DateVars introduced by date arithmetic are bounded.
+
+These are "round-trip through out-of-range" tests:
+
+    y = x + BIG
+    z = y - BIG
+    x == ANCHOR
+    z == ANCHOR
+
+- If intermediate DateVars (like `y`) are **unbounded**, this can be SAT:
+  the model can set y to an out-of-range date and still satisfy z == x.
+
+- If intermediate DateVars are **bounded** to the solver's supported range,
+  this becomes UNSAT because `y` is forced out-of-range.
+
+Note: Period has hard limits: years <= 200, months <= 2400.
 """
 
 import pytest
-from z3 import And, Or, IntVal, sat, unsat
+from z3 import sat, unsat
 
 from datesmt.core import Date, Period
 from datesmt.symbolic_int.naive_int import NaiveSolver
@@ -13,278 +28,118 @@ from datesmt.symbolic_int.alpha_beta_int import AlphaBetaSolver
 from datesmt.symbolic_int.alpha_beta_table_int import AlphaBetaTableSolver
 
 
-@pytest.mark.parametrize("solver_cls", [
-    pytest.param(NaiveSolver, marks=pytest.mark.naive),
-    pytest.param(EpochDaysSolver, marks=pytest.mark.epoch_days),
-    pytest.param(HybridSolver, marks=pytest.mark.hybrid),
-    pytest.param(AlphaBetaSolver, marks=pytest.mark.alpha_beta),
-    pytest.param(AlphaBetaTableSolver, marks=pytest.mark.alpha_beta_table),
-])
+SOLVERS = [
+    pytest.param(NaiveSolver, id="naive", marks=pytest.mark.naive),
+    pytest.param(EpochDaysSolver, id="epoch_days", marks=pytest.mark.epoch_days),
+    pytest.param(HybridSolver, id="hybrid", marks=pytest.mark.hybrid),
+    pytest.param(AlphaBetaSolver, id="alpha_beta", marks=pytest.mark.alpha_beta),
+    pytest.param(AlphaBetaTableSolver, id="alpha_beta_table", marks=pytest.mark.alpha_beta_table),
+]
+
+ANCHOR = Date(2000, 1, 15)  # avoid EOM/leap-day corner cases
+MAX_YEARS = 200             # Period constraint: |years| <= 200
+MAX_MONTHS = 2400           # Period constraint: |months| <= 2400 (200 years)
+
+
+@pytest.mark.parametrize("solver_cls", SOLVERS)
 @pytest.mark.integer
-def test_intermediate_date_bounded_in_single_operation(solver_cls):
-    """Test that intermediate DateVar from x + Period is bounded."""
+def test_round_trip_small_period_is_sat(solver_cls):
+    """Sanity: small round-trip should always be SAT."""
     solver = solver_cls()
     x = solver.add_date_var("x")
-    
-    # Create intermediate DateVar: x + Period(1, 2, 3)
-    # This should create an intermediate DateVar that is bounded
-    y = x + Period(1, 2, 3)
-    
-    # Add constraint linking y to a concrete date
-    solver.add_constraint(x == Date(2020, 6, 15))
-    solver.add_constraint(y == Date(2021, 8, 18))
-    
-    # Check that the solver is satisfiable (bounds should allow this)
-    result = solver.check()
-    assert result == sat, "Solver should be satisfiable with valid dates"
-    
-    # Get assertions and check for bounds on intermediate DateVar
-    assertions = solver.get_assertions()
-    
-    # The intermediate DateVar should have bounds constraints
-    # Look for constraints that include year bounds (1901-2099) or epoch bounds (-36525, 36523)
-    # The intermediate DateVar name should contain "plus"
-    has_intermediate_bounds = False
-    
-    for assertion in assertions:
-        # Convert to string to check for intermediate variable patterns
-        assertion_str = str(assertion)
-        # Check if this assertion involves an intermediate variable (contains "plus")
-        if "plus" in assertion_str:
-            # Check if it contains year bounds (for naive/hybrid), epoch bounds (for epoch_days),
-            # or month bounds (for alpha_beta: -1200 to 1199)
-            if ("1901" in assertion_str or "2099" in assertion_str or "1900" in assertion_str or "2100" in assertion_str or
-                "-36525" in assertion_str or "36523" in assertion_str or
-                "-1200" in assertion_str or "1199" in assertion_str):
-                has_intermediate_bounds = True
-                break
-    
-    assert has_intermediate_bounds, "Intermediate DateVar should have bounds constraints"
+
+    y = x + Period(1, 0, 0)
+    z = y - Period(1, 0, 0)
+
+    solver.add_constraint(x == ANCHOR)
+    solver.add_constraint(z == ANCHOR)
+
+    assert solver.check() == sat
 
 
-@pytest.mark.parametrize("solver_cls", [
-    pytest.param(NaiveSolver, marks=pytest.mark.naive),
-    pytest.param(EpochDaysSolver, marks=pytest.mark.epoch_days),
-    pytest.param(HybridSolver, marks=pytest.mark.hybrid),
-    pytest.param(AlphaBetaSolver, marks=pytest.mark.alpha_beta),
-    pytest.param(AlphaBetaTableSolver, marks=pytest.mark.alpha_beta_table),
-])
+@pytest.mark.parametrize("solver_cls", SOLVERS)
 @pytest.mark.integer
-def test_intermediate_date_bounded_in_multiple_operations(solver_cls):
-    """Test that intermediate DateVars from multiple operations are bounded."""
+def test_round_trip_via_out_of_range_intermediate_years_future_is_unsat(solver_cls):
+    """
+    Shift far into the future (within Period limits), then shift back.
+    Should be UNSAT iff the intermediate `y` is bounded.
+    """
     solver = solver_cls()
     x = solver.add_date_var("x")
-    
-    # Create multiple intermediate DateVars
-    y = x + Period(1, 0, 0)  # intermediate: x_plus_1y_0m_0d
-    z = y + Period(0, 2, 0)   # intermediate: x_plus_1y_0m_0d_plus_0y_2m_0d
-    
-    solver.add_constraint(x == Date(2020, 6, 15))
-    solver.add_constraint(z == Date(2021, 8, 15))
-    
-    result = solver.check()
-    assert result == sat, "Solver should be satisfiable"
-    
-    # Check that intermediate DateVars have bounds
-    assertions = solver.get_assertions()
-    intermediate_count = 0
-    
-    for assertion in assertions:
-        assertion_str = str(assertion)
-        if "plus" in assertion_str:
-            # Check for bounds indicators (year bounds for naive, epoch bounds for epoch_days and hybrid,
-            # month bounds for alpha_beta: -1200 to 1199)
-            if (any(year in assertion_str for year in ["1900", "1901", "2099", "2100"]) or
-                "-36525" in assertion_str or "36523" in assertion_str or
-                "-1200" in assertion_str or "1199" in assertion_str):
-                intermediate_count += 1
-    
-    # Should have bounds for at least 2 intermediate DateVars (y and z)
-    assert intermediate_count >= 2, f"Expected at least 2 intermediate DateVars with bounds, found {intermediate_count}"
 
+    y = x + Period(MAX_YEARS, 0, 0)   # intermediate (should be bounded!)
+    z = y - Period(MAX_YEARS, 0, 0)   # back to anchor
 
-@pytest.mark.parametrize("solver_cls", [
-    pytest.param(NaiveSolver, marks=pytest.mark.naive),
-    pytest.param(EpochDaysSolver, marks=pytest.mark.epoch_days),
-    pytest.param(HybridSolver, marks=pytest.mark.hybrid),
-    pytest.param(AlphaBetaSolver, marks=pytest.mark.alpha_beta),
-    pytest.param(AlphaBetaTableSolver, marks=pytest.mark.alpha_beta_table),
-])
-@pytest.mark.integer
-def test_intermediate_date_bounds_enforce_valid_range(solver_cls):
-    """Test that intermediate DateVar bounds prevent out-of-range dates."""
-    # Test 1: Valid dates should work
-    solver = solver_cls()
-    x = solver.add_date_var("x")
-    
-    # Create intermediate DateVar
-    y = x + Period(1, 2, 3)
-    
-    # Use a valid date at the start of the range
-    solver.add_constraint(x == Date(1900, 3, 1))
-    # y should be around 1901-05-04, which is valid
-    
-    result = solver.check()
-    assert result == sat, "Should be satisfiable with valid dates"
-    
-    # Test 2: Try to force intermediate to be out of bounds (after 2100-02-28)
-    solver2 = solver_cls()
-    x2 = solver2.add_date_var("x2")
-    y2 = x2 + Period(0, 0, 1) - Period(0, 0, 1)  # This would push it way past 2100
-    
-    solver2.add_constraint(x2 == Date(2100, 2, 28))
-    # y2 would be 2200-01-01, which is out of bounds
-    
-    result2 = solver2.check()
-    # Should be UNSAT because intermediate DateVar is bounded and out of range
-    # Note: AlphaBetaTableSolver has a known limitation with century boundaries
-    # due to using a 4-year cycle table that can't distinguish century leap years
-    if solver_cls == AlphaBetaTableSolver:
-        pytest.xfail("AlphaBetaTableSolver has known limitation with century boundaries")
-    assert result2 == unsat, "Should be UNSAT when intermediate DateVar is out of bounds"
-    
-    # Test 3: Try to force intermediate to be out of bounds (before 1900-03-01)
-    solver3 = solver_cls()
-    x3 = solver3.add_date_var("x3")
-    y3 = x3 - Period(10, 0, 0)  # Subtract 10 years
-    
-    solver3.add_constraint(x3 == Date(1900, 3, 1))
-    # y3 would be 1890-03-01, which is out of bounds
-    
-    result3 = solver3.check()
-    # Should be UNSAT because intermediate DateVar is bounded and out of range
-    assert result3 == unsat, "Should be UNSAT when intermediate DateVar is before valid range"
+    solver.add_constraint(x == ANCHOR)
+    solver.add_constraint(z == ANCHOR)
 
-
-@pytest.mark.parametrize("solver_cls", [
-    pytest.param(NaiveSolver, marks=pytest.mark.naive),
-    pytest.param(EpochDaysSolver, marks=pytest.mark.epoch_days),
-    pytest.param(HybridSolver, marks=pytest.mark.hybrid),
-    pytest.param(AlphaBetaSolver, marks=pytest.mark.alpha_beta),
-    pytest.param(AlphaBetaTableSolver, marks=pytest.mark.alpha_beta_table),
-])
-@pytest.mark.integer
-def test_intermediate_date_bounded_vs_unbounded(solver_cls):
-    """Test that bounded DateVars have bounds but unbounded ones don't."""
-    # Test with bounded DateVar (created via add_date_var)
-    solver_bounded = solver_cls()
-    x_bounded = solver_bounded.add_date_var("x")
-    y_bounded = x_bounded + Period(1, 0, 0)
-    
-    assertions_bounded = solver_bounded.get_assertions()
-    bounded_count = sum(1 for a in assertions_bounded 
-                       if (any(year in str(a) for year in ["1900", "1901", "2099", "2100"]) or
-                           "-36525" in str(a) or "36523" in str(a) or
-                           "-1200" in str(a) or "1199" in str(a)))
-    
-    # Test with unbounded DateVar (created directly)
-    # Import the appropriate DateVar class based on solver type
-    if solver_cls == NaiveSolver:
-        from datesmt.symbolic_int.naive_int import DateVar
-    elif solver_cls == EpochDaysSolver:
-        from datesmt.symbolic_int.epoch_days_int import DateVar
-    elif solver_cls == HybridSolver:
-        from datesmt.symbolic_int.hybrid_int import DateVar
-        # Hybrid DateVar needs ctx, so skip this test for hybrid
-        pytest.skip("Hybrid DateVar requires ctx parameter, skipping unbounded test")
-    elif solver_cls == AlphaBetaSolver:
-        from datesmt.symbolic_int.alpha_beta_int import DateVar
-    elif solver_cls == AlphaBetaTableSolver:
-        from datesmt.symbolic_int.alpha_beta_table_int import DateVar
-    
-    solver_unbounded = solver_cls()
-    x_unbounded = DateVar("x_unbounded", bounded=False)  # Explicitly unbounded
-    y_unbounded = x_unbounded + Period(1, 0, 0)
-    
-    # Add constraints manually
-    solver_unbounded.add_constraint(x_unbounded.year == 2020)
-    solver_unbounded.add_constraint(x_unbounded.month == 6)
-    solver_unbounded.add_constraint(x_unbounded.day == 15)
-    
-    assertions_unbounded = solver_unbounded.get_assertions()
-    unbounded_count = sum(1 for a in assertions_unbounded 
-                          if (any(year in str(a) for year in ["1900", "1901", "2099", "2100"]) or
-                              "-36525" in str(a) or "36523" in str(a) or
-                              "-1200" in str(a) or "1199" in str(a)))
-    
-    # Bounded should have more bounds constraints than unbounded
-    assert bounded_count > unbounded_count, \
-        f"Bounded DateVars should have more bounds constraints ({bounded_count} vs {unbounded_count})"
-
-
-@pytest.mark.parametrize("solver_cls", [
-    pytest.param(NaiveSolver, marks=pytest.mark.naive),
-    pytest.param(EpochDaysSolver, marks=pytest.mark.epoch_days),
-    pytest.param(HybridSolver, marks=pytest.mark.hybrid),
-    pytest.param(AlphaBetaSolver, marks=pytest.mark.alpha_beta),
-    pytest.param(AlphaBetaTableSolver, marks=pytest.mark.alpha_beta_table),
-])
-@pytest.mark.integer
-def test_intermediate_date_bounds_preserved_in_chain(solver_cls):
-    """Test that bounds are preserved through a chain of operations."""
-    solver = solver_cls()
-    x = solver.add_date_var("x")
-    
-    # Create a chain: x -> y -> z -> w
-    y = x + Period(0, 1, 0)
-    z = y + Period(0, 1, 0)
-    w = z + Period(0, 1, 0)
-    
-    solver.add_constraint(x == Date(2020, 1, 15))
-    solver.add_constraint(w == Date(2020, 4, 15))
-    
-    result = solver.check()
-    assert result == sat, "Chain of operations should be satisfiable"
-    
-    # All intermediate DateVars (y, z, w) should be bounded
-    assertions = solver.get_assertions()
-    intermediate_vars_with_bounds = 0
-    
-    for assertion in assertions:
-        assertion_str = str(assertion)
-        if "plus" in assertion_str:
-            # Check for bounds indicators (year bounds for naive, epoch bounds for epoch_days and hybrid,
-            # month bounds for alpha_beta: -1200 to 1199)
-            if (any(year in assertion_str for year in ["1900", "1901", "2099", "2100"]) or
-                "-36525" in assertion_str or "36523" in assertion_str or
-                "-1200" in assertion_str or "1199" in assertion_str):
-                intermediate_vars_with_bounds += 1
-    
-    # Should have bounds for y, z, and w (3 intermediate DateVars)
-    assert intermediate_vars_with_bounds >= 3, \
-        f"Expected at least 3 intermediate DateVars with bounds, found {intermediate_vars_with_bounds}"
-
-
-@pytest.mark.parametrize("solver_cls", [
-    pytest.param(NaiveSolver, marks=pytest.mark.naive),
-    pytest.param(EpochDaysSolver, marks=pytest.mark.epoch_days),
-    pytest.param(HybridSolver, marks=pytest.mark.hybrid),
-    pytest.param(AlphaBetaSolver, marks=pytest.mark.alpha_beta),
-    pytest.param(AlphaBetaTableSolver, marks=pytest.mark.alpha_beta_table),
-])
-@pytest.mark.integer
-def test_intermediate_date_bounds_in_subtraction(solver_cls):
-    """Test that intermediate DateVar from subtraction is also bounded."""
-    solver = solver_cls()
-    x = solver.add_date_var("x")
-    
-    # Subtraction creates intermediate DateVar
-    y = x - Period(1, 2, 3)
-    
-    solver.add_constraint(x == Date(2020, 6, 15))
-    solver.add_constraint(y == Date(2019, 4, 12))
-    
-    result = solver.check()
-    assert result == sat, "Subtraction should be satisfiable"
-    
-    # Check for bounds on intermediate DateVar
-    assertions = solver.get_assertions()
-    has_bounds = any(
-        ("plus" in str(a) and 
-         (any(year in str(a) for year in ["1900", "1901", "2099", "2100"]) or
-          "-36525" in str(a) or "36523" in str(a) or
-          "-1200" in str(a) or "1199" in str(a)))
-        for a in assertions
+    res = solver.check()
+    assert res == unsat, (
+        f"{solver_cls.__name__} returned {res}. "
+        "This usually means the intermediate DateVar created by `x + Period(...)` is still unbounded."
     )
-    
-    assert has_bounds, "Intermediate DateVar from subtraction should have bounds"
+
+
+@pytest.mark.parametrize("solver_cls", SOLVERS)
+@pytest.mark.integer
+def test_round_trip_via_out_of_range_intermediate_years_past_is_unsat(solver_cls):
+    """
+    Shift far into the past (within Period limits), then shift back.
+    Should be UNSAT iff the intermediate `y` is bounded.
+    """
+    solver = solver_cls()
+    x = solver.add_date_var("x")
+
+    y = x - Period(MAX_YEARS, 0, 0)   # intermediate (should be bounded!)
+    z = y + Period(MAX_YEARS, 0, 0)   # back to anchor
+
+    solver.add_constraint(x == ANCHOR)
+    solver.add_constraint(z == ANCHOR)
+
+    res = solver.check()
+    assert res == unsat, (
+        f"{solver_cls.__name__} returned {res}. "
+        "This usually means the intermediate DateVar created by `x - Period(...)` is still unbounded."
+    )
+
+
+@pytest.mark.parametrize("solver_cls", SOLVERS)
+@pytest.mark.integer
+def test_round_trip_via_out_of_range_intermediate_months_future_is_unsat(solver_cls):
+    """
+    Same idea, but using months (to catch implementations that treat years specially).
+    """
+    solver = solver_cls()
+    x = solver.add_date_var("x")
+
+    y = x + Period(0, MAX_MONTHS, 0)  # intermediate (should be bounded!)
+    z = y - Period(0, MAX_MONTHS, 0)  # back to anchor
+
+    solver.add_constraint(x == ANCHOR)
+    solver.add_constraint(z == ANCHOR)
+
+    res = solver.check()
+    assert res == unsat, (
+        f"{solver_cls.__name__} returned {res}. "
+        "This usually means the intermediate DateVar created by `x + Period(...)` is still unbounded."
+    )
+
+
+@pytest.mark.parametrize("solver_cls", SOLVERS)
+@pytest.mark.integer
+def test_round_trip_via_out_of_range_intermediate_months_past_is_unsat(solver_cls):
+    """Months version (past shift)."""
+    solver = solver_cls()
+    x = solver.add_date_var("x")
+
+    y = x - Period(0, MAX_MONTHS, 0)  # intermediate (should be bounded!)
+    z = y + Period(0, MAX_MONTHS, 0)  # back to anchor
+
+    solver.add_constraint(x == ANCHOR)
+    solver.add_constraint(z == ANCHOR)
+
+    res = solver.check()
+    assert res == unsat, (
+        f"{solver_cls.__name__} returned {res}. "
+        "This usually means the intermediate DateVar created by `x - Period(...)` is still unbounded."
+    )

@@ -194,22 +194,15 @@ def _dbm_index(y, idx) -> ArithRef:
 class DateVar:
     """Symbolic date variable for naive implementation."""
 
-    def __init__(self, name: str, bounded: bool = False, solver=None):
-        """Create a symbolic date variable.
-        
-        Args:
-            name: Name of the date variable
-            bounded: If True, add date validation bounds (requires solver)
-            solver: Solver instance for adding constraints (required if bounded=True)
-        """
+    def __init__(self, name: str):
+        """Create a symbolic date variable."""
         self.name = name
-        self._bounded = bounded
-        # Only store solver if bounded (needed to add bounds and equality constraints)
-        self._solver = solver if bounded else None
         # Create separate Z3 integer variables for year, month, day
         self.year = Int(f"{name}_year")
         self.month = Int(f"{name}_month")
         self.day = Int(f"{name}_day")
+        # Solver reference for adding bounds to intermediate dates (set after creation if needed)
+        self._solver = None
 
     def __str__(self) -> str:
         return f"DateVar({self.name})"
@@ -286,8 +279,8 @@ class DateVar:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
     def _add_bounds(self) -> None:
-        """Add date validation bounds to this DateVar if bounded and solver is available."""
-        if not self._bounded or self._solver is None:
+        """Add date validation bounds to this DateVar if solver is available."""
+        if self._solver is None:
             return
         
         # Add comprehensive date validation constraints
@@ -333,11 +326,7 @@ class DateVar:
         - Fast path: If period is days-only (years=0, months=0), skip month normalization
         """
         if isinstance(other, Period):
-            result = DateVar(
-                f"{self.name}_plus_{other.years}y_{other.months}m_{other.days}d",
-                bounded=self._bounded,
-                solver=self._solver
-            )
+            result = DateVar(f"{self.name}_plus")
 
             # Extract period components
             period_years = other.years
@@ -366,18 +355,11 @@ class DateVar:
                 # Step 3: Add D days via iterative carry across month/year boundaries
                 y2, m2, d2 = add_days_componentwise(y1, m1, d1, period_days)
 
-            # Link the computed expressions to the result's Z3 variables
-            if result._solver is not None:
-                result._solver.add(And(
-                    result.year == y2,
-                    result.month == m2,
-                    result.day == d2
-                ))
-            else:
-                # If no solver, just assign directly (for backward compatibility)
-                result.year, result.month, result.day = y2, m2, d2
+            # Direct assignment 
+            result.year, result.month, result.day = y2, m2, d2
             
-            # Add bounds to intermediate result (bounds are on the Z3 variables)
+            # Add bounds to intermediate result
+            result._solver = self._solver
             result._add_bounds()
             return result
         else:
@@ -414,13 +396,12 @@ class NaiveSolver:
 
     def add_date_var(self, name: str) -> DateVar:
         """Add a symbolic date variable with comprehensive date validation."""
-        date_var = DateVar(name, bounded=True, solver=self.solver)
+        date_var = DateVar(name)
+        date_var._solver = self.solver
         self.date_vars[name] = date_var
 
-        # Add comprehensive date validation constraints
-        # Valid range is 1900-03-01 to 2100-02-28
+        # Add bounds using _add_bounds method
         date_var._add_bounds()
-
         return date_var
 
     def add_constraint(self, constraint: BoolRef) -> None:
