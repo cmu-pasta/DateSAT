@@ -212,7 +212,13 @@ class DateVar:
             except ValueError:
                 # Intermediate result went out of bounds - use unbounded date
                 return Date(y, m, d, bounded=False)
-        e = model.evaluate(self._epoch_expr(), model_completion=True).as_signed_long()
+        # Otherwise evaluate epoch variable directly (faster than _epoch_expr() which may be complex)
+        # If epoch is consistent, epoch_var is the source of truth
+        if self._epoch_consistent:
+            e = model.evaluate(self.epoch_var, model_completion=True).as_signed_long()
+        else:
+            # Epoch not consistent, need to derive from Y/M/D
+            e = model.evaluate(self._epoch_expr(), model_completion=True).as_signed_long()
         try:
             return from_days_since_epoch(e)
         except ValueError:
