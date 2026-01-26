@@ -65,22 +65,15 @@ class DateVar:
     beta  (beta_var):   extra days within that month (0-based), so DOM = 1+beta
     """
 
-    def __init__(self, name: str, bounded: bool = False, solver=None):
-        """Create a symbolic date variable.
-        
-        Args:
-            name: Name of the date variable
-            bounded: If True, add date validation bounds (requires solver)
-            solver: Solver instance for adding constraints (required if bounded=True)
-        """
+    def __init__(self, name: str):
+        """Create a symbolic date variable."""
         self.name = name
-        self._bounded = bounded
-        # Only store solver if bounded (needed to add bounds and equality constraints)
-        self._solver = solver if bounded else None
         # Alpha: Z3 integer variable for months since epoch-month
         self.months_var = Int(f"{name}_months")
         # Beta: Z3 integer variable for extra days (0-based) within month
         self.beta_var = Int(f"{name}_beta")
+        # Solver reference for adding bounds to intermediate dates (set after creation if needed)
+        self._solver = None
 
     def __str__(self) -> str:
         return f"DateVar({self.name})"
@@ -198,8 +191,8 @@ class DateVar:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
     def _add_bounds(self) -> None:
-        """Add date validation bounds to this DateVar if bounded and solver is available."""
-        if not self._bounded or self._solver is None:
+        """Add date validation bounds to this DateVar if solver is available."""
+        if self._solver is None:
             return
         
         # Alpha bounds: months since 2000-03
@@ -219,12 +212,7 @@ class DateVar:
           - Full path: Add months to alpha, EOM clamp beta, add days to beta, then normalize.
         """
         if isinstance(other, Period):
-            # Create intermediate result with bounds (following naive/epoch_days pattern)
-            result = DateVar(
-                f"{self.name}_plus_{other.years}y_{other.months}m_{other.days}d",
-                bounded=self._bounded,  # Inherit boundedness from parent
-                solver=self._solver
-            )
+            result = DateVar(f"{self.name}_plus")
             months_delta = IntVal(other.years * 12 + other.months)
             days_delta = IntVal(other.days)
 
@@ -247,12 +235,12 @@ class DateVar:
                 months_expr = months_since_epoch_from_ym(y2, m2)
                 beta_expr = d2 - IntVal(1)
                 
-                # Link the computed expressions to the result's variables
-                if result._solver is not None:
-                    result._solver.add(result.months_var == months_expr)
-                    result._solver.add(result.beta_var == beta_expr)
+                # Direct assignment 
+                result.months_var = months_expr
+                result.beta_var = beta_expr
                 
                 # Add bounds to intermediate result
+                result._solver = self._solver
                 result._add_bounds()
                 return result
 
@@ -276,12 +264,12 @@ class DateVar:
             months_expr = months_since_epoch_from_ym(y2, m2)
             beta_expr = d2 - IntVal(1)
             
-            # Link the computed expressions to the result's variables
-            if result._solver is not None:
-                result._solver.add(result.months_var == months_expr)
-                result._solver.add(result.beta_var == beta_expr)
+            # Direct assignment 
+            result.months_var = months_expr
+            result.beta_var = beta_expr
             
             # Add bounds to intermediate result
+            result._solver = self._solver
             result._add_bounds()
             return result
         else:
@@ -318,12 +306,12 @@ class AlphaBetaSolver:
 
     def add_date_var(self, name: str) -> DateVar:
         """Add a symbolic date variable with basic constraints."""
-        date_var = DateVar(name, bounded=True, solver=self.solver)
+        date_var = DateVar(name)
+        date_var._solver = self.solver
         self.date_vars[name] = date_var
 
-        # Add bounds for valid date ranges [1900-03-01 to 2100-02-28]
+        # Add bounds using _add_bounds method
         date_var._add_bounds()
-
         return date_var
 
     def add_constraint(self, constraint: BoolRef) -> None:

@@ -68,20 +68,13 @@ def add_days_ordinal(y, m, d, delta_days) -> BitVecRef:
 class DateVar:
     """Symbolic date variable for epoch_days implementation."""
 
-    def __init__(self, name: str, bounded: bool = False, solver=None):
-        """Create a symbolic date variable.
-        
-        Args:
-            name: Name of the date variable
-            bounded: If True, add date validation bounds (requires solver)
-            solver: Solver instance for adding constraints (required if bounded=True)
-        """
+    def __init__(self, name: str):
+        """Create a symbolic date variable."""
         self.name = name
-        self._bounded = bounded
-        # Only store solver if bounded (needed to add bounds and equality constraints)
-        self._solver = solver if bounded else None
         # Use a single Z3 bitvector variable for days since epoch
         self.days_var = BitVec(f"{name}_days", LEGACY_BITS)
+        # Solver reference for adding bounds to intermediate dates (set after creation if needed)
+        self._solver = None
 
     def __str__(self) -> str:
         return f"DateVar({self.name})"
@@ -158,8 +151,8 @@ class DateVar:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
     def _add_bounds(self) -> None:
-        """Add date validation bounds to this DateVar if bounded and solver is available."""
-        if not self._bounded or self._solver is None:
+        """Add date validation bounds to this DateVar if solver is available."""
+        if self._solver is None:
             return
         
         # Add constraints for valid date ranges [1900-03-01 to 2100-02-28]
@@ -175,11 +168,8 @@ class DateVar:
         Steps: normalize Y/M, EOM clamp, then add D days in ordinal space.
         """
         if isinstance(other, Period):
-            result = DateVar(
-                f"{self.name}_plus_{other.years}y_{other.months}m_{other.days}d",
-                bounded=self._bounded,
-                solver=self._solver
-            )
+            result = DateVar(f"{self.name}_plus")
+            
             # Fast-path: only days component (check at Python level since Period components are concrete)
             if other.years == 0 and other.months == 0:
                 days_expr = self.days_var + BitVecVal(other.days, LEGACY_BITS)
@@ -201,21 +191,18 @@ class DateVar:
                 # Step 2: EOM clamp
                 d1 = eom_clamp(y1, m1, d0)
 
-                if od == BitVecVal(0, LEGACY_BITS):
+                if other.days == 0:
                     # Encode back to days-since-epoch
                     days_expr = days_since_epoch_from_ymd(y1, m1, d1)
                 else:
                     # Step 3: add D days in ordinal space
                     days_expr = add_days_ordinal(y1, m1, d1, od)
             
-            # Link the computed expression to the result's days_var
-            if result._solver is not None:
-                result._solver.add(result.days_var == days_expr)
-            else:
-                # If no solver, just assign directly (for backward compatibility)
-                result.days_var = days_expr
+            # Direct assignment 
+            result.days_var = days_expr
             
             # Add bounds to intermediate result
+            result._solver = self._solver
             result._add_bounds()
             return result
         else:
@@ -252,12 +239,12 @@ class EpochDaysSolver:
 
     def add_date_var(self, name: str) -> DateVar:
         """Add a symbolic date variable with basic constraints."""
-        date_var = DateVar(name, bounded=True, solver=self.solver)
+        date_var = DateVar(name)
+        date_var._solver = self.solver
         self.date_vars[name] = date_var
 
-        # Add constraints for valid date ranges [1900-03-01 to 2100-02-28]
+        # Add bounds using _add_bounds method
         date_var._add_bounds()
-
         return date_var
 
     def add_constraint(self, constraint: BoolRef) -> None:

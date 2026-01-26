@@ -372,7 +372,7 @@ class DateVar:
         return result
 
     def __sub__(self, other) -> "DateVar":
-        """DateVar - Period implemented as DateVar + (-Period). Date difference returns Int."""
+        """DateVar - Period implemented as DateVar + (-Period)."""
         if isinstance(other, Period):
             neg = Period(-other.years, -other.months, -other.days)
             return self.__add__(neg)

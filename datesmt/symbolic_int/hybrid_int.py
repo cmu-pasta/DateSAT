@@ -55,23 +55,20 @@ from .epoch_days_int import from_days_since_epoch, to_days_since_epoch, add_days
 class DateVar:
     """Symbolic date variable with lazy dual representation (epoch + Y/M/D)."""
 
-    def __init__(self, ctx, name: str, is_user_var: bool = True, bounded: bool = False, solver=None):
+    def __init__(self, ctx, name: str, is_user_var: bool = True):
         """Create a symbolic date variable.
         
         Args:
             ctx: Solver context (HybridSolver instance)
             name: Name of the date variable
             is_user_var: If True, this is a user-declared variable (for filtering in get_concrete_dates)
-            bounded: If True, add date validation bounds (requires solver)
-            solver: Solver instance for adding constraints (required if bounded=True)
         """
         self.ctx = ctx
         self.name = name
         # Track if this is a user-declared variable (needs bounds) vs intermediate result
         self._is_user_var = is_user_var
-        # Boundedness flag and solver (for consistency with naive/epoch_days pattern)
-        self._bounded = bounded
-        self._solver = solver if bounded else (ctx.solver if ctx else None)
+        # Solver reference for adding bounds to intermediate dates
+        self._solver = ctx.solver if ctx else None
         # Primary epoch representation
         self.epoch_var = Int(f"{name}_epoch")
         # Lazy YMD vars
@@ -136,7 +133,7 @@ class DateVar:
             except ValueError:
                 # Intermediate result went out of bounds - use unbounded date
                 return Date(y, m, d, bounded=False)
-        # Otherwise evaluate epoch variable directly (faster than _epoch_expr() which may be complex)
+        # Otherwise evaluate epoch variable directly 
         # If epoch is consistent, epoch_var is the source of truth
         if self._epoch_consistent:
             e = model.evaluate(self.epoch_var, model_completion=True).as_long()
@@ -367,16 +364,56 @@ class DateVar:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
     def _add_bounds(self) -> None:
-        """Add date validation bounds to this DateVar if bounded and solver is available."""
-        if not self._bounded or self._solver is None:
+        """Add date validation bounds to this DateVar if solver is available."""
+        if self._solver is None:
             return
         
-        # Add constraints for valid date ranges [1900-03-01 to 2100-02-28]
-        # Epoch is March 1, 2000
-        # 1900-03-01 = -36525 days from epoch
-        # 2100-02-28 = 36523 days from epoch
-        self._solver.add(self.epoch_var >= IntVal(-36525))
-        self._solver.add(self.epoch_var <= IntVal(36523))
+        # Prioritize epoch bounds when epoch is consistent (more efficient)
+        # Fall back to Y/M/D bounds only if epoch is not consistent but Y/M/D is
+        if self._epoch_consistent:
+            # Add constraints for valid date ranges [1900-03-01 to 2100-02-28]
+            # Epoch is March 1, 2000
+            # 1900-03-01 = -36525 days from epoch
+            # 2100-02-28 = 36523 days from epoch
+            self._solver.add(self.epoch_var >= IntVal(-36525))
+            self._solver.add(self.epoch_var <= IntVal(36523))
+        elif self._ymd_consistent and self._ymd_exists:
+            # Add comprehensive date validation constraints directly to Y/M/D
+            # Valid range is 1900-03-01 to 2100-02-28
+            self._solver.add(
+                Or(
+                    # 1900-03-01 to 1900-12-31
+                    And(
+                        self._year_var == 1900,
+                        self._month_var >= 3,
+                        self._month_var <= 12,
+                        self._day_var >= 1,
+                        self._day_var <= days_in_month(self._year_var, self._month_var),
+                    ),
+                    # 1901-01-01 to 2099-12-31
+                    And(
+                        self._year_var >= 1901,
+                        self._year_var <= 2099,
+                        self._month_var >= 1,
+                        self._month_var <= 12,
+                        self._day_var >= 1,
+                        self._day_var <= days_in_month(self._year_var, self._month_var),
+                    ),
+                    # 2100-01-01 to 2100-02-28
+                    And(
+                        self._year_var == 2100,
+                        self._month_var >= 1,
+                        self._month_var <= 2,
+                        self._day_var >= 1,
+                        self._day_var <= days_in_month(self._year_var, self._month_var),
+                    ),
+                )
+            )
+        else:
+            # Neither representation is consistent yet - add bounds to epoch_var as fallback
+            # (epoch_var always exists, even if not consistent)
+            self._solver.add(self.epoch_var >= IntVal(-36525))
+            self._solver.add(self.epoch_var <= IntVal(36523))
 
     def __add__(self, other) -> 'DateVar':
         """
@@ -393,19 +430,18 @@ class DateVar:
                 suffix += 1
                 name = f"{base_name}_{suffix}"
             
-            # Create DateVar directly with bounded flag inherited from parent
+            # Create DateVar for intermediate result
             result = DateVar(
                 self.ctx,
                 name,
-                is_user_var=False,  # Intermediate result, not user-declared
-                bounded=self._bounded,  # Inherit boundedness from parent
-                solver=self.ctx.solver if self._bounded else None
+                is_user_var=False  # Intermediate result, not user-declared
             )
             self.ctx.date_vars[name] = result
             
             # Fast-path: only days component (check at Python level since Period components are concrete)
             if other.years == 0 and other.months == 0:
-                self.ctx.solver.add(result.epoch_var == self._epoch_expr() + IntVal(other.days))
+                # Direct assignment 
+                result.epoch_var = self._epoch_expr() + IntVal(other.days)
                 # Result now has epoch consistent; YMD not yet
                 result._epoch_consistent = True
                 result._ymd_consistent = False
@@ -429,19 +465,30 @@ class DateVar:
                 d1 = eom_clamp(y1, m1, d0)
 
                 if od == IntVal(0):
-                    # No need to re-encode to epoch
-                    self.ctx.solver.add(result.year_var == y1)
-                    self.ctx.solver.add(result.month_var == m1)
-                    self.ctx.solver.add(result.day_var == d1)
+                    # Assign the computed Y/M/D expressions directly
+                    # (avoiding _ensure_ymd() which would create unused variables and a redundant constraint)
+                    result._year_var = y1
+                    result._month_var = m1
+                    result._day_var = d1
+                    result._ymd_exists = True
+                    # Link epoch_var to the Y/M/D values (needed for dual representation consistency)
+                    # This constraint is essential because:
+                    # 1. It links epoch_var to the actual Y/M/D values (y1, m1, d1)
+                    # 2. Without it, epoch_var would be unconstrained, breaking operations that use it
+                    # 3. It ensures bounds on Y/M/D also constrain epoch_var (via the constraint)
+                    result.ctx.solver.add(
+                        result.epoch_var == days_since_epoch_from_ymd(y1, m1, d1)
+                    )
                     result._epoch_consistent = False
                     result._ymd_consistent = True
                 else:
-                    # Step 3: add D days in ordinal space
-                    self.ctx.solver.add(result.epoch_var == add_days_ordinal(y1, m1, d1, od))
+                    # Direct assignment for epoch_var 
+                    result.epoch_var = add_days_ordinal(y1, m1, d1, od)
                     result._epoch_consistent = True
                     result._ymd_consistent = False
             
-            # Add bounds to intermediate result (following naive/epoch_days pattern)
+            # Add bounds to intermediate result
+            result._solver = self._solver
             result._add_bounds()
             return result
         else:
@@ -485,8 +532,9 @@ class HybridSolver:
         while name in self.date_vars:
             suffix += 1
             name = f"{base_name}_{suffix}"
-        # Create DateVar with bounded flag (following naive/epoch_days pattern)
-        dv = DateVar(self, name, is_user_var=add_bounds, bounded=add_bounds, solver=self.solver if add_bounds else None)
+        # Create DateVar (always bounded for user variables)
+        dv = DateVar(self, name, is_user_var=add_bounds)
+        dv._solver = self.solver
         self.date_vars[name] = dv
 
         # Add bounds using _add_bounds method (following naive/epoch_days pattern)
