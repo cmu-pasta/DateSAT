@@ -213,8 +213,10 @@ class DateVar:
     def __add__(self, other) -> "DateVar":
         """DateVar + Period using alpha for Y/M and beta for D.
         Steps:
-          - Fast path: If days-only period, add days directly to beta, then normalize.
-          - Full path: Add months to alpha, EOM clamp beta, add days to beta, then normalize.
+          - Fast path 1: If days-only period and result stays within month, simple addition.
+          - Fast path 2: If days-only period but crosses month boundary, normalize via ordinal.
+          - Full path: Add months to alpha, EOM clamp beta, add days to beta.
+            If result stays within month, simple addition; otherwise normalize via ordinal.
         """
         if isinstance(other, Period):
             result = DateVar(f"{self.name}_plus")
@@ -223,26 +225,30 @@ class DateVar:
 
             # Fast path: days-only period
             if other.years == 0 and other.months == 0:
+                # Get current month info for within-month check
+                y0, m0 = ym_from_months_since_epoch(self.months_var)
+                dim0 = days_in_month(y0, m0)
+                
                 # Add days directly to beta
                 new_beta = self.beta_var + days_delta
                 
-                # Normalize: convert (alpha, new_beta) to ordinal, then back to normalized (alpha, beta)
-                # This handles arbitrary month overflows correctly
-                y0, m0 = ym_from_months_since_epoch(self.months_var)
+                # Check if result stays within same month
+                stays_in_month = And(new_beta >= BitVecVal(0, LEGACY_BITS), new_beta < dim0)
+                
+                # Within-month fast path: simple addition
+                alpha_within = self.months_var
+                beta_within = new_beta
+                
+                # Fallback: normalize via ordinal conversion (handles month overflow)
                 d0 = new_beta + BitVecVal(1, LEGACY_BITS)  # Convert 0-based beta to 1-based day
-                
-                # Convert to ordinal (this represents the date with potential overflow)
                 ordinal = to_ordinal(y0, m0, d0)
-                
-                # Convert back to normalized (alpha, beta) - this handles all overflow cases
                 y2, m2, d2 = from_ordinal(ordinal)
+                months_ordinal = months_since_epoch_from_ym(y2, m2)
+                beta_ordinal = d2 - BitVecVal(1, LEGACY_BITS)
                 
-                months_expr = months_since_epoch_from_ym(y2, m2)
-                beta_expr = d2 - BitVecVal(1, LEGACY_BITS)
-                
-                # Direct assignment 
-                result.months_var = months_expr
-                result.beta_var = beta_expr
+                # Select result based on within-month condition
+                result.months_var = If(stays_in_month, alpha_within, months_ordinal)
+                result.beta_var = If(stays_in_month, beta_within, beta_ordinal)
                 
                 # Add bounds to intermediate result
                 result._solver = self._solver
@@ -253,6 +259,7 @@ class DateVar:
             # Step 1: Add months to alpha directly
             alpha1 = self.months_var + months_delta
             y1, m1 = ym_from_months_since_epoch(alpha1)
+            dim1 = days_in_month(y1, m1)
 
             # Step 2: EOM clamp beta (needed when adding months - e.g., Jan 31 + 1 month = Feb 28/29)
             d1 = eom_clamp(y1, m1, self.beta_var + BitVecVal(1, LEGACY_BITS))
@@ -261,17 +268,24 @@ class DateVar:
             # Step 3: Add days to beta directly
             new_beta = beta1 + days_delta
 
-            # Step 4: Normalize via ordinal conversion (handles all overflow cases)
+            # Check if result stays within same month
+            stays_in_month = And(new_beta >= BitVecVal(0, LEGACY_BITS), new_beta < dim1)
+
+            # Within-month fast path: simple addition
+            alpha_within = alpha1
+            beta_within = new_beta
+
+            # Fallback: Normalize via ordinal conversion (handles all overflow cases)
             d_temp = new_beta + BitVecVal(1, LEGACY_BITS)  # Convert 0-based beta to 1-based day
             ordinal = to_ordinal(y1, m1, d_temp)
             y2, m2, d2 = from_ordinal(ordinal)
 
-            months_expr = months_since_epoch_from_ym(y2, m2)
-            beta_expr = d2 - BitVecVal(1, LEGACY_BITS)
-            
-            # Direct assignment 
-            result.months_var = months_expr
-            result.beta_var = beta_expr
+            months_ordinal = months_since_epoch_from_ym(y2, m2)
+            beta_ordinal = d2 - BitVecVal(1, LEGACY_BITS)
+
+            # Select result based on within-month condition
+            result.months_var = If(stays_in_month, alpha_within, months_ordinal)
+            result.beta_var = If(stays_in_month, beta_within, beta_ordinal)
             
             # Add bounds to intermediate result
             result._solver = self._solver
