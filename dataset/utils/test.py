@@ -37,14 +37,26 @@ from datesmt.core import Date, Period
 CONSTRAINT_JSON = r"""
 {
     "declarations": [
-      "B: date",
-      "E: date",
-      "window_end: date",
-      "months_diff: int",
-      "months_diff_final: int"
+      "D1: date",
+      "D2: date",
+      "D3: date",
+      "D4: date",
+      "D5: date",
+      "D6: date",
+      "D7: date",
+      "D8: date",
+      "D9: date"
     ],
     "constraints": [
-      "window_end  == B + Period(0, 18, 0)"
+      "D1 == D9",
+      "D2 == Date(2028, 9, 25)",
+      "D1 <= (D6 - (Period(9, 7, 7) + (Period(6, 0, 0) + Period(9, 5, 5)))) || D4 < (D1 + (Period(5, 3, 9) - Period(0, 7, 9))) || D7 >= (Date(2059, 9, 13) - Period(7, 0, 4)) || D9 != (Date(2045, 12, 20) + ((Period(9, 9, 7) - (Period(0, 6, 0) + (Period(6, 0, 9) * 6))) * 6))",
+      "D6 < D3 || D5 > D4 || D2 >= D6",
+      "D2 != D7",
+      "D1 != (D6 + (Period(7, 0, 2) - (Period(4, 2, 5) + Period(6, 7, 5))))",
+      "D9 > ((D4 - (Period(1, 5, 0) + Period(2, 3, 8))) - Period(4, 4, 2)) || D8 > D6",
+      "D8 != ((D6 - (Period(5, 7, 4) * 5)) + ((Period(2, 0, 9) - (Period(0, 0, 5) + (Period(1, 3, 3) + Period(7, 8, 7)))) * 1))",
+      "D8 <= D2 || D1 == ((D8 + Period(4, 0, 8)) + Period(8, 3, 2))"
     ]
   }
 """
@@ -65,7 +77,7 @@ def main():
     # 3) Execute the generated code with a DateSMTBuilder factory
     def create_builder():
         # You can change approach/implementation if you want
-        return DateSMTBuilder(approach="hybrid", implementation="int")
+        return DateSMTBuilder(approach="naive", implementation="int")
 
     exec_globals = {
         "Date": Date,
