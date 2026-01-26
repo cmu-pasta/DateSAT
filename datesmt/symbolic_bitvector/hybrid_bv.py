@@ -423,13 +423,13 @@ class DateVar:
             suffix += 1
             name = f"{base_name}_{suffix}"
         
-        # Create DateVar directly with bounded=True to ensure intermediate dates are always bounded
+        # Create DateVar directly with bounded flag inherited from parent
         result = DateVar(
             self.ctx,
             name,
             is_user_var=False,  # Intermediate result, not user-declared
-            bounded=True,  # Always bound intermediate results
-            solver=self.ctx.solver
+            bounded=self._bounded,  # Inherit boundedness from parent
+            solver=self.ctx.solver if self._bounded else None
         )
         self.ctx.date_vars[name] = result
 

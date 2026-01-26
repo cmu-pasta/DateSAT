@@ -42,6 +42,9 @@ _EPOCH_YEAR = 2000
 _EPOCH_MONTH = 3
 # Z3 epoch constants
 _EPOCH_LINEAR = _EPOCH_YEAR * 12 + _EPOCH_MONTH  # 12*2000 + 3
+# Alpha bounds constants (months since epoch)
+_ALPHA_MIN = (1900 - _EPOCH_YEAR) * 12 + (3 - _EPOCH_MONTH)  # -1200
+_ALPHA_MAX = (2100 - _EPOCH_YEAR) * 12 + (2 - _EPOCH_MONTH)  # 1199
 
 
 def months_since_epoch_from_ym(y, m) -> BitVecRef:
@@ -209,16 +212,9 @@ class DateVar:
             return
         
         # Alpha bounds: months since 2000-03
-        # 1900-03 => (1900-2000)*12 + (3-3) = -1200
-        # 2100-02 => (2100-2000)*12 + (2-3) = 1199
-        self._solver.add(
-            self.months_var
-            >= BitVecVal((1900 - _EPOCH_YEAR) * 12 + (3 - _EPOCH_MONTH), LEGACY_BITS)
-        )
-        self._solver.add(
-            self.months_var
-            <= BitVecVal((2100 - _EPOCH_YEAR) * 12 + (2 - _EPOCH_MONTH), LEGACY_BITS)
-        )
+        # 1900-03 => -1200, 2100-02 => 1199
+        self._solver.add(self.months_var >= BitVecVal(_ALPHA_MIN, LEGACY_BITS))
+        self._solver.add(self.months_var <= BitVecVal(_ALPHA_MAX, LEGACY_BITS))
 
         # Beta bounds depend on month length: 0 <= beta < days_in_month(y,m)
         y, m = ym_from_months_since_epoch(self.months_var)
@@ -235,7 +231,7 @@ class DateVar:
             # Create intermediate result with bounds (following naive/epoch_days pattern)
             result = DateVar(
                 f"{self.name}_plus_{other.years}y_{other.months}m_{other.days}d",
-                bounded=True,  # Always bound intermediate results
+                bounded=self._bounded,  # Inherit boundedness from parent
                 solver=self._solver
             )
             months_delta = BitVecVal(other.years * 12 + other.months, LEGACY_BITS)
