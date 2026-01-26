@@ -40,6 +40,9 @@ _EPOCH_MONTH = 3
 _EPOCH_LINEAR = IntVal(_EPOCH_YEAR * 12 + _EPOCH_MONTH)
 _FOUR_YEAR_MONTHS = 48
 _FOUR_YEAR_DAYS = 1461
+# Alpha bounds constants (months since epoch)
+_ALPHA_MIN = (1900 - _EPOCH_YEAR) * 12 + (3 - _EPOCH_MONTH)  # -1200
+_ALPHA_MAX = (2100 - _EPOCH_YEAR) * 12 + (2 - _EPOCH_MONTH)  # 1199
 
 
 def eom_clamp(dim, beta) -> ArithRef:
@@ -172,16 +175,9 @@ class DateVar:
             return
         
         # Alpha bounds: months since 2000-03
-        # 1900-03 => (1900-2000)*12 + (3-3) = -1200
-        # 2100-02 => (2100-2000)*12 + (2-3) = 1199
-        self._solver.add(
-            self.months_var
-            >= IntVal((1900 - _EPOCH_YEAR) * 12 + (3 - _EPOCH_MONTH))
-        )
-        self._solver.add(
-            self.months_var
-            <= IntVal((2100 - _EPOCH_YEAR) * 12 + (2 - _EPOCH_MONTH))
-        )
+        # 1900-03 => -1200, 2100-02 => 1199
+        self._solver.add(self.months_var >= IntVal(_ALPHA_MIN))
+        self._solver.add(self.months_var <= IntVal(_ALPHA_MAX))
 
         # Beta bounds: 0 <= beta < DIM
         idx = mod48(self.months_var)
@@ -274,14 +270,14 @@ class DateVar:
         if isinstance(other, Period):
             result = DateVar(
                 f"{self.name}_plus_{other.years}y_{other.months}m_{other.days}d",
-                bounded=True,  # Always bound intermediate results
+                bounded=self._bounded,  # Inherit boundedness from parent
                 solver=self._solver
             )
         else:
             # For symbolic Period, use generic name
             result = DateVar(
                 f"{self.name}_plus",
-                bounded=True,  # Always bound intermediate results
+                bounded=self._bounded,  # Inherit boundedness from parent
                 solver=self._solver
             )
 
