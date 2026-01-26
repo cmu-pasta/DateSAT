@@ -173,8 +173,10 @@ class Date:
         Date + Period using Python's datetime library with relativedelta.
         This provides the same semantics as the symbolic DateVar operations.
         
-        If the result is outside the allowed range [1900-03-01, 2100-02-28],
-        returns a Date with bounded=False with a warning instead of raising an error.
+        Intermediate dates must be within the allowed range [1900-03-01, 2100-02-28].
+        If the result is outside this range, raises ValueError to ensure consistency
+        with symbolic DateVar bounds enforcement (which makes constraints UNSAT).
+        This error should be caught during constraint building and converted to an UNSAT constraint.
         """
         if not isinstance(other, Period):
             raise TypeError(f"Cannot add {type(other)} to Date")
@@ -185,30 +187,19 @@ class Date:
             years=other.years, months=other.months, days=other.days
         )
         
-        # Try to convert back to Date (will validate the result)
-        try:
-            return Date.from_python_date(result_date)
-        except ValueError as e:
-            # Date is out of range, return unbounded date with warning
-            if "Date outside allowed range" in str(e):
-                warnings.warn(
-                    f"Intermediate date computation resulted in date outside allowed range: "
-                    f"{result_date.year}-{result_date.month:02d}-{result_date.day:02d} "
-                    f"(allowed [1900-03-01..2100-02-28]). Using unbounded date for constraint.",
-                    UserWarning,
-                    stacklevel=2
-                )
-                return Date(result_date.year, result_date.month, result_date.day, bounded=False)
-            else:
-                # Re-raise if it's a different error (invalid date)
-                raise
+        # Try to convert back to Date (will validate the result and enforce bounds)
+        # This ensures intermediate dates are bounded, consistent with symbolic DateVars
+        # If out of bounds, ValueError is raised and should be caught during constraint building
+        # to convert to an UNSAT constraint
+        return Date.from_python_date(result_date)
 
     def __sub__(self, other: "Period"):
         """
         Date - Period implemented as Date + (-Period).
         
-        If the result is outside the allowed range [1900-03-01, 2100-02-28],
-        returns a Date with bounded=False with a warning instead of raising an error.
+        Intermediate dates must be within the allowed range [1900-03-01, 2100-02-28].
+        If the result is outside this range, raises ValueError to ensure consistency
+        with symbolic DateVar bounds enforcement (which makes constraints UNSAT).
         """
         if not isinstance(other, Period):
             raise TypeError(f"Cannot subtract {type(other)} from Date")

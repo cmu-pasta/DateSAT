@@ -183,8 +183,17 @@ def run_constraints_file(
     output_dir: str,
     timeout_ms: int = TIMEOUT_MS,
     use_maxsat: bool = False,
+    approaches: list[str] = None,
 ):
-    """Run benchmarks on constraints from a file with all solver approaches."""
+    """Run benchmarks on constraints from a file with specified solver approaches.
+    
+    Args:
+        constraints_file: Path to constraints file (JSON or JSONL)
+        output_dir: Output directory for results
+        timeout_ms: Timeout in milliseconds
+        use_maxsat: Whether to use MaxSAT optimization
+        approaches: List of approaches to test (None = all approaches)
+    """
     # Load constraints (supports both JSON and JSONL formats)
     constraints = _load_constraints(constraints_file)
     print(f"Loaded {len(constraints)} constraints from {constraints_file}")
@@ -197,13 +206,25 @@ def run_constraints_file(
     smt_dir.mkdir(parents=True, exist_ok=True)
 
     # Define all solver approaches and implementations to test
-    symbolic_approaches = [
+    all_symbolic_approaches = [
         "naive",
         "epoch_days",
         "hybrid",
         "alpha_beta",
-        "alpha_beta_table",
+        "alpha_beta_table"
     ]
+    
+    # Filter approaches if specified
+    if approaches is not None:
+        symbolic_approaches = [a for a in approaches if a in all_symbolic_approaches]
+        if not symbolic_approaches:
+            print(f"⚠️  Warning: No valid approaches found in {approaches}. Using all approaches.")
+            symbolic_approaches = all_symbolic_approaches
+        else:
+            print(f"Running with approaches: {symbolic_approaches}")
+    else:
+        symbolic_approaches = all_symbolic_approaches
+    
     implementations = ["int"]  # Can add "bitvector" if needed
 
     all_results = {}
@@ -327,14 +348,66 @@ def main():
         action="store_true",
         help="Use MaxSAT optimization with soft constraints for dates near today",
     )
+    parser.add_argument(
+        "--approaches",
+        nargs="+",
+        default=None,
+        help="List of approaches to test (e.g., --approaches alpha_beta_table alpha_beta_table_old). "
+             "If not specified, all approaches are tested.",
+    )
+    parser.add_argument(
+        "--datasets",
+        nargs="+",
+        default=None,
+        help="List of dataset names to run (e.g., --datasets legal llm). "
+             "Short names: 'legal', 'llm', 'grammar'. If not specified, all datasets are tested.",
+    )
 
     args = parser.parse_args()
+
+    # Map short dataset names to full names
+    dataset_name_map = {
+        "legal": "Legal Document Constraints",
+        "llm": "LLM Generated Constraints",
+        "grammar": "Grammar Constraints",
+    }
+
+    # Convert short names to full names if needed
+    if args.datasets:
+        mapped_datasets = []
+        for ds in args.datasets:
+            if ds.lower() in dataset_name_map:
+                mapped_datasets.append(dataset_name_map[ds.lower()])
+            elif ds in dataset_name_map.values():
+                # Already a full name
+                mapped_datasets.append(ds)
+            else:
+                print(f"⚠️  Warning: Unknown dataset name: {ds}")
+        args.datasets = mapped_datasets if mapped_datasets else None
 
     # Print configuration
     print(f"Configuration:")
     print(f"  Timeout: {args.timeout}ms")
     print(f"  MaxSAT: {'Enabled' if args.maxsat else 'Disabled'}")
-    print(f"  Analysis: {'Enabled' if not args.no_analysis else 'Disabled'}\n")
+    print(f"  Analysis: {'Enabled' if not args.no_analysis else 'Disabled'}")
+    if args.approaches:
+        print(f"  Approaches: {args.approaches}")
+    if args.datasets:
+        print(f"  Datasets: {args.datasets}")
+    print()
+
+    # Filter constraint sets if specified
+    if args.datasets:
+        constraint_sets = [
+            cs for cs in constraint_sets
+            if cs["name"] in args.datasets
+        ]
+        if not constraint_sets:
+            print(f"⚠️  Warning: No matching datasets found. Available datasets:")
+            print(f"    - legal (Legal Document Constraints)")
+            print(f"    - llm (LLM Generated Constraints)")
+            print(f"    - grammar (Grammar Constraints)")
+            return
 
     # Run benchmarks for each constraint set
     for constraint_set in constraint_sets:
@@ -361,6 +434,7 @@ def main():
             str(output_dir),
             args.timeout,
             use_maxsat=args.maxsat,
+            approaches=args.approaches,
         )
 
         # Run analysis if enabled
