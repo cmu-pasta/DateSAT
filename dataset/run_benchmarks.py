@@ -295,38 +295,30 @@ def main():
     SCRIPT_DIR = Path(__file__).parent
 
     constraint_sets = [
-        #{
-        #    "name": "Grammar Constraints",
-        #    "constraints_file": SCRIPT_DIR
-        #    / "grammar_constraints"
-        #    / "benchmarks"
-        #    / "constraints.json",
-        #    "output_dir": SCRIPT_DIR / "grammar_constraints" / "results",
-        #},
         {
-             "name": "LLM Generated Constraints",
-             "constraints_file": SCRIPT_DIR
-             / "llm_constraints"
-             / "constraints"
-             / "constraints.json",
-             "output_dir": SCRIPT_DIR / "llm_constraints" / "results",
-        },
-        {
-            "name": "LLM Generated Constraints",
+            "name": "Grammar Constraints",
             "constraints_file": SCRIPT_DIR
-            / "llm_constraints"
-            / "constraints"
+            / "grammar_constraints"
+            / "benchmarks"
             / "constraints.json",
-            "output_dir": SCRIPT_DIR / "llm_constraints" / "results",
+            "output_dir": SCRIPT_DIR / "grammar_constraints" / "results",
         },
-        {
-            "name": "Legal Document Constraints",
-            "constraints_file": SCRIPT_DIR
-            / "legal_doc_constraints"
-            / "constraints"
-            / "constraints.jsonl",
-            "output_dir": SCRIPT_DIR / "legal_doc_constraints" / "results",
-        },
+        #{
+        #     "name": "LLM Generated Constraints",
+        #     "constraints_file": SCRIPT_DIR
+        #     / "llm_constraints"
+        #     / "constraints"
+        #     / "constraints.json",
+        #     "output_dir": SCRIPT_DIR / "llm_constraints" / "results",
+        #},
+        #{
+        #    "name": "Legal Document Constraints",
+        #    "constraints_file": SCRIPT_DIR
+        #    / "legal_doc_constraints"
+        #    / "constraints"
+        #    / "constraints.jsonl",
+        #    "output_dir": SCRIPT_DIR / "legal_doc_constraints" / "results",
+        #},
     ]
 
     parser = argparse.ArgumentParser(
