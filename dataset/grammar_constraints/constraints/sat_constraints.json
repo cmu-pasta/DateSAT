@@ -2,6 +2,27 @@
   {
     "id": "grammar-sat-1",
     "declarations": [
+      "D1: date",
+      "D3: date",
+      "D4: date",
+      "D5: date",
+      "D6: date",
+      "D8: date",
+      "D9: date"
+    ],
+    "constraints": [
+      "D9 == (D5 + (Period(7, 7, 3) * 6))",
+      "D5 < (Date(1919, 9, 21) - (Period(0, 3, 2) - Period(0, 5, 9)))",
+      "D9 != D3",
+      "D1 <= D5 || D9 == D3",
+      "D4 == Date(1911, 12, 19) || D5 > Date(1989, 3, 13) || D8 >= (((D6 - (Period(5, 2, 0) - (Period(8, 5, 5) * 6))) + Period(1, 7, 2)) - (Period(5, 7, 7) * 5))"
+    ],
+    "size": 5,
+    "execution_time": 52.78420805931091
+  },
+  {
+    "id": "grammar-sat-2",
+    "declarations": [
       "D0: date",
       "D1: date",
       "D2: date",
@@ -27,7 +48,30 @@
     "execution_time": 52.21368908882141
   },
   {
-    "id": "grammar-sat-2",
+    "id": "grammar-sat-3",
+    "declarations": [
+      "D0: date",
+      "D1: date",
+      "D2: date",
+      "D3: date",
+      "D4: date",
+      "D5: date",
+      "D6: date",
+      "D7: date",
+      "D9: date"
+    ],
+    "constraints": [
+      "D3 >= D5",
+      "D6 == D2",
+      "D7 != Date(1973, 12, 30) || D3 < (Date(1907, 2, 22) + Period(2, 1, 6)) || D9 > (Date(2063, 1, 29) + Period(3, 9, 2)) || D6 == D9",
+      "D1 > D4 || D6 > D0",
+      "D5 > Date(1923, 9, 2) || D1 > ((D3 - ((Period(2, 1, 4) * 4) * 9)) + ((Period(6, 4, 4) * 3) * 3)) || D7 != (D5 + ((Period(7, 3, 8) - Period(6, 5, 7)) * 7))"
+    ],
+    "size": 5,
+    "execution_time": 45.08499503135681
+  },
+  {
+    "id": "grammar-sat-4",
     "declarations": [
       "D1: date",
       "D3: date",
@@ -49,7 +93,32 @@
     "execution_time": 43.64854598045349
   },
   {
-    "id": "grammar-sat-3",
+    "id": "grammar-sat-5",
+    "declarations": [
+      "D0: date",
+      "D1: date",
+      "D2: date",
+      "D3: date",
+      "D4: date",
+      "D5: date",
+      "D6: date",
+      "D8: date",
+      "D9: date"
+    ],
+    "constraints": [
+      "D5 > (Date(1922, 2, 23) - Period(3, 7, 2))",
+      "D1 == D0 || D0 < (Date(1994, 2, 28) - (Period(4, 0, 6) - (Period(4, 3, 0) - Period(6, 6, 4)))) || D4 >= Date(1946, 12, 21) || D9 == Date(1912, 6, 9)",
+      "D3 <= (D0 - Period(5, 1, 3)) || D8 < (Date(2009, 2, 7) - (((Period(9, 3, 5) - Period(7, 9, 7)) * 4) * 7))",
+      "D3 < (D2 + Period(0, 0, 5))",
+      "D8 <= (D5 - (((Period(3, 2, 3) - Period(1, 1, 7)) * 0) * 1)) || D5 != (Date(2047, 10, 6) + Period(2, 1, 9)) || D9 >= (Date(1903, 5, 18) - ((Period(0, 0, 9) * 4) * 3))",
+      "D1 < ((D8 + Period(6, 8, 9)) - ((Period(8, 6, 4) + (Period(4, 9, 1) * 0)) * 1))",
+      "D6 >= ((D3 - Period(7, 8, 0)) - (Period(1, 2, 0) * 9)) || D5 >= (D1 - Period(0, 5, 8))"
+    ],
+    "size": 7,
+    "execution_time": 42.68230891227722
+  },
+  {
+    "id": "grammar-sat-6",
     "declarations": [
       "D0: date",
       "D1: date",
@@ -69,7 +138,7 @@
     "execution_time": 40.64779305458069
   },
   {
-    "id": "grammar-sat-4",
+    "id": "grammar-sat-7",
     "declarations": [
       "D0: date",
       "D1: date",
@@ -92,7 +161,7 @@
     "execution_time": 40.24087405204773
   },
   {
-    "id": "grammar-sat-5",
+    "id": "grammar-sat-8",
     "declarations": [
       "D0: date",
       "D1: date",
@@ -117,7 +186,7 @@
     "execution_time": 38.41848015785217
   },
   {
-    "id": "grammar-sat-6",
+    "id": "grammar-sat-9",
     "declarations": [
       "D0: date",
       "D1: date",
@@ -139,7 +208,7 @@
     "execution_time": 36.22600507736206
   },
   {
-    "id": "grammar-sat-7",
+    "id": "grammar-sat-10",
     "declarations": [
       "D0: date",
       "D4: date",
@@ -160,7 +229,7 @@
     "execution_time": 35.97390294075012
   },
   {
-    "id": "grammar-sat-8",
+    "id": "grammar-sat-11",
     "declarations": [
       "D1: date",
       "D2: date",
@@ -182,7 +251,7 @@
     "execution_time": 32.08027267456055
   },
   {
-    "id": "grammar-sat-9",
+    "id": "grammar-sat-12",
     "declarations": [
       "D0: date",
       "D1: date",
@@ -205,7 +274,28 @@
     "execution_time": 30.472681045532227
   },
   {
-    "id": "grammar-sat-10",
+    "id": "grammar-sat-13",
+    "declarations": [
+      "D1: date",
+      "D3: date",
+      "D4: date",
+      "D5: date",
+      "D6: date",
+      "D8: date",
+      "D9: date"
+    ],
+    "constraints": [
+      "D9 == (D5 + (Period(7, 7, 3) * 6))",
+      "D5 < (Date(1919, 9, 2) - (Period(0, 3, 2) - Period(0, 5, 9)))",
+      "D9 != D3",
+      "D1 <= D5 || D9 == D3",
+      "D4 == Date(1911, 12, 19) || D5 > (Date(2023, 3, 12) + ((Period(7, 9, 1) - Period(5, 3, 1)) * 5)) || D8 >= (((D6 - (Period(5, 2, 0) - (Period(8, 5, 5) * 6))) + Period(1, 7, 2)) - (Period(5, 7, 7) * 6))"
+    ],
+    "size": 5,
+    "execution_time": 29.547447204589844
+  },
+  {
+    "id": "grammar-sat-14",
     "declarations": [
       "D0: date",
       "D1: date",
@@ -234,7 +324,7 @@
     "execution_time": 26.159964323043823
   },
   {
-    "id": "grammar-sat-11",
+    "id": "grammar-sat-15",
     "declarations": [
       "D0: date",
       "D1: date",
@@ -256,7 +346,7 @@
     "execution_time": 25.643275022506714
   },
   {
-    "id": "grammar-sat-12",
+    "id": "grammar-sat-16",
     "declarations": [
       "D0: date",
       "D1: date",
@@ -281,7 +371,7 @@
     "execution_time": 24.687142848968506
   },
   {
-    "id": "grammar-sat-13",
+    "id": "grammar-sat-17",
     "declarations": [
       "D0: date",
       "D1: date",
@@ -307,7 +397,7 @@
     "execution_time": 23.16443920135498
   },
   {
-    "id": "grammar-sat-14",
+    "id": "grammar-sat-18",
     "declarations": [
       "D0: date",
       "D1: date",
@@ -330,7 +420,7 @@
     "execution_time": 22.550697088241577
   },
   {
-    "id": "grammar-sat-15",
+    "id": "grammar-sat-19",
     "declarations": [
       "D0: date",
       "D4: date",
@@ -351,7 +441,7 @@
     "execution_time": 21.807488918304443
   },
   {
-    "id": "grammar-sat-16",
+    "id": "grammar-sat-20",
     "declarations": [
       "D0: date",
       "D2: date",
@@ -375,7 +465,7 @@
     "execution_time": 20.15999698638916
   },
   {
-    "id": "grammar-sat-17",
+    "id": "grammar-sat-21",
     "declarations": [
       "D0: date",
       "D1: date",
@@ -399,7 +489,7 @@
     "execution_time": 20.125266790390015
   },
   {
-    "id": "grammar-sat-18",
+    "id": "grammar-sat-22",
     "declarations": [
       "D0: date",
       "D1: date",
@@ -422,7 +512,7 @@
     "execution_time": 20.08656096458435
   },
   {
-    "id": "grammar-sat-19",
+    "id": "grammar-sat-23",
     "declarations": [
       "D0: date",
       "D1: date",
@@ -451,7 +541,7 @@
     "execution_time": 18.34068512916565
   },
   {
-    "id": "grammar-sat-20",
+    "id": "grammar-sat-24",
     "declarations": [
       "D0: date",
       "D3: date",
@@ -473,7 +563,7 @@
     "execution_time": 17.332613229751587
   },
   {
-    "id": "grammar-sat-21",
+    "id": "grammar-sat-25",
     "declarations": [
       "D0: date",
       "D2: date",
@@ -497,7 +587,7 @@
     "execution_time": 15.523645877838135
   },
   {
-    "id": "grammar-sat-22",
+    "id": "grammar-sat-26",
     "declarations": [
       "D0: date",
       "D1: date",
@@ -521,7 +611,7 @@
     "execution_time": 15.441428184509277
   },
   {
-    "id": "grammar-sat-23",
+    "id": "grammar-sat-27",
     "declarations": [
       "D0: date",
       "D1: date",
@@ -544,7 +634,31 @@
     "execution_time": 14.5034019947052
   },
   {
-    "id": "grammar-sat-24",
+    "id": "grammar-sat-28",
+    "declarations": [
+      "D0: date",
+      "D1: date",
+      "D2: date",
+      "D3: date",
+      "D4: date",
+      "D5: date",
+      "D6: date",
+      "D7: date",
+      "D8: date",
+      "D9: date"
+    ],
+    "constraints": [
+      "D7 <= D2 || D3 == D8",
+      "D9 > D5 || D2 > Date(1924, 4, 10) || D3 < Date(1917, 1, 31) || D2 >= D6",
+      "D1 != D0 || D2 >= D7",
+      "D5 < Date(2043, 8, 31) || D0 >= ((D8 + ((Period(0, 7, 9) + Period(5, 7, 8)) * 7)) + ((Period(4, 1, 6) - (Period(2, 6, 2) + (Period(6, 2, 8) * 3))) * 0)) || D6 == D7",
+      "D8 <= Date(1996, 6, 1) || D4 > (Date(1983, 1, 16) - ((Period(9, 6, 7) - Period(3, 6, 0)) * 2)) || D4 > D8 || D1 == Date(1909, 5, 29)"
+    ],
+    "size": 5,
+    "execution_time": 14.21970009803772
+  },
+  {
+    "id": "grammar-sat-29",
     "declarations": [
       "D0: date",
       "D1: date",
@@ -573,7 +687,7 @@
     "execution_time": 13.131388902664185
   },
   {
-    "id": "grammar-sat-25",
+    "id": "grammar-sat-30",
     "declarations": [
       "D0: date",
       "D1: date",
@@ -593,7 +707,7 @@
     "execution_time": 13.07298469543457
   },
   {
-    "id": "grammar-sat-26",
+    "id": "grammar-sat-31",
     "declarations": [
       "D1: date",
       "D2: date",
@@ -613,7 +727,7 @@
     "execution_time": 12.039167881011963
   },
   {
-    "id": "grammar-sat-27",
+    "id": "grammar-sat-32",
     "declarations": [
       "D0: date",
       "D2: date",
@@ -636,7 +750,7 @@
     "execution_time": 12.0067458152771
   },
   {
-    "id": "grammar-sat-28",
+    "id": "grammar-sat-33",
     "declarations": [
       "D0: date",
       "D1: date",
@@ -658,7 +772,7 @@
     "execution_time": 10.009231805801392
   },
   {
-    "id": "grammar-sat-29",
+    "id": "grammar-sat-34",
     "declarations": [
       "D0: date",
       "D4: date",
@@ -677,7 +791,7 @@
     "execution_time": 9.943953037261963
   },
   {
-    "id": "grammar-sat-30",
+    "id": "grammar-sat-35",
     "declarations": [
       "D1: date",
       "D2: date",
@@ -698,7 +812,7 @@
     "execution_time": 9.681967973709106
   },
   {
-    "id": "grammar-sat-31",
+    "id": "grammar-sat-36",
     "declarations": [
       "D1: date",
       "D3: date",
@@ -716,7 +830,7 @@
     "execution_time": 9.608029842376709
   },
   {
-    "id": "grammar-sat-32",
+    "id": "grammar-sat-37",
     "declarations": [
       "D1: date",
       "D2: date",
@@ -738,7 +852,7 @@
     "execution_time": 9.407732963562012
   },
   {
-    "id": "grammar-sat-33",
+    "id": "grammar-sat-38",
     "declarations": [
       "D0: date",
       "D1: date",
@@ -760,7 +874,32 @@
     "execution_time": 8.77605676651001
   },
   {
-    "id": "grammar-sat-34",
+    "id": "grammar-sat-39",
+    "declarations": [
+      "D0: date",
+      "D2: date",
+      "D3: date",
+      "D4: date",
+      "D5: date",
+      "D6: date",
+      "D7: date",
+      "D8: date",
+      "D9: date"
+    ],
+    "constraints": [
+      "D6 < D7",
+      "D4 <= ((((D2 + ((Period(1, 3, 1) - (Period(8, 1, 1) * 4)) * 6)) + (Period(4, 7, 1) + (Period(2, 1, 0) + Period(4, 4, 9)))) + (Period(2, 3, 4) - Period(1, 8, 6))) - (Period(9, 8, 0) + (Period(3, 1, 0) + Period(9, 8, 4))))",
+      "D8 >= (Date(2078, 8, 9) + (Period(0, 8, 5) + (Period(8, 2, 4) + (Period(0, 3, 0) + (Period(0, 9, 9) + Period(6, 7, 3))))))",
+      "D0 >= (Date(1949, 6, 24) + Period(1, 7, 6))",
+      "D4 != D5",
+      "D3 < (Date(1977, 10, 9) + (Period(7, 2, 2) * 3))",
+      "D0 != D9 || D3 == Date(1953, 7, 28)"
+    ],
+    "size": 7,
+    "execution_time": 7.767966985702515
+  },
+  {
+    "id": "grammar-sat-40",
     "declarations": [
       "D0: date",
       "D1: date",
@@ -785,7 +924,7 @@
     "execution_time": 7.564377784729004
   },
   {
-    "id": "grammar-sat-35",
+    "id": "grammar-sat-41",
     "declarations": [
       "D0: date",
       "D1: date",
@@ -809,7 +948,7 @@
     "execution_time": 5.9757208824157715
   },
   {
-    "id": "grammar-sat-36",
+    "id": "grammar-sat-42",
     "declarations": [
       "D0: date",
       "D1: date",
@@ -833,7 +972,7 @@
     "execution_time": 5.874433994293213
   },
   {
-    "id": "grammar-sat-37",
+    "id": "grammar-sat-43",
     "declarations": [
       "D0: date",
       "D3: date",
@@ -854,7 +993,32 @@
     "execution_time": 5.667510986328125
   },
   {
-    "id": "grammar-sat-38",
+    "id": "grammar-sat-44",
+    "declarations": [
+      "D0: date",
+      "D2: date",
+      "D3: date",
+      "D4: date",
+      "D5: date",
+      "D6: date",
+      "D7: date",
+      "D8: date",
+      "D9: date"
+    ],
+    "constraints": [
+      "D6 < D7",
+      "D4 <= ((((D2 + ((Period(1, 3, 1) - (Period(8, 1, 1) * 4)) * 6)) + (Period(4, 7, 1) + (Period(2, 1, 0) + Period(4, 4, 9)))) + (Period(2, 3, 4) - Period(1, 8, 6))) - (Period(9, 8, 0) + (Period(3, 1, 0) + Period(9, 8, 4))))",
+      "D8 >= (Date(2078, 8, 9) + (Period(0, 8, 5) + (Period(8, 2, 4) + (Period(0, 3, 0) + (Period(0, 9, 9) + Period(6, 7, 3))))))",
+      "D0 >= (Date(1949, 6, 24) + Period(1, 7, 6))",
+      "D4 != D5",
+      "D3 < (Date(2063, 12, 26) + (Period(8, 1, 9) - Period(1, 5, 1)))",
+      "D0 != D9 || D3 == Date(1953, 7, 28)"
+    ],
+    "size": 7,
+    "execution_time": 5.376703977584839
+  },
+  {
+    "id": "grammar-sat-45",
     "declarations": [
       "D0: date",
       "D1: date",
@@ -877,7 +1041,7 @@
     "execution_time": 5.201216220855713
   },
   {
-    "id": "grammar-sat-39",
+    "id": "grammar-sat-46",
     "declarations": [
       "D0: date",
       "D1: date",
@@ -898,7 +1062,7 @@
     "execution_time": 4.9030539989471436
   },
   {
-    "id": "grammar-sat-40",
+    "id": "grammar-sat-47",
     "declarations": [
       "D0: date",
       "D1: date",
@@ -922,7 +1086,28 @@
     "execution_time": 4.706160306930542
   },
   {
-    "id": "grammar-sat-41",
+    "id": "grammar-sat-48",
+    "declarations": [
+      "D0: date",
+      "D2: date",
+      "D3: date",
+      "D5: date",
+      "D6: date",
+      "D8: date",
+      "D9: date"
+    ],
+    "constraints": [
+      "D8 >= (Date(2022, 7, 4) + Period(7, 6, 1))",
+      "D8 < (((D9 + Period(8, 6, 2)) + Period(2, 1, 0)) - (Period(4, 6, 8) + Period(5, 0, 5)))",
+      "D6 < (D0 + (Period(5, 8, 6) + (Period(0, 4, 0) + Period(3, 2, 6))))",
+      "D2 >= Date(1904, 1, 31) || D3 == (Date(2080, 5, 23) - (Period(0, 0, 7) - Period(9, 3, 7)))",
+      "D5 >= D0"
+    ],
+    "size": 5,
+    "execution_time": 4.61554479598999
+  },
+  {
+    "id": "grammar-sat-49",
     "declarations": [
       "D0: date",
       "D1: date",
@@ -948,7 +1133,7 @@
     "execution_time": 4.179126977920532
   },
   {
-    "id": "grammar-sat-42",
+    "id": "grammar-sat-50",
     "declarations": [
       "D0: date",
       "D1: date",
@@ -969,187 +1154,5 @@
     ],
     "size": 7,
     "execution_time": 3.9275920391082764
-  },
-  {
-    "id": "grammar-sat-43",
-    "declarations": [
-      "D2: date",
-      "D5: date",
-      "D6: date",
-      "D7: date",
-      "D8: date",
-      "D9: date"
-    ],
-    "constraints": [
-      "D9 > D2 || D6 <= (D9 - ((Period(0, 1, 8) + (Period(2, 7, 3) + (Period(4, 6, 3) * 6))) * 5))",
-      "D8 <= (D7 - (Period(2, 0, 8) - (Period(9, 8, 9) + (((((Period(0, 2, 3) + Period(8, 1, 2)) * 6) * 0) * 4) * 5)))) || D7 >= (Date(1970, 4, 10) - ((Period(7, 3, 8) - Period(5, 0, 4)) * 9))",
-      "D8 <= Date(1939, 3, 16)",
-      "D5 != (Date(1970, 3, 15) - (Period(5, 1, 7) - (Period(8, 0, 2) - (Period(2, 9, 3) - (Period(6, 6, 1) - Period(7, 0, 8))))))",
-      "D9 >= Date(1974, 8, 16)",
-      "D8 == Date(2002, 10, 12) || D7 > (Date(2024, 5, 15) + (Period(7, 2, 4) * 6))"
-    ],
-    "size": 6,
-    "execution_time": 3.7119500637054443
-  },
-  {
-    "id": "grammar-sat-44",
-    "declarations": [
-      "D0: date",
-      "D1: date",
-      "D2: date",
-      "D3: date",
-      "D4: date",
-      "D5: date",
-      "D6: date",
-      "D8: date",
-      "D9: date"
-    ],
-    "constraints": [
-      "D2 > Date(2051, 5, 7) || D6 < ((D8 + (Period(1, 8, 2) + Period(5, 6, 2))) - (Period(8, 7, 6) + (Period(3, 9, 5) - Period(2, 4, 8))))",
-      "D1 == (((D6 - (Period(6, 5, 3) + Period(4, 9, 7))) - Period(8, 5, 7)) - Period(4, 1, 8))",
-      "D2 > Date(2063, 7, 8) || D6 >= D4 || D9 <= Date(2020, 7, 26) || D5 <= (Date(2084, 12, 9) - (Period(9, 5, 3) * 3))",
-      "D0 < D3",
-      "D4 > D2 || D5 >= (Date(1999, 4, 25) - (Period(9, 1, 7) * 7))"
-    ],
-    "size": 5,
-    "execution_time": 3.6549019813537598
-  },
-  {
-    "id": "grammar-sat-45",
-    "declarations": [
-      "D0: date",
-      "D1: date",
-      "D3: date",
-      "D4: date",
-      "D6: date",
-      "D7: date",
-      "D8: date",
-      "D9: date"
-    ],
-    "constraints": [
-      "D9 != D7 || D1 == Date(1981, 12, 4) || D8 > ((((D3 + (Period(6, 9, 5) + Period(1, 1, 4))) + Period(2, 0, 6)) + (Period(5, 8, 2) * 8)) - (Period(2, 8, 9) - Period(2, 8, 0)))",
-      "D0 > (Date(2096, 2, 2) - ((Period(9, 1, 7) - (Period(3, 4, 9) + Period(6, 1, 6))) * 5))",
-      "D9 != (Date(2073, 6, 9) + (Period(0, 9, 2) * 7)) || D4 == Date(2016, 6, 9)",
-      "D3 >= D3",
-      "D6 >= (Date(1966, 9, 15) + (Period(5, 6, 4) * 2))"
-    ],
-    "size": 5,
-    "execution_time": 3.5445659160614014
-  },
-  {
-    "id": "grammar-sat-46",
-    "declarations": [
-      "D0: date",
-      "D1: date",
-      "D2: date",
-      "D4: date",
-      "D5: date",
-      "D6: date",
-      "D7: date",
-      "D9: date"
-    ],
-    "constraints": [
-      "D7 != Date(1909, 5, 29) || D4 <= (D4 + (Period(0, 5, 2) + (Period(3, 0, 5) + Period(3, 8, 2)))) || D5 >= D1",
-      "D5 == (Date(1990, 8, 30) + ((Period(9, 0, 8) - Period(5, 7, 0)) * 9))",
-      "D2 == D9",
-      "D6 <= D0",
-      "D7 == ((D2 + (Period(6, 3, 1) + (Period(0, 7, 8) - Period(2, 1, 5)))) - Period(7, 4, 1)) || D2 < (Date(2074, 5, 12) + ((((Period(0, 1, 0) + (Period(1, 1, 3) + (Period(5, 9, 2) + (Period(2, 3, 5) * 9)))) * 0) * 0) * 7))"
-    ],
-    "size": 5,
-    "execution_time": 3.45103120803833
-  },
-  {
-    "id": "grammar-sat-47",
-    "declarations": [
-      "D0: date",
-      "D1: date",
-      "D2: date",
-      "D4: date",
-      "D5: date",
-      "D6: date",
-      "D7: date",
-      "D8: date"
-    ],
-    "constraints": [
-      "D8 >= D2",
-      "D7 == D4",
-      "D2 < D4 || D2 != D2 || D8 == Date(2006, 7, 14)",
-      "D8 >= (D1 - ((Period(8, 4, 7) - (Period(5, 1, 7) - (Period(6, 2, 0) + Period(8, 7, 9)))) * 7))",
-      "D5 == (D4 + Period(9, 1, 5))",
-      "D6 < (D0 - (Period(3, 6, 3) - (Period(8, 3, 6) * 3)))"
-    ],
-    "size": 6,
-    "execution_time": 3.385222911834717
-  },
-  {
-    "id": "grammar-sat-48",
-    "declarations": [
-      "D1: date",
-      "D2: date",
-      "D3: date",
-      "D5: date",
-      "D7: date",
-      "D8: date",
-      "D9: date"
-    ],
-    "constraints": [
-      "D7 == Date(1957, 4, 17)",
-      "D5 == (Date(1914, 8, 5) + (Period(5, 8, 9) - (Period(3, 4, 2) * 3)))",
-      "D8 == Date(1981, 2, 23)",
-      "D7 < D2",
-      "D2 < (D9 - Period(1, 1, 8))",
-      "D3 <= (D9 - (Period(0, 0, 3) * 7)) || D2 > Date(1933, 10, 1)",
-      "D8 <= Date(2090, 4, 17) || D5 < D1"
-    ],
-    "size": 7,
-    "execution_time": 3.2564709186553955
-  },
-  {
-    "id": "grammar-sat-49",
-    "declarations": [
-      "D0: date",
-      "D1: date",
-      "D2: date",
-      "D3: date",
-      "D4: date",
-      "D6: date",
-      "D7: date",
-      "D8: date",
-      "D9: date"
-    ],
-    "constraints": [
-      "D0 <= (D8 + Period(2, 2, 0))",
-      "D1 != Date(1900, 7, 10)",
-      "D8 != D4 || D4 < ((D0 - (Period(8, 1, 8) + (Period(0, 5, 6) + Period(8, 1, 2)))) + Period(5, 1, 0)) || D9 < Date(2036, 12, 29)",
-      "D6 != Date(2041, 3, 16) || D2 != Date(2028, 11, 19) || D7 <= (D3 - (Period(3, 7, 9) - (Period(9, 5, 0) - Period(9, 7, 0)))) || D3 != D7",
-      "D9 == (D1 - (Period(0, 8, 1) - Period(3, 5, 8)))",
-      "D4 > (D0 + Period(5, 6, 5))"
-    ],
-    "size": 6,
-    "execution_time": 3.02512788772583
-  },
-  {
-    "id": "grammar-sat-50",
-    "declarations": [
-      "D0: date",
-      "D1: date",
-      "D2: date",
-      "D3: date",
-      "D7: date",
-      "D8: date",
-      "D9: date"
-    ],
-    "constraints": [
-      "D3 <= (D0 - Period(5, 1, 0))",
-      "D0 >= D3",
-      "D2 == (D2 - (Period(5, 5, 7) * 0))",
-      "D8 <= (D9 - Period(7, 6, 4)) || D2 == D1",
-      "D1 == Date(2048, 6, 25)",
-      "D1 <= D0",
-      "D3 < (((D7 - (Period(1, 7, 0) * 7)) - Period(4, 6, 1)) - Period(7, 1, 2))",
-      "D1 != Date(2091, 8, 28)"
-    ],
-    "size": 8,
-    "execution_time": 3.0101349353790283
   }
 ]

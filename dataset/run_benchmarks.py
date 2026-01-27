@@ -302,7 +302,7 @@ def main():
             "constraints_file": SCRIPT_DIR
             / "grammar_constraints"
             / "constraints"
-            / "timeout_constraints.json",
+            / "constraints.json",
             "output_dir": SCRIPT_DIR / "grammar_constraints" / "results",
         },
         # {
