@@ -32,7 +32,6 @@ from z3 import (
     unsat,
 )
 from ..core import Date, Period
-from .naive_int import days_in_month
 
 _EPOCH_YEAR = 2000
 _EPOCH_MONTH = 3

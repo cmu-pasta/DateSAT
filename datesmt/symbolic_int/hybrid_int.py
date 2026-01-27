@@ -40,17 +40,17 @@ from z3 import (
 )
 from ..core import Date, Period
 from .naive_int import (
-    _dbm_index,
-    ymd_from_days_since_epoch,
     normalize_month,
-    days_before_month,
-    days_before_year,
     days_in_month,
-    days_since_epoch_from_ymd,
-    eom_clamp,
-    _dbm_index,
+    eom_clamp
 )
-from .epoch_days_int import from_days_since_epoch, to_days_since_epoch, add_days_ordinal
+from .epoch_days_int import (
+    date_from_days_since_epoch, 
+    days_since_epoch_from_date, 
+    add_days_ordinal,
+    ymd_from_days_since_epoch,
+    days_since_epoch_from_ymd
+)
 
 class DateVar:
     """Symbolic date variable with lazy dual representation (epoch + Y/M/D)."""
@@ -141,7 +141,7 @@ class DateVar:
             # Epoch not consistent, need to derive from Y/M/D
             e = model.evaluate(self._epoch_expr(), model_completion=True).as_long()
         try:
-            return from_days_since_epoch(e)
+            return date_from_days_since_epoch(e)
         except ValueError:
             # Epoch out of bounds - convert to Y/M/D then create unbounded date
             _EPOCH = date(2000, 3, 1)
@@ -231,7 +231,7 @@ class DateVar:
                     And(y1 == y2, Or(m1 > m2, And(m1 == m2, d1 >= d2)))
                 )
             # Otherwise, use epoch comparison
-            return self._epoch_expr() >= to_days_since_epoch(other)
+            return self._epoch_expr() >= days_since_epoch_from_date(other)
         elif isinstance(other, DateVar):
             # Case 1: Both have consistent epoch - use epoch comparison
             if self._epoch_consistent and other._epoch_consistent:
@@ -267,7 +267,7 @@ class DateVar:
                     And(y1 == y2, Or(m1 < m2, And(m1 == m2, d1 <= d2)))
                 )
             # Otherwise, use epoch comparison
-            return self._epoch_expr() <= to_days_since_epoch(other)
+            return self._epoch_expr() <= days_since_epoch_from_date(other)
         elif isinstance(other, DateVar):
             # Case 1: Both have consistent epoch - use epoch comparison
             if self._epoch_consistent and other._epoch_consistent:
@@ -316,7 +316,7 @@ class DateVar:
                     self._day_var == IntVal(other.day),
                 )
             # Otherwise, use epoch comparison
-            return self._epoch_expr() == to_days_since_epoch(other)
+            return self._epoch_expr() == days_since_epoch_from_date(other)
         elif isinstance(other, DateVar):
             # Case 1: Both have consistent epoch - use epoch comparison
             if self._epoch_consistent and other._epoch_consistent:
@@ -573,7 +573,7 @@ class HybridSolver:
             from datetime import date
 
             today = date.today()
-            today_days = to_days_since_epoch(Date.from_python_date(today))
+            today_days = days_since_epoch_from_date(Date.from_python_date(today))
 
             # Calculate ±50 years and ±10 years in days (approximate)
             # Using 365.25 days per year for accuracy

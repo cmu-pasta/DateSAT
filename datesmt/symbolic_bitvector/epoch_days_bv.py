@@ -47,14 +47,14 @@ from .naive_bv import (
 _EPOCH = date(2000, 3, 1)
 
 
-def from_days_since_epoch(days: int) -> Date:
-    """Convert days since epoch to a Date."""
+def date_from_days_since_epoch(days: int) -> Date:
+    """Convert concrete days since epoch to a concrete Date."""
     result_date = _EPOCH + timedelta(days=days)
     return Date(result_date.year, result_date.month, result_date.day)
 
 
-def to_days_since_epoch(date_obj: Date) -> int:
-    """Convert a Date to days since epoch (March 1, 2000)."""
+def days_since_epoch_from_date(date_obj: Date) -> int:
+    """Convert a concrete Date to concrete days since epoch (March 1, 2000)."""
     target_python = date(date_obj.year, date_obj.month, date_obj.day)
     return (target_python - _EPOCH).days
 
@@ -100,12 +100,12 @@ class DateVar:
     def to_concrete_date(self, model: ModelRef) -> Date:
         """Convert Z3 model to concrete Date."""
         days = model.evaluate(self.days_var, model_completion=True).as_signed_long()
-        return from_days_since_epoch(days)
+        return date_from_days_since_epoch(days)
 
     def __ge__(self, other) -> BoolRef:
         """Support x >= date comparison."""
         if isinstance(other, Date):
-            return self.days_var >= to_days_since_epoch(other)
+            return self.days_var >= BitVecVal(days_since_epoch_from_date(other), LEGACY_BITS)
         elif isinstance(other, DateVar):
             return self.days_var >= other.days_var
         else:
@@ -114,7 +114,7 @@ class DateVar:
     def __le__(self, other) -> BoolRef:
         """Support x <= date comparison."""
         if isinstance(other, Date):
-            return self.days_var <= to_days_since_epoch(other)
+            return self.days_var <= BitVecVal(days_since_epoch_from_date(other), LEGACY_BITS)
         elif isinstance(other, DateVar):
             return self.days_var <= other.days_var
         else:
@@ -137,7 +137,7 @@ class DateVar:
     def __eq__(self, other) -> BoolRef:
         """Support x == date comparison."""
         if isinstance(other, Date):
-            return self.days_var == to_days_since_epoch(other)
+            return self.days_var == BitVecVal(days_since_epoch_from_date(other), LEGACY_BITS)
         elif isinstance(other, DateVar):
             return self.days_var == other.days_var
         else:
@@ -273,7 +273,7 @@ class EpochDaysSolver:
             from datetime import date
 
             today = date.today()
-            today_days = to_days_since_epoch(Date.from_python_date(today))
+            today_days = days_since_epoch_from_date(Date.from_python_date(today))
 
             # Calculate ±50 years and ±10 years in days (approximate)
             # Using 365.25 days per year for accuracy
