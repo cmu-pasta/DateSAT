@@ -186,7 +186,7 @@ def run_constraints_file(
     approaches: list[str] = None,
 ):
     """Run benchmarks on constraints from a file with specified solver approaches.
-    
+
     Args:
         constraints_file: Path to constraints file (JSON or JSONL)
         output_dir: Output directory for results
@@ -208,23 +208,25 @@ def run_constraints_file(
     # Define all solver approaches and implementations to test
     all_symbolic_approaches = [
         "naive",
-        "epoch_days",
-        "hybrid",
-        "alpha_beta",
-        "alpha_beta_table"
+        # "epoch_days",
+        # "hybrid",
+        # "alpha_beta",
+        # "alpha_beta_table"
     ]
-    
+
     # Filter approaches if specified
     if approaches is not None:
         symbolic_approaches = [a for a in approaches if a in all_symbolic_approaches]
         if not symbolic_approaches:
-            print(f"⚠️  Warning: No valid approaches found in {approaches}. Using all approaches.")
+            print(
+                f"⚠️  Warning: No valid approaches found in {approaches}. Using all approaches."
+            )
             symbolic_approaches = all_symbolic_approaches
         else:
             print(f"Running with approaches: {symbolic_approaches}")
     else:
         symbolic_approaches = all_symbolic_approaches
-    
+
     implementations = ["int"]  # Can add "bitvector" if needed
 
     all_results = {}
@@ -295,38 +297,30 @@ def main():
     SCRIPT_DIR = Path(__file__).parent
 
     constraint_sets = [
-        #{
-        #    "name": "Grammar Constraints",
-        #    "constraints_file": SCRIPT_DIR
-        #    / "grammar_constraints"
-        #    / "benchmarks"
-        #    / "constraints.json",
-        #    "output_dir": SCRIPT_DIR / "grammar_constraints" / "results",
-        #},
         {
-             "name": "LLM Generated Constraints",
-             "constraints_file": SCRIPT_DIR
-             / "llm_constraints"
-             / "constraints"
-             / "constraints.json",
-             "output_dir": SCRIPT_DIR / "llm_constraints" / "results",
-        },
-        {
-            "name": "LLM Generated Constraints",
+            "name": "Grammar Constraints",
             "constraints_file": SCRIPT_DIR
-            / "llm_constraints"
+            / "grammar_constraints"
             / "constraints"
             / "constraints.json",
-            "output_dir": SCRIPT_DIR / "llm_constraints" / "results",
+            "output_dir": SCRIPT_DIR / "grammar_constraints" / "results",
         },
-        {
-            "name": "Legal Document Constraints",
-            "constraints_file": SCRIPT_DIR
-            / "legal_doc_constraints"
-            / "constraints"
-            / "constraints.jsonl",
-            "output_dir": SCRIPT_DIR / "legal_doc_constraints" / "results",
-        },
+        # {
+        #     "name": "LLM Generated Constraints",
+        #     "constraints_file": SCRIPT_DIR
+        #     / "llm_constraints"
+        #     / "constraints"
+        #     / "constraints.json",
+        #     "output_dir": SCRIPT_DIR / "llm_constraints" / "results",
+        # },
+        # {
+        #     "name": "Legal Document Constraints",
+        #     "constraints_file": SCRIPT_DIR
+        #     / "legal_doc_constraints"
+        #     / "constraints"
+        #     / "constraints.jsonl",
+        #     "output_dir": SCRIPT_DIR / "legal_doc_constraints" / "results",
+        # },
     ]
 
     parser = argparse.ArgumentParser(
@@ -353,14 +347,14 @@ def main():
         nargs="+",
         default=None,
         help="List of approaches to test (e.g., --approaches alpha_beta_table alpha_beta_table_old). "
-             "If not specified, all approaches are tested.",
+        "If not specified, all approaches are tested.",
     )
     parser.add_argument(
         "--datasets",
         nargs="+",
         default=None,
         help="List of dataset names to run (e.g., --datasets legal llm). "
-             "Short names: 'legal', 'llm', 'grammar'. If not specified, all datasets are tested.",
+        "Short names: 'legal', 'llm', 'grammar'. If not specified, all datasets are tested.",
     )
 
     args = parser.parse_args()
@@ -398,10 +392,7 @@ def main():
 
     # Filter constraint sets if specified
     if args.datasets:
-        constraint_sets = [
-            cs for cs in constraint_sets
-            if cs["name"] in args.datasets
-        ]
+        constraint_sets = [cs for cs in constraint_sets if cs["name"] in args.datasets]
         if not constraint_sets:
             print(f"⚠️  Warning: No matching datasets found. Available datasets:")
             print(f"    - legal (Legal Document Constraints)")

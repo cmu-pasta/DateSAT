@@ -14,7 +14,7 @@ def merge_benchmarks():
     """
     # Get the directory paths
     script_dir = Path(__file__).parent
-    benchmarks_dir = script_dir.parent / "benchmarks"
+    benchmarks_dir = script_dir.parent / "constraints"
     output_file = benchmarks_dir / "constraints.json"
 
     # Check if benchmarks directory exists
