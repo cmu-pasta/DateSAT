@@ -7,6 +7,7 @@ This module provides a simple interface for solving date constraints.
 import json
 from typing import Any, Dict, List, Union
 
+from z3 import BoolVal
 from .api import DateSMTBuilder
 from .constraint_parser import ConstraintParser
 from .core import Date, Period
