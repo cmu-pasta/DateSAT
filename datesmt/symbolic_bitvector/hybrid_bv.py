@@ -45,7 +45,7 @@ from z3 import (
 )
 from ..core import Date, Period
 from .bitwidths import LEGACY_BITS
-from .epoch_days_bv import from_days_since_epoch, to_days_since_epoch, add_days_ordinal as add_days_ordinal_epoch
+from .epoch_days_bv import date_from_days_since_epoch, days_since_epoch_from_date, add_days_ordinal as add_days_ordinal_epoch
 from .naive_bv import (
     _dbm_index,
     days_before_month,
@@ -217,7 +217,7 @@ class DateVar:
             # Epoch not consistent, need to derive from Y/M/D
             e = model.evaluate(self._epoch_expr(), model_completion=True).as_signed_long()
         try:
-            return from_days_since_epoch(e)
+            return date_from_days_since_epoch(e)
         except ValueError:
             # Epoch out of bounds - convert to Y/M/D then create unbounded date
             from datetime import date, timedelta
@@ -245,7 +245,7 @@ class DateVar:
                 )
             # Otherwise, use epoch comparison
             return self._epoch_expr() >= BitVecVal(
-                to_days_since_epoch(other), LEGACY_BITS
+                days_since_epoch_from_date(other), LEGACY_BITS
             )
         elif isinstance(other, DateVar):
             # Case 1: Both have consistent epoch - use epoch comparison
@@ -288,7 +288,7 @@ class DateVar:
                 )
             # Otherwise, use epoch comparison
             return self._epoch_expr() <= BitVecVal(
-                to_days_since_epoch(other), LEGACY_BITS
+                days_since_epoch_from_date(other), LEGACY_BITS
             )
         elif isinstance(other, DateVar):
             # Case 1: Both have consistent epoch - use epoch comparison
@@ -343,7 +343,7 @@ class DateVar:
                     self._day_var == BitVecVal(other.day, LEGACY_BITS),
                 )
             # Otherwise, use epoch comparison
-            return self._epoch_expr() == BitVecVal(to_days_since_epoch(other), LEGACY_BITS)
+            return self._epoch_expr() == BitVecVal(days_since_epoch_from_date(other), LEGACY_BITS)
         elif isinstance(other, DateVar):
             # Case 1: Both have consistent epoch - use epoch comparison
             if self._epoch_consistent and other._epoch_consistent:
@@ -606,10 +606,10 @@ class HybridSolver:
         if self.use_maxsat:
             from datetime import date
 
-            from .epoch_days_bv import to_days_since_epoch
+            from .epoch_days_bv import days_since_epoch_from_date
 
             today = date.today()
-            today_days = to_days_since_epoch(Date.from_python_date(today))
+            today_days = days_since_epoch_from_date(Date.from_python_date(today))
 
             # Calculate ±50 years and ±10 years in days (approximate)
             # Using 365.25 days per year for accuracy

@@ -25,7 +25,14 @@ from z3 import (
     unsat,
 )
 from ..core import Date, Period
-from .naive_int import eom_clamp, days_in_month, to_ordinal, from_ordinal
+from .naive_int import (
+    eom_clamp,
+    days_in_month
+)
+from .epoch_days_int import (
+    ymd_from_days_since_epoch,
+    days_since_epoch_from_ymd
+)
 
 # -------------------------------
 # Alpha (months-since-epoch) helpers
@@ -234,10 +241,11 @@ class DateVar:
                 alpha_within = self.months_var
                 beta_within = new_beta
                 
-                # Fallback: normalize via ordinal conversion (handles month overflow)
+                # Fallback: normalize via epoch conversion (handles month overflow)
                 d0 = new_beta + IntVal(1)  # Convert 0-based beta to 1-based day
-                ordinal = to_ordinal(y0, m0, d0)
-                y2, m2, d2 = from_ordinal(ordinal)
+                # Convert Y/M/D to epoch days, then back to Y/M/D (normalizes across boundaries)
+                epoch_days = days_since_epoch_from_ymd(y0, m0, d0)
+                y2, m2, d2 = ymd_from_days_since_epoch(epoch_days)
                 months_ordinal = months_since_epoch_from_ym(y2, m2)
                 beta_ordinal = d2 - IntVal(1)
                 
@@ -270,10 +278,11 @@ class DateVar:
             alpha_within = alpha1
             beta_within = new_beta
 
-            # Fallback: Normalize via ordinal conversion (handles all overflow cases)
+            # Fallback: Normalize via epoch conversion (handles all overflow cases)
             d_temp = new_beta + IntVal(1)  # Convert 0-based beta to 1-based day
-            ordinal = to_ordinal(y1, m1, d_temp)
-            y2, m2, d2 = from_ordinal(ordinal)
+            # Convert Y/M/D to epoch days, then back to Y/M/D (normalizes across boundaries)
+            epoch_days = days_since_epoch_from_ymd(y1, m1, d_temp)
+            y2, m2, d2 = ymd_from_days_since_epoch(epoch_days)
 
             months_ordinal = months_since_epoch_from_ym(y2, m2)
             beta_ordinal = d2 - IntVal(1)

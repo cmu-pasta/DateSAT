@@ -28,28 +28,90 @@ from z3 import (
 )
 from ..core import Date, Period
 from .naive_int import (
-    _dbm_index,
-    days_before_month,
-    days_before_year,
-    days_in_month,
-    days_since_epoch_from_ymd,
     eom_clamp,
-    normalize_month,
-    ymd_from_days_since_epoch,
-    _dbm_index,
+    normalize_month
 )
 
 _EPOCH = date(2000, 3, 1)
 
+def ymd_from_days_since_epoch(days_term: ArithRef) -> Tuple[ArithRef, ArithRef, ArithRef]:
+    """
+    Decode (y,m,d) from a Z3 Int 'days since 2000-03-01', directly.
 
-def from_days_since_epoch(days: int) -> Date:
-    """Convert days since epoch to a Date."""
+    Uses March-based civil-from-days arithmetic anchored at 2000-03-01, which is:
+      - the start of a March-based year, and
+      - in year 2000, which is divisible by 400 (cycle boundary).
+    So we can do pure 400/100/4/1 block decomposition + a constant-time month/day formula.
+    """
+    # Constants
+    D400, D100, D4, D1 = IntVal(146097), IntVal(36524), IntVal(1461), IntVal(365)
+
+    # Split into 400-year cycles (Z3 div/mod with positive divisor gives 0 <= r < D400 even for negative days_term)
+    q400, r400 = days_term / D400, days_term % D400
+
+    # 100-year blocks within the 400-year cycle (clamp the last block)
+    q100_raw = r400 / D100
+    q100 = If(q100_raw >= IntVal(4), IntVal(3), q100_raw)  # 0..3
+    r100 = r400 - q100 * D100
+
+    # 4-year blocks
+    q4, r4 = r100 / D4, r100 % D4
+
+    # 1-year blocks (clamp the last block)
+    q1_raw = r4 / D1
+    q1 = If(q1_raw >= IntVal(4), IntVal(3), q1_raw)  # 0..3
+    r1 = r4 - q1 * D1  # day-of-year in March-based year, 0..365
+
+    # March-based year (starts at Mar 1). Day 0 == 2000-03-01.
+    y = IntVal(2000) + q400 * IntVal(400) + q100 * IntVal(100) + q4 * IntVal(4) + q1
+
+    # Convert March-based day-of-year to month/day using 153-day month blocks
+    # mp: 0..11 corresponds to Mar..Feb
+    mp = (IntVal(5) * r1 + IntVal(2)) / IntVal(153)
+    d  = r1 - (IntVal(153) * mp + IntVal(2)) / IntVal(5) + IntVal(1)
+
+    m  = mp + IntVal(3)                 # Mar=3,...,Dec=12,Jan=13,Feb=14
+    m  = If(m > IntVal(12), m - IntVal(12), m)  # wrap Jan/Feb back to 1/2
+
+    # If month is Jan/Feb, it belongs to the next Gregorian year
+    y  = y + If(m <= IntVal(2), IntVal(1), IntVal(0))
+
+    return y, m, d
+
+_EPOCH_MARCH_BASED_ABS = IntVal(730485)  # days_from_civil(2000,3,1) in March-based absolute days
+
+def days_since_epoch_from_ymd(y: ArithRef, m: ArithRef, d: ArithRef) -> ArithRef:
+    D400 = IntVal(146097)
+
+    # Shift Jan/Feb into previous year to make Mar the first month
+    y_adj = y - If(m <= IntVal(2), IntVal(1), IntVal(0))
+    m_adj = m + If(m <= IntVal(2), IntVal(12), IntVal(0))  # now 3..14
+    mp = m_adj - IntVal(3)  # 0..11 (Mar..Feb)
+
+    # 400-year era decomposition (Z3 div is Euclidean for positive divisor)
+    era = y_adj / IntVal(400)
+    yoe = y_adj - era * IntVal(400)  # 0..399 (within era)
+
+    # Day-of-year within March-based year
+    doy = (IntVal(153) * mp + IntVal(2)) / IntVal(5) + (d - IntVal(1))  # 0..365
+
+    # Day-of-era: days from start of era to start of year yoe
+    # Formula: yoe * 365 + yoe/4 - yoe/100 + yoe/400
+    # This accounts for leap years: every 4 years, except centuries, except 400-year cycles
+    doe = yoe * IntVal(365) + (yoe / IntVal(4)) - (yoe / IntVal(100)) + (yoe / IntVal(400)) + doy
+
+    # Absolute days since 0000-03-01, then shift so 2000-03-01 is 0
+    abs_days = era * D400 + doe
+    return abs_days - _EPOCH_MARCH_BASED_ABS
+
+def date_from_days_since_epoch(days: int) -> Date:
+    """Convert concrete days since epoch to a concrete Date."""
     result_date = _EPOCH + timedelta(days=days)
     return Date(result_date.year, result_date.month, result_date.day)
 
 
-def to_days_since_epoch(date_obj: Date) -> int:
-    """Convert a Date to days since epoch (March 1, 2000)."""
+def days_since_epoch_from_date(date_obj: Date) -> int:
+    """Convert a concrete Date to concrete days since epoch (March 1, 2000)."""
     target_python = date(date_obj.year, date_obj.month, date_obj.day)
     return (target_python - _EPOCH).days
 
@@ -95,12 +157,12 @@ class DateVar:
     def to_concrete_date(self, model: ModelRef) -> Date:
         """Convert Z3 model to concrete Date."""
         days = model.evaluate(self.days_var, model_completion=True).as_long()
-        return from_days_since_epoch(days)
+        return date_from_days_since_epoch(days)
 
     def __ge__(self, other) -> BoolRef:
         """Support x >= date comparison."""
         if isinstance(other, Date):
-            return self.days_var >= to_days_since_epoch(other)
+            return self.days_var >= days_since_epoch_from_date(other)
         elif isinstance(other, DateVar):
             return self.days_var >= other.days_var
         else:
@@ -109,7 +171,7 @@ class DateVar:
     def __le__(self, other) -> BoolRef:
         """Support x <= date comparison."""
         if isinstance(other, Date):
-            return self.days_var <= to_days_since_epoch(other)
+            return self.days_var <= days_since_epoch_from_date(other)
         elif isinstance(other, DateVar):
             return self.days_var <= other.days_var
         else:
@@ -132,7 +194,7 @@ class DateVar:
     def __eq__(self, other) -> BoolRef:
         """Support x == date comparison."""
         if isinstance(other, Date):
-            return self.days_var == to_days_since_epoch(other)
+            return self.days_var == days_since_epoch_from_date(other)
         elif isinstance(other, DateVar):
             return self.days_var == other.days_var
         else:
@@ -268,7 +330,7 @@ class EpochDaysSolver:
             from datetime import date
 
             today = date.today()
-            today_days = to_days_since_epoch(Date.from_python_date(today))
+            today_days = days_since_epoch_from_date(Date.from_python_date(today))
 
             # Calculate ±50 years and ±10 years in days (approximate)
             # Using 365.25 days per year for accuracy
