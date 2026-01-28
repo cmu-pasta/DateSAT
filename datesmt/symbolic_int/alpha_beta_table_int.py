@@ -258,112 +258,120 @@ class DateVar:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
     def __add__(self, other) -> "DateVar":
-        result = DateVar(f"{self.name}_plus")
-
         if isinstance(other, Period):
+            result = DateVar(f"{self.name}_plus")
             months_delta = IntVal(other.years * 12 + other.months)
             days_delta = IntVal(other.days)
-        else:
-            months_delta = other.years * IntVal(12) + other.months
-            days_delta = other.days
 
-        # Fast path: days-only period (skip month shift)
-        if isinstance(other, Period) and other.years == 0 and other.months == 0:
-            # Check if result stays within same month
-            alpha1 = self.months_var
+            # Fast path: days-only period (skip month shift)
+            if other.years == 0 and other.months == 0:
+                # Check if result stays within same month
+                alpha1 = self.months_var
+                idx1 = mod48(alpha1)
+                abs1 = alpha_to_abs_month(alpha1)
+                dim1 = Select(_DIM48_LIST, idx1)
+                beta1 = eom_clamp(dim1, self.beta_var)
+
+                # Within-month fast path: if beta1 + days_delta stays in [0, dim1)
+                new_beta = beta1 + days_delta
+                stays_in_month = And(new_beta >= IntVal(0), new_beta < dim1)
+
+                # Within-month: simple addition
+                alpha_within = alpha1
+                beta_within = new_beta
+
+                # Fallback: use full table lookup (when days cross month boundary)
+                base48 = Select(_DBM48_LIST, idx1) + beta1
+                total = base48 + days_delta
+
+                q0 = total / IntVal(_FOUR_YEAR_DAYS)
+                r0 = total % IntVal(_FOUR_YEAR_DAYS)
+
+                # Compute idx2 by scanning all 48 months with century correction at target
+                best = IntVal(0)
+                for i in range(1, _FOUR_YEAR_MONTHS):
+                    dbm_i_corr = Select(_DBM48_LIST, IntVal(i))
+                    best = If(r0 >= dbm_i_corr, IntVal(i), best)
+
+                idx2 = best
+                diff2 = idx2 - idx1
+                abs2 = alpha_to_abs_month(alpha1 + q0 * IntVal(_FOUR_YEAR_MONTHS) + diff2)
+                beta2 = r0 - (Select(_DBM48_LIST, idx2))
+
+                dim2 = Select(_DIM48_LIST, idx2)
+                carry = If(beta2 >= dim2, IntVal(1), IntVal(0))
+
+                alpha_ordinal = alpha1 + q0 * IntVal(_FOUR_YEAR_MONTHS) + diff2 + carry
+                beta_ordinal = If(carry == IntVal(1), beta2 - dim2, beta2)
+
+                # Select result based on within-month condition
+                result.months_var = If(stays_in_month, alpha_within, alpha_ordinal)
+                result.beta_var = If(stays_in_month, beta_within, beta_ordinal)
+                # Add bounds to intermediate result
+                result._solver = self._solver
+                result._add_bounds()
+                return result
+
+            # Full path: with month shift
+            alpha1 = self.months_var + months_delta
             idx1 = mod48(alpha1)
             abs1 = alpha_to_abs_month(alpha1)
             dim1 = Select(_DIM48_LIST, idx1)
             beta1 = eom_clamp(dim1, self.beta_var)
 
-            # Within-month fast path: if beta1 + days_delta stays in [0, dim1)
-            new_beta = beta1 + days_delta
-            stays_in_month = And(new_beta >= IntVal(0), new_beta < dim1)
+            # Fast path: years/months-only period (no days)
+            if other.days == 0:
+                # No day addition needed - we're done!
+                result.months_var = alpha1
+                result.beta_var = beta1
+                
+                result._solver = self._solver
+                result._add_bounds()
+                return result
+            else:
+                # Within-month fast path: if adding days stays in same month
+                new_beta = beta1 + days_delta
+                stays_in_month = And(new_beta >= IntVal(0), new_beta < dim1)
 
-            # Within-month: simple addition
-            alpha_within = alpha1
-            beta_within = new_beta
+                # Within-month: simple addition
+                alpha_within = alpha1
+                beta_within = new_beta
 
-            # Fallback: use full table lookup (when days cross month boundary)
-            base48 = Select(_DBM48_LIST, idx1) + beta1
-            total = base48 + days_delta
+                # Full table lookup path
+                base48 = Select(_DBM48_LIST, idx1) + beta1
+                total = base48 + days_delta
 
-            q0 = total / IntVal(_FOUR_YEAR_DAYS)
-            r0 = total % IntVal(_FOUR_YEAR_DAYS)
+                q0 = total / IntVal(_FOUR_YEAR_DAYS)
+                r0 = total % IntVal(_FOUR_YEAR_DAYS)
 
-            # Compute idx2 by scanning all 48 months with century correction at target
-            best = IntVal(0)
-            for i in range(1, _FOUR_YEAR_MONTHS):
-                dbm_i_corr = Select(_DBM48_LIST, IntVal(i))
-                best = If(r0 >= dbm_i_corr, IntVal(i), best)
+                # Compute idx2 by scanning all 48 months with century correction at target
+                best = IntVal(0)
+                for i in range(1, _FOUR_YEAR_MONTHS):
+                    dbm_i_corr = Select(_DBM48_LIST, IntVal(i))
+                    best = If(r0 >= dbm_i_corr, IntVal(i), best)
 
-            idx2 = best
-            diff2 = idx2 - idx1
-            abs2 = alpha_to_abs_month(alpha1 + q0 * IntVal(_FOUR_YEAR_MONTHS) + diff2)
-            beta2 = r0 - (Select(_DBM48_LIST, idx2))
+                idx2 = best
+                diff2 = idx2 - idx1
+                abs2 = alpha_to_abs_month(alpha1 + q0 * IntVal(_FOUR_YEAR_MONTHS) + diff2)
+                beta2 = r0 - (Select(_DBM48_LIST, idx2))
 
-            dim2 = Select(_DIM48_LIST, idx2)
-            carry = If(beta2 >= dim2, IntVal(1), IntVal(0))
+                # End-of-month overflow carry: if beta2 equals/exceeds the month length,
+                # advance one month and wrap beta into the next month.
+                dim2 = Select(_DIM48_LIST, idx2)
+                carry = If(beta2 >= dim2, IntVal(1), IntVal(0))
 
-            alpha_ordinal = alpha1 + q0 * IntVal(_FOUR_YEAR_MONTHS) + diff2 + carry
-            beta_ordinal = If(carry == IntVal(1), beta2 - dim2, beta2)
+                alpha_ordinal = alpha1 + q0 * IntVal(_FOUR_YEAR_MONTHS) + diff2 + carry
+                beta_ordinal = If(carry == IntVal(1), beta2 - dim2, beta2)
 
-            # Select result based on within-month condition
-            result.months_var = If(stays_in_month, alpha_within, alpha_ordinal)
-            result.beta_var = If(stays_in_month, beta_within, beta_ordinal)
-            # Add bounds to intermediate result
-            result._solver = self._solver
-            result._add_bounds()
-            return result
-
-        # Full path: with month shift
-        alpha1 = self.months_var + months_delta
-        idx1 = mod48(alpha1)
-        abs1 = alpha_to_abs_month(alpha1)
-        dim1 = Select(_DIM48_LIST, idx1)
-        beta1 = eom_clamp(dim1, self.beta_var)
-
-        # Within-month fast path: if adding days stays in same month
-        new_beta = beta1 + days_delta
-        stays_in_month = And(new_beta >= IntVal(0), new_beta < dim1)
-
-        # Within-month: simple addition
-        alpha_within = alpha1
-        beta_within = new_beta
-
-        # Full table lookup path
-        base48 = Select(_DBM48_LIST, idx1) + beta1
-        total = base48 + days_delta
-
-        q0 = total / IntVal(_FOUR_YEAR_DAYS)
-        r0 = total % IntVal(_FOUR_YEAR_DAYS)
-
-        # Compute idx2 by scanning all 48 months with century correction at target
-        best = IntVal(0)
-        for i in range(1, _FOUR_YEAR_MONTHS):
-            dbm_i_corr = Select(_DBM48_LIST, IntVal(i))
-            best = If(r0 >= dbm_i_corr, IntVal(i), best)
-
-        idx2 = best
-        diff2 = idx2 - idx1
-        abs2 = alpha_to_abs_month(alpha1 + q0 * IntVal(_FOUR_YEAR_MONTHS) + diff2)
-        beta2 = r0 - (Select(_DBM48_LIST, idx2))
-
-        # End-of-month overflow carry: if beta2 equals/exceeds the month length,
-        # advance one month and wrap beta into the next month.
-        dim2 = Select(_DIM48_LIST, idx2)
-        carry = If(beta2 >= dim2, IntVal(1), IntVal(0))
-
-        alpha_ordinal = alpha1 + q0 * IntVal(_FOUR_YEAR_MONTHS) + diff2 + carry
-        beta_ordinal = If(carry == IntVal(1), beta2 - dim2, beta2)
-
-        # Select result based on within-month condition
-        result.months_var = If(stays_in_month, alpha_within, alpha_ordinal)
-        result.beta_var = If(stays_in_month, beta_within, beta_ordinal)
-        # Add bounds to intermediate result
-        result._solver = self._solver
-        result._add_bounds()
-        return result
+                # Select result based on within-month condition
+                result.months_var = If(stays_in_month, alpha_within, alpha_ordinal)
+                result.beta_var = If(stays_in_month, beta_within, beta_ordinal)
+                # Add bounds to intermediate result
+                result._solver = self._solver
+                result._add_bounds()
+                return result
+        else:
+            raise TypeError(f"Cannot add {type(other)} to DateVar")
 
     def __sub__(self, other) -> "DateVar":
         """DateVar - Period implemented as DateVar + (-Period)."""

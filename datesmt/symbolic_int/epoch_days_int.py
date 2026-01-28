@@ -34,7 +34,7 @@ from .naive_int import (
 
 _EPOCH = date(2000, 3, 1)
 
-def ymd_from_days_since_epoch(days_term: ArithRef) -> Tuple[ArithRef, ArithRef, ArithRef]:
+def _ymd_from_days_since_epoch_z3(days_term: ArithRef) -> Tuple[ArithRef, ArithRef, ArithRef]:
     """
     Decode (y,m,d) from a Z3 Int 'days since 2000-03-01', directly.
 
@@ -80,7 +80,7 @@ def ymd_from_days_since_epoch(days_term: ArithRef) -> Tuple[ArithRef, ArithRef, 
 
 _EPOCH_MARCH_BASED_ABS = IntVal(730485)  # days_from_civil(2000,3,1) in March-based absolute days
 
-def days_since_epoch_from_ymd(y: ArithRef, m: ArithRef, d: ArithRef) -> ArithRef:
+def _days_since_epoch_from_ymd_z3(y: ArithRef, m: ArithRef, d: ArithRef) -> ArithRef:
     D400 = IntVal(146097)
 
     # Shift Jan/Feb into previous year to make Mar the first month
@@ -103,6 +103,31 @@ def days_since_epoch_from_ymd(y: ArithRef, m: ArithRef, d: ArithRef) -> ArithRef
     # Absolute days since 0000-03-01, then shift so 2000-03-01 is 0
     abs_days = era * D400 + doe
     return abs_days - _EPOCH_MARCH_BASED_ABS
+
+
+def ymd_from_days_since_epoch(days_term):
+    """
+    Overload:
+    - ymd_from_days_since_epoch(int) -> Date
+    - ymd_from_days_since_epoch(ArithRef) -> (y,m,d) ArithRefs
+    """
+    if isinstance(days_term, int):
+        return date_from_days_since_epoch(days_term)
+    return _ymd_from_days_since_epoch_z3(days_term)
+
+
+def days_since_epoch_from_ymd(*args):
+    """
+    Overload:
+    - days_since_epoch_from_ymd(Date) -> int
+    - days_since_epoch_from_ymd(y,m,d) -> ArithRef
+    """
+    if len(args) == 1 and isinstance(args[0], Date):
+        return days_since_epoch_from_date(args[0])
+    if len(args) == 3:
+        y, m, d = args
+        return _days_since_epoch_from_ymd_z3(y, m, d)
+    raise TypeError("days_since_epoch_from_ymd expects (Date) or (y, m, d)")
 
 def date_from_days_since_epoch(days: int) -> Date:
     """Convert concrete days since epoch to a concrete Date."""

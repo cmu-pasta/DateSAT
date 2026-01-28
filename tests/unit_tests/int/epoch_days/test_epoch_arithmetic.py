@@ -1,7 +1,7 @@
 """
 Unit tests for epoch date arithmetic in datesmt_int.epoch_days_int.
 
-Tests cover the to_days_since_epoch and from_days_since_epoch functions
+Tests cover the days_since_epoch_from_ymd and ymd_from_days_since_epoch functions
 with March 1, 2000 as the epoch date.
 
 Reference checks use Python's datetime for independence from production code.
@@ -13,8 +13,8 @@ import pytest
 
 from datesmt.core import Date
 from datesmt.symbolic_int.epoch_days_int import (
-    from_days_since_epoch,
-    to_days_since_epoch,
+    ymd_from_days_since_epoch,
+    days_since_epoch_from_ymd,
 )
 
 EPOCH = Date(2000, 3, 1)
@@ -45,10 +45,10 @@ class TestEpochDateArithmeticBasic:
     """Targeted example-driven tests for epoch conversion."""
 
     def test_epoch_date_is_zero(self):
-        assert to_days_since_epoch(EPOCH) == 0
+        assert days_since_epoch_from_ymd(EPOCH) == 0
 
     def test_epoch_date_roundtrip(self):
-        assert from_days_since_epoch(0) == EPOCH
+        assert ymd_from_days_since_epoch(0) == EPOCH
 
     @pytest.mark.parametrize(
         "date_obj",
@@ -61,7 +61,7 @@ class TestEpochDateArithmeticBasic:
         ],
     )
     def test_before_epoch_is_negative(self, date_obj: Date):
-        days = to_days_since_epoch(date_obj)
+        days = days_since_epoch_from_ymd(date_obj)
         assert days == _ref_delta_days(date_obj)
         assert days < 0
 
@@ -76,7 +76,7 @@ class TestEpochDateArithmeticBasic:
         ],
     )
     def test_after_epoch_is_positive(self, date_obj: Date):
-        days = to_days_since_epoch(date_obj)
+        days = days_since_epoch_from_ymd(date_obj)
         assert days == _ref_delta_days(date_obj)
         assert days > 0
 
@@ -96,7 +96,7 @@ class TestEpochDateArithmeticBasic:
     )
     def test_month_boundaries(self, date_obj: Date):
         expected = _ref_delta_days(date_obj)
-        got = to_days_since_epoch(date_obj)
+        got = days_since_epoch_from_ymd(date_obj)
         assert got == expected, f"{date_obj} expected {expected}, got {got}"
 
     @pytest.mark.parametrize(
@@ -110,7 +110,7 @@ class TestEpochDateArithmeticBasic:
         ],
     )
     def test_year_boundaries(self, date_obj: Date):
-        assert to_days_since_epoch(date_obj) == _ref_delta_days(date_obj)
+        assert days_since_epoch_from_ymd(date_obj) == _ref_delta_days(date_obj)
 
     @pytest.mark.parametrize(
         "date_obj",
@@ -124,7 +124,7 @@ class TestEpochDateArithmeticBasic:
         ],
     )
     def test_leap_year_handling(self, date_obj: Date):
-        assert to_days_since_epoch(date_obj) == _ref_delta_days(date_obj)
+        assert days_since_epoch_from_ymd(date_obj) == _ref_delta_days(date_obj)
 
     @pytest.mark.parametrize(
         "days",
@@ -146,7 +146,7 @@ class TestEpochDateArithmeticBasic:
     def test_back_conversions_known_offsets(self, days: int):
         # Expected = epoch + offset, using datetime reference
         expected = _ref_add_days(EPOCH, days)
-        got = from_days_since_epoch(days)
+        got = ymd_from_days_since_epoch(days)
         assert got == expected, f"days={days} expected {expected}, got {got}"
 
     def test_bidirectional_conversion_accuracy(self):
@@ -167,8 +167,8 @@ class TestEpochDateArithmeticBasic:
             Date(2024, 2, 29),  # Leap year
         ]
         for original in test_dates:
-            n = to_days_since_epoch(original)
-            back = from_days_since_epoch(n)
+            n = days_since_epoch_from_ymd(original)
+            back = ymd_from_days_since_epoch(n)
             assert back == original, f"{original} -> {n} -> {back}"
 
     def test_large_year_differences_against_reference(self):
@@ -176,7 +176,7 @@ class TestEpochDateArithmeticBasic:
         cases = [Date(1900, 3, 1), Date(2100, 2, 28)]
         for d in cases:
             expected = _ref_delta_days(d)
-            got = to_days_since_epoch(d)
+            got = days_since_epoch_from_ymd(d)
             assert (
                 got == expected
             ), f"Large-span mismatch: {d} expected {expected}, got {got}"
@@ -193,15 +193,15 @@ class TestEpochDateArithmeticBasic:
             Date(2001, 1, 1),
         ]
         for anchor in anchors:
-            n = to_days_since_epoch(anchor)
-            assert from_days_since_epoch(n + 1) == _ref_add_days(anchor, 1)
-            assert from_days_since_epoch(n - 1) == _ref_add_days(anchor, -1)
+            n = days_since_epoch_from_ymd(anchor)
+            assert ymd_from_days_since_epoch(n + 1) == _ref_add_days(anchor, 1)
+            assert ymd_from_days_since_epoch(n - 1) == _ref_add_days(anchor, -1)
 
     def test_epoch_consistency(self):
         """Epoch is stable under repeated conversions."""
         for _ in range(5):
-            assert to_days_since_epoch(EPOCH) == 0
-            assert from_days_since_epoch(0) == EPOCH
+            assert days_since_epoch_from_ymd(EPOCH) == 0
+            assert ymd_from_days_since_epoch(0) == EPOCH
 
     def test_roundtrip_preservation_components(self):
         """Roundtrip preserves all components."""
@@ -217,8 +217,8 @@ class TestEpochDateArithmeticBasic:
             Date(2023, 6, 15),
         ]
         for original in test_dates:
-            n = to_days_since_epoch(original)
-            back = from_days_since_epoch(n)
+            n = days_since_epoch_from_ymd(original)
+            back = ymd_from_days_since_epoch(n)
             assert back.year == original.year
             assert back.month == original.month
             assert back.day == original.day

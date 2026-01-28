@@ -33,13 +33,6 @@ from .bitwidths import LEGACY_BITS
 
 _NONLEAP_PREFIX = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334]
 _LEAP_PREFIX = [0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335]
-# -------------------------------
-# Epoch binding: 2000-03-01
-# -------------------------------
-# _ORD_EPOCH = to_ordinal(BitVecVal(2000, LEGACY_BITS), BitVecVal(3, LEGACY_BITS), BitVecVal(1, LEGACY_BITS))  # original ground Z3 term
-_ORD_EPOCH = BitVecVal(
-    730179, LEGACY_BITS
-)  # precomputed ordinal of 2000-03-01 (0001-01-01 = 0)
 
 
 def is_leap(year) -> BoolRef:
@@ -53,7 +46,7 @@ def is_leap(year) -> BoolRef:
     )
 
 
-def days_in_month(year, month) -> ArithRef:
+def days_in_month(year, month) -> BitVecRef:
     """Get the number of days in a month, accounting for leap years."""
     return If(
         month == BitVecVal(2, LEGACY_BITS),
@@ -96,94 +89,6 @@ def normalize_month(y, m) -> Tuple[BitVecRef, BitVecRef]:
     q = If(is_negative_and_has_remainder, q_trunc - BitVecVal(1, LEGACY_BITS), q_trunc)
 
     return y + q, r + BitVecVal(1, LEGACY_BITS)
-
-
-def days_before_year(y) -> ArithRef:
-    """
-    Days from 0001-01-01 to Jan 1 of year y (0-based), Gregorian rules.
-    """
-    y1 = y - BitVecVal(1, LEGACY_BITS)
-    return (
-        BitVecVal(365, LEGACY_BITS) * y1
-        + y1 / BitVecVal(4, LEGACY_BITS)
-        - y1 / BitVecVal(100, LEGACY_BITS)
-        + y1 / BitVecVal(400, LEGACY_BITS)
-    )
-
-
-def days_before_month(y, m) -> BitVecRef:
-    """Z3 piecewise selection (no Python control over symbolic m)."""
-    expr = BitVecVal(0, LEGACY_BITS)
-    for i in range(1, 13):
-        expr = If(m == BitVecVal(i, LEGACY_BITS), _dbm_index(y, i), expr)
-    return expr
-
-
-def to_ordinal(y, m, d) -> ArithRef:
-    """Z3-pure ordinal conversion (day 0 = 0001-01-01)."""
-    return (
-        days_before_year(y) + days_before_month(y, m) + (d - BitVecVal(1, LEGACY_BITS))
-    )
-
-
-def from_ordinal(n) -> Tuple[BitVecRef, BitVecRef, BitVecRef]:
-    """Z3-pure ordinal to date conversion using 400/100/4/1 year block decomposition."""
-    # 400/100/4/1 year block decomposition
-    D400, D100, D4, D1 = (
-        BitVecVal(146097, LEGACY_BITS),
-        BitVecVal(36524, LEGACY_BITS),
-        BitVecVal(1461, LEGACY_BITS),
-        BitVecVal(365, LEGACY_BITS),
-    )
-    q400, r400 = n / D400, n % D400
-
-    q100_raw = r400 / D100
-    q100 = If(
-        q100_raw >= BitVecVal(4, LEGACY_BITS), BitVecVal(3, LEGACY_BITS), q100_raw
-    )  # clamp 0..3
-    r100 = r400 - q100 * D100
-
-    q4, r4 = r100 / D4, r100 % D4
-
-    q1_raw = r4 / D1
-    q1 = If(
-        q1_raw >= BitVecVal(4, LEGACY_BITS), BitVecVal(3, LEGACY_BITS), q1_raw
-    )  # clamp 0..3
-    r1 = r4 - q1 * D1  # day-of-year (0..365)
-
-    year = (
-        q400 * BitVecVal(400, LEGACY_BITS)
-        + q100 * BitVecVal(100, LEGACY_BITS)
-        + q4 * BitVecVal(4, LEGACY_BITS)
-        + q1
-        + BitVecVal(1, LEGACY_BITS)
-    )
-
-    # month = max i with r1 >= DBM(year, i)
-    dbm = [_dbm_index(year, i) for i in range(1, 13)]
-    month = BitVecVal(1, LEGACY_BITS)
-    for i in range(2, 13):
-        month = If(r1 >= dbm[i - 1], BitVecVal(i, LEGACY_BITS), month)
-
-    # day = r1 - DBM(year, month) + 1
-    day_expr = r1 - dbm[0] + BitVecVal(1, LEGACY_BITS)
-    for i in range(2, 13):
-        day_expr = If(
-            r1 >= dbm[i - 1], r1 - dbm[i - 1] + BitVecVal(1, LEGACY_BITS), day_expr
-        )
-
-    return year, month, day_expr
-
-
-def ymd_from_days_since_epoch(days_term) -> Tuple[BitVec, BitVec, BitVec]:
-    """Decode (y,m,d) from a Z3 Int 'days since 2000-03-01'."""
-    return from_ordinal(days_term + _ORD_EPOCH)
-
-
-def days_since_epoch_from_ymd(y, m, d) -> ArithRef:
-    """Encode (y,m,d) to Z3 Int 'days since 2000-03-01'."""
-    return to_ordinal(y, m, d) - _ORD_EPOCH
-
 
 def eom_clamp(year, month, day) -> BitVecRef:
     """
@@ -249,14 +154,6 @@ def add_days_componentwise(
         cur_y, cur_m, cur_d = new_year, new_month, new_day
 
     return cur_y, cur_m, cur_d
-
-
-def _dbm_index(y, idx) -> BitVecRef:
-    """days_before_month for fixed idx∈{1..12} as a Z3 term."""
-    non = BitVecVal(_NONLEAP_PREFIX[idx - 1], LEGACY_BITS)
-    lep = BitVecVal(_LEAP_PREFIX[idx - 1], LEGACY_BITS)
-    return If(is_leap(y), lep, non)
-
 
 class DateVar:
     """Symbolic date variable for naive implementation."""

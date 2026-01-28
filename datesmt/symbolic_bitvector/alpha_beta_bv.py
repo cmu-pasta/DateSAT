@@ -26,7 +26,11 @@ from z3 import (
 )
 
 from ..core import Date, Period
-from .naive_bv import eom_clamp, days_in_month, to_ordinal, from_ordinal
+from .epoch_days_bv import (
+    days_since_epoch_from_ymd,
+    ymd_from_days_since_epoch,
+)
+from .naive_bv import eom_clamp, days_in_month
 from .bitwidths import LEGACY_BITS
 
 # -------------------------------
@@ -214,9 +218,9 @@ class DateVar:
         """DateVar + Period using alpha for Y/M and beta for D.
         Steps:
           - Fast path 1: If days-only period and result stays within month, simple addition.
-          - Fast path 2: If days-only period but crosses month boundary, normalize via ordinal.
+          - Fast path 2: If days-only period but crosses month boundary, normalize via epoch-days.
           - Full path: Add months to alpha, EOM clamp beta, add days to beta.
-            If result stays within month, simple addition; otherwise normalize via ordinal.
+            If result stays within month, simple addition; otherwise normalize via epoch-days.
         """
         if isinstance(other, Period):
             result = DateVar(f"{self.name}_plus")
@@ -239,10 +243,10 @@ class DateVar:
                 alpha_within = self.months_var
                 beta_within = new_beta
                 
-                # Fallback: normalize via ordinal conversion (handles month overflow)
+                # Fallback: normalize via epoch-days conversion (handles month overflow)
                 d0 = new_beta + BitVecVal(1, LEGACY_BITS)  # Convert 0-based beta to 1-based day
-                ordinal = to_ordinal(y0, m0, d0)
-                y2, m2, d2 = from_ordinal(ordinal)
+                epoch_days = days_since_epoch_from_ymd(y0, m0, d0)
+                y2, m2, d2 = ymd_from_days_since_epoch(epoch_days)
                 months_ordinal = months_since_epoch_from_ym(y2, m2)
                 beta_ordinal = d2 - BitVecVal(1, LEGACY_BITS)
                 
@@ -265,32 +269,43 @@ class DateVar:
             d1 = eom_clamp(y1, m1, self.beta_var + BitVecVal(1, LEGACY_BITS))
             beta1 = d1 - BitVecVal(1, LEGACY_BITS)  # Convert back to 0-based beta
 
-            # Step 3: Add days to beta directly
-            new_beta = beta1 + days_delta
+            # Fast path: years/months-only period (no days)
+            if other.days == 0:
+                # No day addition needed - we're done!
+                result.months_var = alpha1
+                result.beta_var = beta1
+                
+                result._solver = self._solver
+                result._add_bounds()
+                return result
 
-            # Check if result stays within same month
-            stays_in_month = And(new_beta >= BitVecVal(0, LEGACY_BITS), new_beta < dim1)
+            else:
+                # Step 3: Add days to beta directly
+                new_beta = beta1 + days_delta
 
-            # Within-month fast path: simple addition
-            alpha_within = alpha1
-            beta_within = new_beta
+                # Check if result stays within same month
+                stays_in_month = And(new_beta >= BitVecVal(0, LEGACY_BITS), new_beta < dim1)
 
-            # Fallback: Normalize via ordinal conversion (handles all overflow cases)
-            d_temp = new_beta + BitVecVal(1, LEGACY_BITS)  # Convert 0-based beta to 1-based day
-            ordinal = to_ordinal(y1, m1, d_temp)
-            y2, m2, d2 = from_ordinal(ordinal)
+                # Within-month fast path: simple addition
+                alpha_within = alpha1
+                beta_within = new_beta
 
-            months_ordinal = months_since_epoch_from_ym(y2, m2)
-            beta_ordinal = d2 - BitVecVal(1, LEGACY_BITS)
+                # Fallback: Normalize via epoch-days conversion (handles all overflow cases)
+                d_temp = new_beta + BitVecVal(1, LEGACY_BITS)  # Convert 0-based beta to 1-based day
+                epoch_days = days_since_epoch_from_ymd(y1, m1, d_temp)
+                y2, m2, d2 = ymd_from_days_since_epoch(epoch_days)
 
-            # Select result based on within-month condition
-            result.months_var = If(stays_in_month, alpha_within, months_ordinal)
-            result.beta_var = If(stays_in_month, beta_within, beta_ordinal)
-            
-            # Add bounds to intermediate result
-            result._solver = self._solver
-            result._add_bounds()
-            return result
+                months_ordinal = months_since_epoch_from_ym(y2, m2)
+                beta_ordinal = d2 - BitVecVal(1, LEGACY_BITS)
+
+                # Select result based on within-month condition
+                result.months_var = If(stays_in_month, alpha_within, months_ordinal)
+                result.beta_var = If(stays_in_month, beta_within, beta_ordinal)
+                
+                # Add bounds to intermediate result
+                result._solver = self._solver
+                result._add_bounds()
+                return result
         else:
             raise TypeError(f"Cannot add {type(other)} to DateVar")
 
