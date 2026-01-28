@@ -72,6 +72,9 @@ BASELINE_TECHNIQUE = "naive_int"
 # Timeout value in seconds (use this for constraints that timed out)
 TIMEOUT_SECONDS = 60.0
 
+# Speedup value when baseline finishes but technique times out
+TIMEOUT_SPEEDUP = 1e-3  # 0.001
+
 
 def load_results(results_path: Path, verbose: bool = False) -> dict[str, list[dict]]:
     """
@@ -104,7 +107,7 @@ def load_results(results_path: Path, verbose: bool = False) -> dict[str, list[di
 
 def compute_speedups(
     results: dict[str, dict], baseline_technique: str
-) -> dict[str, dict]:
+) -> tuple[dict[str, dict], int]:
     """
     Compute speedup ratios for each technique compared to the baseline.
 
@@ -113,27 +116,33 @@ def compute_speedups(
     - < 1 means technique is slower than baseline
     - = 1 means same performance
 
+    Special cases:
+    - If baseline times out: use TIMEOUT_SECONDS (60s) for baseline time
+    - If baseline finishes but technique times out: speedup = TIMEOUT_SPEEDUP (10^-4)
+    - If both timeout: skip the datapoint
+
     Args:
         results: Dictionary of technique results
         baseline_technique: Name of the baseline technique
 
     Returns:
-        Dictionary mapping technique name to {constraint_id: speedup}
+        Tuple of (speedups dict, count of both-timeout dropped constraints)
     """
     baseline_results = results.get(baseline_technique, {})
     if not baseline_results:
         raise ValueError(f"Baseline technique '{baseline_technique}' has no results")
 
     speedups = {}
+    both_timeout_ids = set()  # Track constraints where all techniques both-timeout
 
     for technique, technique_results in results.items():
         speedups[technique] = {}
 
         for constraint_id, baseline_item in baseline_results.items():
-            # Get baseline time (use TIMEOUT_SECONDS if timed out)
+            baseline_timed_out = baseline_item.get("status") == "timeout"
             baseline_time = baseline_item.get("execution_time")
-            if baseline_item.get("status") == "timeout":
-                baseline_time = TIMEOUT_SECONDS
+
+            # Skip if baseline has no valid execution time
             if baseline_time is None or baseline_time <= 0:
                 continue
 
@@ -142,19 +151,40 @@ def compute_speedups(
                 continue
 
             technique_item = technique_results[constraint_id]
-
-            # Get technique time (use TIMEOUT_SECONDS if timed out)
+            technique_timed_out = technique_item.get("status") == "timeout"
             technique_time = technique_item.get("execution_time")
-            if technique_item.get("status") == "timeout":
-                technique_time = TIMEOUT_SECONDS
+
+            # Skip if technique has no valid execution time
             if technique_time is None or technique_time <= 0:
                 continue
 
-            # Compute speedup
-            speedup = baseline_time / technique_time
+            # Handle timeout cases
+            if baseline_timed_out and technique_timed_out:
+                # Both timed out: skip this datapoint
+                both_timeout_ids.add(constraint_id)
+                continue
+            elif baseline_timed_out:
+                # Baseline timed out, technique finished: use TIMEOUT_SECONDS for baseline
+                speedup = TIMEOUT_SECONDS / technique_time
+            elif technique_timed_out:
+                # Baseline finished, technique timed out: use TIMEOUT_SPEEDUP
+                speedup = TIMEOUT_SPEEDUP
+            else:
+                # Neither timed out: normal computation
+                speedup = baseline_time / technique_time
+
             speedups[technique][constraint_id] = speedup
 
-    return speedups
+    # Count constraints that were dropped for ALL techniques (both-timeout for all)
+    # A constraint is truly dropped only if no technique has a valid speedup for it
+    all_valid_ids = set()
+    for technique in speedups:
+        if technique != baseline_technique:
+            all_valid_ids.update(speedups[technique].keys())
+
+    dropped_count = len(baseline_results) - len(all_valid_ids)
+
+    return speedups, dropped_count
 
 
 def get_sorted_constraint_ids(
@@ -193,6 +223,7 @@ def plot_normalized_speedup(
     sorted_constraint_ids: list[str],
     output_path: Path,
     title: str = "Normalized Speedup vs Naive (Baseline)",
+    baseline_time_range: tuple[float, float] = None,
 ):
     """
     Create a normalized speedup plot comparing all techniques.
@@ -202,21 +233,22 @@ def plot_normalized_speedup(
         sorted_constraint_ids: List of constraint IDs in sorted order
         output_path: Path to save the output figure
         title: Plot title
+        baseline_time_range: Tuple of (min_time, max_time) in seconds for baseline
     """
-    # Set up the figure with publication-quality settings
+    # Set up the figure with publication-quality settings (larger for paper)
     plt.rcParams.update(
         {
             "font.family": "sans-serif",
             "font.sans-serif": ["Arial", "Helvetica", "DejaVu Sans"],
-            "font.size": 9,
-            "axes.labelsize": 10,
-            "axes.titlesize": 11,
-            "legend.fontsize": 8,
-            "xtick.labelsize": 8,
-            "ytick.labelsize": 8,
+            "font.size": 14,
+            "axes.labelsize": 16,
+            "axes.titlesize": 18,
+            "legend.fontsize": 13,
+            "xtick.labelsize": 13,
+            "ytick.labelsize": 13,
             "figure.dpi": 150,
             "savefig.dpi": 300,
-            "axes.linewidth": 0.6,
+            "axes.linewidth": 1.2,
             "axes.edgecolor": "#333333",
             "axes.facecolor": "#fafafa",
             "figure.facecolor": "white",
@@ -227,29 +259,32 @@ def plot_normalized_speedup(
 
     # Adjust figure size and marker size based on number of constraints
     if n_constraints > 300:
-        fig_width = 12
-        marker_size = 20
-        marker_alpha = 0.7
-        line_width = 1.0
-    elif n_constraints > 150:
-        fig_width = 11
-        marker_size = 30
+        fig_width = 16
+        fig_height = 8
+        marker_size = 35
         marker_alpha = 0.75
-        line_width = 1.2
-    else:
-        fig_width = 10
-        marker_size = 40
+        line_width = 1.8
+    elif n_constraints > 150:
+        fig_width = 15
+        fig_height = 8
+        marker_size = 45
         marker_alpha = 0.8
-        line_width = 1.4
+        line_width = 2.0
+    else:
+        fig_width = 14
+        fig_height = 7.5
+        marker_size = 55
+        marker_alpha = 0.85
+        line_width = 2.2
 
-    fig, ax = plt.subplots(figsize=(fig_width, 4))
+    fig, ax = plt.subplots(figsize=(fig_width, fig_height))
 
     # Add background shading for speedup/slowdown regions
     ax.axhspan(1, 100000, facecolor="#e8f5e9", alpha=0.4, zorder=0)  # Green for speedup
     ax.axhspan(0.00001, 1, facecolor="#ffebee", alpha=0.4, zorder=0)  # Red for slowdown
 
     # Add horizontal reference line at y=1 (baseline performance)
-    ax.axhline(y=1, color="#333333", linestyle="-", linewidth=1.5, alpha=0.9, zorder=2)
+    ax.axhline(y=1, color="#333333", linestyle="-", linewidth=2.5, alpha=0.9, zorder=2)
 
     # Plot each technique (except baseline which will be shown as reference line)
     for technique, config in TECHNIQUES.items():
@@ -297,7 +332,9 @@ def plot_normalized_speedup(
             )
 
     if all_speedups:
-        y_min = max(0.001, min(all_speedups) * 0.5)
+        y_min = max(
+            0.0005, min(all_speedups) * 0.5
+        )  # Extended below TIMEOUT_SPEEDUP (0.001)
         y_max = min(100000, max(all_speedups) * 2)
     else:
         y_min, y_max = 0.01, 1000
@@ -311,15 +348,18 @@ def plot_normalized_speedup(
     ax.set_xticks([])
 
     # Labels
-    ax.set_xlabel(
-        f"Constraint (n={n_constraints}, sorted by baseline time)",
-        fontweight="medium",
-        fontsize=9,
-    )
-    ax.set_ylabel("Speedup", fontweight="medium", fontsize=9)
+    if baseline_time_range:
+        min_t, max_t = baseline_time_range
+        xlabel = f"Constraint (n={n_constraints}, sorted by baseline time: {min_t:.3f}s – {max_t:.1f}s)"
+    else:
+        xlabel = f"Constraint (n={n_constraints}, sorted by baseline time)"
+    ax.set_xlabel(xlabel, fontweight="medium", fontsize=25, labelpad=12)
+    ax.set_ylabel("Speedup (log scale)", fontweight="medium", fontsize=25)
 
     # Grid - only horizontal, subtle
-    ax.yaxis.grid(True, linestyle="--", alpha=0.3, zorder=1, color="#bbbbbb")
+    ax.yaxis.grid(
+        True, linestyle="--", alpha=0.3, zorder=1, color="#bbbbbb", linewidth=0.8
+    )
     ax.xaxis.grid(False)
 
     # Remove top and right spines for cleaner look
@@ -334,17 +374,18 @@ def plot_normalized_speedup(
         shadow=False,
         framealpha=0.9,
         edgecolor="#dddddd",
-        borderpad=0.5,
-        handletextpad=0.4,
-        columnspacing=0.8,
-        fontsize=8,
+        borderpad=0.8,
+        handletextpad=0.6,
+        columnspacing=1.2,
+        fontsize=18,
+        markerscale=1.3,
     )
-    legend.get_frame().set_linewidth(0.4)
+    legend.get_frame().set_linewidth(1.0)
 
     # Title
-    ax.set_title(title, fontweight="bold", pad=10, fontsize=10)
+    ax.set_title(title, fontweight="bold", pad=18, fontsize=26)
 
-    # Add annotations for speedup/slowdown regions (smaller font)
+    # Add annotations for speedup/slowdown regions
     ax.text(
         0.99,
         0.97,
@@ -352,9 +393,9 @@ def plot_normalized_speedup(
         transform=ax.transAxes,
         ha="right",
         va="top",
-        fontsize=7,
+        fontsize=18,
         color="#2e7d32",
-        fontstyle="italic",
+        fontweight="bold",
         alpha=0.7,
     )
     ax.text(
@@ -364,10 +405,10 @@ def plot_normalized_speedup(
         transform=ax.transAxes,
         ha="right",
         va="bottom",
-        fontsize=7,
+        fontsize=18,
         color="#c62828",
-        fontstyle="italic",
-        alpha=0.7,
+        fontweight="bold",
+        alpha=0.8,
     )
 
     # Adjust layout
@@ -436,11 +477,43 @@ def process_dataset(dataset_name: str, dataset_config: dict):
 
     # Get sorted constraint IDs (timeouts treated as 60s)
     sorted_constraint_ids = get_sorted_constraint_ids(results, BASELINE_TECHNIQUE)
-
-    print(f"\n[{dataset_name.upper()}] {len(sorted_constraint_ids)} constraints")
+    total_constraints = len(sorted_constraint_ids)
 
     # Compute speedups
-    speedups = compute_speedups(results, BASELINE_TECHNIQUE)
+    speedups, dropped_count = compute_speedups(results, BASELINE_TECHNIQUE)
+
+    # Get actual count of constraints with valid speedups
+    valid_constraint_ids = set()
+    for technique in speedups:
+        if technique != BASELINE_TECHNIQUE:
+            valid_constraint_ids.update(speedups[technique].keys())
+    actual_count = len(valid_constraint_ids)
+
+    if dropped_count > 0:
+        print(
+            f"\n[{dataset_name.upper()}] {actual_count} constraints ({dropped_count} dropped, both timed out)"
+        )
+    else:
+        print(f"\n[{dataset_name.upper()}] {actual_count} constraints")
+
+    # Filter sorted_constraint_ids to only include valid ones
+    sorted_constraint_ids = [
+        cid for cid in sorted_constraint_ids if cid in valid_constraint_ids
+    ]
+
+    # Compute baseline time range
+    baseline_results = results[BASELINE_TECHNIQUE]
+    baseline_times = []
+    for cid in sorted_constraint_ids:
+        if cid in baseline_results:
+            t = baseline_results[cid].get("execution_time")
+            if baseline_results[cid].get("status") == "timeout":
+                t = TIMEOUT_SECONDS
+            if t and t > 0:
+                baseline_times.append(t)
+    baseline_time_range = (
+        (min(baseline_times), max(baseline_times)) if baseline_times else None
+    )
 
     # Print statistics
     print_statistics(speedups, sorted_constraint_ids)
@@ -454,6 +527,7 @@ def process_dataset(dataset_name: str, dataset_config: dict):
         sorted_constraint_ids,
         output_path,
         title=title,
+        baseline_time_range=baseline_time_range,
     )
 
     print(f"  -> {output_path.with_suffix('.pdf').name}")
@@ -499,13 +573,45 @@ def process_combined_datasets():
     sorted_constraint_ids = get_sorted_constraint_ids(
         combined_results, BASELINE_TECHNIQUE
     )
-
-    print(
-        f"\n[COMBINED] {len(sorted_constraint_ids)} constraints ({', '.join(dataset_counts)})"
-    )
+    total_constraints = len(sorted_constraint_ids)
 
     # Compute speedups
-    speedups = compute_speedups(combined_results, BASELINE_TECHNIQUE)
+    speedups, dropped_count = compute_speedups(combined_results, BASELINE_TECHNIQUE)
+
+    # Get actual count of constraints with valid speedups
+    valid_constraint_ids = set()
+    for technique in speedups:
+        if technique != BASELINE_TECHNIQUE:
+            valid_constraint_ids.update(speedups[technique].keys())
+    actual_count = len(valid_constraint_ids)
+
+    if dropped_count > 0:
+        print(
+            f"\n[COMBINED] {actual_count} constraints ({dropped_count} dropped) from {', '.join(dataset_counts)}"
+        )
+    else:
+        print(
+            f"\n[COMBINED] {actual_count} constraints from {', '.join(dataset_counts)}"
+        )
+
+    # Filter sorted_constraint_ids to only include valid ones
+    sorted_constraint_ids = [
+        cid for cid in sorted_constraint_ids if cid in valid_constraint_ids
+    ]
+
+    # Compute baseline time range
+    baseline_results = combined_results[BASELINE_TECHNIQUE]
+    baseline_times = []
+    for cid in sorted_constraint_ids:
+        if cid in baseline_results:
+            t = baseline_results[cid].get("execution_time")
+            if baseline_results[cid].get("status") == "timeout":
+                t = TIMEOUT_SECONDS
+            if t and t > 0:
+                baseline_times.append(t)
+    baseline_time_range = (
+        (min(baseline_times), max(baseline_times)) if baseline_times else None
+    )
 
     # Print statistics
     print_statistics(speedups, sorted_constraint_ids)
@@ -519,6 +625,7 @@ def process_combined_datasets():
         sorted_constraint_ids,
         output_path,
         title="Normalized Speedup Comparison (All Constraints Combined)",
+        baseline_time_range=baseline_time_range,
     )
 
     print(f"  -> {output_path.with_suffix('.pdf').name}")
@@ -529,9 +636,10 @@ def process_combined_datasets():
 def main():
     """Main entry point."""
     print("\nNormalized Speedup Plot Generator")
-    print(
-        f"Baseline: {TECHNIQUES[BASELINE_TECHNIQUE]['label']} | Timeouts: {TIMEOUT_SECONDS}s"
-    )
+    print(f"Baseline: {TECHNIQUES[BASELINE_TECHNIQUE]['label']}")
+    print(f"  - Baseline timeout: use {TIMEOUT_SECONDS}s")
+    print(f"  - Technique timeout (baseline ok): speedup = {TIMEOUT_SPEEDUP}")
+    print(f"  - Both timeout: dropped")
 
     success_count = 0
     for dataset_name, dataset_config in DATASETS.items():
