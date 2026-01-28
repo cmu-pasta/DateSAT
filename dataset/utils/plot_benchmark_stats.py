@@ -289,7 +289,7 @@ def write_atoms_log(
 
 def load_grammar_constraints(base_path: Path) -> list[dict]:
     """Load grammar constraints from JSON file."""
-    file_path = base_path / "grammar_constraints" / "benchmarks" / "constraints.json"
+    file_path = base_path / "grammar_constraints" / "constraints" / "constraints.json"
     with open(file_path, "r") as f:
         return json.load(f)
 
@@ -690,10 +690,10 @@ def main():
     try:
         llm_data = load_llm_constraints(base_path)
         print(f"  LLM: {len(llm_data)} benchmarks loaded, computing atom statistics...")
-        stats_dict["LLM-Generated\nSynthetic Constraints"] = compute_stats(
+        stats_dict["LLM-Synthesized\nConstraints"] = compute_stats(
             llm_data, constraint_parser
         )
-        data_dict["LLM-Generated\nSynthetic Constraints"] = llm_data
+        data_dict["LLM-Synthesized\nConstraints"] = llm_data
     except FileNotFoundError as e:
         print(f"  Warning: LLM constraints not found: {e}")
 

@@ -42,12 +42,15 @@ def compute_statistics(times):
     return stats
 
 
-def format_time(seconds):
-    """Format time in milliseconds."""
-    return f"{seconds * 1000:.2f} ms"
+def format_time(seconds, unit="ms"):
+    """Format time in the specified unit (ms or s)."""
+    if unit == "ms":
+        return f"{seconds * 1000:.2f} ms"
+    else:
+        return f"{seconds:.2f} s"
 
 
-def print_statistics(stats):
+def print_statistics(stats, unit="ms", show_percentiles=False):
     """Print statistics in a formatted way."""
     if stats is None:
         print("No execution time data found.")
@@ -57,11 +60,17 @@ def print_statistics(stats):
     print("EXECUTION TIME STATISTICS")
     print("=" * 50)
     print(f"Total number of datapoints: {stats['count']}")
-    print(f"25th percentile:            {format_time(stats['percentile_25'])}")
-    print(f"Median:                     {format_time(stats['median'])}")
-    print(f"75th percentile:            {format_time(stats['percentile_75'])}")
-    print(f"Mean:                       {format_time(stats['mean'])}")
-    print(f"Standard deviation:         {stats['std_dev']:.2f} s")
+    if show_percentiles:
+        print(
+            f"25th percentile:            {format_time(stats['percentile_25'], unit)}"
+        )
+    print(f"Median:                     {format_time(stats['median'], unit)}")
+    if show_percentiles:
+        print(
+            f"75th percentile:            {format_time(stats['percentile_75'], unit)}"
+        )
+    print(f"Mean:                       {format_time(stats['mean'], unit)}")
+    print(f"Standard deviation:         {format_time(stats['std_dev'], unit)}")
     print("=" * 50 + "\n")
 
 
@@ -70,6 +79,20 @@ def main():
         description="Compute execution time statistics from benchmark result files."
     )
     parser.add_argument("file_path", type=str, help="Path to the JSON result file")
+    parser.add_argument(
+        "--unit",
+        "-u",
+        type=str,
+        choices=["ms", "s"],
+        default="ms",
+        help="Time unit for output: 'ms' (milliseconds) or 's' (seconds). Default: ms",
+    )
+    parser.add_argument(
+        "--percentiles",
+        "-p",
+        action="store_true",
+        help="Show 25th and 75th percentiles in addition to median and mean",
+    )
 
     args = parser.parse_args()
 
@@ -83,7 +106,7 @@ def main():
     try:
         execution_times = load_execution_times(file_path)
         stats = compute_statistics(execution_times)
-        print_statistics(stats)
+        print_statistics(stats, unit=args.unit, show_percentiles=args.percentiles)
         return 0
     except json.JSONDecodeError as e:
         print(f"Error: Failed to parse JSON file: {e}")
