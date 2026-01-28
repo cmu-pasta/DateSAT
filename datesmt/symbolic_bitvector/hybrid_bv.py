@@ -45,21 +45,18 @@ from z3 import (
 )
 from ..core import Date, Period
 from .bitwidths import LEGACY_BITS
-from .epoch_days_bv import date_from_days_since_epoch, days_since_epoch_from_date, add_days_ordinal as add_days_ordinal_epoch
-from .naive_bv import (
-    _dbm_index,
-    days_before_month,
-    days_before_year,
-    days_in_month,
+from .epoch_days_bv import (
+    date_from_days_since_epoch,
+    days_since_epoch_from_date,
+    add_days_ordinal,
     days_since_epoch_from_ymd,
-    eom_clamp,
-    from_ordinal,
-    is_leap,
-    normalize_month,
-    to_ordinal,
-    ymd_from_days_since_epoch,
+    ymd_from_days_since_epoch
 )
-
+from .naive_bv import (
+    eom_clamp,
+    normalize_month,
+    days_in_month
+)
 
 class DateVar:
     """Symbolic date variable with lazy dual representation (epoch + Y/M/D)."""
@@ -519,7 +516,7 @@ class DateVar:
                 result._ymd_consistent = True
             else:
                 # Direct assignment for epoch_var 
-                result.epoch_var = add_days_ordinal_epoch(y1, m1, d1, od)
+                result.epoch_var = add_days_ordinal(y1, m1, d1, od)
                 result._epoch_consistent = True
                 result._ymd_consistent = False
             
