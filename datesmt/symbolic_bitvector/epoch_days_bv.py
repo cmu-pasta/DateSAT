@@ -31,30 +31,31 @@ from z3 import (
 from ..core import Date, Period
 from .bitwidths import LEGACY_BITS
 from .naive_bv import (
-    _dbm_index,
-    days_before_month,
-    days_before_year,
-    days_in_month,
-    days_since_epoch_from_ymd,
     eom_clamp,
-    from_ordinal,
-    is_leap,
     normalize_month,
-    to_ordinal,
-    ymd_from_days_since_epoch,
+    is_leap
 )
+# -------------------------------
+# Epoch binding: 2000-03-01
+# -------------------------------
+# _ORD_EPOCH = to_ordinal(BitVecVal(2000, LEGACY_BITS), BitVecVal(3, LEGACY_BITS), BitVecVal(1, LEGACY_BITS))  # original ground Z3 term
+_ORD_EPOCH = BitVecVal(
+    730179, LEGACY_BITS
+)  # precomputed ordinal of 2000-03-01 (0001-01-01 = 0)
 
 _EPOCH = date(2000, 3, 1)
 
+_NONLEAP_PREFIX = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334]
+_LEAP_PREFIX = [0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335]
 
-def from_days_since_epoch(days: int) -> Date:
-    """Convert days since epoch to a Date."""
+def date_from_days_since_epoch(days: int) -> Date:
+    """Convert concrete days since epoch to a concrete Date."""
     result_date = _EPOCH + timedelta(days=days)
     return Date(result_date.year, result_date.month, result_date.day)
 
 
-def to_days_since_epoch(date_obj: Date) -> int:
-    """Convert a Date to days since epoch (March 1, 2000)."""
+def days_since_epoch_from_date(date_obj: Date) -> int:
+    """Convert a concrete Date to concrete days since epoch (March 1, 2000)."""
     target_python = date(date_obj.year, date_obj.month, date_obj.day)
     return (target_python - _EPOCH).days
 
@@ -62,8 +63,122 @@ def add_days_ordinal(y, m, d, delta_days) -> BitVecRef:
     """
     Exact ordinal-based addition via a single ordinal add.
     """
-    z = days_since_epoch_from_ymd(y, m, d)
+    z = _days_since_epoch_from_ymd_bv(y, m, d)
     return z + delta_days
+
+def days_before_year(y) -> BitVecRef:
+    """
+    Days from 0001-01-01 to Jan 1 of year y (0-based), Gregorian rules.
+    """
+    y1 = y - BitVecVal(1, LEGACY_BITS)
+    return (
+        BitVecVal(365, LEGACY_BITS) * y1
+        + y1 / BitVecVal(4, LEGACY_BITS)
+        - y1 / BitVecVal(100, LEGACY_BITS)
+        + y1 / BitVecVal(400, LEGACY_BITS)
+    )
+
+
+def days_before_month(y, m) -> BitVecRef:
+    """Z3 piecewise selection (no Python control over symbolic m)."""
+    expr = BitVecVal(0, LEGACY_BITS)
+    for i in range(1, 13):
+        expr = If(m == BitVecVal(i, LEGACY_BITS), _dbm_index(y, i), expr)
+    return expr
+
+def to_ordinal(y, m, d) -> BitVecRef:
+    """Z3-pure ordinal conversion (day 0 = 0001-01-01)."""
+    return (
+        days_before_year(y) + days_before_month(y, m) + (d - BitVecVal(1, LEGACY_BITS))
+    )
+
+
+def from_ordinal(n) -> Tuple[BitVecRef, BitVecRef, BitVecRef]:
+    """Z3-pure ordinal to date conversion using 400/100/4/1 year block decomposition."""
+    # 400/100/4/1 year block decomposition
+    D400, D100, D4, D1 = (
+        BitVecVal(146097, LEGACY_BITS),
+        BitVecVal(36524, LEGACY_BITS),
+        BitVecVal(1461, LEGACY_BITS),
+        BitVecVal(365, LEGACY_BITS),
+    )
+    q400, r400 = n / D400, n % D400
+
+    q100_raw = r400 / D100
+    q100 = If(
+        q100_raw >= BitVecVal(4, LEGACY_BITS), BitVecVal(3, LEGACY_BITS), q100_raw
+    )  # clamp 0..3
+    r100 = r400 - q100 * D100
+
+    q4, r4 = r100 / D4, r100 % D4
+
+    q1_raw = r4 / D1
+    q1 = If(
+        q1_raw >= BitVecVal(4, LEGACY_BITS), BitVecVal(3, LEGACY_BITS), q1_raw
+    )  # clamp 0..3
+    r1 = r4 - q1 * D1  # day-of-year (0..365)
+
+    year = (
+        q400 * BitVecVal(400, LEGACY_BITS)
+        + q100 * BitVecVal(100, LEGACY_BITS)
+        + q4 * BitVecVal(4, LEGACY_BITS)
+        + q1
+        + BitVecVal(1, LEGACY_BITS)
+    )
+
+    # month = max i with r1 >= DBM(year, i)
+    dbm = [_dbm_index(year, i) for i in range(1, 13)]
+    month = BitVecVal(1, LEGACY_BITS)
+    for i in range(2, 13):
+        month = If(r1 >= dbm[i - 1], BitVecVal(i, LEGACY_BITS), month)
+
+    # day = r1 - DBM(year, month) + 1
+    day_expr = r1 - dbm[0] + BitVecVal(1, LEGACY_BITS)
+    for i in range(2, 13):
+        day_expr = If(
+            r1 >= dbm[i - 1], r1 - dbm[i - 1] + BitVecVal(1, LEGACY_BITS), day_expr
+        )
+
+    return year, month, day_expr
+
+def _ymd_from_days_since_epoch_bv(days_term: BitVecRef) -> Tuple[BitVecRef, BitVecRef, BitVecRef]:
+    """Decode (y,m,d) from a Z3 BitVec 'days since 2000-03-01'."""
+    return from_ordinal(days_term + _ORD_EPOCH)
+
+def _days_since_epoch_from_ymd_bv(y: BitVecRef, m: BitVecRef, d: BitVecRef) -> BitVecRef:
+    """Encode (y,m,d) to Z3 BitVec 'days since 2000-03-01'."""
+    return to_ordinal(y, m, d) - _ORD_EPOCH
+
+
+def ymd_from_days_since_epoch(days_term):
+    """
+    Overload:
+    - ymd_from_days_since_epoch(int) -> Date
+    - ymd_from_days_since_epoch(BitVecRef) -> (y,m,d) BitVecRefs
+    """
+    if isinstance(days_term, int):
+        return date_from_days_since_epoch(days_term)
+    return _ymd_from_days_since_epoch_bv(days_term)
+
+
+def days_since_epoch_from_ymd(*args):
+    """
+    Overload:
+    - days_since_epoch_from_ymd(Date) -> int
+    - days_since_epoch_from_ymd(y,m,d) -> BitVecRef
+    """
+    if len(args) == 1 and isinstance(args[0], Date):
+        return days_since_epoch_from_date(args[0])
+    if len(args) == 3:
+        y, m, d = args
+        return _days_since_epoch_from_ymd_bv(y, m, d)
+    raise TypeError("days_since_epoch_from_ymd expects (Date) or (y, m, d)")
+
+def _dbm_index(y, idx) -> BitVecRef:
+    """days_before_month for fixed idx∈{1..12} as a Z3 term."""
+    non = BitVecVal(_NONLEAP_PREFIX[idx - 1], LEGACY_BITS)
+    lep = BitVecVal(_LEAP_PREFIX[idx - 1], LEGACY_BITS)
+    return If(is_leap(y), lep, non)
 
 class DateVar:
     """Symbolic date variable for epoch_days implementation."""
@@ -100,12 +215,12 @@ class DateVar:
     def to_concrete_date(self, model: ModelRef) -> Date:
         """Convert Z3 model to concrete Date."""
         days = model.evaluate(self.days_var, model_completion=True).as_signed_long()
-        return from_days_since_epoch(days)
+        return date_from_days_since_epoch(days)
 
     def __ge__(self, other) -> BoolRef:
         """Support x >= date comparison."""
         if isinstance(other, Date):
-            return self.days_var >= to_days_since_epoch(other)
+            return self.days_var >= BitVecVal(days_since_epoch_from_date(other), LEGACY_BITS)
         elif isinstance(other, DateVar):
             return self.days_var >= other.days_var
         else:
@@ -114,7 +229,7 @@ class DateVar:
     def __le__(self, other) -> BoolRef:
         """Support x <= date comparison."""
         if isinstance(other, Date):
-            return self.days_var <= to_days_since_epoch(other)
+            return self.days_var <= BitVecVal(days_since_epoch_from_date(other), LEGACY_BITS)
         elif isinstance(other, DateVar):
             return self.days_var <= other.days_var
         else:
@@ -137,7 +252,7 @@ class DateVar:
     def __eq__(self, other) -> BoolRef:
         """Support x == date comparison."""
         if isinstance(other, Date):
-            return self.days_var == to_days_since_epoch(other)
+            return self.days_var == BitVecVal(days_since_epoch_from_date(other), LEGACY_BITS)
         elif isinstance(other, DateVar):
             return self.days_var == other.days_var
         else:
@@ -273,7 +388,7 @@ class EpochDaysSolver:
             from datetime import date
 
             today = date.today()
-            today_days = to_days_since_epoch(Date.from_python_date(today))
+            today_days = days_since_epoch_from_date(Date.from_python_date(today))
 
             # Calculate ±50 years and ±10 years in days (approximate)
             # Using 365.25 days per year for accuracy

@@ -25,7 +25,14 @@ from z3 import (
     unsat,
 )
 from ..core import Date, Period
-from .naive_int import eom_clamp, days_in_month, to_ordinal, from_ordinal
+from .naive_int import (
+    eom_clamp,
+    days_in_month
+)
+from .epoch_days_int import (
+    ymd_from_days_since_epoch,
+    days_since_epoch_from_ymd
+)
 
 # -------------------------------
 # Alpha (months-since-epoch) helpers
@@ -234,10 +241,11 @@ class DateVar:
                 alpha_within = self.months_var
                 beta_within = new_beta
                 
-                # Fallback: normalize via ordinal conversion (handles month overflow)
+                # Fallback: normalize via epoch conversion (handles month overflow)
                 d0 = new_beta + IntVal(1)  # Convert 0-based beta to 1-based day
-                ordinal = to_ordinal(y0, m0, d0)
-                y2, m2, d2 = from_ordinal(ordinal)
+                # Convert Y/M/D to epoch days, then back to Y/M/D (normalizes across boundaries)
+                epoch_days = days_since_epoch_from_ymd(y0, m0, d0)
+                y2, m2, d2 = ymd_from_days_since_epoch(epoch_days)
                 months_ordinal = months_since_epoch_from_ym(y2, m2)
                 beta_ordinal = d2 - IntVal(1)
                 
@@ -249,7 +257,7 @@ class DateVar:
                 result._solver = self._solver
                 result._add_bounds()
                 return result
-
+        
             # Full path: Add to alpha and beta directly, then normalize
             # Step 1: Add months to alpha directly
             alpha1 = self.months_var + months_delta
@@ -260,32 +268,44 @@ class DateVar:
             d1 = eom_clamp(y1, m1, self.beta_var + IntVal(1))
             beta1 = d1 - IntVal(1)  # Convert back to 0-based beta
 
-            # Step 3: Add days to beta directly
-            new_beta = beta1 + days_delta
+            # Fast path: years/months-only period (no days)
+            if other.days == 0:
+                # No day addition needed - we're done!
+                result.months_var = alpha1
+                result.beta_var = beta1
+                
+                result._solver = self._solver
+                result._add_bounds()
+                return result
 
-            # Check if result stays within same month
-            stays_in_month = And(new_beta >= IntVal(0), new_beta < dim1)
+            else:
+                # Step 3: Add days to beta directly
+                new_beta = beta1 + days_delta
 
-            # Within-month fast path: simple addition
-            alpha_within = alpha1
-            beta_within = new_beta
+                # Check if result stays within same month
+                stays_in_month = And(new_beta >= IntVal(0), new_beta < dim1)
 
-            # Fallback: Normalize via ordinal conversion (handles all overflow cases)
-            d_temp = new_beta + IntVal(1)  # Convert 0-based beta to 1-based day
-            ordinal = to_ordinal(y1, m1, d_temp)
-            y2, m2, d2 = from_ordinal(ordinal)
+                # Within-month fast path: simple addition
+                alpha_within = alpha1
+                beta_within = new_beta
 
-            months_ordinal = months_since_epoch_from_ym(y2, m2)
-            beta_ordinal = d2 - IntVal(1)
+                # Fallback: Normalize via epoch conversion (handles all overflow cases)
+                d_temp = new_beta + IntVal(1)  # Convert 0-based beta to 1-based day
+                # Convert Y/M/D to epoch days, then back to Y/M/D (normalizes across boundaries)
+                epoch_days = days_since_epoch_from_ymd(y1, m1, d_temp)
+                y2, m2, d2 = ymd_from_days_since_epoch(epoch_days)
 
-            # Select result based on within-month condition
-            result.months_var = If(stays_in_month, alpha_within, months_ordinal)
-            result.beta_var = If(stays_in_month, beta_within, beta_ordinal)
-            
-            # Add bounds to intermediate result
-            result._solver = self._solver
-            result._add_bounds()
-            return result
+                months_ordinal = months_since_epoch_from_ym(y2, m2)
+                beta_ordinal = d2 - IntVal(1)
+
+                # Select result based on within-month condition
+                result.months_var = If(stays_in_month, alpha_within, months_ordinal)
+                result.beta_var = If(stays_in_month, beta_within, beta_ordinal)
+                
+                # Add bounds to intermediate result
+                result._solver = self._solver
+                result._add_bounds()
+                return result
         else:
             raise TypeError(f"Cannot add {type(other)} to DateVar")
 

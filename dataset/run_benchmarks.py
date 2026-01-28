@@ -187,6 +187,7 @@ def run_constraints_file(
 ):
     """Run benchmarks on constraints from a file with specified solver approaches.
 
+
     Args:
         constraints_file: Path to constraints file (JSON or JSONL)
         output_dir: Output directory for results
@@ -212,7 +213,12 @@ def run_constraints_file(
         # "hybrid",
         # "alpha_beta",
         # "alpha_beta_table"
+        # "epoch_days",
+        # "hybrid",
+        # "alpha_beta",
+        # "alpha_beta_table"
     ]
+
 
     # Filter approaches if specified
     if approaches is not None:
@@ -221,11 +227,15 @@ def run_constraints_file(
             print(
                 f"⚠️  Warning: No valid approaches found in {approaches}. Using all approaches."
             )
+            print(
+                f"⚠️  Warning: No valid approaches found in {approaches}. Using all approaches."
+            )
             symbolic_approaches = all_symbolic_approaches
         else:
             print(f"Running with approaches: {symbolic_approaches}")
     else:
         symbolic_approaches = all_symbolic_approaches
+
 
     implementations = ["int"]  # Can add "bitvector" if needed
 
@@ -299,6 +309,8 @@ def main():
     constraint_sets = [
         {
             "name": "Grammar Constraints",
+        {
+            "name": "Grammar Constraints",
             "constraints_file": SCRIPT_DIR
             / "grammar_constraints"
             / "constraints"
@@ -348,12 +360,14 @@ def main():
         default=None,
         help="List of approaches to test (e.g., --approaches alpha_beta_table alpha_beta_table_old). "
         "If not specified, all approaches are tested.",
+        "If not specified, all approaches are tested.",
     )
     parser.add_argument(
         "--datasets",
         nargs="+",
         default=None,
         help="List of dataset names to run (e.g., --datasets legal llm). "
+        "Short names: 'legal', 'llm', 'grammar'. If not specified, all datasets are tested.",
         "Short names: 'legal', 'llm', 'grammar'. If not specified, all datasets are tested.",
     )
 
@@ -392,6 +406,7 @@ def main():
 
     # Filter constraint sets if specified
     if args.datasets:
+        constraint_sets = [cs for cs in constraint_sets if cs["name"] in args.datasets]
         constraint_sets = [cs for cs in constraint_sets if cs["name"] in args.datasets]
         if not constraint_sets:
             print(f"⚠️  Warning: No matching datasets found. Available datasets:")

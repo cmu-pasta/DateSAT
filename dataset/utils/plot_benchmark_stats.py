@@ -7,10 +7,285 @@ Generates publication-quality figures with standard deviation error bars.
 import argparse
 import json
 import sys
+import sys
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
+
+# Add the project root to sys.path to import datesmt module
+project_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(project_root))
+
+from lark import Token, Tree
+
+from datesmt.constraint_parser import ConstraintParser
+
+
+def extract_atoms_from_constraint(
+    constraint_str: str, parser: ConstraintParser
+) -> list[str]:
+    """
+    Extract all atomic comparisons from a constraint string.
+
+    Atoms are the basic comparison expressions (date_comparison or int_comparison)
+    that cannot be broken down further into boolean sub-expressions.
+
+    For example, given:
+        A==Date(2000,1,1) && (B>C)->(C>A || C==D)
+
+    This function returns:
+        ['A == Date(2000, 1, 1)', 'B > C', 'C > A', 'C == D']
+
+    Args:
+        constraint_str: The constraint string to parse
+        parser: A ConstraintParser instance
+
+    Returns:
+        List of atom strings found in the constraint
+    """
+    atoms = []
+
+    try:
+        # Parse the constraint to get the parse tree
+        tree = parser.parser.parse(constraint_str)
+
+        # Walk the tree to find all comparison nodes
+        _extract_atoms_from_tree(tree, atoms)
+
+    except Exception as e:
+        # If parsing fails, return empty list with a warning
+        print(
+            f"  Warning: Could not parse constraint for atom extraction: {constraint_str[:50]}... ({e})"
+        )
+        return []
+
+    return atoms
+
+
+def _extract_atoms_from_tree(tree, atoms: list[str]) -> None:
+    """
+    Recursively walk the parse tree and extract all comparison atoms.
+
+    Args:
+        tree: Lark parse tree node
+        atoms: List to append atom strings to
+    """
+    if isinstance(tree, Token):
+        return
+
+    if not isinstance(tree, Tree):
+        return
+
+    rule = tree.data
+
+    # date_comparison and int_comparison are the atomic comparisons
+    if rule in ["date_comparison", "int_comparison"]:
+        # Reconstruct the atom string from the tree
+        atom_str = _tree_to_string(tree)
+        atoms.append(atom_str)
+        # Don't recurse into children - we've captured this atom
+        return
+
+    # Recurse into children for other nodes
+    for child in tree.children:
+        if isinstance(child, Tree):
+            _extract_atoms_from_tree(child, atoms)
+
+
+def _tree_to_string(tree) -> str:
+    """
+    Convert a parse tree node back to a string representation.
+
+    Args:
+        tree: Lark parse tree node
+
+    Returns:
+        String representation of the tree
+    """
+    if isinstance(tree, Token):
+        return str(tree)
+
+    if not isinstance(tree, Tree):
+        return str(tree)
+
+    rule = tree.data
+
+    # Handle specific node types
+    if rule == "date_comparison" or rule == "int_comparison":
+        # comparison: expr op expr
+        if len(tree.children) >= 3:
+            left = _tree_to_string(tree.children[0])
+            op = _tree_to_string(tree.children[1])
+            right = _tree_to_string(tree.children[2])
+            return f"{left} {op} {right}"
+
+    if rule == "comparison_op":
+        # The operator is in the children
+        if tree.children:
+            return str(tree.children[0])
+        return ""
+
+    if rule == "date_constructor":
+        # Date(year, month, day)
+        args = [
+            _tree_to_string(child)
+            for child in tree.children
+            if not isinstance(child, Token) or str(child) not in ["(", ")", ","]
+        ]
+        return f"Date({', '.join(args)})"
+
+    if rule == "period_constructor":
+        # Period(years, months, days)
+        args = [
+            _tree_to_string(child)
+            for child in tree.children
+            if not isinstance(child, Token) or str(child) not in ["(", ")", ","]
+        ]
+        return f"Period({', '.join(args)})"
+
+    if rule == "variable":
+        return str(tree.children[0])
+
+    if rule == "int_const":
+        return str(tree.children[0])
+
+    if rule == "date_field_access":
+        # e.g., x.year
+        date_expr = _tree_to_string(tree.children[0])
+        field = (
+            _tree_to_string(tree.children[2])
+            if len(tree.children) > 2
+            else _tree_to_string(tree.children[1])
+        )
+        return f"{date_expr}.{field}"
+
+    if rule == "date_field":
+        return str(tree.children[0])
+
+    if rule in ["date_add_period", "int_add", "period_add"]:
+        parts = [
+            _tree_to_string(child)
+            for child in tree.children
+            if not isinstance(child, Token) or str(child) != "+"
+        ]
+        return " + ".join(parts)
+
+    if rule in ["date_sub_period", "int_sub", "period_sub"]:
+        parts = [
+            _tree_to_string(child)
+            for child in tree.children
+            if not isinstance(child, Token) or str(child) != "-"
+        ]
+        return " - ".join(parts)
+
+    if rule in ["int_mul", "int_mul_period", "period_mul_int"]:
+        parts = [
+            _tree_to_string(child)
+            for child in tree.children
+            if not isinstance(child, Token) or str(child) != "*"
+        ]
+        return " * ".join(parts)
+
+    if rule == "int_neg":
+        parts = [
+            _tree_to_string(child)
+            for child in tree.children
+            if not isinstance(child, Token) or str(child) != "-"
+        ]
+        if parts:
+            return f"-{parts[0]}"
+        return "-"
+
+    # Default: join all children
+    parts = [_tree_to_string(child) for child in tree.children]
+    return " ".join(parts)
+
+
+def count_atoms_in_benchmark(
+    benchmark: dict, parser: ConstraintParser
+) -> tuple[int, list[str]]:
+    """
+    Count the total number of atoms in a benchmark's constraints.
+
+    Args:
+        benchmark: A benchmark dictionary with 'constraints' list
+        parser: A ConstraintParser instance
+
+    Returns:
+        Tuple of (total atom count, list of all atoms)
+    """
+    all_atoms = []
+
+    for constraint_str in benchmark.get("constraints", []):
+        atoms = extract_atoms_from_constraint(constraint_str, parser)
+        all_atoms.extend(atoms)
+
+    return len(all_atoms), all_atoms
+
+
+def write_atoms_log(
+    data_dict: dict[str, list[dict]], output_path: Path, parser: ConstraintParser
+):
+    """
+    Write a log file containing all atoms extracted from each benchmark.
+
+    Args:
+        data_dict: Dictionary mapping dataset names to their benchmark data
+        output_path: Path to the output log file
+        parser: A ConstraintParser instance
+    """
+    with open(output_path, "w") as f:
+        f.write("=" * 80 + "\n")
+        f.write("ATOMS LOG - Extracted atomic comparisons from all benchmarks\n")
+        f.write("=" * 80 + "\n\n")
+
+        total_atoms = 0
+        total_benchmarks = 0
+
+        for dataset_name, data in data_dict.items():
+            f.write(f"\n{'='*80}\n")
+            f.write(f"DATASET: {dataset_name}\n")
+            f.write(f"{'='*80}\n\n")
+
+            dataset_atoms = 0
+
+            for benchmark in data:
+                benchmark_id = benchmark.get("id", "unknown")
+                constraints = benchmark.get("constraints", [])
+
+                f.write(f"\n--- Benchmark: {benchmark_id} ---\n")
+                f.write(f"Number of constraint strings: {len(constraints)}\n")
+
+                benchmark_atoms = []
+                for i, constraint_str in enumerate(constraints, 1):
+                    atoms = extract_atoms_from_constraint(constraint_str, parser)
+                    benchmark_atoms.extend(atoms)
+
+                    f.write(f"\n  Constraint {i}: {constraint_str}\n")
+                    f.write(f"  Atoms found ({len(atoms)}):\n")
+                    for j, atom in enumerate(atoms, 1):
+                        f.write(f"    {j}. {atom}\n")
+
+                f.write(f"\n  Total atoms in benchmark: {len(benchmark_atoms)}\n")
+                dataset_atoms += len(benchmark_atoms)
+                total_benchmarks += 1
+
+            f.write(f"\n{'='*80}\n")
+            f.write(f"DATASET SUMMARY: {dataset_name}\n")
+            f.write(f"  Total benchmarks: {len(data)}\n")
+            f.write(f"  Total atoms: {dataset_atoms}\n")
+            f.write(f"{'='*80}\n")
+
+            total_atoms += dataset_atoms
+
+        f.write(f"\n\n{'='*80}\n")
+        f.write(f"OVERALL SUMMARY\n")
+        f.write(f"  Total benchmarks: {total_benchmarks}\n")
+        f.write(f"  Total atoms: {total_atoms}\n")
+        f.write(f"{'='*80}\n")
+
+    print(f"Atoms log written to: {output_path}")
 
 # Add the project root to sys.path to import datesmt module
 project_root = Path(__file__).parent.parent.parent
@@ -325,7 +600,29 @@ def compute_stats(data: list[dict], parser: ConstraintParser = None) -> dict:
     Returns:
         Dictionary with statistics for variables and atoms/constraints.
     """
+def compute_stats(data: list[dict], parser: ConstraintParser = None) -> dict:
+    """
+    Compute statistics for variables and atoms.
+
+    Args:
+        data: List of benchmark dictionaries
+        parser: Optional ConstraintParser instance for atom extraction.
+                If None, falls back to counting constraint strings.
+
+    Returns:
+        Dictionary with statistics for variables and atoms/constraints.
+    """
     num_vars = [len(d["declarations"]) for d in data]
+
+    # Count atoms if parser is provided, otherwise count constraint strings
+    if parser is not None:
+        num_atoms = []
+        for d in data:
+            atom_count, _ = count_atoms_in_benchmark(d, parser)
+            num_atoms.append(atom_count)
+    else:
+        # Fallback: count constraint strings (legacy behavior)
+        num_atoms = [len(d["constraints"]) for d in data]
 
     # Count atoms if parser is provided, otherwise count constraint strings
     if parser is not None:
@@ -343,6 +640,10 @@ def compute_stats(data: list[dict], parser: ConstraintParser = None) -> dict:
         "vars_std": np.std(num_vars),
         "vars_min": np.min(num_vars),
         "vars_max": np.max(num_vars),
+        "atoms_mean": np.mean(num_atoms),
+        "atoms_std": np.std(num_atoms),
+        "atoms_min": np.min(num_atoms),
+        "atoms_max": np.max(num_atoms),
         "atoms_mean": np.mean(num_atoms),
         "atoms_std": np.std(num_atoms),
         "atoms_min": np.min(num_atoms),
@@ -399,6 +700,8 @@ def plot_benchmark_stats(
     vars_stds = [stats_dict[d]["vars_std"] for d in datasets]
     atoms_means = [stats_dict[d]["atoms_mean"] for d in datasets]
     atoms_stds = [stats_dict[d]["atoms_std"] for d in datasets]
+    atoms_means = [stats_dict[d]["atoms_mean"] for d in datasets]
+    atoms_stds = [stats_dict[d]["atoms_std"] for d in datasets]
 
     # Time/date inspired color palette:
     # - Midnight blue: represents time, night sky, clock faces
@@ -424,7 +727,9 @@ def plot_benchmark_stats(
     bars2 = ax.bar(
         x + width / 2,
         atoms_means,
+        atoms_means,
         width,
+        yerr=atoms_stds,
         yerr=atoms_stds,
         label="Atoms",
         color=colors[1],
@@ -451,6 +756,7 @@ def plot_benchmark_stats(
 
     add_value_labels(bars1, vars_stds, error_colors[0])
     add_value_labels(bars2, atoms_stds, error_colors[1])
+    add_value_labels(bars2, atoms_stds, error_colors[1])
 
     # Customize axes
     ax.set_ylabel("Count (mean ± std)", fontweight="bold")
@@ -463,6 +769,7 @@ def plot_benchmark_stats(
         ax.annotate(
             f"(n={n})",
             xy=(i, 0),
+            xytext=(0, -25),
             xytext=(0, -25),
             textcoords="offset points",
             ha="center",
@@ -490,6 +797,7 @@ def plot_benchmark_stats(
 
     # Set y-axis to start at 0 with some headroom
     y_max = max(max(vars_means) + max(vars_stds), max(atoms_means) + max(atoms_stds))
+    y_max = max(max(vars_means) + max(vars_stds), max(atoms_means) + max(atoms_stds))
     ax.set_ylim(bottom=0, top=y_max * 1.2)
 
     # Light horizontal grid only
@@ -498,6 +806,7 @@ def plot_benchmark_stats(
 
     # Adjust layout
     plt.tight_layout()
+    plt.subplots_adjust(bottom=0.20, top=0.88)
     plt.subplots_adjust(bottom=0.20, top=0.88)
 
     # Save as PDF only
@@ -511,7 +820,11 @@ def plot_benchmark_stats(
 def print_stats_table(stats_dict: dict[str, dict]):
     """Print statistics as a formatted table."""
     print("\n" + "=" * 90)
+    print("\n" + "=" * 90)
     print("Benchmark Statistics Summary")
+    print("=" * 90)
+    print(f"{'Dataset':<35} {'N':>6} {'Vars (mean±std)':>18} {'Atoms (mean±std)':>22}")
+    print("-" * 90)
     print("=" * 90)
     print(f"{'Dataset':<35} {'N':>6} {'Vars (mean±std)':>18} {'Atoms (mean±std)':>22}")
     print("-" * 90)
@@ -519,10 +832,15 @@ def print_stats_table(stats_dict: dict[str, dict]):
     for name, stats in stats_dict.items():
         # Replace newlines with spaces for table display
         display_name = name.replace("\n", " ")
+        # Replace newlines with spaces for table display
+        display_name = name.replace("\n", " ")
         vars_str = f"{stats['vars_mean']:.1f} ± {stats['vars_std']:.1f}"
         atoms_str = f"{stats['atoms_mean']:.1f} ± {stats['atoms_std']:.1f}"
         print(f"{display_name:<35} {stats['n']:>6} {vars_str:>18} {atoms_str:>22}")
+        atoms_str = f"{stats['atoms_mean']:.1f} ± {stats['atoms_std']:.1f}"
+        print(f"{display_name:<35} {stats['n']:>6} {vars_str:>18} {atoms_str:>22}")
 
+    print("-" * 90)
     print("-" * 90)
 
     # Compute overall weighted averages (weighted by number of benchmarks)
@@ -532,14 +850,21 @@ def print_stats_table(stats_dict: dict[str, dict]):
     )
     overall_atoms_mean = (
         sum(s["atoms_mean"] * s["n"] for s in stats_dict.values()) / total_n
+    overall_atoms_mean = (
+        sum(s["atoms_mean"] * s["n"] for s in stats_dict.values()) / total_n
     )
 
     print(
         f"{'Overall':<35} {total_n:>6} {overall_vars_mean:>18.1f} {overall_atoms_mean:>22.1f}"
+        f"{'Overall':<35} {total_n:>6} {overall_vars_mean:>18.1f} {overall_atoms_mean:>22.1f}"
     )
+    print("=" * 90 + "\n")
     print("=" * 90 + "\n")
 
 
+def print_example_benchmark(
+    data_dict: dict[str, list[dict]], parser: ConstraintParser = None
+):
 def print_example_benchmark(
     data_dict: dict[str, list[dict]], parser: ConstraintParser = None
 ):
@@ -565,8 +890,19 @@ def print_example_benchmark(
         # Replace newlines with spaces for display
         display_name = dataset_name.replace("\n", " ")
         print(f"\n{display_name} Dataset Example:")
+        # Extract atoms if parser is provided
+        if parser is not None:
+            atom_count, all_atoms = count_atoms_in_benchmark(example, parser)
+        else:
+            atom_count = len(example["constraints"])
+            all_atoms = example["constraints"]
+
+        # Replace newlines with spaces for display
+        display_name = dataset_name.replace("\n", " ")
+        print(f"\n{display_name} Dataset Example:")
         print(f"  ID: {example.get('id', 'unknown')}")
         print(f"  Number of Variables: {len(example['declarations'])}")
+        print(f"  Number of Atoms: {atom_count}")
         print(f"  Number of Atoms: {atom_count}")
 
         # Show variables (declarations)
@@ -582,12 +918,20 @@ def print_example_benchmark(
             print(f"    {i+1}. {atom}")
         if len(all_atoms) > 5:
             print(f"    ... and {len(all_atoms) - 5} more")
+        # Show extracted atoms
+        print("\n  Extracted Atoms:")
+        for i, atom in enumerate(all_atoms[:5]):  # Show first 5 atoms
+            print(f"    {i+1}. {atom}")
+        if len(all_atoms) > 5:
+            print(f"    ... and {len(all_atoms) - 5} more")
 
         print()
 
     print("=" * 70 + "\n")
 
 
+def find_extremes(data_dict: dict[str, list[dict]], parser: ConstraintParser = None):
+    """Find benchmarks with minimum and maximum variables and atoms."""
 def find_extremes(data_dict: dict[str, list[dict]], parser: ConstraintParser = None):
     """Find benchmarks with minimum and maximum variables and atoms."""
     all_benchmarks = []
@@ -601,11 +945,18 @@ def find_extremes(data_dict: dict[str, list[dict]], parser: ConstraintParser = N
             else:
                 atom_count = len(benchmark["constraints"])
 
+            # Count atoms if parser is provided
+            if parser is not None:
+                atom_count, _ = count_atoms_in_benchmark(benchmark, parser)
+            else:
+                atom_count = len(benchmark["constraints"])
+
             all_benchmarks.append(
                 {
                     "id": benchmark.get("id", "unknown"),
                     "dataset": dataset_name,
                     "num_vars": len(benchmark["declarations"]),
+                    "num_atoms": atom_count,
                     "num_atoms": atom_count,
                 }
             )
@@ -613,35 +964,53 @@ def find_extremes(data_dict: dict[str, list[dict]], parser: ConstraintParser = N
     # Find extremes
     min_vars = min(all_benchmarks, key=lambda x: (x["num_vars"], x["num_atoms"]))
     max_vars = max(all_benchmarks, key=lambda x: (x["num_vars"], x["num_atoms"]))
+    min_vars = min(all_benchmarks, key=lambda x: (x["num_vars"], x["num_atoms"]))
+    max_vars = max(all_benchmarks, key=lambda x: (x["num_vars"], x["num_atoms"]))
 
     print("=" * 70)
     print("Extreme Cases")
     print("=" * 70)
     print("\nSmallest benchmark (least vars + atoms):")
+    print("\nSmallest benchmark (least vars + atoms):")
     print(f"  ID: {min_vars['id']}")
+    print(f"  Dataset: {min_vars['dataset'].replace(chr(10), ' ')}")
     print(f"  Dataset: {min_vars['dataset'].replace(chr(10), ' ')}")
     print(f"  Variables: {min_vars['num_vars']}")
     print(f"  Atoms: {min_vars['num_atoms']}")
+    print(f"  Atoms: {min_vars['num_atoms']}")
 
+    print("\nLargest benchmark (most vars + atoms):")
     print("\nLargest benchmark (most vars + atoms):")
     print(f"  ID: {max_vars['id']}")
     print(f"  Dataset: {max_vars['dataset'].replace(chr(10), ' ')}")
+    print(f"  Dataset: {max_vars['dataset'].replace(chr(10), ' ')}")
     print(f"  Variables: {max_vars['num_vars']}")
+    print(f"  Atoms: {max_vars['num_atoms']}")
     print(f"  Atoms: {max_vars['num_atoms']}")
     print("=" * 70 + "\n")
 
 
 def main():
     arg_parser = argparse.ArgumentParser(
+    arg_parser = argparse.ArgumentParser(
         description="Plot benchmark statistics by dataset."
     )
+    arg_parser.add_argument(
     arg_parser.add_argument(
         "--output",
         "-o",
         type=str,
         default="benchmark_stats.pdf",
         help="Output file path for the figure (default: results/benchmark_stats.pdf)",
+        help="Output file path for the figure (default: results/benchmark_stats.pdf)",
     )
+    arg_parser.add_argument(
+        "--atoms-log",
+        type=str,
+        default="atoms.log",
+        help="Output file path for the atoms log (default: results/atoms.log)",
+    )
+    arg_parser.add_argument(
     arg_parser.add_argument(
         "--atoms-log",
         type=str,
@@ -662,10 +1031,30 @@ def main():
         help="Skip generating the atoms log file",
     )
     args = arg_parser.parse_args()
+    arg_parser.add_argument(
+        "--no-atoms-log",
+        action="store_true",
+        help="Skip generating the atoms log file",
+    )
+    args = arg_parser.parse_args()
 
     # Determine base path (dataset directory)
     script_dir = Path(__file__).parent
     base_path = script_dir.parent
+
+    # Create results folder inside utils
+    results_dir = script_dir / "results"
+    results_dir.mkdir(exist_ok=True)
+
+    # Resolve output paths relative to results folder if not absolute
+    if not Path(args.output).is_absolute():
+        args.output = str(results_dir / args.output)
+    if not Path(args.atoms_log).is_absolute():
+        args.atoms_log = str(results_dir / args.atoms_log)
+
+    # Initialize the constraint parser for atom extraction
+    print("Initializing constraint parser...")
+    constraint_parser = ConstraintParser()
 
     # Create results folder inside utils
     results_dir = script_dir / "results"
@@ -706,11 +1095,25 @@ def main():
             grammar_data, constraint_parser
         )
         data_dict["Grammar-Sampled\nConstraints"] = grammar_data
+        print(
+            f"  Grammar: {len(grammar_data)} benchmarks loaded, computing atom statistics..."
+        )
+        stats_dict["Grammar-Sampled\nConstraints"] = compute_stats(
+            grammar_data, constraint_parser
+        )
+        data_dict["Grammar-Sampled\nConstraints"] = grammar_data
     except FileNotFoundError as e:
         print(f"  Warning: Grammar constraints not found: {e}")
 
     try:
         legal_data = load_legal_constraints(base_path)
+        print(
+            f"  Legal: {len(legal_data)} benchmarks loaded, computing atom statistics..."
+        )
+        stats_dict["Legally Grounded\nConstraints"] = compute_stats(
+            legal_data, constraint_parser
+        )
+        data_dict["Legally Grounded\nConstraints"] = legal_data
         print(
             f"  Legal: {len(legal_data)} benchmarks loaded, computing atom statistics..."
         )
@@ -730,8 +1133,15 @@ def main():
 
     # Print example benchmarks
     print_example_benchmark(data_dict, constraint_parser)
+    print_example_benchmark(data_dict, constraint_parser)
 
     # Print extreme cases
+    find_extremes(data_dict, constraint_parser)
+
+    # Generate atoms log file
+    if not args.no_atoms_log:
+        atoms_log_path = Path(args.atoms_log)
+        write_atoms_log(data_dict, atoms_log_path, constraint_parser)
     find_extremes(data_dict, constraint_parser)
 
     # Generate atoms log file
