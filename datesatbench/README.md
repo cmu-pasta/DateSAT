@@ -12,7 +12,7 @@ DateSATBench contains 3 curated dataset. Please see paper for more details.
 
 ## Evaluation Script
 
-To run evaluation on different DateSAT solvers for different DateSATBench dataset, see `run_benchmarks.py`.
+To run evaluation on different DateSAT solvers for different DateSATBench dataset, see `python datesatbench/run_benchmarks.py --help`.
 
 ## Utils
 

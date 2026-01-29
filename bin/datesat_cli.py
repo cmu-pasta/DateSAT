@@ -3,9 +3,9 @@
 Command-line interface for DateSAT.
 
 Usage:
-    ./bin/datesat.py < constraints.json
-    ./bin/datesat.py --file constraints.json
-    ./bin/datesat.py --approach hybrid --implementation bitvector < constraints.json
+    ./bin/datesat_cli.py < constraints.json
+    ./bin/datesat_cli.py --file constraints.json
+    ./bin/datesat_cli.py --approach hybrid --implementation bitvector < constraints.json
     
 The input should be a JSON file with the following format:
 {
@@ -68,17 +68,17 @@ def main():
         epilog="""
 Examples:
   # Read from stdin
-  ./bin/datesat.py < constraints.json
-  cat constraints.json | ./bin/datesat.py
+  ./bin/datesat_cli.py < constraints.json
+  cat constraints.json | ./bin/datesat_cli.py
   
   # Read from file
-  ./bin/datesat.py --file constraints.json
+  ./bin/datesat_cli.py --file constraints.json
   
   # Use different approach and implementation
-  ./bin/datesat.py --approach hybrid --implementation bitvector < constraints.json
+  ./bin/datesat_cli.py --approach hybrid --implementation bitvector < constraints.json
   
   # Get JSON output
-  ./bin/datesat.py --output json < constraints.json
+  ./bin/datesat_cli.py --output json < constraints.json
   
 Input format:
   {

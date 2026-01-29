@@ -301,20 +301,20 @@ def main():
 
     constraint_sets = [
         {
-            "name": "Grammar Constraints",
-            "constraints_file": SCRIPT_DIR
-            / "grammar_constraints"
-            / "constraints"
-            / "constraints.json",
-            "output_dir": SCRIPT_DIR / "grammar_constraints" / "results",
-        },
-        {
              "name": "LLM Generated Constraints",
              "constraints_file": SCRIPT_DIR
              / "llm_constraints"
              / "constraints"
              / "constraints.json",
              "output_dir": SCRIPT_DIR / "llm_constraints" / "results",
+        },
+        {
+            "name": "Grammar Constraints",
+            "constraints_file": SCRIPT_DIR
+            / "grammar_constraints"
+            / "constraints"
+            / "constraints.json",
+            "output_dir": SCRIPT_DIR / "grammar_constraints" / "results",
         },
         {
             "name": "Legal Document Constraints",

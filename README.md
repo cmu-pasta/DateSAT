@@ -1,22 +1,24 @@
-# DATE-SMT
+# DateSAT: A Framework for Solving Date and Period Constraints
 
-[![CI Badge](https://github.com/cmu-pasta/Date-SMT/actions/workflows/ci.yml/badge.svg)](https://github.com/cmu-pasta/Date-SMT/actions/workflows/ci.yml)
-[![Coverage Badge](https://pastalab.org/Date-SMT/badge.svg)](https://pastalab.org/Date-SMT/)
-
-A Python library for symbolic analysis of date computations using Z3.
+[![CI Badge](https://github.com/cmu-pasta/DateSAT/actions/workflows/ci.yml/badge.svg)](https://github.com/cmu-pasta/DateSAT/actions/workflows/ci.yml)
+[![Coverage Badge](https://pastalab.org/DateSAT/badge.svg)](https://pastalab.org/DateSAT/)
 
 ## Overview
 
-DATE-SMT provides multiple implementations for expressing and solving date constraints using Z3. It converts DATE-SMT expressions into Z3 constraints (expressed through integer or bitvector arithmetic) for efficient symbolic analysis.
+DateSAT provides implementations to multiple encodings strategies for solving date and calendar period constraints. It encodes DateSAT constraints into Z3 constraints (expressed through integer or bitvector constraints) for efficient symbolic analysis.
 
 The library offers both a high-level Python API and a command-line interface for solving date constraints with support for:
 - Date and period arithmetic
-- Integer and boolean variables
+- Date, Integer and Boolean variables
 - Complex boolean expressions with `&&`, `||`, `!`, and implications (`->`)
 - Date component access (`.year`, `.month`, `.day`)
 - Multiple solver approaches optimized for different use cases
 
 ## Supported Ranges
+
+In the implementation, we apply the below supported ranges on Date and Period. 
+Note that a bound is not required to ensure decidability.
+Please refer to the paper (Section 3.3) for more details.
 
 ### Date Range
 
@@ -37,13 +39,27 @@ Periods exceeding these bounds will raise a `ValueError` during construction.
 
 ## Quick Start
 
+### Installation
+
+```bash
+# 1. Setup conda environment
+conda create -y -n datesat python=3.10
+conda activate datesat
+
+# 2. Install dependencies
+pip install -r requirements.txt
+
+# 3. Set PYTHONPATH
+export PYTHONPATH=$PYTHONPATH:$(pwd)
+```
+
 ### Python API
 
 ```python
-import datesmt
+import datesat
 
 # Solve date constraints
-result = datesmt.solve({
+result = datesat.solve({
     "declarations": ["x: date", "y: date"],
     "constraints": [
         "x >= Date(2024,1,1)",
@@ -57,29 +73,63 @@ if result["status"] == "sat":
     print(f"y = {result['dates']['y']}")
 ```
 
+```python
+import datesat
+
+# 1. Basic Usage (List of constraints)
+result_basic = datesat.solve(
+    constraints=["x >= Date(2000,1,1)", "x < Date(2000,12,31)"],
+    declarations=["x: date"]
+)
+
+# 2. JSON/Dictionary Format
+# This is the standard input format for DATESAT [cite: 153, 953]
+input_data = {
+    "declarations": ["x: date", "y: date", "n: int"],
+    "constraints": [
+        "x >= Date(2024,1,1)",
+        "y == x + Period(1,0,0)",
+        "n > 5"
+    ]
+}
+result_json = datesat.solve(input_data)
+
+# 3. Specific Strategy Selection
+# Replace {...} with the actual data variable
+result_optimized = datesat.solve(
+    constraints=input_data,      # Use the dictionary defined above
+    approach="alpha_beta_table", # Recommended: provides a median 2.73x speedup [cite: 146, 913]
+    implementation="int",        # Choose 'int' or 'bitvector' [cite: 146, 972]
+    timeout_ms=600000            # 10 minutes [cite: 878]
+)
+
+print(result_optimized)
+```
+
 ### Command-Line Interface
 
 ```bash
 # From stdin
-echo '{"declarations":["x: date"],"constraints":["x >= Date(2024,1,1)"]}' | python bin/datesmt.py
+echo '{"declarations":["x: date"],"constraints":["x >= Date(2024,1,1)"]}' | python bin/datesat_cli.py
 
 # From file
-python bin/datesmt.py --file constraints.json
+python bin/datesat_cli.py --file constraints.json
 
 # With options
-python bin/datesmt.py --approach hybrid --implementation bitvector --output json < constraints.json
+python bin/datesat_cli.py --approach hybrid --implementation bitvector --output json < constraints.json
+python bin/datesat_cli.py --help
 ```
 
 ### MCP Server (for AI Agents)
 
-DateSMT includes an MCP (Model Context Protocol) server that allows AI agents to solve date constraints:
+DateSAT includes an MCP (Model Context Protocol) server that allows AI agents to solve date constraints:
 
 ```bash
 # Start MCP server on default port (8000)
-python bin/datesmt_mcp.py
+python bin/datesat_mcp.py
 
 # Start on custom port
-python bin/datesmt_mcp.py --port 3000
+python bin/datesat_mcp.py --port 3000
 ```
 
 The server exposes a `solve` tool at `http://localhost:<port>/sse` that AI agents can use to solve date constraints programmatically.
@@ -175,158 +225,15 @@ Constraints are specified in JSON format with variable declarations and constrai
 }
 ```
 
-## Installation
-
-```bash
-# 1. Setup conda environment
-conda create -y -n datesmt python=3.10
-conda activate datesmt
-
-# 2. Install dependencies
-pip install -r requirements.txt
-
-# 3. Set PYTHONPATH
-export PYTHONPATH=$PYTHONPATH:$(pwd)
-```
-
-## Solver Approaches
-
-DateSMT provides multiple solver approaches, each available in both integer and bitvector implementations:
-
-- **naive** - Direct encoding of date arithmetic
-- **epoch_days** - Convert dates to days since epoch (recommended, fast)
-- **hybrid** - Hybrid approach combining multiple encodings
-- **alpha_beta** - Alpha-beta encoding for optimized arithmetic
-- **alpha_beta_table** - Table-based alpha-beta encoding
-
-For most use cases, the default `epoch_days` approach with `int` implementation provides the best performance.
-
-## Repository Structure
-
-- `datesmt/` - Core library
-  - `api.py` - DateSMTBuilder unified API
-  - `solver.py` - High-level solve() function
-  - `constraint_parser.py` - Constraint parsing and code generation
-  - `core.py` - Date and Period data structures
-  - `symbolic_int/` - Integer-based backends (naive, epoch_days, hybrid, alpha_beta, alpha_beta_table)
-  - `symbolic_bitvector/` - Bitvector-based backends (naive, epoch_days, hybrid, alpha_beta, alpha_beta_table)
-- `bin/` - Command-line tools
-  - `datesmt.py` - CLI tool
-  - `datesmt_mcp.py` - MCP server launch script
-  - `mcp_server.py` - MCP server implementation
-- `tests/` - Test suite (see `tests/README.md` for details)
-- `docs/` - Technical documentation (methods, implementations)
-- `dataset/llm_constraints/` - LLM-based constraint generation and testing tools
-  - `generator/` - Constraint generation scripts (constraint_generator.py, combine_constraints.py)
-  - `constraints/` - Generated constraint JSON files
-  - `run_tests.py` - Test runner for executing constraints against all DATE-SMT approaches
-- `dataset/utils/validation.py` - Concrete validation for verifying solver solutions
-- `dataset/test_validation.py` - Unit tests for validation functionality
-- `requirements.txt` - Python dependencies
-
-## Usage
-
-### Python API
-
-```python
-import datesmt
-
-# Basic usage
-result = datesmt.solve(
-    constraints=["x >= Date(2000,1,1)", "x < Date(2000,12,31)"],
-    declarations=["x: date"]
-)
-
-# JSON format
-result = datesmt.solve({
-    "declarations": ["x: date", "y: date", "n: int"],
-    "constraints": [
-        "x >= Date(2024,1,1)",
-        "y == x + Period(1,0,0)",
-        "n > 5"
-    ]
-})
-
-# Choose solver approach and implementation
-result = datesmt.solve(
-    constraints={...},
-    approach="hybrid",           # naive, epoch_days, hybrid, alpha_beta, alpha_beta_table
-    implementation="bitvector",  # int or bitvector
-    timeout_ms=600000           # 10 minutes
-)
-```
-
-### Command-Line Interface
-
-```bash
-# Read from stdin
-python bin/datesmt.py < constraints.json
-
-# Read from file
-python bin/datesmt.py --file constraints.json
-
-# Options
-python bin/datesmt.py --approach hybrid --implementation bitvector < constraints.json
-python bin/datesmt.py --output json < constraints.json
-python bin/datesmt.py --quiet < constraints.json
-python bin/datesmt.py --help
-```
-
-### MCP Server
-
-```bash
-# Start MCP server
-python bin/datesmt_mcp.py --port 8000
-
-# The server exposes a 'solve' tool via MCP protocol at http://localhost:8000/sse
-```
-
-For comprehensive documentation, see [USAGE.md](USAGE.md).
-
 ## Testing
 
-Run all tests:
-```bash
-pytest tests/
-```
+We provide a thorough testing set to aid future DateSAT solver implementation. See `tests/README.md` for more details.
 
-Run tests and build the coverage site locally:
-```bash
-# from repo root
-python tests/build_coverage_site.py
-# output will be under documentation/coverage by default
-# to match Pages layout locally, write directly into docs/
-COVERAGE_SITE_DIR=docs python tests/build_coverage_site.py
-open docs/index.html  # macOS
-```
-The coverage site root serves the detailed coverage report.
+## DateSATBench
 
-For detailed testing information including method-specific tests, see `tests/README.md`.
-
-## Benchmarks
-
-Run benchmarks to compare different solver approaches:
-
-```bash
-# Run all benchmarks
-python dataset/run_benchmarks.py --input dataset/grammar_constraints/benchmarks/constraints.json
-
-# Run with specific approach
-python dataset/run_benchmarks.py --input constraints.json --approach epoch_days --implementation int
-
-# See all options
-python dataset/run_benchmarks.py --help
-```
-
-The repository includes several benchmark datasets:
-- **Grammar-based**: Automatically generated constraints following a grammar
-- **LLM-based**: Constraints generated using language models
-- **Legal documents**: Real-world constraints extracted from legal documents
+We also provide a carefully curated benchmark for DateSAT. See `datesatbench/README.md` for more details.
 
 ## Development
-
-### Pre-commit Hooks
-This project uses pre-commit hooks to ensure code quality. Install and set up.
 
 ### CI/CD Pipeline
 - **Trigger**: On each push to `dev` branch
