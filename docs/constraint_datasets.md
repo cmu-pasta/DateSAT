@@ -1,13 +1,13 @@
-## Constraint Datasets in DATE-SMT
+## Constraint DateSATBenchs in DateSAT
 
-This document summarizes how the two main constraint datasets are generated:
+This document summarizes how the two main constraint datesatbenchs are generated:
 
-- LLM-generated synthetic constraints (`dataset/llm_constraints`)
-- Legal-document–extracted constraints (`dataset/legal_doc_constraints`)
+- LLM-generated synthetic constraints (`datesatbench/llm_constraints`)
+- Legal-document–extracted constraints (`datesatbench/legal_doc_constraints`)
 
 ---
 
-## 1. LLM Constraint Dataset (`dataset/llm_constraints`)
+## 1. LLM Constraint Dataset (`datesatbench/llm_constraints`)
 
 ### 1.1 Generation
 
@@ -18,7 +18,7 @@ How many string constraints each object contains (default: 5–10).
 Internally, `ConstraintGenerator.generate_constraints()`:
 
 - Builds a natural-language **system prompt** (`SYSTEM_PROMPT`) that describes:
-  - Allowed DateSMT syntax (Date/Period constructors, operators, logical connectives).
+  - Allowed DateSAT syntax (Date/Period constructors, operators, logical connectives).
   - Valid date range: **1900‑03‑01 ≤ Date ≤ 2100‑02‑28**.
   - Content diversity and coverage tags.
   - Variable-count and “avoid trivial constraints” rules.
@@ -27,7 +27,7 @@ Internally, `ConstraintGenerator.generate_constraints()`:
   - How many objects to generate.
   - Allowed coverage tags (if `--tags` was given).
   - Target constraints-per-object range.
-- Calls a provider-agnostic `LLMClient` (`dataset/llm.py`) with:
+- Calls a provider-agnostic `LLMClient` (`datesatbench/llm.py`) with:
   - The fixed `SYSTEM_PROMPT` as the system message.
   - The constructed local prompt as the user message.
 
@@ -63,8 +63,8 @@ Generation is **not** one-shot. Each batch of objects goes through a structured 
    - Enforce `min_constraints_per_object` / `max_constraints_per_object` or `exact_constraints_per_object`.
 3. **Parser-based validation**
    - For each object, call `_validate_constraints_with_parser()`:
-     - Uses `datesmt.constraint_parser.ConstraintParser` to generate and execute builder code.
-     - Ensures all `declarations` and `constraints` are syntactically valid for DateSMT.
+     - Uses `datesat.constraint_parser.ConstraintParser` to generate and execute builder code.
+     - Ensures all `declarations` and `constraints` are syntactically valid for DateSAT.
 4. **Feedback to the LLM**
    - On any failure (JSON parse error, schema error, constraint-count mismatch, or parser error),
      a detailed feedback message is constructed, including:
@@ -80,7 +80,7 @@ If parsing fails with a hard API error (e.g., 401/403/rate limit), the code fail
 The generator logs all LLM calls and feedback to timestamped JSONL files:
 
 - Location (per run):  
-  `dataset/llm_constraints/constraints/llm_calls_YYYY-MM-DD_HH-MM-SS.jsonl`
+  `datesatbench/llm_constraints/constraints/llm_calls_YYYY-MM-DD_HH-MM-SS.jsonl`
 - Each line records:
   - `batch_id`, `timestamp`, `attempt`
   - `prompt` (truncated)
@@ -89,16 +89,16 @@ The generator logs all LLM calls and feedback to timestamped JSONL files:
 
 These logs make it possible to reproduce or debug individual generations.
 
-### 1.5 Combining per-tag files into a single dataset
+### 1.5 Combining per-tag files into a single datesatbench
 
 Once per-tag constraint files (e.g., `year_vs_days.json`, `month_vs_days.json`,
 `symbolic_date_vars.json`, `property_access.json`, `logical_operators.json`) have been generated,
 they are merged with:
 
 ```bash
-python dataset/llm_constraints/generator/combine_constraints.py \
-  --constraints-dir dataset/llm_constraints/constraints \
-  --output dataset/llm_constraints/constraints/constraints.json
+python datesatbench/llm_constraints/generator/combine_constraints.py \
+  --constraints-dir datesatbench/llm_constraints/constraints \
+  --output datesatbench/llm_constraints/constraints/constraints.json
 ```
 
 `combine_constraints.py`:
@@ -112,18 +112,18 @@ python dataset/llm_constraints/generator/combine_constraints.py \
       (e.g., `llm-logical_operators-1`, `llm-logical_operators-2`, then continuing into the next file).
 - Writes the combined array to `constraints/constraints.json`.
 
-The resulting `constraints.json` is the master LLM constraint dataset.
+The resulting `constraints.json` is the master LLM constraint datesatbench.
 
 ---
 
-## 2. Legal-Doc Constraint Dataset (`dataset/legal_doc_constraints`)
+## 2. Legal-Doc Constraint Dataset (`datesatbench/legal_doc_constraints`)
 
 ### 2.1 Source data
 
-The legal-doc dataset is derived from U.S. Internal Revenue Code (Title 26) text.
+The legal-doc datesatbench is derived from U.S. Internal Revenue Code (Title 26) text.
 The source text is pre-processed into records (e.g., clauses/sections) stored in:
 
-- `dataset/legal_doc_constraints/processed_data/selected.jsonl`
+- `datesatbench/legal_doc_constraints/processed_data/selected.jsonl`
 
 Each record includes:
 
@@ -133,13 +133,13 @@ Each record includes:
 
 ### 2.2 Extraction entry point
 
-- Code: `dataset/legal_doc_constraints/generator/llm_extractor.py`
+- Code: `datesatbench/legal_doc_constraints/generator/llm_extractor.py`
 - CLI (simplified):
 
 ```bash
-python dataset/legal_doc_constraints/generator/llm_extractor.py \
-  --input dataset/legal_doc_constraints/processed_data/selected.jsonl \
-  --output dataset/legal_doc_constraints/constraints/constraints_YYYY-MM-DD_HH-MM-SS.jsonl
+python datesatbench/legal_doc_constraints/generator/llm_extractor.py \
+  --input datesatbench/legal_doc_constraints/processed_data/selected.jsonl \
+  --output datesatbench/legal_doc_constraints/constraints/constraints_YYYY-MM-DD_HH-MM-SS.jsonl
 ```
 
 Arguments (see the script for full details):
@@ -154,7 +154,7 @@ Arguments (see the script for full details):
 `llm_extractor.py` defines `LEGAL_EXTRACTION_PROMPT`, which:
 
 - Instructs the LLM to:
-  - Convert legal clauses into precise DateSMT constraints.
+  - Convert legal clauses into precise DateSAT constraints.
   - Extract *all explicit* and logically required temporal constraints.
 - Defines a type system:
   - `date`, `int`, `bool` symbolic variable types.
@@ -203,7 +203,7 @@ Successful extractions are written to the output JSONL file, preserving the orig
 Analogous to the LLM synthetic pipeline, `llm_extractor.py` logs LLM calls:
 
 - Logs are stored as `llm_calls_YYYY-MM-DD_HH-MM-SS.jsonl` under
-  `dataset/legal_doc_constraints/constraints/`.
+  `datesatbench/legal_doc_constraints/constraints/`.
 - Each line records:
   - `record_id`, `timestamp`, `attempt`
   - The feedback type (`json_parse_error`, `parser_error`, etc.).
@@ -213,9 +213,9 @@ This allows inspection of how each legal clause was interpreted and repaired.
 
 ### 2.6 Aggregated constraints file
 
-Once extraction is complete, the main constraints dataset lives in:
+Once extraction is complete, the main constraints datesatbench lives in:
 
-- `dataset/legal_doc_constraints/constraints/constraints.jsonl`
+- `datesatbench/legal_doc_constraints/constraints/constraints.jsonl`
 
 Each line is a JSON object representing constraints for a single legal record, with:
 
@@ -227,17 +227,17 @@ Each line is a JSON object representing constraints for a single legal record, w
 
 ---
 
-## 3. Post-generation Testing & Validation (both datasets)
+## 3. Post-generation Testing & Validation (both datesatbenchs)
 
-Both datasets are tested and validated using a common infrastructure:
+Both datesatbenchs are tested and validated using a common infrastructure:
 
-- **Benchmark runner**: `dataset/run_benchmarks.py`
-- **Validation logic**: `dataset/utils/validation.py`
-- **Enumeration baseline**: `datesmt/enumeration_baseline.py`
+- **Benchmark runner**: `datesatbench/run_benchmarks.py`
+- **Validation logic**: `datesatbench/utils/validation.py`
+- **Enumeration baseline**: `datesat/enumeration_baseline.py`
 
 In brief:
 
-1. Constraints from either dataset (LLM or legal-doc) are fed into the benchmark runner.
+1. Constraints from either datesatbench (LLM or legal-doc) are fed into the benchmark runner.
 2. Multiple symbolic approaches (int and bitvector) plus the enumeration baseline are run.
 3. If analysis is enabled, each symbolic solution is checked against the enumeration baseline:
    - Enumeration is treated as ground truth.

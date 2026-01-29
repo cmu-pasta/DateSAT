@@ -4,7 +4,7 @@ The alpha beta method represents dates as (months, days) since an epoch month.
 
 ## Data Types
 
-### Concrete Types (from `datesmt.core`)
+### Concrete Types (from `datesat.core`)
 - **`Date`**: Concrete date with year, month, day components
 - **`Period`**: Concrete period with years, months, days components
 
@@ -45,8 +45,10 @@ From core.py
 ### DateVar + Period
 
 **Optimizations:**
-- **Days-only fast path**: If period has only days (years=0, months=0), skip month shift and EOM clamp, directly add days
-- **Within-month fast path**: When adding days via `add_days_ordinal()`, if result stays within same month, avoid ordinal conversion
+- **Days-only fast path**: If period has only days (years=0, months=0), skip month shift and EOM clamp
+  - **Within-month check**: If adding days stays within same month, use simple addition to beta
+  - **Otherwise**: Normalize via epoch conversion (converts Y/M/D to epoch days, then back to Y/M/D to handle month overflow)
+- **Years/months-only fast path**: If period has no days component, skip day addition step
 
 **Full Path (when months/years are present):**
 
@@ -56,10 +58,12 @@ From core.py
 
 2. **EOM Clamp**: When adding months to a date, if the original day doesn't exist in the target month (e.g., Jan 31 + 1 month = Feb 31), clamp the day to the last valid day of that month (Feb 28/29)
 
-3. **Add Days**: Uses `add_days_ordinal()` which:
-   - Fast path 1: If delta_days == 0, return unchanged date
-   - Fast path 2: If result stays within same month, use simple addition
-   - Otherwise: Convert dates to days since a fixed epoch (2000-03-01), perform exact integer arithmetic, then convert back to year/month/day
+3. **Add Days** (if period has days component):
+   - **Within-month check**: If `beta + days_delta` stays in `[0, dim)`, use simple addition
+   - **Otherwise**: Normalize via epoch conversion
+     - Convert Y/M/D to epoch days using `days_since_epoch_from_ymd()`
+     - Convert back to Y/M/D using `ymd_from_days_since_epoch()` (handles all overflow cases)
+     - Extract alpha (months) and beta (days) from result
 
 
 ### DateVar Comparisons
@@ -71,4 +75,4 @@ From core.py
 
 - `DateVar` - Symbolic date variable with alpha/beta components
 - `AlphaBetaSolver` - Constraint solver with alpha/beta range validation
-- Helper functions: `months_since_epoch_from_ym()`, `ym_from_months_since_epoch()`, `eom_clamp()` (reused from naive), `days_in_month()` (reused from naive), `add_days_ordinal()` (reused from naive)
+- Helper functions: `months_since_epoch_from_ym()`, `ym_from_months_since_epoch()`, `eom_clamp()` (reused from naive), `days_in_month()` (reused from naive), `ymd_from_days_since_epoch()` (reused from epoch_days), `days_since_epoch_from_ymd()` (reused from epoch_days)
