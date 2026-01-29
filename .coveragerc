@@ -1,0 +1,20 @@
+[run]
+branch = True
+source =
+    datesat
+
+[report]
+show_missing = True
+skip_covered = False
+precision = 1
+fail_under = 0
+exclude_lines =
+    pragma: no cover
+
+[html]
+directory = documentation/coverage/coverage_html
+title = DateSAT Coverage Report
+
+[paths]
+source =
+    datesat

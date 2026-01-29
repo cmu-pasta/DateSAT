@@ -1,0 +1,1198 @@
+[
+  {
+    "id": "grammar-timeout-1",
+    "declarations": [
+      "D0: date",
+      "D1: date",
+      "D2: date",
+      "D3: date",
+      "D4: date",
+      "D5: date",
+      "D6: date",
+      "D8: date",
+      "D9: date"
+    ],
+    "constraints": [
+      "D8 <= D6",
+      "D6 <= (((D2 + (Period(7, 7, 0) - ((Period(9, 7, 4) + ((Period(7, 2, 5) * 6) * 1)) * 0))) - Period(0, 4, 9)) - (((Period(4, 6, 9) + Period(5, 6, 8)) * 0) * 0)) || D0 != (D5 + Period(0, 6, 7))",
+      "D4 == (((D9 - Period(1, 2, 9)) - (Period(8, 3, 0) - Period(2, 8, 1))) - (Period(0, 6, 9) * 0))",
+      "D8 == Date(2098, 3, 28) || D1 <= (D4 - (((Period(8, 0, 9) - (Period(2, 7, 7) + (((Period(0, 7, 9) + Period(0, 1, 4)) * 4) * 4))) * 5) * 1)) || D5 < (Date(1969, 5, 24) + Period(3, 5, 3)) || D2 != Date(2056, 11, 2)",
+      "D0 != ((D5 + (Period(3, 6, 6) + ((Period(6, 6, 6) * 5) * 4))) + (Period(5, 8, 6) - ((((Period(1, 9, 9) * 7) * 1) * 3) * 8))) || D3 < D6"
+    ],
+    "size": 5,
+    "execution_time": 62.95830011367798
+  },
+  {
+    "id": "grammar-timeout-2",
+    "declarations": [
+      "D0: date",
+      "D1: date",
+      "D2: date",
+      "D3: date",
+      "D4: date",
+      "D5: date",
+      "D6: date",
+      "D8: date",
+      "D9: date"
+    ],
+    "constraints": [
+      "D8 <= D6",
+      "D6 <= (((D2 + (Period(7, 7, 0) - ((Period(9, 7, 4) + ((Period(7, 2, 5) * 6) * 1)) * 0))) - Period(0, 4, 9)) - (((Period(4, 6, 9) + Period(5, 6, 8)) * 0) * 0)) || D5 == (D3 + (Period(3, 3, 9) + ((Period(0, 8, 4) - Period(6, 3, 8)) * 1)))",
+      "D4 == (((D9 - Period(1, 2, 9)) - (Period(8, 3, 0) - Period(2, 8, 1))) - (Period(0, 6, 9) * 0))",
+      "D8 == Date(2098, 3, 28) || D1 <= (D4 - (((Period(8, 0, 9) - (Period(2, 7, 7) + (((Period(0, 7, 9) + Period(0, 1, 4)) * 4) * 4))) * 5) * 1)) || D5 < (Date(1969, 5, 24) + Period(3, 5, 3)) || D2 != Date(2056, 11, 2)",
+      "D0 != ((D5 + (Period(3, 6, 6) + ((Period(6, 6, 6) * 5) * 4))) + (Period(5, 8, 6) - ((((Period(1, 9, 9) * 7) * 1) * 3) * 8))) || D3 < D6"
+    ],
+    "size": 5,
+    "execution_time": 62.93506789207458
+  },
+  {
+    "id": "grammar-timeout-3",
+    "declarations": [
+      "D0: date",
+      "D1: date",
+      "D2: date",
+      "D3: date",
+      "D4: date",
+      "D5: date",
+      "D6: date",
+      "D8: date",
+      "D9: date"
+    ],
+    "constraints": [
+      "D8 <= D6",
+      "D6 <= (((D2 + (Period(7, 7, 0) - ((Period(9, 7, 4) + ((Period(7, 2, 5) * 6) * 1)) * 0))) - Period(0, 4, 9)) - (((Period(4, 6, 9) + Period(5, 6, 8)) * 0) * 0)) || D5 == (D3 + (Period(3, 3, 9) + ((Period(0, 8, 4) - Period(6, 3, 8)) * 1)))",
+      "D4 == (((D9 - Period(1, 2, 9)) - (Period(8, 3, 0) - Period(2, 8, 1))) - (Period(0, 6, 9) * 0))",
+      "D8 == Date(2098, 3, 28) || D1 <= (D4 - (((Period(8, 0, 9) - (Period(2, 7, 7) + (((Period(0, 7, 9) + Period(0, 1, 4)) * 4) * 4))) * 5) * 1)) || D5 < (Date(1969, 5, 24) + Period(3, 5, 3)) || D2 != Date(2056, 11, 21)",
+      "D0 != ((D5 + (Period(3, 6, 6) + ((Period(6, 6, 6) * 5) * 4))) + (Period(5, 8, 6) - ((((Period(1, 9, 9) * 7) * 1) * 3) * 8))) || D3 < D6"
+    ],
+    "size": 5,
+    "execution_time": 62.67976999282837
+  },
+  {
+    "id": "grammar-timeout-4",
+    "declarations": [
+      "D0: date",
+      "D1: date",
+      "D2: date",
+      "D3: date",
+      "D4: date",
+      "D6: date",
+      "D7: date",
+      "D8: date",
+      "D9: date"
+    ],
+    "constraints": [
+      "D7 > D8",
+      "D3 < (((D1 + (((Period(9, 1, 4) - (Period(1, 3, 9) * 7)) * 9) * 3)) + (Period(3, 9, 5) - Period(3, 3, 9))) - (((Period(4, 3, 7) + ((Period(8, 9, 3) - Period(9, 5, 1)) * 4)) * 1) * 6)) || D8 >= Date(1911, 1, 19)",
+      "D1 != (Date(2047, 4, 24) - (Period(7, 4, 4) + (Period(2, 6, 3) + (Period(1, 7, 2) * 2))))",
+      "D0 != D7",
+      "D4 == D4",
+      "D7 >= (((D4 - Period(5, 3, 4)) + (Period(6, 1, 7) - ((Period(6, 5, 8) * 3) * 4))) - Period(4, 4, 6)) || D6 <= (D2 + ((Period(2, 8, 7) * 1) * 9))",
+      "D7 >= (D9 - (Period(7, 9, 2) * 5))"
+    ],
+    "size": 7,
+    "execution_time": 61.831640005111694
+  },
+  {
+    "id": "grammar-timeout-5",
+    "declarations": [
+      "D0: date",
+      "D2: date",
+      "D3: date",
+      "D4: date",
+      "D7: date",
+      "D8: date"
+    ],
+    "constraints": [
+      "D2 != (D2 + ((Period(2, 9, 9) + (((Period(3, 6, 1) - Period(4, 5, 8)) * 6) * 7)) * 5))",
+      "D0 >= D7 || D8 == (D8 + Period(3, 4, 5))",
+      "D4 > D7 || D2 > (Date(2008, 3, 9) - Period(7, 3, 9))",
+      "D4 >= D0",
+      "D0 < Date(2091, 11, 3)",
+      "D8 <= D3",
+      "D7 < Date(1999, 8, 15)"
+    ],
+    "size": 7,
+    "execution_time": 61.42368721961975
+  },
+  {
+    "id": "grammar-timeout-6",
+    "declarations": [
+      "D0: date",
+      "D1: date",
+      "D2: date",
+      "D3: date",
+      "D4: date",
+      "D5: date",
+      "D6: date",
+      "D7: date",
+      "D8: date",
+      "D9: date"
+    ],
+    "constraints": [
+      "D4 == ((D4 - (Period(1, 5, 0) + Period(2, 3, 8))) - Period(4, 4, 2))",
+      "D1 >= Date(1900, 5, 14) || D8 < D8 || D7 <= D4 || D7 <= (D1 - (Period(7, 9, 4) * 5))",
+      "D8 == (Date(1902, 10, 13) + ((Period(7, 0, 9) - (Period(6, 8, 1) - (Period(1, 3, 3) * 8))) * 0)) || D3 > (Date(2079, 11, 3) + Period(3, 8, 0))",
+      "D0 >= Date(1911, 10, 16)",
+      "D0 <= (Date(2087, 1, 14) - (Period(8, 2, 1) - (Period(1, 1, 1) - Period(8, 9, 0)))) || D6 >= (D5 - (Period(9, 0, 0) * 1))",
+      "D5 <= (D8 - (((Period(0, 2, 9) - ((Period(9, 3, 8) - Period(9, 0, 0)) * 9)) * 5) * 4))",
+      "D7 <= Date(1992, 3, 16) || D8 == (D9 - (Period(4, 4, 2) - (Period(4, 4, 7) - (Period(4, 0, 8) * 5))))",
+      "D2 >= Date(1972, 3, 13) || D3 > D7"
+    ],
+    "size": 8,
+    "execution_time": 61.30819010734558
+  },
+  {
+    "id": "grammar-timeout-7",
+    "declarations": [
+      "D0: date",
+      "D1: date",
+      "D2: date",
+      "D3: date",
+      "D4: date",
+      "D6: date",
+      "D7: date",
+      "D8: date",
+      "D9: date"
+    ],
+    "constraints": [
+      "D6 > (D6 - (Period(8, 6, 3) - Period(4, 4, 9))) || D6 <= (((D2 - (Period(8, 7, 8) - Period(8, 5, 9))) - (Period(9, 5, 5) + Period(2, 5, 1))) - Period(5, 6, 0))",
+      "D1 >= D9",
+      "D3 != ((((D7 + (Period(1, 1, 9) * 6)) - (Period(4, 2, 3) * 7)) + ((Period(1, 5, 4) + Period(6, 5, 8)) * 3)) + (((Period(0, 4, 9) * 5) * 4) * 4))",
+      "D2 != (D8 + Period(6, 2, 9))",
+      "D2 != Date(2027, 3, 24) || D3 >= ((D0 + Period(6, 7, 1)) + ((Period(0, 6, 9) + (Period(3, 0, 6) + Period(0, 6, 9))) * 8))",
+      "D3 >= (D9 + Period(6, 7, 1)) || D6 != Date(1989, 4, 24)",
+      "D8 >= D2 || D1 > D4",
+      "D0 <= Date(2046, 6, 28)",
+      "D6 <= D8",
+      "D7 <= D1"
+    ],
+    "size": 10,
+    "execution_time": 61.055689096450806
+  },
+  {
+    "id": "grammar-timeout-8",
+    "declarations": [
+      "D1: date",
+      "D2: date",
+      "D4: date",
+      "D6: date",
+      "D8: date",
+      "D9: date"
+    ],
+    "constraints": [
+      "D6 == D6",
+      "D4 != D9 || D1 >= D4 || D4 <= Date(2093, 6, 1)",
+      "D8 <= D6",
+      "D4 > (D2 - (Period(2, 3, 4) * 2))",
+      "D1 < (D1 + (Period(0, 7, 2) - (Period(1, 9, 5) + (((Period(5, 1, 4) + ((Period(1, 6, 9) - Period(2, 2, 1)) * 7)) * 3) * 5))))",
+      "D1 <= Date(2086, 9, 28)"
+    ],
+    "size": 6,
+    "execution_time": 60.945828914642334
+  },
+  {
+    "id": "grammar-timeout-9",
+    "declarations": [
+      "D0: date",
+      "D1: date",
+      "D2: date",
+      "D5: date",
+      "D6: date",
+      "D8: date",
+      "D9: date"
+    ],
+    "constraints": [
+      "D1 <= Date(1987, 10, 17)",
+      "D2 >= D1",
+      "D0 != D6 || D5 == ((D8 + (Period(4, 6, 4) + ((Period(7, 9, 5) * 4) * 6))) + Period(0, 1, 2))",
+      "D0 == D9",
+      "D0 <= ((((D0 + ((Period(3, 8, 3) + ((Period(8, 6, 8) + Period(6, 0, 7)) * 0)) * 6)) + (Period(7, 7, 0) + (Period(2, 0, 1) + ((Period(7, 6, 5) - (Period(2, 4, 8) * 8)) * 4)))) - Period(0, 1, 1)) - (Period(8, 4, 2) * 7)) || D2 != (((D0 + ((Period(4, 5, 3) - Period(1, 9, 6)) * 3)) - (((Period(1, 3, 8) * 7) * 9) * 1)) + (Period(1, 1, 3) + (Period(7, 4, 3) + (Period(0, 7, 8) + Period(2, 5, 9)))))"
+    ],
+    "size": 5,
+    "execution_time": 60.93913698196411
+  },
+  {
+    "id": "grammar-timeout-10",
+    "declarations": [
+      "D0: date",
+      "D1: date",
+      "D3: date",
+      "D8: date",
+      "D9: date"
+    ],
+    "constraints": [
+      "D9 == Date(2035, 7, 27)",
+      "D3 < ((((D3 + (Period(7, 0, 9) * 8)) - (Period(6, 5, 6) + Period(3, 0, 6))) - (Period(3, 1, 2) + Period(4, 1, 4))) - (Period(5, 5, 6) * 4)) || D1 <= D9",
+      "D3 >= D8",
+      "D8 != (D0 + Period(0, 0, 5))",
+      "D9 < ((D3 - ((Period(5, 1, 5) * 6) * 4)) - ((((Period(8, 0, 1) - Period(8, 2, 9)) * 7) * 4) * 3))"
+    ],
+    "size": 5,
+    "execution_time": 60.93099594116211
+  },
+  {
+    "id": "grammar-timeout-11",
+    "declarations": [
+      "D0: date",
+      "D1: date",
+      "D3: date",
+      "D8: date",
+      "D9: date"
+    ],
+    "constraints": [
+      "D9 == Date(2035, 7, 27)",
+      "D3 < ((((D3 + (Period(7, 0, 7) * 8)) - (Period(6, 5, 6) + Period(3, 0, 6))) - (Period(3, 1, 2) + Period(4, 1, 4))) - (Period(5, 5, 6) * 4)) || D1 <= D9",
+      "D3 >= D8",
+      "D8 != (D0 + Period(0, 0, 5))",
+      "D9 < ((D3 - ((Period(5, 1, 5) * 6) * 4)) - ((((Period(8, 0, 1) - Period(8, 2, 9)) * 7) * 4) * 3))"
+    ],
+    "size": 5,
+    "execution_time": 60.928436040878296
+  },
+  {
+    "id": "grammar-timeout-12",
+    "declarations": [
+      "D2: date",
+      "D3: date",
+      "D4: date",
+      "D6: date",
+      "D7: date",
+      "D8: date",
+      "D9: date"
+    ],
+    "constraints": [
+      "D3 > D4",
+      "D2 < D3",
+      "D4 > Date(2093, 2, 11) || D2 == (((((((((D8 + (Period(4, 5, 9) + (Period(3, 8, 6) + (Period(2, 8, 6) + (Period(9, 7, 9) - Period(6, 5, 2)))))) - (((Period(9, 7, 1) - (Period(8, 7, 3) - ((Period(1, 2, 2) + Period(5, 2, 5)) * 7))) * 3) * 1)) + (Period(0, 1, 3) * 1)) + (Period(5, 2, 2) + ((Period(9, 9, 6) * 1) * 9))) + (Period(0, 3, 0) + ((Period(0, 6, 4) + Period(7, 7, 3)) * 6))) - Period(3, 5, 7)) - (((Period(1, 5, 7) * 3) * 3) * 7)) - ((Period(5, 4, 3) - (Period(8, 4, 2) + (Period(5, 2, 3) - ((Period(1, 7, 1) * 4) * 6)))) * 7)) + ((Period(7, 3, 8) - (Period(6, 6, 5) + (Period(4, 0, 0) * 3))) * 2)) || D9 > ((D2 - Period(9, 0, 0)) + Period(3, 9, 7))",
+      "D6 == (Date(2000, 10, 1) + Period(1, 8, 1))",
+      "D7 <= Date(1930, 11, 30) || D3 > (D8 - (Period(3, 1, 7) + (Period(1, 9, 1) - (Period(2, 0, 0) + (Period(5, 4, 0) + (Period(5, 7, 8) * 4))))))"
+    ],
+    "size": 5,
+    "execution_time": 60.914088010787964
+  },
+  {
+    "id": "grammar-timeout-13",
+    "declarations": [
+      "D1: date",
+      "D2: date",
+      "D4: date",
+      "D6: date",
+      "D8: date",
+      "D9: date"
+    ],
+    "constraints": [
+      "D6 == D6",
+      "D4 != D9 || D1 >= D4 || D4 <= Date(2093, 6, 1)",
+      "D8 <= D6",
+      "D4 > (D2 - (Period(2, 3, 4) * 2))",
+      "D1 < (D1 + (Period(0, 7, 2) - (Period(1, 9, 5) + (((Period(5, 1, 4) + ((Period(1, 6, 9) - Period(2, 2, 1)) * 7)) * 3) * 5))))",
+      "D1 <= Date(2008, 9, 28)"
+    ],
+    "size": 6,
+    "execution_time": 60.902809858322144
+  },
+  {
+    "id": "grammar-timeout-14",
+    "declarations": [
+      "D0: date",
+      "D1: date",
+      "D2: date",
+      "D3: date",
+      "D4: date",
+      "D6: date",
+      "D7: date",
+      "D8: date",
+      "D9: date"
+    ],
+    "constraints": [
+      "D6 <= (D1 - (Period(4, 3, 7) - ((Period(0, 9, 6) - (Period(9, 5, 3) * 4)) * 4)))",
+      "D9 < Date(2057, 5, 9)",
+      "D0 == ((((D8 - (((Period(0, 7, 8) + (Period(4, 4, 6) + Period(1, 6, 2))) * 4) * 8)) - (Period(9, 7, 9) * 8)) - (Period(2, 5, 7) * 6)) - (((Period(7, 4, 0) - Period(6, 4, 8)) * 3) * 8))",
+      "D0 == (D3 - (Period(1, 1, 8) + Period(2, 4, 0)))",
+      "D3 >= (Date(2086, 7, 19) + (Period(0, 3, 2) - Period(2, 9, 6)))",
+      "D9 != Date(1985, 9, 6)",
+      "D1 != D4 || D2 >= Date(1944, 3, 21)",
+      "D7 > Date(1993, 10, 8)"
+    ],
+    "size": 8,
+    "execution_time": 60.882068157196045
+  },
+  {
+    "id": "grammar-timeout-15",
+    "declarations": [
+      "D0: date",
+      "D1: date",
+      "D2: date",
+      "D3: date",
+      "D4: date",
+      "D6: date",
+      "D7: date",
+      "D8: date",
+      "D9: date"
+    ],
+    "constraints": [
+      "D4 <= D7 || D6 >= D6 || D4 <= (D0 + Period(6, 7, 5)) || D9 != (D0 - (Period(1, 3, 8) + (((Period(0, 1, 6) * 2) * 4) * 6))) || D3 != D7 || D2 != ((((D2 + (Period(5, 4, 1) + Period(4, 3, 3))) + ((Period(5, 6, 3) - (Period(0, 0, 8) * 8)) * 8)) - (Period(4, 7, 9) + Period(4, 4, 4))) - Period(2, 2, 1)) || D8 <= Date(2066, 5, 9) || D9 > D8 || D2 <= (Date(1921, 11, 20) + (Period(7, 8, 7) + ((Period(5, 9, 8) + (Period(0, 3, 8) * 3)) * 3)))",
+      "D7 != (D2 - Period(9, 7, 0))",
+      "D2 != Date(2026, 10, 13) || D1 >= (D4 - Period(3, 8, 6)) || D2 > (D0 - Period(0, 1, 2))",
+      "D2 > (((((D7 + Period(9, 4, 9)) - (Period(7, 0, 0) + (Period(5, 3, 7) * 6))) - (Period(6, 2, 2) + Period(8, 0, 4))) + (Period(8, 2, 0) + Period(1, 2, 9))) + Period(2, 3, 5))",
+      "D9 <= D3 || D0 != Date(1958, 11, 8)"
+    ],
+    "size": 5,
+    "execution_time": 60.87561392784119
+  },
+  {
+    "id": "grammar-timeout-16",
+    "declarations": [
+      "D0: date",
+      "D1: date",
+      "D2: date",
+      "D3: date",
+      "D4: date",
+      "D5: date",
+      "D6: date",
+      "D7: date",
+      "D8: date",
+      "D9: date"
+    ],
+    "constraints": [
+      "D7 > D6",
+      "D4 > Date(2013, 4, 7)",
+      "D3 != ((D1 + ((Period(1, 3, 0) - (Period(7, 1, 8) + Period(5, 5, 3))) * 4)) - (Period(5, 2, 9) + Period(7, 9, 0))) || D7 <= Date(2033, 1, 25)",
+      "D0 != ((((((D5 - (Period(0, 9, 5) * 8)) + Period(3, 0, 0)) + (Period(0, 7, 1) - Period(2, 7, 6))) + (Period(5, 2, 7) * 4)) + ((Period(5, 4, 8) - (Period(5, 8, 3) - Period(7, 0, 2))) * 5)) + Period(0, 9, 1))",
+      "D5 < (D2 - (Period(2, 1, 6) - (Period(8, 3, 2) + ((Period(1, 0, 1) - (Period(0, 8, 8) + (Period(1, 3, 5) * 8))) * 0)))) || D8 == Date(1978, 12, 2) || D8 > ((D6 - ((Period(8, 8, 1) - (Period(2, 3, 4) + (Period(7, 3, 3) - (Period(1, 3, 7) - ((Period(1, 4, 8) * 2) * 6))))) * 5)) + (Period(4, 4, 3) - (Period(8, 2, 8) - Period(6, 5, 4)))) || D0 < Date(1944, 10, 4)",
+      "D3 >= D2",
+      "D6 != D9",
+      "D3 > D0",
+      "D3 != D0 || D0 == D0 || D4 >= (D4 - (Period(5, 8, 6) + (Period(5, 1, 2) * 0))) || D4 < ((D9 + (((Period(9, 4, 3) + (Period(6, 6, 3) * 6)) * 0) * 4)) - Period(4, 1, 4)) || D6 != (D2 + (Period(0, 2, 1) - (Period(7, 3, 9) - (Period(8, 6, 9) + (Period(9, 4, 7) + Period(3, 5, 9))))))",
+      "D5 > ((D7 + (Period(2, 7, 4) + (Period(7, 5, 4) - (Period(1, 1, 5) + Period(0, 5, 7))))) + (Period(5, 4, 7) + (Period(1, 0, 8) * 9))) || D2 > Date(1900, 4, 15)"
+    ],
+    "size": 10,
+    "execution_time": 60.858081102371216
+  },
+  {
+    "id": "grammar-timeout-17",
+    "declarations": [
+      "D0: date",
+      "D1: date",
+      "D2: date",
+      "D3: date",
+      "D4: date",
+      "D5: date",
+      "D7: date",
+      "D8: date",
+      "D9: date"
+    ],
+    "constraints": [
+      "D7 >= (((((D3 + ((Period(8, 3, 8) - Period(9, 8, 7)) * 2)) + (Period(6, 6, 8) - (Period(2, 7, 4) - (Period(9, 7, 9) - (Period(0, 7, 9) - (Period(7, 5, 5) + Period(4, 5, 9))))))) + Period(4, 6, 1)) - (Period(2, 7, 9) + (Period(1, 2, 5) - ((Period(7, 6, 1) - Period(4, 8, 1)) * 0)))) + (Period(4, 9, 6) - (Period(3, 9, 6) * 5))) || D3 != Date(1966, 5, 24)",
+      "D1 < (Date(2030, 5, 26) + (Period(7, 7, 8) * 6)) || D4 == Date(1907, 4, 20)",
+      "D4 == D8 || D5 < ((D4 - (Period(1, 9, 5) + ((Period(5, 1, 6) * 4) * 7))) + (Period(7, 7, 7) - (Period(3, 3, 2) * 6))) || D9 >= (D0 + (Period(7, 7, 3) + ((Period(3, 9, 5) - (Period(5, 5, 8) + Period(3, 3, 2))) * 8))) || D7 < (D7 - ((Period(6, 3, 5) * 1) * 0)) || D0 == D4",
+      "D7 <= D8",
+      "D2 != D8",
+      "D3 > Date(1975, 2, 2)",
+      "D8 < (((D0 + Period(8, 4, 0)) + ((Period(4, 5, 4) - (Period(0, 4, 9) * 8)) * 6)) + (Period(9, 6, 3) * 7)) || D7 < D8 || D3 < Date(1960, 3, 20)"
+    ],
+    "size": 7,
+    "execution_time": 60.75633692741394
+  },
+  {
+    "id": "grammar-timeout-18",
+    "declarations": [
+      "D0: date",
+      "D1: date",
+      "D3: date",
+      "D5: date",
+      "D6: date",
+      "D7: date",
+      "D8: date"
+    ],
+    "constraints": [
+      "D7 < Date(2036, 8, 11)",
+      "D1 != D0",
+      "D5 != D8",
+      "D7 <= (D6 - (((Period(2, 0, 9) * 7) * 6) * 2))",
+      "D3 != (D5 - (Period(0, 6, 6) + (Period(9, 8, 7) - (Period(5, 2, 9) - Period(1, 7, 0)))))"
+    ],
+    "size": 5,
+    "execution_time": 60.74940490722656
+  },
+  {
+    "id": "grammar-timeout-19",
+    "declarations": [
+      "D0: date",
+      "D1: date",
+      "D2: date",
+      "D4: date",
+      "D5: date",
+      "D7: date",
+      "D8: date",
+      "D9: date"
+    ],
+    "constraints": [
+      "D7 <= (((D1 - Period(0, 8, 8)) + Period(7, 8, 7)) - Period(4, 0, 4))",
+      "D7 > D9 || D4 >= D5 || D5 > Date(1953, 2, 6)",
+      "D8 < (Date(1908, 1, 20) - Period(1, 5, 9)) || D1 == (D4 + Period(7, 8, 9)) || D2 != (Date(2030, 2, 8) + (Period(7, 7, 7) - ((Period(0, 3, 7) * 5) * 9)))",
+      "D8 == (Date(1913, 6, 27) - Period(3, 5, 8)) || D7 >= D0",
+      "D5 == ((D1 + Period(4, 9, 2)) - ((Period(8, 6, 2) - ((Period(0, 2, 2) * 5) * 9)) * 7))"
+    ],
+    "size": 5,
+    "execution_time": 60.74410700798035
+  },
+  {
+    "id": "grammar-timeout-20",
+    "declarations": [
+      "D1: date",
+      "D2: date",
+      "D3: date",
+      "D4: date",
+      "D5: date",
+      "D6: date",
+      "D8: date",
+      "D9: date"
+    ],
+    "constraints": [
+      "D2 > (((D1 - (Period(2, 8, 5) - ((Period(9, 2, 6) * 4) * 4))) - Period(3, 4, 7)) - (Period(0, 5, 3) * 4))",
+      "D8 < (D1 + Period(6, 1, 3))",
+      "D9 < (Date(2018, 12, 26) + Period(4, 8, 4)) || D5 <= D2 || D4 >= Date(1982, 2, 19)",
+      "D5 > D4",
+      "D6 >= Date(1933, 10, 10)",
+      "D8 > Date(1911, 12, 29) || D3 > ((D4 + Period(9, 0, 8)) - ((Period(1, 1, 3) + ((Period(0, 0, 3) * 3) * 6)) * 8)) || D2 != (D4 - Period(5, 1, 6))",
+      "D5 > ((D5 - ((Period(6, 7, 0) * 4) * 6)) - (Period(4, 9, 2) * 6)) || D9 < D3 || D2 == (Date(1953, 7, 6) + ((Period(5, 1, 5) + (Period(3, 0, 0) - Period(4, 7, 0))) * 5))"
+    ],
+    "size": 7,
+    "execution_time": 60.62331962585449
+  },
+  {
+    "id": "grammar-timeout-21",
+    "declarations": [
+      "D0: date",
+      "D1: date",
+      "D2: date",
+      "D3: date",
+      "D5: date",
+      "D7: date",
+      "D8: date",
+      "D9: date"
+    ],
+    "constraints": [
+      "D1 <= (Date(2063, 3, 16) - Period(8, 8, 5)) || D0 < (D8 + (Period(7, 0, 7) * 4))",
+      "D3 != D0",
+      "D8 < ((D5 - Period(8, 0, 4)) - (Period(6, 8, 2) + (((Period(6, 2, 2) - (Period(1, 5, 4) * 4)) * 7) * 5)))",
+      "D9 == Date(2016, 8, 14) || D0 == D3 || D5 >= ((D2 - Period(4, 1, 3)) + Period(3, 7, 6))",
+      "D5 > D7"
+    ],
+    "size": 5,
+    "execution_time": 60.608962059020996
+  },
+  {
+    "id": "grammar-timeout-22",
+    "declarations": [
+      "D0: date",
+      "D2: date",
+      "D3: date",
+      "D4: date",
+      "D6: date",
+      "D9: date"
+    ],
+    "constraints": [
+      "D6 > (Date(2091, 8, 24) - ((Period(6, 0, 8) + Period(7, 6, 7)) * 4)) || D4 >= D2",
+      "D9 < (((((D2 - (Period(4, 9, 7) - ((Period(1, 0, 6) - Period(3, 1, 7)) * 7))) - (Period(3, 9, 8) - Period(4, 0, 8))) - ((Period(6, 9, 8) + (Period(9, 7, 1) - (Period(7, 0, 0) - (Period(4, 4, 2) + Period(3, 9, 0))))) * 1)) + (Period(9, 1, 4) * 4)) - (Period(6, 1, 3) * 4))",
+      "D2 == (D0 + (Period(0, 9, 6) - Period(2, 4, 8)))",
+      "D4 != D2 || D3 >= Date(1943, 3, 11)",
+      "D2 == ((D4 + (Period(4, 5, 7) + (Period(5, 9, 4) + ((Period(3, 8, 5) - (Period(7, 4, 2) + (Period(2, 3, 9) * 9))) * 7)))) - Period(4, 6, 6))"
+    ],
+    "size": 5,
+    "execution_time": 60.607332944869995
+  },
+  {
+    "id": "grammar-timeout-23",
+    "declarations": [
+      "D0: date",
+      "D2: date",
+      "D3: date",
+      "D4: date",
+      "D6: date",
+      "D7: date",
+      "D8: date",
+      "D9: date"
+    ],
+    "constraints": [
+      "D7 >= (((((D9 - (Period(8, 6, 2) + (Period(8, 2, 2) - ((Period(5, 3, 3) + (Period(7, 1, 6) + ((Period(1, 3, 9) * 2) * 3))) * 8)))) + (Period(1, 0, 8) - (Period(2, 5, 2) + (Period(1, 2, 2) + (Period(5, 5, 5) + ((((((Period(3, 6, 3) * 7) * 0) * 5) * 7) * 2) * 2)))))) + (Period(8, 8, 5) * 3)) + ((Period(6, 5, 5) - (Period(6, 3, 3) - Period(1, 6, 6))) * 1)) - (Period(4, 1, 6) + Period(6, 4, 7))) || D2 >= D3 || D0 <= D0",
+      "D0 >= Date(1923, 2, 17)",
+      "D9 == (D4 + ((Period(9, 1, 2) + (Period(4, 6, 6) * 7)) * 0)) || D7 > (D9 - ((Period(1, 1, 6) - (Period(7, 5, 6) * 6)) * 0)) || D3 != (D9 + ((Period(6, 9, 6) - (((Period(3, 3, 6) + ((Period(5, 8, 6) - Period(2, 3, 1)) * 1)) * 0) * 2)) * 8)) || D8 != (Date(1966, 8, 24) + (Period(6, 8, 1) + Period(4, 8, 6))) || D8 < D9",
+      "D4 > ((D4 - (Period(8, 7, 4) + (Period(6, 8, 1) + (Period(6, 2, 8) * 0)))) - Period(5, 3, 9))",
+      "D6 > D4 || D7 > D7 || D9 > D0 || D9 >= Date(1933, 7, 18)"
+    ],
+    "size": 5,
+    "execution_time": 60.6030330657959
+  },
+  {
+    "id": "grammar-timeout-24",
+    "declarations": [
+      "D0: date",
+      "D1: date",
+      "D2: date",
+      "D3: date",
+      "D4: date",
+      "D5: date",
+      "D6: date",
+      "D7: date",
+      "D8: date",
+      "D9: date"
+    ],
+    "constraints": [
+      "D6 >= Date(1922, 9, 28)",
+      "D4 < ((D8 + (((Period(5, 3, 9) - Period(4, 6, 1)) * 8) * 8)) - Period(4, 3, 3))",
+      "D9 == (D2 - Period(4, 1, 0)) || D9 <= Date(1950, 1, 16)",
+      "D1 >= Date(1990, 12, 16)",
+      "D4 != (D1 + (Period(0, 3, 6) + Period(7, 6, 6)))",
+      "D0 < Date(2098, 3, 23) || D2 < D3",
+      "D9 > D5",
+      "D4 > Date(2003, 11, 7)",
+      "D7 != Date(1954, 1, 25)"
+    ],
+    "size": 9,
+    "execution_time": 60.5722758769989
+  },
+  {
+    "id": "grammar-timeout-25",
+    "declarations": [
+      "D0: date",
+      "D1: date",
+      "D2: date",
+      "D3: date",
+      "D4: date",
+      "D5: date",
+      "D7: date",
+      "D8: date",
+      "D9: date"
+    ],
+    "constraints": [
+      "D2 >= D1 || D8 < (D8 + ((Period(6, 6, 6) - Period(6, 7, 1)) * 8)) || D7 == D4",
+      "D5 < ((((D7 + Period(8, 6, 2)) + (Period(6, 1, 5) - (Period(6, 0, 4) + (Period(7, 0, 9) - (Period(7, 3, 4) + ((Period(3, 0, 5) + (Period(3, 3, 7) * 9)) * 6)))))) + (Period(1, 6, 8) - ((Period(0, 8, 7) * 1) * 5))) + (Period(4, 3, 2) - Period(4, 4, 7))) || D1 >= (D3 + Period(0, 7, 4))",
+      "D9 <= ((D7 - Period(2, 5, 6)) + (((((((Period(1, 2, 1) * 6) * 8) * 0) * 1) * 7) * 1) * 0))",
+      "D3 > Date(1994, 6, 27) || D4 <= (Date(1971, 11, 1) - (Period(4, 0, 5) + Period(1, 6, 3))) || D0 == D7",
+      "D2 != (D7 + Period(3, 0, 8)) || D3 != (Date(2043, 6, 19) - Period(3, 4, 3))"
+    ],
+    "size": 5,
+    "execution_time": 60.554994344711304
+  },
+  {
+    "id": "grammar-timeout-26",
+    "declarations": [
+      "D0: date",
+      "D1: date",
+      "D2: date",
+      "D3: date",
+      "D4: date",
+      "D5: date",
+      "D6: date"
+    ],
+    "constraints": [
+      "D4 < (((D4 + ((Period(7, 1, 2) + (((Period(1, 7, 6) * 9) * 0) * 5)) * 2)) - Period(5, 1, 9)) + (Period(3, 5, 2) - Period(9, 9, 2)))",
+      "D5 != ((D4 + ((Period(1, 2, 6) - (Period(8, 1, 1) - (Period(0, 0, 4) + ((Period(2, 9, 4) * 5) * 3)))) * 7)) + Period(6, 5, 5)) || D3 != (Date(1948, 12, 4) - Period(6, 4, 9))",
+      "D2 >= Date(1911, 11, 26) || D5 == (D1 - Period(6, 3, 3)) || D2 <= D6",
+      "D1 > D0",
+      "D5 == (D3 + (Period(9, 8, 0) * 3))",
+      "D2 <= D2 || D4 <= D0"
+    ],
+    "size": 6,
+    "execution_time": 60.52595090866089
+  },
+  {
+    "id": "grammar-timeout-27",
+    "declarations": [
+      "D0: date",
+      "D1: date",
+      "D2: date",
+      "D3: date",
+      "D4: date",
+      "D5: date",
+      "D6: date",
+      "D7: date",
+      "D8: date",
+      "D9: date"
+    ],
+    "constraints": [
+      "D2 >= (Date(1995, 3, 14) + Period(2, 6, 2))",
+      "D3 < (Date(2055, 6, 1) + Period(6, 5, 6))",
+      "D4 == ((D2 - (Period(5, 9, 7) + Period(5, 2, 9))) - ((Period(2, 7, 5) - Period(5, 5, 5)) * 3)) || D5 >= Date(2086, 6, 27) || D3 <= Date(1987, 2, 11)",
+      "D5 != Date(2033, 7, 21) || D0 <= ((D2 + (Period(7, 6, 9) - Period(1, 1, 7))) + Period(5, 2, 4))",
+      "D2 >= Date(1909, 11, 16) || D7 == D1 || D3 < (D3 - Period(5, 7, 2))",
+      "D0 <= ((D9 - (((Period(5, 7, 6) * 4) * 2) * 2)) + ((Period(5, 0, 9) * 6) * 6))",
+      "D5 <= Date(2084, 2, 22) || D6 <= (D8 + (Period(8, 4, 3) + Period(4, 9, 7))) || D7 != Date(1967, 6, 15) || D3 >= (D9 + (Period(2, 4, 1) - Period(3, 8, 5)))",
+      "D6 >= Date(1936, 4, 16)",
+      "D6 >= (Date(1934, 1, 11) + (Period(9, 2, 2) * 9))",
+      "D9 < (D9 + (Period(1, 2, 8) + Period(5, 6, 1))) || D0 < (Date(1907, 6, 12) + ((Period(6, 0, 1) - (Period(4, 9, 7) + Period(6, 3, 4))) * 0))"
+    ],
+    "size": 10,
+    "execution_time": 60.49964189529419
+  },
+  {
+    "id": "grammar-timeout-28",
+    "declarations": [
+      "D0: date",
+      "D1: date",
+      "D2: date",
+      "D3: date",
+      "D4: date",
+      "D5: date",
+      "D6: date",
+      "D7: date",
+      "D8: date",
+      "D9: date"
+    ],
+    "constraints": [
+      "D2 >= (Date(1995, 3, 14) + Period(2, 6, 2))",
+      "D3 < (Date(2055, 6, 1) + Period(6, 5, 6))",
+      "D4 == ((D2 - (Period(7, 9, 7) + Period(5, 2, 9))) - ((Period(2, 7, 5) - Period(5, 5, 5)) * 3)) || D5 >= Date(2086, 6, 27) || D3 <= Date(1987, 2, 11)",
+      "D5 != Date(2033, 7, 21) || D0 <= ((D2 + (Period(7, 6, 9) - Period(1, 1, 7))) + Period(5, 2, 4))",
+      "D2 >= Date(1909, 11, 16) || D7 == D1 || D3 < (D3 - Period(5, 7, 2))",
+      "D0 <= ((D9 - (((Period(5, 7, 6) * 4) * 2) * 2)) + ((Period(5, 0, 9) * 6) * 6))",
+      "D5 <= Date(2084, 2, 22) || D6 <= (D8 + (Period(8, 4, 3) + Period(4, 9, 7))) || D7 != Date(1967, 6, 15) || D3 >= (D9 + (Period(2, 4, 1) - Period(3, 8, 5)))",
+      "D6 >= Date(1936, 4, 16)",
+      "D6 >= (Date(1934, 1, 11) + (Period(9, 2, 2) * 9))",
+      "D9 < (D9 + (Period(1, 2, 8) + Period(5, 6, 1))) || D0 < (Date(1907, 6, 12) + ((Period(6, 0, 1) - (Period(4, 9, 7) + Period(6, 3, 4))) * 0))"
+    ],
+    "size": 10,
+    "execution_time": 60.497106075286865
+  },
+  {
+    "id": "grammar-timeout-29",
+    "declarations": [
+      "D0: date",
+      "D2: date",
+      "D3: date",
+      "D4: date",
+      "D5: date",
+      "D6: date",
+      "D8: date",
+      "D9: date"
+    ],
+    "constraints": [
+      "D0 < (Date(2047, 5, 4) - Period(3, 7, 5)) || D3 > (D2 + Period(5, 6, 2))",
+      "D2 >= Date(2059, 2, 15) || D0 == D3",
+      "D0 > D9",
+      "D2 == Date(1919, 2, 10)",
+      "D8 < D3",
+      "D5 == (((((D8 + Period(5, 4, 0)) + Period(1, 0, 2)) - Period(6, 0, 4)) + (((Period(9, 6, 9) + Period(3, 6, 1)) * 7) * 0)) + ((Period(0, 5, 7) * 6) * 8))",
+      "D0 > ((D3 - Period(1, 3, 6)) + ((Period(5, 9, 4) * 6) * 3)) || D6 == (D4 - (Period(2, 3, 2) + Period(8, 0, 5)))"
+    ],
+    "size": 7,
+    "execution_time": 60.472456216812134
+  },
+  {
+    "id": "grammar-timeout-30",
+    "declarations": [
+      "D0: date",
+      "D1: date",
+      "D2: date",
+      "D3: date",
+      "D4: date",
+      "D5: date",
+      "D6: date",
+      "D7: date",
+      "D8: date",
+      "D9: date"
+    ],
+    "constraints": [
+      "D6 == ((D5 + (Period(2, 7, 0) * 8)) + Period(8, 5, 7))",
+      "D7 >= (Date(2080, 10, 21) + (Period(0, 6, 3) * 9)) || D9 <= (Date(2063, 4, 28) - (Period(8, 2, 9) + Period(3, 3, 9)))",
+      "D3 <= (D3 + (Period(2, 4, 5) - (Period(1, 2, 7) - ((Period(9, 1, 1) * 0) * 6))))",
+      "D6 != Date(2025, 2, 6) || D4 <= (((((D4 + ((Period(5, 9, 0) + ((Period(9, 0, 4) * 3) * 1)) * 3)) - (((Period(3, 4, 2) - Period(1, 9, 8)) * 9) * 6)) - (Period(6, 0, 5) * 8)) + (Period(5, 5, 1) * 1)) - (Period(1, 1, 0) - (Period(0, 6, 4) + Period(3, 7, 6)))) || D5 < (Date(1975, 10, 29) + Period(2, 5, 7))",
+      "D7 >= D3",
+      "D3 != (Date(1934, 3, 19) - ((Period(2, 6, 3) - Period(2, 0, 4)) * 6)) || D9 > D5",
+      "D1 >= Date(2016, 10, 3) || D9 != D0",
+      "D8 > Date(2084, 3, 23) || D5 >= (D4 + (Period(1, 7, 3) - Period(8, 9, 7)))",
+      "D1 > D2 || D8 != D8",
+      "D0 > Date(1929, 9, 16)"
+    ],
+    "size": 10,
+    "execution_time": 60.46537804603577
+  },
+  {
+    "id": "grammar-timeout-31",
+    "declarations": [
+      "D0: date",
+      "D1: date",
+      "D2: date",
+      "D3: date",
+      "D4: date",
+      "D5: date",
+      "D6: date",
+      "D7: date",
+      "D8: date",
+      "D9: date"
+    ],
+    "constraints": [
+      "D2 >= (Date(1995, 3, 14) + Period(2, 6, 2))",
+      "D3 < (Date(2055, 6, 1) + Period(6, 5, 6))",
+      "D4 == ((D2 - (Period(5, 9, 7) + Period(5, 2, 9))) - ((Period(2, 7, 5) - Period(5, 5, 5)) * 3)) || D5 >= Date(2086, 6, 27) || D3 <= Date(1987, 2, 11)",
+      "D5 != Date(2033, 7, 21) || D0 <= ((D2 + (Period(7, 6, 9) - Period(1, 1, 7))) + Period(5, 2, 4))",
+      "D2 >= Date(1909, 11, 16) || D7 == D1 || D3 < (D3 - Period(5, 7, 2))",
+      "D0 <= ((D9 - Period(9, 9, 9)) + ((Period(5, 0, 9) * 6) * 6))",
+      "D5 <= Date(2084, 2, 22) || D6 <= (D8 + (Period(8, 4, 3) + Period(4, 9, 7))) || D7 != Date(1967, 6, 15) || D3 >= (D9 + (Period(2, 4, 1) - Period(3, 8, 5)))",
+      "D6 >= Date(1936, 4, 16)",
+      "D6 >= (Date(1934, 1, 11) + (Period(9, 2, 2) * 9))",
+      "D9 < (D9 + (Period(1, 2, 8) + Period(5, 6, 1))) || D0 < (Date(1907, 6, 12) + ((Period(6, 0, 1) - (Period(4, 9, 7) + Period(6, 3, 4))) * 0))"
+    ],
+    "size": 10,
+    "execution_time": 60.45537996292114
+  },
+  {
+    "id": "grammar-timeout-32",
+    "declarations": [
+      "D0: date",
+      "D1: date",
+      "D3: date",
+      "D6: date",
+      "D7: date",
+      "D8: date",
+      "D9: date"
+    ],
+    "constraints": [
+      "D3 == (D1 + (Period(7, 6, 7) + Period(7, 9, 6))) || D1 == Date(1998, 6, 6)",
+      "D1 <= (Date(1983, 5, 31) + (Period(1, 0, 7) - Period(9, 5, 3))) || D6 >= (D8 - (Period(1, 3, 1) * 0)) || D8 <= (D6 - (Period(2, 5, 0) * 8))",
+      "D6 < Date(2021, 7, 30)",
+      "D8 > ((D0 - Period(7, 9, 6)) + (Period(0, 5, 1) + (Period(2, 7, 4) + (Period(7, 3, 3) - (((Period(3, 4, 5) - (((Period(7, 3, 9) + Period(2, 2, 9)) * 1) * 7)) * 1) * 3))))) || D7 <= D9",
+      "D3 >= D0"
+    ],
+    "size": 5,
+    "execution_time": 60.42540097236633
+  },
+  {
+    "id": "grammar-timeout-33",
+    "declarations": [
+      "D0: date",
+      "D1: date",
+      "D2: date",
+      "D3: date",
+      "D4: date",
+      "D5: date",
+      "D6: date",
+      "D7: date",
+      "D8: date",
+      "D9: date"
+    ],
+    "constraints": [
+      "D9 != (Date(1962, 9, 18) + Period(6, 4, 9)) || D6 < (((D7 + ((Period(6, 0, 7) - (Period(5, 7, 6) * 3)) * 1)) + Period(1, 9, 8)) + ((Period(6, 4, 2) + (Period(6, 3, 9) * 4)) * 5))",
+      "D4 <= (D0 + Period(7, 2, 7))",
+      "D4 < (D1 - (Period(4, 9, 7) + ((Period(8, 5, 4) - Period(3, 6, 6)) * 6))) || D3 < (Date(2058, 7, 22) - Period(2, 4, 1)) || D3 == D3",
+      "D3 > Date(1947, 10, 8)",
+      "D0 != ((D0 + Period(1, 0, 7)) - Period(9, 3, 0))",
+      "D3 == (D1 - (Period(4, 3, 7) * 0)) || D6 > (((D2 - (Period(9, 4, 5) + Period(8, 4, 8))) + Period(2, 9, 1)) + Period(7, 5, 3)) || D5 < ((D3 - (Period(0, 4, 4) + (Period(9, 6, 5) + Period(1, 9, 9)))) - ((Period(1, 0, 7) + (Period(8, 0, 4) + ((Period(7, 1, 5) - ((Period(0, 7, 5) + (Period(1, 9, 5) * 9)) * 4)) * 0))) * 9)) || D5 <= Date(1933, 12, 23)",
+      "D8 <= Date(1907, 4, 17)"
+    ],
+    "size": 7,
+    "execution_time": 60.419827938079834
+  },
+  {
+    "id": "grammar-timeout-34",
+    "declarations": [
+      "D0: date",
+      "D1: date",
+      "D2: date",
+      "D3: date",
+      "D4: date",
+      "D5: date",
+      "D6: date",
+      "D7: date",
+      "D9: date"
+    ],
+    "constraints": [
+      "D5 == ((D7 - Period(9, 3, 4)) + Period(7, 5, 3))",
+      "D9 <= D1 || D0 >= (Date(1930, 1, 10) - Period(2, 6, 1))",
+      "D7 >= Date(1919, 9, 11)",
+      "D9 < Date(1917, 1, 21)",
+      "D9 != Date(1948, 2, 26) || D2 <= (((D1 + Period(7, 5, 0)) - ((Period(8, 1, 5) * 1) * 0)) - (Period(7, 7, 8) * 4)) || D4 < (Date(2089, 11, 26) + Period(1, 8, 1))",
+      "D1 != ((D6 - (Period(1, 8, 3) - (Period(4, 2, 1) - ((Period(0, 9, 2) - Period(8, 3, 7)) * 6)))) - ((Period(3, 5, 5) * 8) * 8))",
+      "D6 <= D3 || D2 == (Date(2063, 8, 14) - (Period(6, 6, 9) * 8))",
+      "D2 <= D4"
+    ],
+    "size": 8,
+    "execution_time": 60.41353178024292
+  },
+  {
+    "id": "grammar-timeout-35",
+    "declarations": [
+      "D1: date",
+      "D3: date",
+      "D4: date",
+      "D5: date",
+      "D6: date",
+      "D7: date",
+      "D8: date",
+      "D9: date"
+    ],
+    "constraints": [
+      "D5 == ((D7 + (Period(5, 9, 5) + ((Period(6, 8, 8) - ((Period(2, 7, 0) + Period(2, 1, 4)) * 7)) * 3))) + (((Period(6, 2, 9) + (Period(6, 9, 7) * 7)) * 4) * 1))",
+      "D8 > (D5 - Period(9, 6, 3))",
+      "D6 != D6 || D3 == D4 || D3 >= D9",
+      "D5 < ((D4 + ((Period(0, 8, 8) * 2) * 0)) + (Period(9, 4, 2) + (Period(0, 6, 1) + (Period(7, 2, 8) - Period(3, 5, 6))))) || D5 == (D1 - ((Period(1, 7, 4) - (Period(1, 5, 9) - (Period(5, 4, 9) + (Period(8, 4, 1) * 1)))) * 1))",
+      "D9 < (((D1 + (Period(4, 8, 6) * 6)) - ((((Period(4, 6, 2) - (Period(3, 1, 5) - (Period(9, 6, 6) + Period(9, 9, 1)))) * 0) * 6) * 7)) - (Period(7, 7, 2) + (Period(2, 0, 7) * 4))) || D6 != Date(1905, 4, 17)"
+    ],
+    "size": 5,
+    "execution_time": 60.402425050735474
+  },
+  {
+    "id": "grammar-timeout-36",
+    "declarations": [
+      "D1: date",
+      "D3: date",
+      "D4: date",
+      "D5: date",
+      "D6: date",
+      "D7: date",
+      "D8: date",
+      "D9: date"
+    ],
+    "constraints": [
+      "D5 == ((D7 + (Period(5, 9, 5) + ((Period(6, 8, 8) - ((Period(2, 7, 0) + Period(2, 1, 4)) * 7)) * 3))) + (((Period(6, 2, 9) + (Period(6, 9, 7) * 7)) * 4) * 1))",
+      "D8 > (D5 - Period(9, 6, 3))",
+      "D6 != D6 || D3 == D4 || D3 >= D9",
+      "D5 < ((D4 + ((Period(0, 8, 8) * 2) * 0)) + (Period(9, 4, 2) + (Period(0, 6, 1) + (Period(7, 2, 8) - Period(3, 5, 6))))) || D5 == (D1 - ((Period(1, 7, 4) - (Period(1, 5, 9) - (Period(5, 4, 9) + (Period(8, 4, 1) * 1)))) * 1))",
+      "D9 < (((D1 + (Period(4, 8, 6) * 6)) - ((((Period(4, 6, 2) - (Period(3, 1, 5) - (Period(9, 6, 6) + Period(9, 9, 1)))) * 0) * 6) * 7)) - (Period(7, 7, 2) + (Period(2, 0, 7) * 4))) || D6 != Date(1905, 2, 17)"
+    ],
+    "size": 5,
+    "execution_time": 60.397889852523804
+  },
+  {
+    "id": "grammar-timeout-37",
+    "declarations": [
+      "D0: date",
+      "D1: date",
+      "D2: date",
+      "D3: date",
+      "D4: date",
+      "D5: date",
+      "D6: date",
+      "D7: date",
+      "D8: date"
+    ],
+    "constraints": [
+      "D4 <= D8",
+      "D5 == D6 || D1 > (Date(1952, 6, 17) - (Period(0, 7, 2) * 5))",
+      "D3 == Date(1927, 1, 27)",
+      "D6 >= D7 || D2 == (Date(2008, 10, 12) - Period(3, 1, 2))",
+      "D1 >= (Date(1916, 12, 22) + Period(7, 5, 8)) || D7 >= (D4 - Period(2, 8, 3))",
+      "D3 > (((D1 + (Period(7, 2, 0) + (Period(5, 4, 5) * 1))) + ((Period(1, 4, 5) * 7) * 7)) + (Period(8, 5, 9) + Period(3, 7, 6)))",
+      "D3 < ((D0 - Period(7, 5, 2)) + (Period(4, 1, 0) - (Period(8, 5, 7) + (Period(7, 7, 5) + Period(0, 0, 5)))))",
+      "D1 == (Date(2012, 6, 15) - (Period(2, 9, 4) * 7)) || D6 == (((D1 + (Period(6, 8, 0) - ((Period(1, 0, 8) + Period(7, 1, 0)) * 5))) + Period(9, 6, 2)) - Period(6, 5, 6))"
+    ],
+    "size": 8,
+    "execution_time": 60.39781188964844
+  },
+  {
+    "id": "grammar-timeout-38",
+    "declarations": [
+      "D0: date",
+      "D1: date",
+      "D2: date",
+      "D3: date",
+      "D4: date",
+      "D5: date",
+      "D6: date",
+      "D7: date",
+      "D8: date",
+      "D9: date"
+    ],
+    "constraints": [
+      "D5 > D6",
+      "D3 != Date(2032, 3, 8) || D5 == (D3 + Period(4, 7, 0)) || D7 < (D9 - Period(5, 4, 8)) || D7 < (((D5 - (Period(4, 3, 8) - ((Period(1, 8, 8) * 5) * 7))) + Period(7, 4, 6)) - Period(4, 6, 8))",
+      "D0 > ((D6 - Period(2, 6, 4)) + (Period(2, 0, 8) + (Period(8, 1, 9) * 1)))",
+      "D3 > Date(1929, 5, 29) || D2 >= D5",
+      "D3 != D5",
+      "D6 == D4 || D0 > D8",
+      "D1 <= (((D4 - Period(1, 7, 9)) - (Period(1, 3, 8) + Period(2, 5, 6))) - Period(8, 3, 7)) || D0 >= (D9 - Period(1, 9, 1)) || D0 < Date(1979, 6, 2)",
+      "D6 == (Date(1973, 6, 5) - (Period(3, 5, 1) + Period(9, 4, 0)))",
+      "D2 <= Date(1928, 3, 18)"
+    ],
+    "size": 9,
+    "execution_time": 60.39463806152344
+  },
+  {
+    "id": "grammar-timeout-39",
+    "declarations": [
+      "D0: date",
+      "D1: date",
+      "D2: date",
+      "D3: date",
+      "D5: date",
+      "D6: date",
+      "D7: date"
+    ],
+    "constraints": [
+      "D7 != D1 || D2 == (((((D3 + ((Period(3, 7, 4) - ((Period(4, 1, 9) * 2) * 9)) * 2)) - Period(4, 7, 5)) - Period(1, 1, 1)) - (Period(1, 4, 5) * 9)) - Period(7, 4, 0))",
+      "D5 >= Date(1989, 2, 15)",
+      "D0 != D1",
+      "D5 > (D7 - (Period(0, 5, 1) * 5))",
+      "D6 <= Date(1968, 1, 12)"
+    ],
+    "size": 5,
+    "execution_time": 60.39133405685425
+  },
+  {
+    "id": "grammar-timeout-40",
+    "declarations": [
+      "D2: date",
+      "D3: date",
+      "D4: date",
+      "D6: date",
+      "D7: date",
+      "D9: date"
+    ],
+    "constraints": [
+      "D6 >= (D2 + (Period(5, 2, 7) * 3))",
+      "D2 < D4",
+      "D9 >= (D3 + (Period(2, 9, 0) * 7))",
+      "D2 == ((D7 + ((Period(5, 1, 8) * 5) * 7)) + (Period(3, 5, 6) * 6))",
+      "D7 == ((D6 - (Period(0, 1, 9) * 0)) - (Period(4, 7, 3) + Period(4, 1, 7)))"
+    ],
+    "size": 5,
+    "execution_time": 60.390995025634766
+  },
+  {
+    "id": "grammar-timeout-41",
+    "declarations": [
+      "D0: date",
+      "D1: date",
+      "D2: date",
+      "D3: date",
+      "D4: date",
+      "D6: date",
+      "D7: date",
+      "D8: date",
+      "D9: date"
+    ],
+    "constraints": [
+      "D3 == Date(2074, 2, 15)",
+      "D7 < (((((D7 + ((Period(5, 2, 5) - (Period(9, 0, 2) * 2)) * 6)) - (Period(1, 2, 3) + (Period(1, 2, 6) + (Period(0, 0, 9) * 3)))) + Period(6, 1, 2)) - (Period(2, 8, 3) - (Period(3, 7, 3) + (Period(6, 2, 7) - (Period(6, 2, 7) * 6))))) - Period(6, 5, 6)) || D8 > (((D0 + (Period(0, 4, 7) - Period(3, 6, 4))) - (Period(9, 9, 1) + Period(8, 8, 9))) - (Period(9, 5, 3) + (Period(9, 4, 7) + (Period(6, 4, 4) - (Period(7, 9, 5) * 5))))) || D3 <= D2",
+      "D4 >= Date(1921, 5, 2) || D4 != D3 || D4 < (((D9 + Period(6, 5, 3)) - (Period(0, 1, 6) - (Period(7, 9, 8) + (Period(9, 8, 1) - Period(6, 1, 6))))) + (Period(6, 4, 7) * 0)) || D8 > (Date(1923, 5, 4) + Period(8, 9, 5)) || D9 < D1",
+      "D6 <= Date(2067, 3, 5)",
+      "D3 == (((((((D2 + (((Period(5, 2, 3) - Period(6, 5, 8)) * 4) * 9)) - Period(7, 0, 8)) - Period(5, 4, 7)) + ((Period(6, 9, 1) + Period(6, 6, 8)) * 2)) - (Period(1, 8, 1) - Period(9, 1, 5))) - (Period(9, 7, 0) + Period(4, 4, 9))) + (Period(3, 8, 6) - (((Period(4, 3, 8) - Period(7, 6, 6)) * 4) * 0)))",
+      "D8 != (D1 - (Period(8, 9, 5) + Period(3, 3, 2)))"
+    ],
+    "size": 6,
+    "execution_time": 60.38956308364868
+  },
+  {
+    "id": "grammar-timeout-42",
+    "declarations": [
+      "D0: date",
+      "D2: date",
+      "D3: date",
+      "D4: date",
+      "D5: date",
+      "D8: date"
+    ],
+    "constraints": [
+      "D3 <= (D0 - Period(8, 8, 7))",
+      "D5 <= (Date(2067, 4, 4) + (Period(1, 3, 3) + Period(1, 4, 8)))",
+      "D0 == (Date(2003, 9, 18) + (Period(7, 1, 3) - ((Period(6, 0, 9) - ((Period(0, 0, 6) - (Period(6, 2, 3) + Period(0, 2, 5))) * 6)) * 1)))",
+      "D4 <= D2",
+      "D2 < (D8 + Period(7, 7, 2))",
+      "D8 == (((D3 - (Period(2, 5, 9) + Period(2, 0, 4))) + (Period(8, 7, 8) + Period(0, 8, 8))) - (Period(9, 5, 3) - (((Period(3, 8, 8) - Period(3, 7, 3)) * 7) * 9)))"
+    ],
+    "size": 6,
+    "execution_time": 60.387500047683716
+  },
+  {
+    "id": "grammar-timeout-43",
+    "declarations": [
+      "D1: date",
+      "D2: date",
+      "D3: date",
+      "D4: date",
+      "D5: date",
+      "D6: date",
+      "D7: date",
+      "D8: date",
+      "D9: date"
+    ],
+    "constraints": [
+      "D1 < D7",
+      "D8 <= D4",
+      "D9 < Date(2095, 3, 8) || D9 < (Date(1988, 11, 10) - (Period(2, 0, 9) * 4))",
+      "D7 < (((((((((D1 + ((Period(6, 4, 6) * 6) * 3)) + Period(9, 5, 1)) - Period(6, 0, 4)) - (Period(6, 3, 2) - Period(1, 9, 3))) + (Period(7, 8, 6) * 0)) + Period(8, 4, 3)) + (Period(5, 5, 6) - (((Period(1, 7, 0) * 5) * 4) * 4))) - Period(7, 7, 6)) - Period(3, 8, 7)) || D8 >= Date(2003, 3, 19)",
+      "D7 >= (Date(2033, 10, 12) - Period(1, 0, 8)) || D6 >= D2 || D6 == ((((D2 - (Period(2, 2, 0) + ((Period(3, 0, 4) - Period(2, 8, 8)) * 4))) - Period(8, 7, 4)) + (Period(1, 1, 4) + ((Period(2, 9, 2) + (Period(9, 0, 9) * 4)) * 1))) + (Period(1, 0, 6) + (((Period(2, 9, 1) - Period(3, 7, 6)) * 7) * 4)))",
+      "D5 == (Date(1948, 3, 24) + (Period(3, 9, 2) + Period(6, 7, 4))) || D1 <= D6",
+      "D3 < Date(2097, 7, 11) || D8 != (Date(1993, 11, 25) - Period(2, 5, 6)) || D8 >= (D6 - Period(6, 3, 0))",
+      "D6 == Date(1933, 8, 19)"
+    ],
+    "size": 8,
+    "execution_time": 60.37013101577759
+  },
+  {
+    "id": "grammar-timeout-44",
+    "declarations": [
+      "D0: date",
+      "D1: date",
+      "D2: date",
+      "D3: date",
+      "D4: date",
+      "D5: date",
+      "D6: date",
+      "D7: date",
+      "D8: date",
+      "D9: date"
+    ],
+    "constraints": [
+      "D1 <= D5 || D9 < ((D2 + (Period(3, 7, 8) + ((Period(9, 4, 0) + ((Period(2, 8, 7) - Period(7, 3, 7)) * 1)) * 1))) - (Period(5, 3, 0) + ((Period(5, 2, 9) - (((Period(6, 3, 8) - Period(6, 5, 5)) * 1) * 2)) * 3))) || D6 < ((D9 + (Period(4, 0, 6) + Period(8, 8, 4))) + (Period(9, 6, 2) - Period(6, 9, 3)))",
+      "D7 > D4 || D6 == D6",
+      "D1 <= (((D5 - Period(3, 1, 7)) - (Period(8, 9, 7) * 6)) + ((Period(7, 9, 1) * 1) * 9))",
+      "D8 < ((D0 + (Period(8, 5, 4) * 7)) - ((Period(3, 3, 0) + (Period(9, 2, 4) + Period(4, 3, 7))) * 3)) || D8 <= D9 || D0 == Date(1917, 4, 14)",
+      "D1 > (((((((((D7 - (Period(3, 4, 5) * 9)) + (Period(0, 7, 2) * 0)) - (Period(0, 3, 5) * 4)) - (Period(4, 3, 5) * 2)) - (Period(6, 7, 9) * 3)) - Period(2, 3, 5)) + (Period(3, 0, 0) * 7)) + Period(0, 8, 3)) - (Period(1, 2, 7) * 2)) || D3 == D6",
+      "D3 <= D8"
+    ],
+    "size": 6,
+    "execution_time": 60.36541414260864
+  },
+  {
+    "id": "grammar-timeout-45",
+    "declarations": [
+      "D0: date",
+      "D1: date",
+      "D3: date",
+      "D4: date",
+      "D5: date",
+      "D7: date",
+      "D8: date",
+      "D9: date"
+    ],
+    "constraints": [
+      "D0 <= D3 || D0 == D3",
+      "D5 > (D3 + Period(9, 0, 6))",
+      "D7 != (D1 + (Period(9, 3, 5) - Period(8, 0, 9)))",
+      "D8 != D1 || D4 == D4",
+      "D5 >= ((((D8 - ((Period(8, 2, 7) * 3) * 6)) - Period(6, 5, 4)) - Period(4, 1, 8)) - Period(0, 7, 0))",
+      "D9 <= D9",
+      "D7 > Date(1933, 7, 4) || D3 >= (Date(2001, 4, 10) + Period(5, 2, 5))",
+      "D0 >= Date(1977, 3, 10) || D4 <= (D3 - ((Period(0, 7, 6) * 3) * 8))",
+      "D0 == ((D9 - (Period(8, 9, 5) * 9)) - Period(8, 6, 2))"
+    ],
+    "size": 9,
+    "execution_time": 60.358339071273804
+  },
+  {
+    "id": "grammar-timeout-46",
+    "declarations": [
+      "D2: date",
+      "D3: date",
+      "D4: date",
+      "D5: date",
+      "D7: date",
+      "D8: date",
+      "D9: date"
+    ],
+    "constraints": [
+      "D3 < D7",
+      "D2 > (Date(1982, 3, 27) + ((Period(3, 6, 7) - (Period(1, 7, 4) + Period(4, 9, 6))) * 7))",
+      "D3 == ((D8 - ((Period(5, 0, 9) - (Period(5, 5, 6) - (Period(7, 0, 3) + ((Period(3, 9, 4) + (Period(0, 3, 6) * 4)) * 4)))) * 2)) + (((Period(0, 5, 8) - Period(2, 1, 6)) * 4) * 9))",
+      "D7 != D4 || D9 >= D9",
+      "D5 == ((D9 + Period(8, 7, 3)) + Period(8, 2, 1)) || D8 <= D2"
+    ],
+    "size": 5,
+    "execution_time": 60.34765386581421
+  },
+  {
+    "id": "grammar-timeout-47",
+    "declarations": [
+      "D0: date",
+      "D1: date",
+      "D2: date",
+      "D3: date",
+      "D4: date",
+      "D5: date",
+      "D6: date",
+      "D7: date",
+      "D8: date",
+      "D9: date"
+    ],
+    "constraints": [
+      "D0 < ((D2 - (Period(1, 8, 7) - ((Period(9, 5, 7) - (Period(5, 2, 0) - (Period(0, 8, 7) + Period(3, 8, 1)))) * 9))) + (Period(1, 9, 1) + ((Period(2, 0, 5) - (Period(2, 3, 6) * 2)) * 8)))",
+      "D4 != Date(1904, 12, 14) || D9 == (Date(2082, 5, 3) - ((Period(3, 3, 2) * 4) * 1))",
+      "D7 > D1",
+      "D4 != ((((((((D8 + (Period(7, 6, 6) + Period(0, 1, 1))) - Period(5, 4, 4)) + (Period(6, 8, 9) - ((Period(4, 0, 8) + (Period(4, 4, 9) - (Period(5, 3, 2) + (Period(7, 3, 0) + Period(1, 0, 9))))) * 3))) - (Period(6, 3, 9) * 1)) - Period(7, 2, 7)) - Period(2, 8, 9)) + ((Period(9, 8, 6) * 1) * 6)) + (Period(8, 7, 9) - (Period(5, 7, 4) - (Period(3, 4, 4) + (Period(4, 3, 1) + (Period(2, 6, 0) * 9))))))",
+      "D7 > (Date(2027, 2, 24) - ((((Period(2, 1, 5) - (Period(2, 4, 9) * 3)) * 2) * 3) * 1))",
+      "D7 > (Date(2036, 3, 29) - Period(2, 7, 4))",
+      "D4 < D6 || D9 > D9 || D4 < D1 || D5 > ((D8 + (Period(9, 0, 2) * 9)) + Period(4, 1, 8))",
+      "D6 >= (Date(2065, 4, 30) - ((Period(8, 8, 4) + (Period(4, 5, 2) * 6)) * 2)) || D4 >= D3 || D8 > D5",
+      "D7 == D2 || D6 >= D0",
+      "D4 >= Date(1960, 1, 7) || D8 != Date(1944, 2, 7) || D4 != (Date(2007, 11, 17) - Period(8, 4, 7))"
+    ],
+    "size": 10,
+    "execution_time": 60.346211671829224
+  },
+  {
+    "id": "grammar-timeout-48",
+    "declarations": [
+      "D1: date",
+      "D2: date",
+      "D3: date",
+      "D4: date",
+      "D5: date",
+      "D6: date",
+      "D7: date",
+      "D8: date",
+      "D9: date"
+    ],
+    "constraints": [
+      "D6 >= (Date(2095, 6, 9) + Period(2, 0, 9))",
+      "D8 >= (((D1 + (Period(7, 8, 1) + Period(2, 8, 9))) + (Period(6, 9, 5) * 6)) - ((Period(1, 5, 8) + (Period(7, 0, 0) - Period(0, 9, 9))) * 1)) || D9 != (D3 + (Period(4, 1, 1) * 0))",
+      "D9 >= D6 || D1 >= D7",
+      "D4 >= D3 || D6 > D2 || D1 != Date(2086, 11, 10) || D3 >= (Date(1961, 4, 23) - Period(4, 9, 4))",
+      "D3 < Date(2085, 12, 23)",
+      "D5 < ((D4 - ((Period(2, 7, 9) * 4) * 7)) + ((Period(9, 3, 7) * 7) * 0))"
+    ],
+    "size": 6,
+    "execution_time": 60.337000131607056
+  },
+  {
+    "id": "grammar-timeout-49",
+    "declarations": [
+      "D1: date",
+      "D2: date",
+      "D3: date",
+      "D4: date",
+      "D5: date",
+      "D6: date",
+      "D7: date",
+      "D8: date",
+      "D9: date"
+    ],
+    "constraints": [
+      "D4 != (D8 + (Period(1, 6, 6) + ((Period(4, 9, 5) + (Period(0, 1, 5) * 3)) * 5)))",
+      "D1 < D4 || D2 <= (Date(2014, 7, 27) - ((Period(4, 9, 4) * 5) * 4))",
+      "D5 >= (Date(1984, 6, 12) + ((Period(3, 9, 0) + (Period(5, 9, 3) - Period(7, 2, 7))) * 5))",
+      "D2 > Date(2075, 1, 29)",
+      "D1 >= D7 || D1 <= (D5 + Period(8, 1, 8)) || D6 > Date(2062, 6, 14)",
+      "D3 < Date(2034, 12, 31) || D6 >= (Date(2090, 1, 7) + (Period(1, 2, 2) - (Period(2, 4, 8) * 8)))",
+      "D8 < (((D5 + (Period(4, 9, 0) + ((Period(3, 9, 3) * 7) * 3))) - (Period(2, 2, 6) * 8)) + (Period(6, 5, 0) + (Period(7, 0, 6) + Period(0, 8, 4))))",
+      "D2 > D6",
+      "D4 >= Date(1978, 12, 16) || D2 >= D1 || D9 > (Date(1984, 8, 30) - (Period(5, 4, 0) - ((Period(7, 3, 8) + Period(4, 8, 5)) * 4)))"
+    ],
+    "size": 9,
+    "execution_time": 60.291006326675415
+  },
+  {
+    "id": "grammar-timeout-50",
+    "declarations": [
+      "D1: date",
+      "D3: date",
+      "D4: date",
+      "D5: date",
+      "D6: date",
+      "D8: date",
+      "D9: date"
+    ],
+    "constraints": [
+      "D9 == (D5 + (Period(7, 7, 3) * 6))",
+      "D5 < (Date(1919, 9, 21) - (Period(0, 3, 2) - Period(0, 5, 9)))",
+      "D9 != D3",
+      "D1 <= D5 || D9 == D3",
+      "D4 == Date(1911, 12, 19) || D5 > Date(1989, 3, 13) || D8 >= (((D6 - (Period(5, 2, 0) - (Period(8, 5, 5) * 6))) + Period(1, 7, 2)) - (Period(5, 7, 7) * 6))"
+    ],
+    "size": 5,
+    "execution_time": 60.13650608062744
+  }
+]

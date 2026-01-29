@@ -1,0 +1,431 @@
+[
+  {
+    "description": "Symbolic year in date constructor linking leap year dates",
+    "declarations": [
+      "x: date",
+      "y: date"
+    ],
+    "constraints": [
+      "x == Date(2000, 2, 29)",
+      "y == Date(x.year + 4, 2, 29)",
+      "y == Date(2004, 2, 29)"
+    ],
+    "coverage_tags": [
+      "symbolic_date_vars"
+    ],
+    "id": "1766397208-1"
+  },
+  {
+    "description": "Contradictory symbolic date construction with impossible year relationship",
+    "declarations": [
+      "x: date",
+      "y: date",
+      "z: date"
+    ],
+    "constraints": [
+      "x == Date(2020, 3, 15)",
+      "y == Date(x.year + 1, x.month, x.day)",
+      "z == Date(x.year + 2, x.month, x.day)",
+      "y == Date(2021, 3, 15)",
+      "z == Date(2023, 3, 15)",
+      "z == Date(2022, 3, 15)"
+    ],
+    "coverage_tags": [
+      "symbolic_date_vars"
+    ],
+    "id": "1766397208-2"
+  },
+  {
+    "description": "Complex symbolic date relationships across leap and non-leap years",
+    "declarations": [
+      "w: date",
+      "x: date",
+      "y: date",
+      "z: date"
+    ],
+    "constraints": [
+      "w == Date(2000, 2, 29)",
+      "x == Date(w.year + 1, w.month, 28)",
+      "y == Date(l, w.month, w.day)",
+      "z == Date(w.year + 100, w.month, 28)",
+      "x.year == 2001",
+      "l >= 2004",
+      "z.year == 2100",
+      "x.month == 2",
+      "y == Date(2004, 2, 29)",
+      "z == Date(2100, 2, 28)"
+    ],
+    "coverage_tags": [
+      "symbolic_date_vars"
+    ],
+    "id": "1766397208-3"
+  },
+  {
+    "description": "Impossible symbolic date construction for February 30th",
+    "declarations": [
+      "x: date",
+      "y: date"
+    ],
+    "constraints": [
+      "x == Date(2020, 1, 30)",
+      "y == Date(x.year, 2, x.day)",
+      "x.day == 30"
+    ],
+    "coverage_tags": [
+      "symbolic_date_vars"
+    ],
+    "id": "1766397208-4"
+  },
+  {
+    "description": "Symbolic dates with period arithmetic and cross-references",
+    "declarations": [
+      "a: date",
+      "b: date",
+      "c: date",
+      "d: date"
+    ],
+    "constraints": [
+      "a == Date(1950, 6, 15)",
+      "b == Date(a.year + 10, a.month, a.day)",
+      "c == Date(a.year + 20, a.month + 1, a.day - 5)",
+      "d == a + Period(50, 0, 0)",
+      "b == Date(1960, 6, 15)",
+      "c == Date(1970, 7, 10)",
+      "d == Date(2000, 6, 15)",
+      "c.day == 10"
+    ],
+    "coverage_tags": [
+      "symbolic_date_vars"
+    ],
+    "id": "1766397208-5"
+  },
+  {
+    "description": "Symbolic year in leap year date with 4-year cycle verification",
+    "declarations": [
+      "x: date",
+      "y: date",
+      "z: date"
+    ],
+    "constraints": [
+      "x == Date(2000, 2, 29)",
+      "y == Date(x.year + 4, x.month, x.day)",
+      "z == Date(l, 2, 29)",
+      "y.year == 2004",
+      "z > y"
+    ],
+    "coverage_tags": [
+      "symbolic_date_vars"
+    ],
+    "id": "1766397208-6"
+  },
+  {
+    "description": "Symbolic year and month in date constructor with period arithmetic",
+    "declarations": [
+      "base: date",
+      "next_year: date",
+      "offset: date"
+    ],
+    "constraints": [
+      "base == Date(2020, 3, 15)",
+      "next_year == Date(base.year + 1, base.month, base.day)",
+      "offset == Date(base.year + 2, base.month + 1, 10)",
+      "next_year.year == 2021",
+      "offset.year == 2022",
+      "offset.month == 4",
+      "(base + Period(1, 0, 0)) == next_year"
+    ],
+    "coverage_tags": [
+      "symbolic_date_vars"
+    ],
+    "id": "1766397208-7"
+  },
+  {
+    "description": "Complex symbolic date construction with multiple variable transformations",
+    "declarations": [
+      "anchor: date",
+      "derived1: date",
+      "derived2: date",
+      "derived3: date"
+    ],
+    "constraints": [
+      "anchor == Date(1950, 6, 15)",
+      "derived1 == Date(anchor.year + 50, anchor.month, anchor.day)",
+      "derived2 == Date(anchor.year + 100, anchor.month + 6, anchor.day - 10)",
+      "derived3 == Date(derived1.year + 10, derived1.month - 3, derived1.day + 5)",
+      "derived1.year == 2000",
+      "derived2.year == 2050",
+      "derived2.month == 12",
+      "derived3.year == 2010",
+      "derived3.month == 3",
+      "derived3.day == 20"
+    ],
+    "coverage_tags": [
+      "symbolic_date_vars"
+    ],
+    "id": "1766397208-8"
+  },
+  {
+    "description": "Symbolic year crossing leap year boundary with month-end handling",
+    "declarations": [
+      "start: date",
+      "leap_cross: date",
+      "adjusted: date"
+    ],
+    "constraints": [
+      "start == Date(1999, 2, 28)",
+      "leap_cross == Date(start.year + 1, start.month, start.day + 1)",
+      "adjusted == Date(leap_cross.year + 4, 2, 29)",
+      "leap_cross.year == 2000",
+      "adjusted.year == 2004",
+      "adjusted.day == 29"
+    ],
+    "coverage_tags": [
+      "symbolic_date_vars"
+    ],
+    "id": "1766397208-9"
+  },
+  {
+    "description": "Symbolic date construction with arithmetic expressions in all components",
+    "declarations": [
+      "origin: date",
+      "computed1: date",
+      "computed2: date",
+      "computed3: date"
+    ],
+    "constraints": [
+      "origin == Date(2010, 5, 20)",
+      "computed1 == Date(origin.year + 10, origin.month - 2, origin.day + 5)",
+      "computed2 == Date(origin.year * 2 - 2010, origin.month + 7, origin.day - 15)",
+      "computed3 == Date(computed1.year - 5, computed1.month + 3, computed1.day)",
+      "computed1.year == 2020",
+      "computed1.month == 3",
+      "computed2.year == 2010",
+      "computed3.year == 2015"
+    ],
+    "coverage_tags": [
+      "symbolic_date_vars"
+    ],
+    "id": "1766397208-10"
+  },
+  {
+    "description": "Symbolic year in Date constructor with leap year to non-leap year transition",
+    "declarations": [
+      "x: date",
+      "y: date",
+      "z: date"
+    ],
+    "constraints": [
+      "x == Date(2000, 2, 29)",
+      "y == Date(x.year + 1, 2, 28)",
+      "z == Date(x.year + 4, x.month, x.day)",
+      "y.year == 2001",
+      "z == Date(2004, 2, 29)"
+    ],
+    "coverage_tags": [
+      "symbolic_date_vars"
+    ],
+    "id": "1766397208-11"
+  },
+  {
+    "description": "Symbolic year and month in Date constructors with month arithmetic",
+    "declarations": [
+      "x: date",
+      "y: date",
+      "z: date",
+      "w: date"
+    ],
+    "constraints": [
+      "x == Date(1995, 6, 15)",
+      "y == Date(x.year + 10, x.month + 3, 1)",
+      "z == Date(x.year * 2 - x.year, x.month, x.day)",
+      "w == Date(y.year - 5, 12, 31)",
+      "y.month == 9",
+      "z.year == 1995",
+      "w >= Date(1999, 12, 1)"
+    ],
+    "coverage_tags": [
+      "symbolic_date_vars"
+    ],
+    "id": "1766397208-12"
+  },
+  {
+    "description": "Complex symbolic date construction testing leap year boundaries and century transitions",
+    "declarations": [
+      "x: date",
+      "y: date",
+      "z: date",
+      "w: date",
+      "v: date"
+    ],
+    "constraints": [
+      "x == Date(2000, 2, 29)",
+      "y == Date(x.year + 100, x.month, x.day - 1)",
+      "4 * z.year <= x.year",
+      "x.year <= 4 * z.year + 3",
+      "z.month == x.month * 6",
+      "z.day == x.day",
+      "w == Date(2050, 1, 1)",
+      "v == Date(w.year - x.year, w.month + x.month, 15)",
+      "y.day == 28",
+      "z.year == 500",
+      "v.year == 50",
+      "x.year == 2000",
+      "(x + Period(100, 0, 0)) != Date(2100, 2, 28)"
+    ],
+    "coverage_tags": [
+      "symbolic_date_vars"
+    ],
+    "id": "1766397208-13"
+  },
+  {
+    "description": "Symbolic day manipulation across month boundaries with February edge cases",
+    "declarations": [
+      "x: date",
+      "y: date",
+      "z: date"
+    ],
+    "constraints": [
+      "x == Date(2020, 2, 15)",
+      "y == Date(x.year, x.month, x.day + 14)",
+      "z == Date(x.year + 1, 2, x.day + 13)",
+      "y == Date(2020, 2, 29)",
+      "z.day == 28",
+      "x.day * 2 - 1 == 29"
+    ],
+    "coverage_tags": [
+      "symbolic_date_vars"
+    ],
+    "id": "1766397208-14"
+  },
+  {
+    "description": "Multi-variable symbolic dates with arithmetic operations and UNSAT scenario",
+    "declarations": [
+      "x: date",
+      "y: date",
+      "z: date",
+      "w: date"
+    ],
+    "constraints": [
+      "x == Date(1950, 6, 30)",
+      "y == Date(x.year + 50, x.month, x.day)",
+      "z == Date(y.year - x.year, y.month + 6, 1)",
+      "w == Date(z.year * 40, 1, 15)",
+      "y.year == 2000",
+      "z == Date(2000, 12, 1)",
+      "w.year == 2000",
+      "w == Date(2000, 1, 15)"
+    ],
+    "coverage_tags": [
+      "symbolic_date_vars"
+    ],
+    "id": "1766397208-15"
+  },
+  {
+    "description": "Symbolic year progression through leap years with component linking",
+    "declarations": [
+      "x: date",
+      "y: date",
+      "z: date"
+    ],
+    "constraints": [
+      "x == Date(2000, 2, 29)",
+      "y == Date(x.year + 4, x.month, x.day)",
+      "z == Date(y.year + 4, x.month, x.day)",
+      "y.year == 2004",
+      "z.year == 2008"
+    ],
+    "coverage_tags": [
+      "symbolic_date_vars"
+    ],
+    "id": "1766397208-16"
+  },
+  {
+    "description": "Symbolic month and day components with arithmetic expressions",
+    "declarations": [
+      "base: date",
+      "next: date",
+      "shifted: date"
+    ],
+    "constraints": [
+      "base == Date(2020, 6, 15)",
+      "next == Date(base.year + 1, base.month - 1, base.day + 10)",
+      "shifted == Date(base.year, base.month + 3, base.day - 5)",
+      "next.year == 2021",
+      "next.month == 5",
+      "shifted.month == 9",
+      "shifted.day == 10"
+    ],
+    "coverage_tags": [
+      "symbolic_date_vars"
+    ],
+    "id": "1766397208-17"
+  },
+  {
+    "description": "Complex multi-variable symbolic date relationships with year and month variations",
+    "declarations": [
+      "a: date",
+      "b: date",
+      "c: date",
+      "d: date"
+    ],
+    "constraints": [
+      "a == Date(1950, 3, 15)",
+      "b == Date(a.year + 50, a.month, a.day)",
+      "c == Date(b.year - 25, b.month + 6, a.day + 10)",
+      "d == Date(c.year + 10, c.month - 3, c.day - 5)",
+      "b.year == 2000",
+      "c.year == 1975",
+      "c.month == 9",
+      "d.year == 1985",
+      "d.month == 6",
+      "d.day == 20"
+    ],
+    "coverage_tags": [
+      "symbolic_date_vars"
+    ],
+    "id": "1766397208-18"
+  },
+  {
+    "description": "Symbolic leap year date construction with February edge cases",
+    "declarations": [
+      "leap1: date",
+      "leap2: date",
+      "nonleap: date"
+    ],
+    "constraints": [
+      "leap1 == Date(2000, 2, 29)",
+      "leap2 == Date(leap1.year + 4, leap1.month, leap1.day)",
+      "nonleap == Date(leap1.year + 1, leap1.month, leap1.day - 1)",
+      "leap2.day == 29",
+      "nonleap.year == 2001",
+      "nonleap.day == 28"
+    ],
+    "coverage_tags": [
+      "symbolic_date_vars"
+    ],
+    "id": "1766397208-19"
+  },
+  {
+    "description": "Symbolic date arithmetic with component-based date construction and boundary crossing",
+    "declarations": [
+      "start: date",
+      "mid: date",
+      "end: date",
+      "wrap: date"
+    ],
+    "constraints": [
+      "start == Date(2010, 12, 25)",
+      "mid == Date(start.year + 5, start.month - 6, start.day + 5)",
+      "end == Date(mid.year + 10, mid.month + 8, mid.day - 15)",
+      "wrap == Date(start.year + 1, start.month - 11, start.day + 6)",
+      "mid.year == 2015",
+      "mid.month == 6",
+      "end.year == 2025",
+      "wrap.month == 1"
+    ],
+    "coverage_tags": [
+      "symbolic_date_vars"
+    ],
+    "id": "1766397208-20"
+  }
+]
