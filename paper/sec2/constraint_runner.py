@@ -8,9 +8,9 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from datesmt.api import DateSMTBuilder
-from datesmt.constraint_parser import ConstraintParser
-from datesmt.core import Date, Period
+from datesat.api import DateSATBuilder
+from datesat.constraint_parser import ConstraintParser
+from datesat.core import Date, Period
 
 CONSTRAINT_JSON = r"""
 {
@@ -39,7 +39,7 @@ CONSTRAINT_JSON = r"""
 
 def main():
     print("=" * 60)
-    print("DateSMT Constraint Runner")
+    print("DateSAT Constraint Runner")
     print("=" * 60)
     print()
 
@@ -63,16 +63,16 @@ def main():
     print(constraint_code)
     print()
 
-    # 3) Execute the generated code with DateSMTBuilder
+    # 3) Execute the generated code with DateSATBuilder
     def create_builder():
         # Options: approach="naive"|"epoch_days"|"alpha_beta"|"hybrid"
         #          implementation="int"|"bv"
-        return DateSMTBuilder(approach="naive", implementation="int")
+        return DateSATBuilder(approach="naive", implementation="int")
 
     exec_globals = {
         "Date": Date,
         "Period": Period,
-        "DateSMTBuilder": create_builder,
+        "DateSATBuilder": create_builder,
     }
 
     exec(constraint_code, exec_globals)
