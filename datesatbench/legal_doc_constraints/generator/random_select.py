@@ -2,9 +2,9 @@
 Randomly select a subset of constraints from filtered.jsonl.
 
 By default, this script reads from:
-    dataset/legal_doc_constraints/processed_data/filtered.jsonl
+    datesatbench/legal_doc_constraints/processed_data/filtered.jsonl
 and writes to:
-    dataset/legal_doc_constraints/processed_data/selected.jsonl
+    datesatbench/legal_doc_constraints/processed_data/selected.jsonl
 
 The script:
 - Randomly selects N constraints (default: 200)
@@ -47,7 +47,7 @@ def main():
         type=str,
         nargs="?",
         help="Input JSONL file from filter.py "
-        "(default: dataset/legal_doc_constraints/processed_data/filtered.jsonl)",
+        "(default: datesatbench/legal_doc_constraints/processed_data/filtered.jsonl)",
     )
     parser.add_argument(
         "--output",
@@ -55,7 +55,7 @@ def main():
         type=str,
         default=None,
         help="Output JSONL file path "
-        "(default: dataset/legal_doc_constraints/processed_data/selected.jsonl)",
+        "(default: datesatbench/legal_doc_constraints/processed_data/selected.jsonl)",
     )
     parser.add_argument(
         "--num-samples",

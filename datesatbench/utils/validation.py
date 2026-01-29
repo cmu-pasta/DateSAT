@@ -15,15 +15,15 @@ import warnings
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-# Ensure repository root is on sys.path so `import datesmt` works
+# Ensure repository root is on sys.path so `import datesat` works
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
-from datesmt.constraint_parser import ConstraintParser
-from datesmt.constraint_validator import validate_constraint_solution
-from datesmt.core import Date, Period
-from datesmt.enumeration_baseline import (
+from datesat.constraint_parser import ConstraintParser
+from datesat.constraint_validator import validate_constraint_solution
+from datesat.core import Date, Period
+from datesat.enumeration_baseline import (
     ConstraintWrapper,
     EnumerationDateVar,
     EnumerationSolver,
@@ -780,7 +780,7 @@ def check_results_dir(
                     "warning_wrong": 0,
                     "not_applicable": 0,
                 }
-            # Only track not_applicable for enumeration_* approaches; DateSMT methods
+            # Only track not_applicable for enumeration_* approaches; DateSAT methods
             # shouldn't produce this status.
             if v == "not_applicable" and not approach.startswith("enumeration_"):
                 continue
@@ -1241,18 +1241,18 @@ def main():
 
     parser = argparse.ArgumentParser(
         description="Validate integration test results by executing constraints with concrete values. "
-        "Supports results from run_tests.py (LLM constraints) and other datasets.",
+        "Supports results from run_tests.py (LLM constraints) and other datesatbenchs.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
   # Validate LLM constraint results
-  python dataset/utils/validation.py dataset/LLM_gen_constraints/results
+  python datesatbench/utils/validation.py datesatbench/LLM_gen_constraints/results
 
-  # Validate results from a specific dataset
-  python dataset/utils/validation.py dataset/law/results --output dataset/law/validation_results.json
+  # Validate results from a specific datesatbench
+  python datesatbench/utils/validation.py datesatbench/law/results --output datesatbench/law/validation_results.json
 
   # Validate results that were run without analysis
-  python dataset/utils/validation.py dataset/LLM_gen_constraints/results --output validation_check.json
+  python datesatbench/utils/validation.py datesatbench/LLM_gen_constraints/results --output validation_check.json
         """,
     )
     parser.add_argument(

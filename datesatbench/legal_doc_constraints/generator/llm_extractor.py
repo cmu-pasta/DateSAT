@@ -24,14 +24,14 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from dataset.llm import LLMClient
-from datesmt.constraint_parser import ConstraintParser
+from datesatbench.llm import LLMClient
+from datesat.constraint_parser import ConstraintParser
 
 
 # System prompt for legal document constraint extraction
-LEGAL_EXTRACTION_PROMPT = """You are an expert in temporal reasoning. Convert legal clauses from the U.S. Internal Revenue Code (Title 26) into precise DateSMT constraints.
+LEGAL_EXTRACTION_PROMPT = """You are an expert in temporal reasoning. Convert legal clauses from the U.S. Internal Revenue Code (Title 26) into precise DateSAT constraints.
 
-TASK: Extract all explicit and logically required date/period constraints from legal text and express them in the DateSMT DSL below. Output ONLY valid JSON.
+TASK: Extract all explicit and logically required date/period constraints from legal text and express them in the DateSAT DSL below. Output ONLY valid JSON.
 
 ═══════════════════════════════════════════════════════════════════
 I. TYPE SYSTEM
@@ -603,14 +603,14 @@ def main():
         "-i",
         type=str,
         default=None,
-        help="Input JSONL file (default: dataset/legal_doc_constraints/processed_data/selected.jsonl)",
+        help="Input JSONL file (default: datesatbench/legal_doc_constraints/processed_data/selected.jsonl)",
     )
     parser.add_argument(
         "--output",
         "-o",
         type=str,
         default=None,
-        help="Output JSONL file path (default: dataset/legal_doc_constraints/constraints/constraints_YYYY-MM-DD_HH-MM-SS.jsonl)",
+        help="Output JSONL file path (default: datesatbench/legal_doc_constraints/constraints/constraints_YYYY-MM-DD_HH-MM-SS.jsonl)",
     )
     parser.add_argument(
         "--id-range",

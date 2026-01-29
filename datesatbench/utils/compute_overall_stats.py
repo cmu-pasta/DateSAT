@@ -110,10 +110,10 @@ def main():
         description="Compute overall solve percentage and solve time statistics."
     )
     parser.add_argument(
-        "--dataset-dir",
+        "--datesatbench-dir",
         type=str,
         default=None,
-        help="Path to the dataset directory (default: auto-detect)",
+        help="Path to the datesatbench directory (default: auto-detect)",
     )
     parser.add_argument(
         "--unit",
@@ -132,17 +132,17 @@ def main():
 
     args = parser.parse_args()
 
-    # Determine dataset directory
-    if args.dataset_dir:
-        dataset_dir = Path(args.dataset_dir)
+    # Determine datesatbench directory
+    if args.datesatbench_dir:
+        datesatbench_dir = Path(args.datesatbench_dir)
     else:
-        # Auto-detect: script is in dataset/utils/
+        # Auto-detect: script is in datesatbench/utils/
         script_dir = Path(__file__).parent
-        dataset_dir = script_dir.parent
+        datesatbench_dir = script_dir.parent
 
-    # Validate dataset directory
-    if not dataset_dir.exists():
-        print(f"Error: Dataset directory '{dataset_dir}' does not exist.")
+    # Validate datesatbench directory
+    if not datesatbench_dir.exists():
+        print(f"Error: Dataset directory '{datesatbench_dir}' does not exist.")
         return 1
 
     # Collect all results
@@ -155,7 +155,7 @@ def main():
 
     for benchmark in BENCHMARKS:
         for encoding in ENCODINGS:
-            file_path = dataset_dir / benchmark / "results" / encoding
+            file_path = datesatbench_dir / benchmark / "results" / encoding
             if not file_path.exists():
                 missing_files.append(str(file_path))
                 continue

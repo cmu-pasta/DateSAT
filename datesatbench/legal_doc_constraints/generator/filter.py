@@ -2,9 +2,9 @@
 Detection of candidate date/time constraints in Title 26.
 
 By default, this script reads the parsed elements from:
-    dataset/legal_doc_constraints/processed_data/parsed.jsonl
+    datesatbench/legal_doc_constraints/processed_data/parsed.jsonl
 and writes candidate constraints to:
-    dataset/legal_doc_constraints/processed_data/filtered.jsonl
+    datesatbench/legal_doc_constraints/processed_data/filtered.jsonl
 
 Filtering Pipeline (multi-stage):
 
@@ -261,7 +261,7 @@ def main():
         type=str,
         nargs="?",
         help="Input JSONL file from parse.py "
-        "(default: dataset/legal_doc_constraints/processed_data/parsed.jsonl)",
+        "(default: datesatbench/legal_doc_constraints/processed_data/parsed.jsonl)",
     )
     parser.add_argument(
         "--output",
@@ -269,7 +269,7 @@ def main():
         type=str,
         default=None,
         help="Output JSONL file path "
-        "(default: dataset/legal_doc_constraints/processed_data/filtered.jsonl)",
+        "(default: datesatbench/legal_doc_constraints/processed_data/filtered.jsonl)",
     )
     parser.add_argument(
         "--min-patterns",

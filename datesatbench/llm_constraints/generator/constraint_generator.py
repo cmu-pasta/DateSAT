@@ -1,8 +1,8 @@
 """
-Constraint generator for DATE-SMT using LLM.
+Constraint generator for DateSAT using LLM.
 
 This module handles constraint-specific logic including prompts, validation,
-and generation workflows. It uses the universal dataset.llm module for LLM API calls.
+and generation workflows. It uses the universal datesatbench.llm module for LLM API calls.
 """
 
 import json
@@ -16,8 +16,8 @@ except ImportError:
     # Try absolute import
     import sys
     from pathlib import Path
-    dataset_path = Path(__file__).parent.parent.parent
-    sys.path.insert(0, str(dataset_path))
+    datesatbench_path = Path(__file__).parent.parent.parent
+    sys.path.insert(0, str(datesatbench_path))
     from llm import LLMClient
 
 try:
@@ -26,7 +26,7 @@ except ImportError:
     from id_counter import get_next_id
 
 try:
-    from datesmt.constraint_parser import ConstraintParser
+    from datesat.constraint_parser import ConstraintParser
 except ImportError:
     import sys
     from pathlib import Path
@@ -34,7 +34,7 @@ except ImportError:
     repo_root = Path(__file__).resolve().parents[3]
     if str(repo_root) not in sys.path:
         sys.path.insert(0, str(repo_root))
-    from datesmt.constraint_parser import ConstraintParser
+    from datesat.constraint_parser import ConstraintParser
 
 
 def _validate_constraints_with_parser(constraint_obj: Dict) -> Tuple[bool, Optional[str]]:
@@ -112,10 +112,10 @@ def _handle_validation_error(
 
 
 # System prompt for constraint generation
-SYSTEM_PROMPT = """You are an expert in writing DateSMT constraints.
+SYSTEM_PROMPT = """You are an expert in writing DateSAT constraints.
 
 GOAL
-Generate a JSON array of constraint objects for the Python DateSMT library.
+Generate a JSON array of constraint objects for the Python DateSAT library.
 
 RULES & OPERATIONS
 - Use ONLY dates and calendar periods (no times, time zones, or DST).
@@ -160,7 +160,7 @@ Examples to AVOID (will fail):
   • Date(x * y, 2, 1) - nonlinear multiplication not allowed
   • "x: int" with "x > 5" - standalone int variables not supported
 
-DateSMT SYNTAX
+DateSAT SYNTAX
 - Constructors: Date(year, month, day), Period(years, months, days)
 - Date Variables: Any valid Python identifier (starts with letter/underscore, followed by letters/digits/underscores)
   Examples: x, y, z, var1, _var, var_123, VAR, start_date, endDate
@@ -414,7 +414,7 @@ def _count_constraints(constraints: List[str]) -> int:
 
 
 class ConstraintGenerator:
-    """Generator for DATE-SMT constraints using LLM."""
+    """Generator for DateSAT constraints using LLM."""
 
     def __init__(
         self,
@@ -444,7 +444,7 @@ class ConstraintGenerator:
         log_file=None
     ) -> List[Dict]:
         """
-        Generate DATE-SMT constraints with validation + feedback loop and auto-repair.
+        Generate DateSAT constraints with validation + feedback loop and auto-repair.
         Produces a mix of SAT/UNSAT across diverse boundary categories.
 
         Args:
@@ -740,17 +740,13 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="Generate DATE-SMT constraints with LLM"
+        description="Generate DateSAT constraints with LLM"
     )
     parser.add_argument(
         "--num", type=int, default=10, help="Number of constraints to generate"
     )
     parser.add_argument(
         "--output", default="generated_constraints.json", help="Output filename"
-    )
-    parser.add_argument("--api-key", help="API key (or set environment variable)")
-    parser.add_argument(
-        "--model", help="LLM model name (auto-detected if not specified)"
     )
     parser.add_argument(
         "--provider",

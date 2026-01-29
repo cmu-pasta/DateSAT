@@ -5,13 +5,13 @@ import re
 import sys
 from pathlib import Path
 
-# Ensure repository root is on sys.path so `import datesmt` works
+# Ensure repository root is on sys.path so `import datesat` works
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
-import datesmt
-from dataset.utils.validation import check_results_dir
+import datesat
+from datesatbench.utils.validation import check_results_dir
 
 TIMEOUT_MS = 60000
 
@@ -29,15 +29,15 @@ def _get_smtlib_for_constraint(
     This is used for benchmarking purposes to save SMT-LIB files
     that can be replayed with other SMT solvers.
     """
-    from datesmt.api import DateSMTBuilder
-    from datesmt.constraint_parser import ConstraintParser
-    from datesmt.core import Date, Period
+    from datesat.api import DateSATBuilder
+    from datesat.constraint_parser import ConstraintParser
+    from datesat.core import Date, Period
 
     parser = ConstraintParser()
     constraint_code = parser.parse_constraint_data(constraint_data)
 
     def create_builder():
-        return DateSMTBuilder(
+        return DateSATBuilder(
             approach=approach,
             implementation=implementation,
             timeout_ms=timeout_ms,
@@ -47,7 +47,7 @@ def _get_smtlib_for_constraint(
     exec_globals = {
         "Date": Date,
         "Period": Period,
-        "DateSMTBuilder": create_builder,
+        "DateSATBuilder": create_builder,
     }
 
     exec(constraint_code, exec_globals)
@@ -91,7 +91,7 @@ def run_constraint_with_approach(
 
     try:
         # Solve using the high-level API
-        solve_result = datesmt.solve(
+        solve_result = datesat.solve(
             constraints=constraint_data,
             approach=approach,
             implementation=implementation,
@@ -209,14 +209,10 @@ def run_constraints_file(
     # Define all solver approaches and implementations to test
     all_symbolic_approaches = [
         "naive",
-        # "epoch_days",
-        # "hybrid",
-        # "alpha_beta",
-        # "alpha_beta_table"
-        # "epoch_days",
-        # "hybrid",
-        # "alpha_beta",
-        # "alpha_beta_table"
+        "epoch_days",
+        "hybrid",
+        "alpha_beta",
+        "alpha_beta_table"
     ]
 
 
@@ -224,9 +220,6 @@ def run_constraints_file(
     if approaches is not None:
         symbolic_approaches = [a for a in approaches if a in all_symbolic_approaches]
         if not symbolic_approaches:
-            print(
-                f"⚠️  Warning: No valid approaches found in {approaches}. Using all approaches."
-            )
             print(
                 f"⚠️  Warning: No valid approaches found in {approaches}. Using all approaches."
             )
@@ -299,7 +292,7 @@ def main():
     """
     Run benchmarks on all constraint sets and optionally analyze results.
 
-    Processes three constraint datasets:
+    Processes three constraint datesatbenchs:
     - Grammar Constraints
     - LLM Generated Constraints
     - Legal Document Constraints
@@ -309,34 +302,32 @@ def main():
     constraint_sets = [
         {
             "name": "Grammar Constraints",
-        {
-            "name": "Grammar Constraints",
             "constraints_file": SCRIPT_DIR
             / "grammar_constraints"
             / "constraints"
             / "constraints.json",
             "output_dir": SCRIPT_DIR / "grammar_constraints" / "results",
         },
-        # {
-        #     "name": "LLM Generated Constraints",
-        #     "constraints_file": SCRIPT_DIR
-        #     / "llm_constraints"
-        #     / "constraints"
-        #     / "constraints.json",
-        #     "output_dir": SCRIPT_DIR / "llm_constraints" / "results",
-        # },
-        # {
-        #     "name": "Legal Document Constraints",
-        #     "constraints_file": SCRIPT_DIR
-        #     / "legal_doc_constraints"
-        #     / "constraints"
-        #     / "constraints.jsonl",
-        #     "output_dir": SCRIPT_DIR / "legal_doc_constraints" / "results",
-        # },
+        {
+             "name": "LLM Generated Constraints",
+             "constraints_file": SCRIPT_DIR
+             / "llm_constraints"
+             / "constraints"
+             / "constraints.json",
+             "output_dir": SCRIPT_DIR / "llm_constraints" / "results",
+        },
+        {
+            "name": "Legal Document Constraints",
+            "constraints_file": SCRIPT_DIR
+            / "legal_doc_constraints"
+            / "constraints"
+            / "constraints.jsonl",
+            "output_dir": SCRIPT_DIR / "legal_doc_constraints" / "results",
+        },
     ]
 
     parser = argparse.ArgumentParser(
-        description="Test generated constraints with DATE-SMT and optionally analyze results"
+        description="Test generated constraints with DateSAT and optionally analyze results"
     )
     parser.add_argument(
         "--timeout",
@@ -360,38 +351,36 @@ def main():
         default=None,
         help="List of approaches to test (e.g., --approaches alpha_beta_table alpha_beta_table_old). "
         "If not specified, all approaches are tested.",
-        "If not specified, all approaches are tested.",
     )
     parser.add_argument(
-        "--datasets",
+        "--datesatbenchs",
         nargs="+",
         default=None,
-        help="List of dataset names to run (e.g., --datasets legal llm). "
-        "Short names: 'legal', 'llm', 'grammar'. If not specified, all datasets are tested.",
-        "Short names: 'legal', 'llm', 'grammar'. If not specified, all datasets are tested.",
+        help="List of datesatbench names to run (e.g., --datesatbenchs legal llm). "
+        "Short names: 'legal', 'llm', 'grammar'. If not specified, all datesatbenchs are tested.",
     )
 
     args = parser.parse_args()
 
-    # Map short dataset names to full names
-    dataset_name_map = {
+    # Map short datesatbench names to full names
+    datesatbench_name_map = {
         "legal": "Legal Document Constraints",
         "llm": "LLM Generated Constraints",
         "grammar": "Grammar Constraints",
     }
 
     # Convert short names to full names if needed
-    if args.datasets:
-        mapped_datasets = []
-        for ds in args.datasets:
-            if ds.lower() in dataset_name_map:
-                mapped_datasets.append(dataset_name_map[ds.lower()])
-            elif ds in dataset_name_map.values():
+    if args.datesatbenchs:
+        mapped_datesatbenchs = []
+        for ds in args.datesatbenchs:
+            if ds.lower() in datesatbench_name_map:
+                mapped_datesatbenchs.append(datesatbench_name_map[ds.lower()])
+            elif ds in datesatbench_name_map.values():
                 # Already a full name
-                mapped_datasets.append(ds)
+                mapped_datesatbenchs.append(ds)
             else:
-                print(f"⚠️  Warning: Unknown dataset name: {ds}")
-        args.datasets = mapped_datasets if mapped_datasets else None
+                print(f"⚠️  Warning: Unknown datesatbench name: {ds}")
+        args.datesatbenchs = mapped_datesatbenchs if mapped_datesatbenchs else None
 
     # Print configuration
     print(f"Configuration:")
@@ -400,16 +389,16 @@ def main():
     print(f"  Analysis: {'Enabled' if not args.no_analysis else 'Disabled'}")
     if args.approaches:
         print(f"  Approaches: {args.approaches}")
-    if args.datasets:
-        print(f"  Datasets: {args.datasets}")
+    if args.datesatbenchs:
+        print(f"  DateSATBench Datasets: {args.datesatbenchs}")
     print()
 
     # Filter constraint sets if specified
-    if args.datasets:
-        constraint_sets = [cs for cs in constraint_sets if cs["name"] in args.datasets]
-        constraint_sets = [cs for cs in constraint_sets if cs["name"] in args.datasets]
+    if args.datesatbenchs:
+        constraint_sets = [cs for cs in constraint_sets if cs["name"] in args.datesatbenchs]
+        constraint_sets = [cs for cs in constraint_sets if cs["name"] in args.datesatbenchs]
         if not constraint_sets:
-            print(f"⚠️  Warning: No matching datasets found. Available datasets:")
+            print(f"⚠️  Warning: No matching datesatbenchs found. Available datesatbenchs:")
             print(f"    - legal (Legal Document Constraints)")
             print(f"    - llm (LLM Generated Constraints)")
             print(f"    - grammar (Grammar Constraints)")

@@ -1,7 +1,7 @@
 """
-Universal LLM client for the DATE-SMT dataset generation.
+Universal LLM client for the DateSAT datesatbench generation.
 
-This module provides a generic LLM interface that can be used by any dataset generator.
+This module provides a generic LLM interface that can be used by any datesatbench generator.
 """
 
 import json

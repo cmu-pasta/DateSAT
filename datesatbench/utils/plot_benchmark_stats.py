@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Script to plot benchmark statistics (#variables and #constraints) by dataset.
+Script to plot benchmark statistics (#variables and #constraints) by datesatbench.
 Generates publication-quality figures with standard deviation error bars.
 """
 
@@ -13,13 +13,13 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 
-# Add the project root to sys.path to import datesmt module
+# Add the project root to sys.path to import datesat module
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 from lark import Token, Tree
 
-from datesmt.constraint_parser import ConstraintParser
+from datesat.constraint_parser import ConstraintParser
 
 
 def extract_atoms_from_constraint(
@@ -231,7 +231,7 @@ def write_atoms_log(
     Write a log file containing all atoms extracted from each benchmark.
 
     Args:
-        data_dict: Dictionary mapping dataset names to their benchmark data
+        data_dict: Dictionary mapping datesatbench names to their benchmark data
         output_path: Path to the output log file
         parser: A ConstraintParser instance
     """
@@ -243,12 +243,12 @@ def write_atoms_log(
         total_atoms = 0
         total_benchmarks = 0
 
-        for dataset_name, data in data_dict.items():
+        for datesatbench_name, data in data_dict.items():
             f.write(f"\n{'='*80}\n")
-            f.write(f"DATASET: {dataset_name}\n")
+            f.write(f"DATASET: {datesatbench_name}\n")
             f.write(f"{'='*80}\n\n")
 
-            dataset_atoms = 0
+            datesatbench_atoms = 0
 
             for benchmark in data:
                 benchmark_id = benchmark.get("id", "unknown")
@@ -268,16 +268,16 @@ def write_atoms_log(
                         f.write(f"    {j}. {atom}\n")
 
                 f.write(f"\n  Total atoms in benchmark: {len(benchmark_atoms)}\n")
-                dataset_atoms += len(benchmark_atoms)
+                datesatbench_atoms += len(benchmark_atoms)
                 total_benchmarks += 1
 
             f.write(f"\n{'='*80}\n")
-            f.write(f"DATASET SUMMARY: {dataset_name}\n")
+            f.write(f"DATASET SUMMARY: {datesatbench_name}\n")
             f.write(f"  Total benchmarks: {len(data)}\n")
-            f.write(f"  Total atoms: {dataset_atoms}\n")
+            f.write(f"  Total atoms: {datesatbench_atoms}\n")
             f.write(f"{'='*80}\n")
 
-            total_atoms += dataset_atoms
+            total_atoms += datesatbench_atoms
 
         f.write(f"\n\n{'='*80}\n")
         f.write(f"OVERALL SUMMARY\n")
@@ -287,13 +287,13 @@ def write_atoms_log(
 
     print(f"Atoms log written to: {output_path}")
 
-# Add the project root to sys.path to import datesmt module
+# Add the project root to sys.path to import datesat module
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 from lark import Token, Tree
 
-from datesmt.constraint_parser import ConstraintParser
+from datesat.constraint_parser import ConstraintParser
 
 
 def extract_atoms_from_constraint(
@@ -505,7 +505,7 @@ def write_atoms_log(
     Write a log file containing all atoms extracted from each benchmark.
 
     Args:
-        data_dict: Dictionary mapping dataset names to their benchmark data
+        data_dict: Dictionary mapping datesatbench names to their benchmark data
         output_path: Path to the output log file
         parser: A ConstraintParser instance
     """
@@ -517,12 +517,12 @@ def write_atoms_log(
         total_atoms = 0
         total_benchmarks = 0
 
-        for dataset_name, data in data_dict.items():
+        for datesatbench_name, data in data_dict.items():
             f.write(f"\n{'='*80}\n")
-            f.write(f"DATASET: {dataset_name}\n")
+            f.write(f"DATASET: {datesatbench_name}\n")
             f.write(f"{'='*80}\n\n")
 
-            dataset_atoms = 0
+            datesatbench_atoms = 0
 
             for benchmark in data:
                 benchmark_id = benchmark.get("id", "unknown")
@@ -542,16 +542,16 @@ def write_atoms_log(
                         f.write(f"    {j}. {atom}\n")
 
                 f.write(f"\n  Total atoms in benchmark: {len(benchmark_atoms)}\n")
-                dataset_atoms += len(benchmark_atoms)
+                datesatbench_atoms += len(benchmark_atoms)
                 total_benchmarks += 1
 
             f.write(f"\n{'='*80}\n")
-            f.write(f"DATASET SUMMARY: {dataset_name}\n")
+            f.write(f"DATASET SUMMARY: {datesatbench_name}\n")
             f.write(f"  Total benchmarks: {len(data)}\n")
-            f.write(f"  Total atoms: {dataset_atoms}\n")
+            f.write(f"  Total atoms: {datesatbench_atoms}\n")
             f.write(f"{'='*80}\n")
 
-            total_atoms += dataset_atoms
+            total_atoms += datesatbench_atoms
 
         f.write(f"\n\n{'='*80}\n")
         f.write(f"OVERALL SUMMARY\n")
@@ -657,10 +657,10 @@ def plot_benchmark_stats(
     figsize: tuple = (6, 3.5),
 ):
     """
-    Create a grouped bar chart showing #variables and #constraints by dataset.
+    Create a grouped bar chart showing #variables and #constraints by datesatbench.
 
     Args:
-        stats_dict: Dictionary mapping dataset names to their statistics.
+        stats_dict: Dictionary mapping datesatbench names to their statistics.
         output_path: Path to save the figure (PDF).
         figsize: Figure size in inches (width, height).
     """
@@ -689,19 +689,19 @@ def plot_benchmark_stats(
         }
     )
 
-    datasets = list(stats_dict.keys())
-    x = np.arange(len(datasets))
+    datesatbenchs = list(stats_dict.keys())
+    x = np.arange(len(datesatbenchs))
     width = 0.32
 
     fig, ax = plt.subplots(figsize=figsize)
 
     # Extract data
-    vars_means = [stats_dict[d]["vars_mean"] for d in datasets]
-    vars_stds = [stats_dict[d]["vars_std"] for d in datasets]
-    atoms_means = [stats_dict[d]["atoms_mean"] for d in datasets]
-    atoms_stds = [stats_dict[d]["atoms_std"] for d in datasets]
-    atoms_means = [stats_dict[d]["atoms_mean"] for d in datasets]
-    atoms_stds = [stats_dict[d]["atoms_std"] for d in datasets]
+    vars_means = [stats_dict[d]["vars_mean"] for d in datesatbenchs]
+    vars_stds = [stats_dict[d]["vars_std"] for d in datesatbenchs]
+    atoms_means = [stats_dict[d]["atoms_mean"] for d in datesatbenchs]
+    atoms_stds = [stats_dict[d]["atoms_std"] for d in datesatbenchs]
+    atoms_means = [stats_dict[d]["atoms_mean"] for d in datesatbenchs]
+    atoms_stds = [stats_dict[d]["atoms_std"] for d in datesatbenchs]
 
     # Time/date inspired color palette:
     # - Midnight blue: represents time, night sky, clock faces
@@ -761,11 +761,11 @@ def plot_benchmark_stats(
     # Customize axes
     ax.set_ylabel("Count (mean ± std)", fontweight="bold")
     ax.set_xticks(x)
-    ax.set_xticklabels(datasets, fontweight="bold")
+    ax.set_xticklabels(datesatbenchs, fontweight="bold")
 
     # Add sample size annotations below x-axis labels
-    for i, dataset in enumerate(datasets):
-        n = stats_dict[dataset]["n"]
+    for i, datesatbench in enumerate(datesatbenchs):
+        n = stats_dict[datesatbench]["n"]
         ax.annotate(
             f"(n={n})",
             xy=(i, 0),
@@ -868,12 +868,12 @@ def print_example_benchmark(
 def print_example_benchmark(
     data_dict: dict[str, list[dict]], parser: ConstraintParser = None
 ):
-    """Print an example benchmark from each dataset showing variables and atoms."""
+    """Print an example benchmark from each datesatbench showing variables and atoms."""
     print("=" * 70)
     print("Example Benchmarks (Variables and Atoms)")
     print("=" * 70)
 
-    for dataset_name, data in data_dict.items():
+    for datesatbench_name, data in data_dict.items():
         if not data:
             continue
 
@@ -888,7 +888,7 @@ def print_example_benchmark(
             all_atoms = example["constraints"]
 
         # Replace newlines with spaces for display
-        display_name = dataset_name.replace("\n", " ")
+        display_name = datesatbench_name.replace("\n", " ")
         print(f"\n{display_name} Dataset Example:")
         # Extract atoms if parser is provided
         if parser is not None:
@@ -898,7 +898,7 @@ def print_example_benchmark(
             all_atoms = example["constraints"]
 
         # Replace newlines with spaces for display
-        display_name = dataset_name.replace("\n", " ")
+        display_name = datesatbench_name.replace("\n", " ")
         print(f"\n{display_name} Dataset Example:")
         print(f"  ID: {example.get('id', 'unknown')}")
         print(f"  Number of Variables: {len(example['declarations'])}")
@@ -936,8 +936,8 @@ def find_extremes(data_dict: dict[str, list[dict]], parser: ConstraintParser = N
     """Find benchmarks with minimum and maximum variables and atoms."""
     all_benchmarks = []
 
-    # Collect all benchmarks with their dataset name
-    for dataset_name, data in data_dict.items():
+    # Collect all benchmarks with their datesatbench name
+    for datesatbench_name, data in data_dict.items():
         for benchmark in data:
             # Count atoms if parser is provided
             if parser is not None:
@@ -954,7 +954,7 @@ def find_extremes(data_dict: dict[str, list[dict]], parser: ConstraintParser = N
             all_benchmarks.append(
                 {
                     "id": benchmark.get("id", "unknown"),
-                    "dataset": dataset_name,
+                    "datesatbench": datesatbench_name,
                     "num_vars": len(benchmark["declarations"]),
                     "num_atoms": atom_count,
                     "num_atoms": atom_count,
@@ -973,8 +973,8 @@ def find_extremes(data_dict: dict[str, list[dict]], parser: ConstraintParser = N
     print("\nSmallest benchmark (least vars + atoms):")
     print("\nSmallest benchmark (least vars + atoms):")
     print(f"  ID: {min_vars['id']}")
-    print(f"  Dataset: {min_vars['dataset'].replace(chr(10), ' ')}")
-    print(f"  Dataset: {min_vars['dataset'].replace(chr(10), ' ')}")
+    print(f"  Dataset: {min_vars['datesatbench'].replace(chr(10), ' ')}")
+    print(f"  Dataset: {min_vars['datesatbench'].replace(chr(10), ' ')}")
     print(f"  Variables: {min_vars['num_vars']}")
     print(f"  Atoms: {min_vars['num_atoms']}")
     print(f"  Atoms: {min_vars['num_atoms']}")
@@ -982,8 +982,8 @@ def find_extremes(data_dict: dict[str, list[dict]], parser: ConstraintParser = N
     print("\nLargest benchmark (most vars + atoms):")
     print("\nLargest benchmark (most vars + atoms):")
     print(f"  ID: {max_vars['id']}")
-    print(f"  Dataset: {max_vars['dataset'].replace(chr(10), ' ')}")
-    print(f"  Dataset: {max_vars['dataset'].replace(chr(10), ' ')}")
+    print(f"  Dataset: {max_vars['datesatbench'].replace(chr(10), ' ')}")
+    print(f"  Dataset: {max_vars['datesatbench'].replace(chr(10), ' ')}")
     print(f"  Variables: {max_vars['num_vars']}")
     print(f"  Atoms: {max_vars['num_atoms']}")
     print(f"  Atoms: {max_vars['num_atoms']}")
@@ -993,7 +993,7 @@ def find_extremes(data_dict: dict[str, list[dict]], parser: ConstraintParser = N
 def main():
     arg_parser = argparse.ArgumentParser(
     arg_parser = argparse.ArgumentParser(
-        description="Plot benchmark statistics by dataset."
+        description="Plot benchmark statistics by datesatbench."
     )
     arg_parser.add_argument(
     arg_parser.add_argument(
@@ -1038,7 +1038,7 @@ def main():
     )
     args = arg_parser.parse_args()
 
-    # Determine base path (dataset directory)
+    # Determine base path (datesatbench directory)
     script_dir = Path(__file__).parent
     base_path = script_dir.parent
 
@@ -1070,8 +1070,8 @@ def main():
     print("Initializing constraint parser...")
     constraint_parser = ConstraintParser()
 
-    # Load all datasets (order determines bar order: LLM, Grammar, Legal)
-    print("Loading benchmark datasets...")
+    # Load all datesatbenchs (order determines bar order: LLM, Grammar, Legal)
+    print("Loading benchmark datesatbenchs...")
 
     stats_dict = {}
     data_dict = {}

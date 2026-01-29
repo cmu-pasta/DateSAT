@@ -451,20 +451,20 @@ def print_statistics(speedups: dict[str, dict], sorted_constraint_ids: list[str]
             print(f"  {config['label']:<20} {'N/A':>10}")
 
 
-def process_dataset(dataset_name: str, dataset_config: dict):
+def process_datesatbench(datesatbench_name: str, datesatbench_config: dict):
     """
-    Process a single dataset and generate its speedup plot.
+    Process a single datesatbench and generate its speedup plot.
 
     Args:
-        dataset_name: Name of the dataset
-        dataset_config: Configuration dict with path, title, output_name
+        datesatbench_name: Name of the datesatbench
+        datesatbench_config: Configuration dict with path, title, output_name
     """
-    results_path = dataset_config["path"]
-    title = dataset_config["title"]
-    output_name = dataset_config["output_name"]
+    results_path = datesatbench_config["path"]
+    title = datesatbench_config["title"]
+    output_name = datesatbench_config["output_name"]
 
     if not results_path.exists():
-        print(f"  [!] {dataset_name}: Results not found")
+        print(f"  [!] {datesatbench_name}: Results not found")
         return False
 
     # Load all results
@@ -472,7 +472,7 @@ def process_dataset(dataset_name: str, dataset_config: dict):
 
     # Check we have baseline
     if BASELINE_TECHNIQUE not in results or not results[BASELINE_TECHNIQUE]:
-        print(f"  [!] {dataset_name}: Baseline not found")
+        print(f"  [!] {datesatbench_name}: Baseline not found")
         return False
 
     # Get sorted constraint IDs (timeouts treated as 60s)
@@ -491,10 +491,10 @@ def process_dataset(dataset_name: str, dataset_config: dict):
 
     if dropped_count > 0:
         print(
-            f"\n[{dataset_name.upper()}] {actual_count} constraints ({dropped_count} dropped, both timed out)"
+            f"\n[{datesatbench_name.upper()}] {actual_count} constraints ({dropped_count} dropped, both timed out)"
         )
     else:
-        print(f"\n[{dataset_name.upper()}] {actual_count} constraints")
+        print(f"\n[{datesatbench_name.upper()}] {actual_count} constraints")
 
     # Filter sorted_constraint_ids to only include valid ones
     sorted_constraint_ids = [
@@ -535,16 +535,16 @@ def process_dataset(dataset_name: str, dataset_config: dict):
     return True
 
 
-def process_combined_datasets():
+def process_combined_datesatbenchs():
     """
-    Process all datasets combined into a single plot.
+    Process all datesatbenchs combined into a single plot.
     """
-    # Collect all results from all datasets with unique IDs
+    # Collect all results from all datesatbenchs with unique IDs
     combined_results = {technique: {} for technique in TECHNIQUES}
-    dataset_counts = []
+    datesatbench_counts = []
 
-    for dataset_name, dataset_config in DATASETS.items():
-        results_path = dataset_config["path"]
+    for datesatbench_name, datesatbench_config in DATASETS.items():
+        results_path = datesatbench_config["path"]
 
         if not results_path.exists():
             continue
@@ -555,14 +555,14 @@ def process_combined_datasets():
             if file_path.exists():
                 with open(file_path, "r") as f:
                     data = json.load(f)
-                    # Add dataset prefix to make IDs unique
+                    # Add datesatbench prefix to make IDs unique
                     for item in data:
-                        unique_id = f"{dataset_name}_{item['id']}"
+                        unique_id = f"{datesatbench_name}_{item['id']}"
                         combined_results[technique][unique_id] = item
                     if technique == BASELINE_TECHNIQUE:
                         count = len(data)
 
-        dataset_counts.append(f"{dataset_name}={count}")
+        datesatbench_counts.append(f"{datesatbench_name}={count}")
 
     # Check we have baseline
     if not combined_results[BASELINE_TECHNIQUE]:
@@ -587,11 +587,11 @@ def process_combined_datasets():
 
     if dropped_count > 0:
         print(
-            f"\n[COMBINED] {actual_count} constraints ({dropped_count} dropped) from {', '.join(dataset_counts)}"
+            f"\n[COMBINED] {actual_count} constraints ({dropped_count} dropped) from {', '.join(datesatbench_counts)}"
         )
     else:
         print(
-            f"\n[COMBINED] {actual_count} constraints from {', '.join(dataset_counts)}"
+            f"\n[COMBINED] {actual_count} constraints from {', '.join(datesatbench_counts)}"
         )
 
     # Filter sorted_constraint_ids to only include valid ones
@@ -642,12 +642,12 @@ def main():
     print(f"  - Both timeout: dropped")
 
     success_count = 0
-    for dataset_name, dataset_config in DATASETS.items():
-        if process_dataset(dataset_name, dataset_config):
+    for datesatbench_name, datesatbench_config in DATASETS.items():
+        if process_datesatbench(datesatbench_name, datesatbench_config):
             success_count += 1
 
     # Also generate combined plot
-    if process_combined_datasets():
+    if process_combined_datesatbenchs():
         success_count += 1
 
     print(f"\nDone! Generated {success_count} plots.")
