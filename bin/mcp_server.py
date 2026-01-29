@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-MCP Server for DateSMT.
+MCP Server for DateSAT.
 
 This module implements a Model Context Protocol (MCP) server that exposes
-DateSMT's constraint solving capabilities to AI agents.
+DateSAT's constraint solving capabilities to AI agents.
 
 The server provides a 'solve' tool that accepts date constraint specifications
 and returns satisfiability results with satisfying assignments.
@@ -12,18 +12,18 @@ and returns satisfiability results with satisfying assignments.
 import os
 import sys
 
-# Add the parent directory to the path so we can import datesmt
+# Add the parent directory to the path so we can import datesat
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
 from mcp.server.fastmcp import FastMCP
 from typing import Optional
-import datesmt
+import datesat
 
 # Create the MCP server instance
 mcp = FastMCP(
-    "DateSMT",
+    "DateSAT",
     instructions="A symbolic solver for date constraints using Z3 SMT solver. "
     "Use the 'solve' tool to find date values that satisfy given constraints."
 )
@@ -136,7 +136,7 @@ def solve(
         }
 
     try:
-        result = datesmt.solve(
+        result = datesat.solve(
             constraints={
                 "declarations": declarations,
                 "constraints": constraints

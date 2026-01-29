@@ -2,8 +2,8 @@ import operator
 
 import pytest
 
-from datesmt.core import Date
-from datesmt.enumeration_baseline import EnumerationSolver
+from datesat.core import Date
+from datesat.enumeration_baseline import EnumerationSolver
 
 # We cover equality, less/greater, boundary conditions, leap cases, and month ends.
 CASES = [

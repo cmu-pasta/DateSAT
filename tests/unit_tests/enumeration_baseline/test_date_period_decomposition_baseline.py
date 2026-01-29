@@ -3,8 +3,8 @@ from itertools import permutations
 import pytest
 from dateutil.relativedelta import relativedelta
 
-from datesmt.core import Date, Period
-from datesmt.enumeration_baseline import EnumerationSolver
+from datesat.core import Date, Period
+from datesat.enumeration_baseline import EnumerationSolver
 
 
 def get_period_arithmetic_test_cases():

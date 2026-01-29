@@ -4,7 +4,7 @@ The epoch days method uses a single integer representation (days since epoch) fo
 
 ## Data Types
 
-### Concrete Types (from `datesmt.core`)
+### Concrete Types (from `datesat.core`)
 - **`Date`**: Concrete date with year, month, day components
 - **`Period`**: Concrete period with years, months, days components
 
@@ -44,13 +44,12 @@ From core.py
    - `result.days_var = self.days_var + period_days`
    - Skips all month/year normalization and ordinal conversion
 
-2. **Add Months/Years**: Convert to ordinal days, add, convert back (similar to naive)
+2. **Add Months/Years**: Convert to Y/M/D, perform month/year addition, convert back to epoch
    - Convert current date to year/month/day using `ymd_from_days_since_epoch()`
    - Add period months/years using component-wise arithmetic (reuses `normalize_month()` from naive)
-   - Add days using `add_days_ordinal()` which includes:
-     - Fast path: If result stays within same month, use simple addition (avoids ordinal conversion)
-     - Otherwise: Convert to ordinal days, add, convert back to year/month/day
-   - Convert year/month/day back to days since epoch using `days_since_epoch_from_ymd()`
+   - Apply EOM clamp (reuses `eom_clamp()` from naive)
+   - If period has days component, add using `add_days_ordinal()` (converts Y/M/D back to epoch and adds days)
+   - Otherwise, convert Y/M/D back to epoch using `days_since_epoch_from_ymd()`
 
 ### DateVar Comparisons
 
@@ -60,4 +59,4 @@ From core.py
 
 - `DateVar` - Symbolic date variable with days since epoch
 - `EpochDaysSolver` - Constraint solver with epoch-based validation
-- Helper functions: `ymd_from_days_since_epoch()`, `days_since_epoch_from_ymd()`, `is_leap()` (reused from naive), `days_in_month()` (reused from naive), `normalize_month()` (reused from naive), `days_before_year()` (reused from naive), `days_before_month()` (reused from naive), `to_ordinal()` (reused from naive), `from_ordinal()` (reused from naive), `ymd_from_days_since_epoch()` (reused from naive), `days_since_epoch_from_ymd()` (reused from naive), `eom_clamp()` (reused from naive), `add_days_ordinal()` (reused from naive)
+- Helper functions: `ymd_from_days_since_epoch()`, `days_since_epoch_from_ymd()`, `add_days_ordinal()`, `normalize_month()` (reused from naive), `eom_clamp()` (reused from naive)

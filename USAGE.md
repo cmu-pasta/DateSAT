@@ -1,16 +1,14 @@
-# DateSMT Usage Guide
-
-DateSMT provides both a Python API and command-line interface for solving date constraints.
+# DateSAT Usage Guide
 
 ## Python API
 
 ### Basic Usage
 
 ```python
-import datesmt
+import datesat
 
 # Simple constraint solving
-result = datesmt.solve(
+result = datesat.solve(
     constraints=["x >= Date(2000,1,1)", "x < Date(2000,12,31)"],
     declarations=["x: date"]
 )
@@ -22,10 +20,10 @@ if result["status"] == "sat":
 ### JSON Format
 
 ```python
-import datesmt
+import datesat
 
 # Using JSON format (same as CLI input)
-result = datesmt.solve({
+result = datesat.solve({
     "declarations": ["x: date", "y: date"],
     "constraints": [
         "x >= Date(2000,1,1)",
@@ -41,9 +39,9 @@ print(f"Execution time: {result['execution_time']:.3f}s")
 ### With Integer and Boolean Variables
 
 ```python
-import datesmt
+import datesat
 
-result = datesmt.solve({
+result = datesat.solve({
     "declarations": ["x: date", "n: int", "flag: bool"],
     "constraints": [
         "x.year == 2000 + n",
@@ -62,11 +60,11 @@ if result["status"] == "sat":
 ### Choosing Solver Approach
 
 ```python
-import datesmt
+import datesat
 
 # Use different solver approaches and implementations
-result = datesmt.solve(
-    constraints={...},
+result = datesat.solve(
+    constraints={...},           # replace ... with actual constraints
     approach="hybrid",           # naive, epoch_days, hybrid, alpha_beta, alpha_beta_table
     implementation="bitvector",  # int or bitvector
     timeout_ms=600000,          # 10 minutes
@@ -77,13 +75,13 @@ result = datesmt.solve(
 ### Load from JSON File
 
 ```python
-import datesmt
+import datesat
 import json
 
 with open('constraints.json') as f:
     constraint_data = json.load(f)
 
-result = datesmt.solve(constraint_data)
+result = datesat.solve(constraint_data)
 ```
 
 ## Command-Line Interface
@@ -92,13 +90,13 @@ result = datesmt.solve(constraint_data)
 
 ```bash
 # Read from stdin
-./bin/datesmt.py < constraints.json
+./bin/datesat_cli.py < constraints.json
 
 # Or using cat
-cat constraints.json | python bin/datesmt.py
+cat constraints.json | python bin/datesat_cli.py
 
 # Read from file
-python bin/datesmt.py --file constraints.json
+python bin/datesat_cli.py --file constraints.json
 ```
 
 ### Input Format
@@ -122,52 +120,52 @@ Create a JSON file with declarations and constraints:
 
 ```bash
 # Choose solver approach and implementation
-python bin/datesmt.py --approach hybrid --implementation bitvector < constraints.json
+python bin/datesat_cli.py --approach hybrid --implementation bitvector < constraints.json
 
 # Get JSON output instead of human-readable format
-python bin/datesmt.py --output json < constraints.json
+python bin/datesat_cli.py --output json < constraints.json
 
 # Set timeout (in milliseconds)
-python bin/datesmt.py --timeout 300000 < constraints.json  # 5 minutes
+python bin/datesat_cli.py --timeout 300000 < constraints.json  # 5 minutes
 
 # Quiet mode (suppress solver output)
-python bin/datesmt.py --quiet < constraints.json
+python bin/datesat_cli.py --quiet < constraints.json
 
 # Show help
-python bin/datesmt.py --help
+python bin/datesat_cli.py --help
 ```
 
 ### CLI Examples
 
 ```bash
 # Simple constraint
-echo '{"declarations":["x: date"],"constraints":["x >= Date(2000,1,1)"]}' | python bin/datesmt.py --quiet
+echo '{"declarations":["x: date"],"constraints":["x >= Date(2000,1,1)"]}' | python bin/datesat_cli.py --quiet
 
 # With file input and JSON output
-python bin/datesmt.py --file constraints.json --output json
+python bin/datesat_cli.py --file constraints.json --output json
 
 # Using hybrid approach with bitvector implementation
-python bin/datesmt.py --approach hybrid --implementation bitvector --file constraints.json
+python bin/datesat_cli.py --approach hybrid --implementation bitvector --file constraints.json
 ```
 
 ## MCP Server (for AI Agents)
 
-DateSMT includes an MCP (Model Context Protocol) server that allows AI agents to solve date constraints programmatically.
+DateSAT includes an MCP (Model Context Protocol) server that allows AI agents to solve date constraints programmatically.
 
 ### Starting the Server
 
 ```bash
 # Start on default port (8000)
-python bin/datesmt_mcp.py
+python bin/datesat_mcp.py
 
 # Start on custom port
-python bin/datesmt_mcp.py --port 3000
+python bin/datesat_mcp.py --port 3000
 
 # Listen on all network interfaces
-python bin/datesmt_mcp.py --host 0.0.0.0 --port 8080
+python bin/datesat_mcp.py --host 0.0.0.0 --port 8080
 
 # Enable auto-reload for development
-python bin/datesmt_mcp.py --reload
+python bin/datesat_mcp.py --reload
 ```
 
 ### MCP Endpoint
@@ -299,7 +297,7 @@ These are included in `requirements.txt`.
 
 ## Result Format
 
-Both API and CLI return results with the following structure:
+Both Python API and CLI return results with the following structure:
 
 ```python
 {
@@ -320,14 +318,14 @@ Both API and CLI return results with the following structure:
 
 ## Advanced Usage
 
-### Using the DateSMTBuilder Directly
+### Using the DateSATBuilder Directly
 
-For more control, you can use the `DateSMTBuilder` class directly:
+For more control, you can use the `DateSATBuilder` class directly:
 
 ```python
-from datesmt import DateSMTBuilder, Date, Period
+from datesat import DateSATBuilder, Date, Period
 
-builder = DateSMTBuilder(approach="epoch_days", implementation="int")
+builder = DateSATBuilder(approach="epoch_days", implementation="int")
 
 # Create variables
 x = builder.add_date_var("x")
@@ -347,9 +345,9 @@ result = builder.solve()
 ### Export to SMT-LIB Format
 
 ```python
-from datesmt import DateSMTBuilder, Date
+from datesat import DateSATBuilder, Date
 
-builder = DateSMTBuilder()
+builder = DateSATBuilder()
 x = builder.add_date_var("x")
 builder.add_constraint(x >= Date(2000, 1, 1))
 
@@ -364,14 +362,8 @@ result = builder.solve()  # Will print SMT-LIB
 
 ## Solver Approaches
 
-DateSMT provides several solver approaches with different performance characteristics:
-
-- **naive**: Direct encoding of date arithmetic (simple but slower)
-- **epoch_days**: Convert dates to days since epoch (recommended, fast)
-- **hybrid**: Hybrid approach combining multiple encodings
-- **alpha_beta**: Alpha-beta encoding for optimized date arithmetic
-- **alpha_beta_table**: Table-based alpha-beta encoding
-
+DateSAT provides several solvers with different performance characteristics.
 Each approach is available in both **int** (integer arithmetic) and **bitvector** (bit-vector arithmetic) implementations.
 
-For most use cases, the default `epoch_days` approach with `int` implementation provides the best performance.
+In general, naive is often the slowest, and alpha beta table and epoch are relatively faster.
+Please learn more by reading the paper.

@@ -1,10 +1,10 @@
 # Hybrid Method
 
-The hybrid method uses a dual-lazy representation: both epoch and Y/M/D exist conceptually, and either side is derived lazily only when needed. Neither side is auto-linked to the other; instead, operations derive the required representation on demand.
+The hybrid method uses a dual-lazy representation: both epoch and Y/M/D exist conceptually, and either side is derived lazily only when needed. Neither side is auto-linked to the other; instead, operations derive the required representation on demand. Please refer to the paper for more details.
 
 ## Data Types
 
-### Concrete Types (from `datesmt.core`)
+### Concrete Types (from `datesat.core`)
 - **`Date`**: Concrete date with year, month, day components
 - **`Period`**: Concrete period with years, months, days components
 
@@ -68,8 +68,8 @@ Comparisons choose the cheapest available consistent representation:
 ### Implementation Classes
 
 - `DateVar` - Symbolic date variable with dual-lazy representation
-  - **Constructor**: `DateVar(ctx, name: str)` - Requires solver context and name
+  - **Constructor**: `DateVar(ctx, name: str, is_user_var: bool = True)` - Requires solver context, name, and optional flag to indicate if this is a user-declared variable
   - **Context Integration**: All operations require solver context for constraint management
   - **Lazy derivation**: Y/M/D and epoch are derived on-demand; no auto forward linking
 - `HybridSolver` - Constraint solver with epoch range validation
-- Helper functions: `ymd_from_days_since_epoch()` (reused from epoch_days), `days_since_epoch_from_ymd()` (reused from epoch_days), `is_leap()` (reused from naive), `days_in_month()` (reused from naive), `normalize_month()` (reused from naive), `days_before_year()` (reused from naive), `days_before_month()` (reused from naive), `to_ordinal()` (reused from naive), `from_ordinal()` (reused from naive), `ymd_from_days_since_epoch()` (reused from naive), `days_since_epoch_from_ymd()` (reused from naive), `eom_clamp()` (reused from naive), `add_days_ordinal()` (reused from naive)
+- Helper functions: `ymd_from_days_since_epoch()` (reused from epoch_days), `days_since_epoch_from_ymd()` (reused from epoch_days), `normalize_month()` (reused from naive), `days_in_month()` (reused from naive), `eom_clamp()` (reused from naive), `add_days_ordinal()` (reused from epoch_days)

@@ -1,5 +1,5 @@
 """
-Unit tests for epoch date arithmetic in datesmt_int.epoch_days_int.
+Unit tests for epoch date arithmetic in datesat_int.epoch_days_int.
 
 Tests cover the days_since_epoch_from_ymd and ymd_from_days_since_epoch functions
 with March 1, 2000 as the epoch date.
@@ -11,8 +11,8 @@ from datetime import date, timedelta
 
 import pytest
 
-from datesmt.core import Date
-from datesmt.symbolic_int.epoch_days_int import (
+from datesat.core import Date
+from datesat.symbolic_int.epoch_days_int import (
     ymd_from_days_since_epoch,
     days_since_epoch_from_ymd,
 )

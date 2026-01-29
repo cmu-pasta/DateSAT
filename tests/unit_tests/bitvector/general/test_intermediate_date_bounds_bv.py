@@ -20,12 +20,12 @@ Note: Period has hard limits: years <= 200, months <= 2400.
 import pytest
 from z3 import sat, unsat
 
-from datesmt.core import Date, Period
-from datesmt.symbolic_bitvector.naive_bv import NaiveSolver
-from datesmt.symbolic_bitvector.epoch_days_bv import EpochDaysSolver
-from datesmt.symbolic_bitvector.hybrid_bv import HybridSolver
-from datesmt.symbolic_bitvector.alpha_beta_bv import AlphaBetaSolver
-from datesmt.symbolic_bitvector.alpha_beta_table_bv import AlphaBetaTableSolver
+from datesat.core import Date, Period
+from datesat.symbolic_bitvector.naive_bv import NaiveSolver
+from datesat.symbolic_bitvector.epoch_days_bv import EpochDaysSolver
+from datesat.symbolic_bitvector.hybrid_bv import HybridSolver
+from datesat.symbolic_bitvector.alpha_beta_bv import AlphaBetaSolver
+from datesat.symbolic_bitvector.alpha_beta_table_bv import AlphaBetaTableSolver
 
 
 SOLVERS = [

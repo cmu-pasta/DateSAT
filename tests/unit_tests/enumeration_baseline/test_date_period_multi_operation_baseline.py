@@ -2,8 +2,8 @@ from datetime import date as pydate
 
 import pytest
 
-from datesmt.core import Date, Period
-from datesmt.enumeration_baseline import EnumerationSolver
+from datesat.core import Date, Period
+from datesat.enumeration_baseline import EnumerationSolver
 
 
 def _apply_sequence_python(base: Date, seq: list[Period]) -> Date:

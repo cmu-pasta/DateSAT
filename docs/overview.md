@@ -1,10 +1,10 @@
 # Method Implementation Overview
 
-This document describes the common structure and requirements for implementing symbolic date constraint solving methods in DATE-SMT.
+This document describes the common structure and requirements for implementing a new encoding for DateSAT solver.
 
 ## Data Types
 
-### Concrete Types (from `datesmt.core`)
+### Concrete Types (from `datesat.core`)
 - **`Date`**: Concrete date with year, month, day components
 - **`Period`**: Concrete period with years, months, days components
 
@@ -93,46 +93,21 @@ Every method must implement a solver class with:
 - Period division
 - Period multiplication with non-integers
 
-## Implementation Requirements
-
-### Date Validation
-
-All methods must enforce the valid date range:
-- **Minimum**: 1900-03-01
-- **Maximum**: 2100-02-28
-
-**Range Validation Details**:
-- **1900-03-01 to 1900-12-31**: Special handling for first year
-- **1901-01-01 to 2099-12-31**: Standard full-year validation
-- **2100-01-01 to 2100-02-28**: Special handling for last year (2100 not a leap year)
-
-### Period Validation
-
-All methods must enforce valid period bounds (based on the date range):
-- **Years**: ±200 (maximum absolute value, `MAX_PERIOD_YEARS`)
-- **Months**: ±2400 (maximum absolute value, `MAX_PERIOD_MONTHS`, equivalent to ±200 years)
-- **Days**: ±73048 (maximum absolute value, `MAX_PERIOD_DAYS`, equivalent to the full date range span)
-
-**Period Validation Details**:
-- Period bounds are derived from the date range [1900-03-01 to 2100-02-28]
-- These bounds ensure periods are semantically valid within the supported date range
-- Periods exceeding these bounds will raise a `ValueError` during construction
-
 ### Error Handling
 
 - **TypeError**: For unsupported operand types
 - **ValueError**: For invalid date ranges or components
   - Invalid date format: "year, month, and day must be integers"
   - Invalid date: "Invalid date: YYYY-MM-DD"
-  - Date outside allowed range: "Date outside allowed range: YYYY-MM-DD (allowed [1900-03-01..2100-02-28])"
+  - Date outside allowed range: "Date outside allowed range: YYYY-MM-DD (allowed [1900-03-01..2100-02-28])" (Optional)
   - Invalid Period format: "years, months, and days must be integers"
-  - Period years out of range: "Period years out of range: YYYY (max ±200)"
-  - Period months out of range: "Period months out of range: MMMM (max ±2400)"
-  - Period days out of range: "Period days out of range: DDDD (max ±73048)"
+  - Period years out of range: "Period years out of range: YYYY (max ±200)" (Optional)
+  - Period months out of range: "Period months out of range: MMMM (max ±2400)" (Optional)
+  - Period days out of range: "Period days out of range: DDDD (max ±73048)" (Optional)
 - **Z3 exceptions**: For solver-specific errors
 
 ### Input Validation
 
 - **Type Checking**: All date components must be integers (booleans explicitly rejected)
-- **Range Validation**: Comprehensive validation for supported date range
 - **Calendar Correctness**: Uses Python's `date()` constructor for validation
+- **Range Validation**: Comprehensive validation for supported date range (Optional)

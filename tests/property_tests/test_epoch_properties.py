@@ -11,8 +11,8 @@ import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
-from datesmt.core import Date
-from datesmt.symbolic_int.epoch_days_int import (
+from datesat.core import Date
+from datesat.symbolic_int.epoch_days_int import (
     ymd_from_days_since_epoch,
     days_since_epoch_from_ymd,
 )
