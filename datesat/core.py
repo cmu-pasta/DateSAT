@@ -1,5 +1,5 @@
 """
-Core Date and Period classes for DATE-SMT.
+Core Date and Period classes for DateSAT.
 
 These classes represent the basic data structures used by all approaches.
 The difference between approaches is in how these are converted to Z3 constraints,
@@ -95,7 +95,7 @@ class Date:
         other_cls = other.__class__
         other_name = other_cls.__name__
         if (other_name in ("DateVar", "EvalDateVar", "EnumerationDateVar") or
-            (other_name == "DateVar" and getattr(other_cls, "__module__", "").startswith("datesmt.symbolic"))):
+            (other_name == "DateVar" and getattr(other_cls, "__module__", "").startswith("datesat.symbolic"))):
             return NotImplemented
         raise TypeError(f"Cannot compare Date with {type(other)}")
 
@@ -107,7 +107,7 @@ class Date:
         other_cls = other.__class__
         other_name = other_cls.__name__
         if (other_name in ("DateVar", "EvalDateVar", "EnumerationDateVar") or
-            (other_name == "DateVar" and getattr(other_cls, "__module__", "").startswith("datesmt.symbolic"))):
+            (other_name == "DateVar" and getattr(other_cls, "__module__", "").startswith("datesat.symbolic"))):
             return NotImplemented
         raise TypeError(f"Cannot compare Date with {type(other)}")
     
@@ -119,7 +119,7 @@ class Date:
         other_cls = other.__class__
         other_name = other_cls.__name__
         if (other_name in ("DateVar", "EvalDateVar", "EnumerationDateVar") or
-            (other_name == "DateVar" and getattr(other_cls, "__module__", "").startswith("datesmt.symbolic"))):
+            (other_name == "DateVar" and getattr(other_cls, "__module__", "").startswith("datesat.symbolic"))):
             return NotImplemented
         raise TypeError(f"Cannot compare Date with {type(other)}")
     
@@ -131,7 +131,7 @@ class Date:
         other_cls = other.__class__
         other_name = other_cls.__name__
         if (other_name in ("DateVar", "EvalDateVar", "EnumerationDateVar") or
-            (other_name == "DateVar" and getattr(other_cls, "__module__", "").startswith("datesmt.symbolic"))):
+            (other_name == "DateVar" and getattr(other_cls, "__module__", "").startswith("datesat.symbolic"))):
             return NotImplemented
         raise TypeError(f"Cannot compare Date with {type(other)}")
     
@@ -143,7 +143,7 @@ class Date:
         other_cls = other.__class__
         other_name = other_cls.__name__
         if (other_name in ("DateVar", "EvalDateVar", "EnumerationDateVar") or
-            (other_name == "DateVar" and getattr(other_cls, "__module__", "").startswith("datesmt.symbolic"))):
+            (other_name == "DateVar" and getattr(other_cls, "__module__", "").startswith("datesat.symbolic"))):
             return NotImplemented
         raise TypeError(f"Cannot compare Date with {type(other)}")
     
@@ -155,7 +155,7 @@ class Date:
         other_cls = other.__class__
         other_name = other_cls.__name__
         if (other_name in ("DateVar", "EvalDateVar", "EnumerationDateVar") or
-            (other_name == "DateVar" and getattr(other_cls, "__module__", "").startswith("datesmt.symbolic"))):
+            (other_name == "DateVar" and getattr(other_cls, "__module__", "").startswith("datesat.symbolic"))):
             return NotImplemented
         raise TypeError(f"Cannot compare Date with {type(other)}")
 

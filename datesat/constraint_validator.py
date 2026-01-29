@@ -22,7 +22,7 @@ from .enumeration_baseline import (
 
 
 # Global flag used during validation to detect when any intermediate date
-# computation has gone outside Date-SMT's supported range. This allows the
+# computation has gone outside DateSAT's supported range. This allows the
 # higher-level validation/summary code to classify such cases as "warning"
 # instead of fully "wrong".
 _OUT_OF_BOUNDS_USED: bool = False
@@ -65,7 +65,7 @@ class EvalDateVar:
                 result = Date.from_python_date(result_date)
                 self.set_value(result.year, result.month, result.day)
             except ValueError:
-                # Date is out of Date-SMT bounds, but still valid for validation.
+                # Date is out of DateSAT bounds, but still valid for validation.
                 # Store as a pseudo-Date using a custom unbounded wrapper and
                 # record that we went outside the supported range.
                 global _OUT_OF_BOUNDS_USED
@@ -780,7 +780,7 @@ class EvalBuilder:
         return {
             "Date": DateWrapper,
             "Period": Period,
-            "DateSMTBuilder": lambda: self,
+            "DateSATBuilder": lambda: self,
             "builder": self,
             "result": self,
             "__builtins__": {**builtins.__dict__, "__import__": mock_import},
@@ -840,7 +840,7 @@ def validate_constraint_solution(
     global _OUT_OF_BOUNDS_USED
     _OUT_OF_BOUNDS_USED = False
 
-    # Suppress warnings from datesmt.core.Date operations during constraint code execution.
+    # Suppress warnings from datesat.core.Date operations during constraint code execution.
     # We only care about the _OUT_OF_BOUNDS_USED flag set by EvalDateVar, not warnings
     # from literal Date expressions in the constraint code (like Date(2042, 12, 18) + Period(...)).
     with warnings.catch_warnings():

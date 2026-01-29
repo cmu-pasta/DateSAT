@@ -1,14 +1,13 @@
 """
-High-level solver API for DateSMT.
+High-level solver API for DateSAT.
 
 This module provides a simple interface for solving date constraints.
 """
 
 import json
 from typing import Any, Dict, List, Union
-
 from z3 import BoolVal
-from .api import DateSMTBuilder
+from .api import DateSATBuilder
 from .constraint_parser import ConstraintParser
 from .core import Date, Period
 
@@ -25,8 +24,8 @@ def solve(
     """
     Solve date constraints and return the result.
     
-    This is the main high-level API for DateSMT. It accepts constraints in either
-    a simple list format or the full JSON format used in benchmarks.
+    This is the main high-level API for DateSAT. It accepts constraints in either
+    a simple list format or the full JSON format used in DateSATBench.
     
     Args:
         constraints: Either:
@@ -52,19 +51,19 @@ def solve(
     
     Examples:
         >>> # Simple API usage
-        >>> result = datesmt.solve(
+        >>> result = datesat.solve(
         ...     constraints=["x >= Date(2000,1,1)", "x < Date(2000,12,31)"],
         ...     declarations=["x: date"]
         ... )
         
         >>> # JSON format usage
-        >>> result = datesmt.solve({
+        >>> result = datesat.solve({
         ...     "declarations": ["x: date", "y: date"],
         ...     "constraints": ["x >= Date(2000,1,1)", "y == x + Period(0,1,0)"]
         ... })
         
         >>> # With integer variables
-        >>> result = datesmt.solve({
+        >>> result = datesat.solve({
         ...     "declarations": ["x: date", "n: int"],
         ...     "constraints": ["x == Date(2000,1,1) + Period(0,0,n)", "n > 5", "n < 10"]
         ... })
@@ -89,7 +88,7 @@ def solve(
     
     # Create a builder factory that will be used in the executed code
     def create_builder():
-        return DateSMTBuilder(
+        return DateSATBuilder(
             approach=approach,
             implementation=implementation,
             timeout_ms=timeout_ms,
@@ -98,7 +97,7 @@ def solve(
     
     # Set up execution context with all necessary imports and the builder factory
     exec_globals = {
-        "DateSMTBuilder": create_builder,
+        "DateSATBuilder": create_builder,
         "Date": Date,
         "Period": Period,
     }
@@ -171,7 +170,7 @@ def solve_from_json(json_data: Union[str, Dict[str, Any]], **kwargs) -> Dict[str
     
     Examples:
         >>> # From JSON string
-        >>> result = datesmt.solve_from_json('''
+        >>> result = datesat.solve_from_json('''
         ... {
         ...     "declarations": ["x: date"],
         ...     "constraints": ["x >= Date(2000,1,1)"]
@@ -180,7 +179,7 @@ def solve_from_json(json_data: Union[str, Dict[str, Any]], **kwargs) -> Dict[str
         
         >>> # From file
         >>> with open('constraints.json') as f:
-        ...     result = datesmt.solve_from_json(f.read())
+        ...     result = datesat.solve_from_json(f.read())
     """
     if isinstance(json_data, str):
         constraint_data = json.loads(json_data)

@@ -1,117 +1,67 @@
 """
-Alpha-beta-table DATE-SMT using a 4-year (48-month) table.
+Alpha-beta DateSAT implementation using epoch-based conversion.
 
-Representation:
-- alpha (months_var): months since epoch month 2000-03 (March 2000 = 0)
-- beta  (beta_var):  0-based day index within that month (DOM = beta + 1)
-
-We avoid full ordinal decode by using a 48-month DIM/DBM table.
+This module implements the alpha-beta approach where dates are represented
+as (months, days) since an epoch.
 """
 
 from typing import List, Tuple, Union
 
 from z3 import (
-    UGE,
     And,
     BitVec,
     BitVecRef,
-    BitVecSort,
     BitVecVal,
     BoolRef,
     CheckSatResult,
     If,
-    K,
     ModelRef,
     Not,
     Optimize,
     Or,
-    Select,
     Solver,
-    Store,
     sat,
     unknown,
     unsat,
 )
-from ..symbolic_int.alpha_beta_table_int import build_dim_dbm_48_from_epoch
+
 from ..core import Date, Period
+from .epoch_days_bv import (
+    days_since_epoch_from_ymd,
+    ymd_from_days_since_epoch,
+)
+from .naive_bv import eom_clamp, days_in_month
 from .bitwidths import LEGACY_BITS
 
-# Epoch constants as Python ints for table construction and concrete decoding
+# -------------------------------
+# Alpha (months-since-epoch) helpers
+# Epoch month: 2000-03 (alpha = 0)
+# alpha = 12*y + m - (12*2000 + 3)
+# Inverse: let k = alpha + (12*2000 + 3), then
+#   y = (k - 1) / 12
+#   m = k - 12*y
+# -------------------------------
+# Python int epoch constants (for arithmetic outside Z3)
 _EPOCH_YEAR = 2000
 _EPOCH_MONTH = 3
-# Linearized epoch month as a Z3 BitVec numeral
-_EPOCH_LINEAR = BitVecVal(_EPOCH_YEAR * 12 + _EPOCH_MONTH, LEGACY_BITS)
-_FOUR_YEAR_MONTHS = 48
-_FOUR_YEAR_DAYS = 1461
+# Z3 epoch constants
+_EPOCH_LINEAR = _EPOCH_YEAR * 12 + _EPOCH_MONTH  # 12*2000 + 3
 # Alpha bounds constants (months since epoch)
 _ALPHA_MIN = (1900 - _EPOCH_YEAR) * 12 + (3 - _EPOCH_MONTH)  # -1200
 _ALPHA_MAX = (2100 - _EPOCH_YEAR) * 12 + (2 - _EPOCH_MONTH)  # 1199
-_DIM48_LIST_PY, _DBM48_LIST_PY = build_dim_dbm_48_from_epoch()
-
-
-def const_array(values: list[int]) -> BitVecRef:
-    a = K(BitVecSort(LEGACY_BITS), BitVecVal(0, LEGACY_BITS))
-    for i, v in enumerate(values):
-        a = Store(a, BitVecVal(i, LEGACY_BITS), BitVecVal(v, LEGACY_BITS))
-    return a
-
-
-_DIM48_LIST = const_array(_DIM48_LIST_PY)
-_DBM48_LIST = const_array(_DBM48_LIST_PY)
-
-
-def mod48(x) -> BitVecRef:
-    return x % BitVecVal(_FOUR_YEAR_MONTHS, LEGACY_BITS)
-
-
-def _floor_div_12(x) -> BitVecRef:
-    """Implement floor division by 12 for bitvectors to match Python's // behavior."""
-    sign_bit = 2 ** (LEGACY_BITS - 1)
-    wrap_around = 2**LEGACY_BITS
-    is_negative = UGE(x, BitVecVal(sign_bit, LEGACY_BITS))
-    signed_x = If(is_negative, x - BitVecVal(wrap_around, LEGACY_BITS), x)
-    q_trunc = signed_x / BitVecVal(12, LEGACY_BITS)
-    r = signed_x % BitVecVal(12, LEGACY_BITS)
-    is_negative_and_has_remainder = And(
-        UGE(signed_x, BitVecVal(sign_bit, LEGACY_BITS)), r != BitVecVal(0, LEGACY_BITS)
-    )
-    q = If(is_negative_and_has_remainder, q_trunc - BitVecVal(1, LEGACY_BITS), q_trunc)
-    return q
-
-
-def _floor_div_four_year_days(x) -> BitVecRef:
-    """Implement floor division by FOUR_YEAR_DAYS for bitvectors to match Python's // behavior."""
-    sign_bit = 2 ** (LEGACY_BITS - 1)
-    wrap_around = 2**LEGACY_BITS
-    is_negative = UGE(x, BitVecVal(sign_bit, LEGACY_BITS))
-    signed_x = If(is_negative, x - BitVecVal(wrap_around, LEGACY_BITS), x)
-    q_trunc = signed_x / BitVecVal(_FOUR_YEAR_DAYS, LEGACY_BITS)
-    r = signed_x % BitVecVal(_FOUR_YEAR_DAYS, LEGACY_BITS)
-    is_negative_and_has_remainder = And(
-        UGE(signed_x, BitVecVal(sign_bit, LEGACY_BITS)), r != BitVecVal(0, LEGACY_BITS)
-    )
-    q = If(is_negative_and_has_remainder, q_trunc - BitVecVal(1, LEGACY_BITS), q_trunc)
-    return q
 
 
 def months_since_epoch_from_ym(y, m) -> BitVecRef:
+    """Z3-pure: compute months-since-epoch (alpha) from year/month."""
     return (y * BitVecVal(12, LEGACY_BITS) + m) - _EPOCH_LINEAR
 
 
-def alpha_to_abs_month(alpha) -> BitVecRef:
-    return alpha + _EPOCH_LINEAR
-
-
-def eom_clamp(dim, beta) -> BitVecRef:
-    return If(
-        beta < BitVecVal(0, LEGACY_BITS),
-        BitVecVal(0, LEGACY_BITS),
-        If(
-            beta > dim - BitVecVal(1, LEGACY_BITS),
-            dim - BitVecVal(1, LEGACY_BITS),
-            beta,
-        ),
-    )
+def ym_from_months_since_epoch(alpha) -> Tuple[BitVecRef, BitVecRef]:
+    """Z3-pure inverse: decode (year, month) from alpha months-since-epoch."""
+    k = alpha + _EPOCH_LINEAR
+    y = (k - BitVecVal(1, LEGACY_BITS)) / BitVecVal(12, LEGACY_BITS)
+    m = k - y * BitVecVal(12, LEGACY_BITS)
+    return y, m
 
 
 class DateVar:
@@ -137,16 +87,13 @@ class DateVar:
     @property
     def year(self) -> BitVecRef:
         """Get symbolic year component (decodes from months_var)."""
-        k = self.months_var + _EPOCH_LINEAR
-        y = (k - BitVecVal(1, LEGACY_BITS)) / BitVecVal(12, LEGACY_BITS)
+        y, _ = ym_from_months_since_epoch(self.months_var)
         return y
 
     @property
     def month(self) -> BitVecRef:
         """Get symbolic month component (decodes from months_var)."""
-        k = self.months_var + _EPOCH_LINEAR
-        y = (k - BitVecVal(1, LEGACY_BITS)) / BitVecVal(12, LEGACY_BITS)
-        m = k - y * BitVecVal(12, LEGACY_BITS)
+        _, m = ym_from_months_since_epoch(self.months_var)
         return m
 
     @property
@@ -167,30 +114,18 @@ class DateVar:
         try:
             return Date(year, month, day)
         except ValueError:
+            # Intermediate result went out of bounds - use unbounded date
             return Date(year, month, day, bounded=False)
-
-    def _add_bounds(self) -> None:
-        """Add date validation bounds to this DateVar if solver is available."""
-        if self._solver is None:
-            return
-        
-        # Alpha bounds: months since 2000-03
-        # 1900-03 => -1200, 2100-02 => 1199
-        self._solver.add(self.months_var >= BitVecVal(_ALPHA_MIN, LEGACY_BITS))
-        self._solver.add(self.months_var <= BitVecVal(_ALPHA_MAX, LEGACY_BITS))
-
-        # Beta bounds: 0 <= beta < DIM
-        idx = mod48(self.months_var)
-        dim = Select(_DIM48_LIST, idx)
-        self._solver.add(And(self.beta_var >= BitVecVal(0, LEGACY_BITS), self.beta_var < dim))
 
     def __ge__(self, other) -> BoolRef:
         """Support x >= date comparison."""
         if isinstance(other, Date):
+            # Convert Date to bitvector values if needed
             alpha_o = months_since_epoch_from_ym(
                 BitVecVal(other.year, LEGACY_BITS), BitVecVal(other.month, LEGACY_BITS)
             )
             beta_o = BitVecVal(other.day - 1, LEGACY_BITS)
+
             return Or(
                 self.months_var > alpha_o,
                 And(self.months_var == alpha_o, self.beta_var >= beta_o),
@@ -212,6 +147,7 @@ class DateVar:
                 BitVecVal(other.year, LEGACY_BITS), BitVecVal(other.month, LEGACY_BITS)
             )
             beta_o = BitVecVal(other.day - 1, LEGACY_BITS)
+
             return Or(
                 self.months_var < alpha_o,
                 And(self.months_var == alpha_o, self.beta_var <= beta_o),
@@ -247,6 +183,7 @@ class DateVar:
                 BitVecVal(other.year, LEGACY_BITS), BitVecVal(other.month, LEGACY_BITS)
             )
             beta_o = BitVecVal(other.day - 1, LEGACY_BITS)
+
             return And(self.months_var == alpha_o, self.beta_var == beta_o)
         elif isinstance(other, DateVar):
             return And(
@@ -262,121 +199,115 @@ class DateVar:
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
+    def _add_bounds(self) -> None:
+        """Add date validation bounds to this DateVar if solver is available."""
+        if self._solver is None:
+            return
+        
+        # Alpha bounds: months since 2000-03
+        # 1900-03 => -1200, 2100-02 => 1199
+        self._solver.add(self.months_var >= BitVecVal(_ALPHA_MIN, LEGACY_BITS))
+        self._solver.add(self.months_var <= BitVecVal(_ALPHA_MAX, LEGACY_BITS))
+
+        # Beta bounds depend on month length: 0 <= beta < days_in_month(y,m)
+        y, m = ym_from_months_since_epoch(self.months_var)
+        self._solver.add(self.beta_var >= BitVecVal(0, LEGACY_BITS))
+        self._solver.add(self.beta_var < days_in_month(y, m))
+
     def __add__(self, other) -> "DateVar":
+        """DateVar + Period using alpha for Y/M and beta for D.
+        Steps:
+          - Fast path 1: If days-only period and result stays within month, simple addition.
+          - Fast path 2: If days-only period but crosses month boundary, normalize via epoch-days.
+          - Full path: Add months to alpha, EOM clamp beta, add days to beta.
+            If result stays within month, simple addition; otherwise normalize via epoch-days.
+        """
         if isinstance(other, Period):
             result = DateVar(f"{self.name}_plus")
             months_delta = BitVecVal(other.years * 12 + other.months, LEGACY_BITS)
             days_delta = BitVecVal(other.days, LEGACY_BITS)
+
+            # Fast path: days-only period
+            if other.years == 0 and other.months == 0:
+                # Get current month info for within-month check
+                y0, m0 = ym_from_months_since_epoch(self.months_var)
+                dim0 = days_in_month(y0, m0)
+                
+                # Add days directly to beta
+                new_beta = self.beta_var + days_delta
+                
+                # Check if result stays within same month
+                stays_in_month = And(new_beta >= BitVecVal(0, LEGACY_BITS), new_beta < dim0)
+                
+                # Within-month fast path: simple addition
+                alpha_within = self.months_var
+                beta_within = new_beta
+                
+                # Fallback: normalize via epoch-days conversion (handles month overflow)
+                d0 = new_beta + BitVecVal(1, LEGACY_BITS)  # Convert 0-based beta to 1-based day
+                epoch_days = days_since_epoch_from_ymd(y0, m0, d0)
+                y2, m2, d2 = ymd_from_days_since_epoch(epoch_days)
+                months_ordinal = months_since_epoch_from_ym(y2, m2)
+                beta_ordinal = d2 - BitVecVal(1, LEGACY_BITS)
+                
+                # Select result based on within-month condition
+                result.months_var = If(stays_in_month, alpha_within, months_ordinal)
+                result.beta_var = If(stays_in_month, beta_within, beta_ordinal)
+                
+                # Add bounds to intermediate result
+                result._solver = self._solver
+                result._add_bounds()
+                return result
+
+            # Full path: Add to alpha and beta directly, then normalize
+            # Step 1: Add months to alpha directly
+            alpha1 = self.months_var + months_delta
+            y1, m1 = ym_from_months_since_epoch(alpha1)
+            dim1 = days_in_month(y1, m1)
+
+            # Step 2: EOM clamp beta (needed when adding months - e.g., Jan 31 + 1 month = Feb 28/29)
+            d1 = eom_clamp(y1, m1, self.beta_var + BitVecVal(1, LEGACY_BITS))
+            beta1 = d1 - BitVecVal(1, LEGACY_BITS)  # Convert back to 0-based beta
+
+            # Fast path: years/months-only period (no days)
+            if other.days == 0:
+                # No day addition needed - we're done!
+                result.months_var = alpha1
+                result.beta_var = beta1
+                
+                result._solver = self._solver
+                result._add_bounds()
+                return result
+
+            else:
+                # Step 3: Add days to beta directly
+                new_beta = beta1 + days_delta
+
+                # Check if result stays within same month
+                stays_in_month = And(new_beta >= BitVecVal(0, LEGACY_BITS), new_beta < dim1)
+
+                # Within-month fast path: simple addition
+                alpha_within = alpha1
+                beta_within = new_beta
+
+                # Fallback: Normalize via epoch-days conversion (handles all overflow cases)
+                d_temp = new_beta + BitVecVal(1, LEGACY_BITS)  # Convert 0-based beta to 1-based day
+                epoch_days = days_since_epoch_from_ymd(y1, m1, d_temp)
+                y2, m2, d2 = ymd_from_days_since_epoch(epoch_days)
+
+                months_ordinal = months_since_epoch_from_ym(y2, m2)
+                beta_ordinal = d2 - BitVecVal(1, LEGACY_BITS)
+
+                # Select result based on within-month condition
+                result.months_var = If(stays_in_month, alpha_within, months_ordinal)
+                result.beta_var = If(stays_in_month, beta_within, beta_ordinal)
+                
+                # Add bounds to intermediate result
+                result._solver = self._solver
+                result._add_bounds()
+                return result
         else:
             raise TypeError(f"Cannot add {type(other)} to DateVar")
-
-        # Fast path: days-only period (skip month shift)
-        if other.years == 0 and other.months == 0:
-            # Check if result stays within same month
-            alpha1 = self.months_var
-            idx1 = mod48(alpha1)
-            abs1 = alpha_to_abs_month(alpha1)
-            dim1 = Select(_DIM48_LIST, idx1)
-            beta1 = eom_clamp(dim1, self.beta_var)
-
-            # Within-month fast path: if beta1 + days_delta stays in [0, dim1)
-            new_beta = beta1 + days_delta
-            stays_in_month = And(new_beta >= BitVecVal(0, LEGACY_BITS), new_beta < dim1)
-
-            # Within-month: simple addition
-            alpha_within = alpha1
-            beta_within = new_beta
-
-            # Fallback: use full table lookup (when days cross month boundary)
-            base48 = Select(_DBM48_LIST, idx1) + beta1
-            total = base48 + days_delta
-
-            q0 = _floor_div_four_year_days(total)
-            r0 = total % BitVecVal(_FOUR_YEAR_DAYS, LEGACY_BITS)
-
-            # Compute idx2 by scanning all 48 months with century correction at target
-            best = BitVecVal(0, LEGACY_BITS)
-            for i in range(1, _FOUR_YEAR_MONTHS):
-                dbm_i_corr = Select(_DBM48_LIST, BitVecVal(i, LEGACY_BITS))
-                best = If(r0 >= dbm_i_corr, BitVecVal(i, LEGACY_BITS), best)
-
-            idx2 = best
-            diff2 = idx2 - idx1
-            abs2 = alpha_to_abs_month(alpha1 + q0 * BitVecVal(_FOUR_YEAR_MONTHS, LEGACY_BITS) + diff2)
-            beta2 = r0 - (Select(_DBM48_LIST, idx2))
-
-            dim2 = Select(_DIM48_LIST, idx2)
-            carry = If(beta2 >= dim2, BitVecVal(1, LEGACY_BITS), BitVecVal(0, LEGACY_BITS))
-
-            alpha_ordinal = alpha1 + q0 * BitVecVal(_FOUR_YEAR_MONTHS, LEGACY_BITS) + diff2 + carry
-            beta_ordinal = If(carry == BitVecVal(1, LEGACY_BITS), beta2 - dim2, beta2)
-
-            # Select result based on within-month condition
-            result.months_var = If(stays_in_month, alpha_within, alpha_ordinal)
-            result.beta_var = If(stays_in_month, beta_within, beta_ordinal)
-            # Add bounds to intermediate result
-            result._solver = self._solver
-            result._add_bounds()
-            return result
-
-        # Full path: with month shift
-        alpha1 = self.months_var + months_delta
-        idx1 = mod48(alpha1)
-        abs1 = alpha_to_abs_month(alpha1)
-        dim1 = Select(_DIM48_LIST, idx1)
-        beta1 = eom_clamp(dim1, self.beta_var)
-
-        # Fast path: years/months-only period (no days)
-        if other.days == 0:
-            # No day addition needed - we're done!
-            result.months_var = alpha1
-            result.beta_var = beta1
-            
-            result._solver = self._solver
-            result._add_bounds()
-            return result
-        else:
-            # Within-month fast path: if adding days stays in same month
-            new_beta = beta1 + days_delta
-            stays_in_month = And(new_beta >= BitVecVal(0, LEGACY_BITS), new_beta < dim1)
-
-            # Within-month: simple addition
-            alpha_within = alpha1
-            beta_within = new_beta
-
-            # Full table lookup path
-            base48 = Select(_DBM48_LIST, idx1) + beta1
-            total = base48 + days_delta
-
-            q0 = _floor_div_four_year_days(total)
-            r0 = total % BitVecVal(_FOUR_YEAR_DAYS, LEGACY_BITS)
-
-            # Compute idx2 by scanning all 48 months with century correction at target
-            best = BitVecVal(0, LEGACY_BITS)
-            for i in range(1, _FOUR_YEAR_MONTHS):
-                dbm_i_corr = Select(_DBM48_LIST, BitVecVal(i, LEGACY_BITS))
-                best = If(r0 >= dbm_i_corr, BitVecVal(i, LEGACY_BITS), best)
-
-            idx2 = best
-            diff2 = idx2 - idx1
-            abs2 = alpha_to_abs_month(alpha1 + q0 * BitVecVal(_FOUR_YEAR_MONTHS, LEGACY_BITS) + diff2)
-            beta2 = r0 - (Select(_DBM48_LIST, idx2))
-
-            # End-of-month overflow carry: if beta2 equals/exceeds the month length,
-            # advance one month and wrap beta into the next month.
-            dim2 = Select(_DIM48_LIST, idx2)
-            carry = If(beta2 >= dim2, BitVecVal(1, LEGACY_BITS), BitVecVal(0, LEGACY_BITS))
-
-            alpha_ordinal = alpha1 + q0 * BitVecVal(_FOUR_YEAR_MONTHS, LEGACY_BITS) + diff2 + carry
-            beta_ordinal = If(carry == BitVecVal(1, LEGACY_BITS), beta2 - dim2, beta2)
-
-            # Select result based on within-month condition
-            result.months_var = If(stays_in_month, alpha_within, alpha_ordinal)
-            result.beta_var = If(stays_in_month, beta_within, beta_ordinal)
-            # Add bounds to intermediate result
-            result._solver = self._solver
-            result._add_bounds()
-            return result
 
     def __sub__(self, other) -> "DateVar":
         """DateVar - Period implemented as DateVar + (-Period)."""
@@ -387,7 +318,7 @@ class DateVar:
             raise TypeError(f"Cannot subtract {type(other)} from DateVar")
 
 
-class AlphaBetaTableSolver:
+class AlphaBetaSolver:
     """Alpha-beta date constraint solver using epoch-based conversion."""
 
     def __init__(self, timeout_ms=600000, use_maxsat=False):

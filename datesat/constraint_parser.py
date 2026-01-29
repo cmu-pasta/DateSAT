@@ -1,8 +1,8 @@
 """
-Constraint parser for Date-SMT system using Lark parser generator.
+Constraint parser for DateSAT system using Lark parser generator.
 
 This module provides functionality to parse constraints from the structured format
-and convert them into executable DateSMTBuilder code using a context-free grammar.
+and convert them into executable DateSATBuilder code using a context-free grammar.
 """
 
 import re
@@ -1404,7 +1404,7 @@ class ConstraintParser:
         declarations: List[str] = None,
     ) -> str:
         """
-        Generate complete DateSMTBuilder code from structured constraint data.
+        Generate complete DateSATBuilder code from structured constraint data.
 
         Each constraint is a full boolean expression that can include:
         - Comparisons: x >= Date(2000,2,28)
@@ -1432,7 +1432,7 @@ class ConstraintParser:
         """
         code_lines = [
             "from z3 import Or, And, Not, Int, Bool, Implies",
-            "builder = DateSMTBuilder()",
+            "builder = DateSATBuilder()",
             "",
         ]
 

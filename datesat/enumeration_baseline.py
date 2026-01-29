@@ -1,5 +1,5 @@
 """
-Enumeration baseline implementation for comparison with DATE-SMT.
+Enumeration baseline implementation for comparison with DateSAT.
 
 This module provides a baseline solver that enumerates all valid dates
 in the allowed range [1900-03-01 to 2100-02-28] for date variables and
@@ -888,7 +888,7 @@ class EnumerationSolver:
             "Date": Date,
             "Period": Period,
             "SymbolicDate": self.SymbolicDate,
-            "DateSMTBuilder": lambda: self,
+            "DateSATBuilder": lambda: self,
             "builder": self,
             "__builtins__": {**builtins.__dict__, "__import__": mock_import},
             "And": self.And,

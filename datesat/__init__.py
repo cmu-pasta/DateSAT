@@ -1,10 +1,10 @@
 """
-DATE-SMT: A framework for symbolic analysis of date-based computations.
+DateSAT: A framework for symbolic analysis of date-based computations.
 
 This package provides implementations for expressing and solving date constraints using Z3.
 """
 
-from .api import DateSMTBuilder
+from .api import DateSATBuilder
 from .core import Date, Period
 from .solver import solve, solve_from_json
 
@@ -27,7 +27,7 @@ __version__ = "0.1.0"
 __all__ = [
     "Date",
     "Period",
-    "DateSMTBuilder",
+    "DateSATBuilder",
     # High-level API
     "solve",
     "solve_from_json",
