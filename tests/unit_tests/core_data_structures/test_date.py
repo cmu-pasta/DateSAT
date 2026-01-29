@@ -1,10 +1,10 @@
 """
-Unit tests for the Date class in datesmt.core.
+Unit tests for the Date class in datesat.core.
 """
 
 from datetime import date as pydate
 import pytest
-from datesmt.core import Date
+from datesat.core import Date
 
 
 # -------------------------

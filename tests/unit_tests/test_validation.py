@@ -4,13 +4,13 @@ Test enumeration baseline validation functionality.
 
 import pytest
 
-from dataset.utils.validation import (
+from datesatbench.utils.validation import (
     parse_date_string,
     parse_period_string,
     validate_solution_with_concrete,
 )
-from datesmt.core import Date, Period
-from datesmt.enumeration_baseline import EnumerationDateVar, EnumerationSolver
+from datesat.core import Date, Period
+from datesat.enumeration_baseline import EnumerationDateVar, EnumerationSolver
 
 
 class TestEnumerationBaselineValidation:

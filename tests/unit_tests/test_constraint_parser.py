@@ -1,9 +1,9 @@
 """
-Unit tests for the ConstraintParser class in datesmt.constraint_parser.
+Unit tests for the ConstraintParser class in datesat.constraint_parser.
 """
 
 import pytest
-from datesmt.constraint_parser import ConstraintParser
+from datesat.constraint_parser import ConstraintParser
 
 
 @pytest.fixture
@@ -337,7 +337,7 @@ def test_generate_builder_code_empty(parser):
     result = parser.generate_builder_code(constraints)
 
     assert "from z3 import Or, And, Not" in result
-    assert "builder = DateSMTBuilder()" in result
+    assert "builder = DateSATBuilder()" in result
 
 
 # -------------------------
@@ -382,7 +382,7 @@ def test_parse_constraint_data_missing_keys(parser):
     result = parser.parse_constraint_data(constraint_data)
 
     assert "from z3 import Or, And, Not" in result
-    assert "builder = DateSMTBuilder()" in result
+    assert "builder = DateSATBuilder()" in result
 
 
 def test_parse_constraint_data_with_periods(parser):
@@ -457,7 +457,7 @@ def test_full_workflow(parser):
     result = parser.parse_constraint_data(constraint_data)
 
     # Verify the result contains expected elements
-    assert "builder = DateSMTBuilder()" in result
+    assert "builder = DateSATBuilder()" in result
     assert 'start_date = builder.add_date_var("start_date")' in result
     assert 'end_date = builder.add_date_var("end_date")' in result
     assert "builder.add_constraint(start_date >= Date(2000, 1, 1))" in result
@@ -804,8 +804,8 @@ def test_mixed_operators_without_parentheses(parser):
 
 def test_boolean_operators_with_z3_solvers(parser):
     """Test that boolean operators work with Z3-based solvers (int and bitvector)."""
-    from datesmt.api import DateSMTBuilder
-    from datesmt.core import Date
+    from datesat.api import DateSATBuilder
+    from datesat.core import Date
     
     constraint_data = {
         "constraints": [
@@ -820,13 +820,13 @@ def test_boolean_operators_with_z3_solvers(parser):
     # Test with int implementation
     for implementation in ['int', 'bitvector']:
         for approach in ['naive', 'epoch_days', 'hybrid', 'alpha_beta', 'alpha_beta_table']:
-            builder = DateSMTBuilder(approach=approach, implementation=implementation)
+            builder = DateSATBuilder(approach=approach, implementation=implementation)
             builder.enable_smtlib_print(False)  # Suppress output during tests
             
             exec_globals = {
                 'Date': Date,
-                'Period': __import__('datesmt.core', fromlist=['Period']).Period,
-                'DateSMTBuilder': lambda: builder,
+                'Period': __import__('datesat.core', fromlist=['Period']).Period,
+                'DateSATBuilder': lambda: builder,
                 'builder': builder,
                 'Or': __import__('z3', fromlist=['Or']).Or,
                 'And': __import__('z3', fromlist=['And']).And,
@@ -847,8 +847,8 @@ def test_boolean_operators_with_z3_solvers(parser):
 
 def test_boolean_operators_satisfiable_case(parser):
     """Test a satisfiable boolean operator constraint case."""
-    from datesmt.api import DateSMTBuilder
-    from datesmt.core import Date
+    from datesat.api import DateSATBuilder
+    from datesat.core import Date
     
     # This should be satisfiable: (x >= Date(2000,2,28) OR x <= Date(2000,2,29)) AND x != Date(2000,3,1)
     # Since x can be Date(2000,2,28) or Date(2000,2,29), and both != Date(2000,3,1)
@@ -863,13 +863,13 @@ def test_boolean_operators_satisfiable_case(parser):
     code = parser.parse_constraint_data(constraint_data)
     
     # Test with a simple solver
-    builder = DateSMTBuilder(approach='epoch_days', implementation='int')
+    builder = DateSATBuilder(approach='epoch_days', implementation='int')
     builder.enable_smtlib_print(False)
     
     exec_globals = {
         'Date': Date,
-        'Period': __import__('datesmt.core', fromlist=['Period']).Period,
-        'DateSMTBuilder': lambda: builder,
+        'Period': __import__('datesat.core', fromlist=['Period']).Period,
+        'DateSATBuilder': lambda: builder,
         'builder': builder,
     }
     
@@ -882,8 +882,8 @@ def test_boolean_operators_satisfiable_case(parser):
 
 def test_boolean_operators_unsatisfiable_case(parser):
     """Test an unsatisfiable boolean operator constraint case."""
-    from datesmt.api import DateSMTBuilder
-    from datesmt.core import Date
+    from datesat.api import DateSATBuilder
+    from datesat.core import Date
     
     # This should be unsatisfiable: (x == Date(2000,2,28) OR x == Date(2000,2,29)) AND x == Date(2000,3,1)
     constraint_data = {
@@ -897,13 +897,13 @@ def test_boolean_operators_unsatisfiable_case(parser):
     code = parser.parse_constraint_data(constraint_data)
     
     # Test with a simple solver
-    builder = DateSMTBuilder(approach='epoch_days', implementation='int')
+    builder = DateSATBuilder(approach='epoch_days', implementation='int')
     builder.enable_smtlib_print(False)
     
     exec_globals = {
         'Date': Date,
-        'Period': __import__('datesmt.core', fromlist=['Period']).Period,
-        'DateSMTBuilder': lambda: builder,
+        'Period': __import__('datesat.core', fromlist=['Period']).Period,
+        'DateSATBuilder': lambda: builder,
         'builder': builder,
         'Or': __import__('z3', fromlist=['Or']).Or,
         'And': __import__('z3', fromlist=['And']).And,
@@ -1157,8 +1157,8 @@ def test_deeply_nested_implication(parser):
 
 def test_implication_integration_with_solver(parser):
     """Test that nested implications work with the actual solver."""
-    from datesmt.api import DateSMTBuilder
-    from datesmt.core import Date, Period
+    from datesat.api import DateSATBuilder
+    from datesat.core import Date, Period
     
     constraint_data = {
         "constraints": [
@@ -1176,13 +1176,13 @@ def test_implication_integration_with_solver(parser):
     
     code = parser.parse_constraint_data(constraint_data)
     
-    builder = DateSMTBuilder(approach='alpha_beta', implementation='bitvector')
+    builder = DateSATBuilder(approach='alpha_beta', implementation='bitvector')
     builder.enable_smtlib_print(False)
     
     exec_globals = {
         'Date': Date,
         'Period': Period,
-        'DateSMTBuilder': lambda: builder,
+        'DateSATBuilder': lambda: builder,
     }
     
     exec(code, exec_globals)
@@ -1453,8 +1453,8 @@ def test_parse_constraint_bool_literals(parser, constraint, expected):
 
 def test_full_workflow_with_new_features(parser):
     """Test complete workflow with property access, implications, and type checking."""
-    from datesmt.api import DateSMTBuilder
-    from datesmt.core import Date, Period
+    from datesat.api import DateSATBuilder
+    from datesat.core import Date, Period
     
     constraint_data = {
         "constraints": [
@@ -1479,13 +1479,13 @@ def test_full_workflow_with_new_features(parser):
     assert "a == k.month" in code
     
     # Execute with a real builder
-    builder = DateSMTBuilder(approach='alpha_beta', implementation='bitvector')
+    builder = DateSATBuilder(approach='alpha_beta', implementation='bitvector')
     builder.enable_smtlib_print(False)
     
     exec_globals = {
         'Date': Date,
         'Period': Period,
-        'DateSMTBuilder': lambda: builder,
+        'DateSATBuilder': lambda: builder,
     }
     
     exec(code, exec_globals)

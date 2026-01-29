@@ -38,7 +38,7 @@ def run_tests_with_coverage() -> None:
         "--maxfail=1",
         "--disable-warnings",
         "--color=yes",
-        "--cov=datesmt",
+        "--cov=datesat",
         "--cov-branch",
         f"--cov-report=xml:{XML_PATH}",
         f"--cov-report=html:{HTML_DIR}",
@@ -109,13 +109,13 @@ def parse_cobertura(xml_path: Path):
         ),
     }
 
-    # Per-file aggregation grouped as module names like datesmt.core
+    # Per-file aggregation grouped as module names like datesat.core
     packages = {}
     for cls in root.findall('.//class'):
         filename = cls.attrib.get('filename', '')
         if not filename or not filename.endswith('.py'):
             continue
-        # Expect paths like datesmt/core.py or datesmt/symbolic_int/naive_int.py
+        # Expect paths like datesat/core.py or datesat/symbolic_int/naive_int.py
         module = filename.replace(os.sep, "/").replace('/', '.')
         if module.endswith('.py'):
             module = module[:-3]
@@ -196,7 +196,7 @@ def build_index_html(totals, rows) -> None:
     html.append("<head>")
     html.append("<meta charset='utf-8'>")
     html.append("<meta name='viewport' content='width=device-width, initial-scale=1'>")
-    html.append("<title>DATE-SMT Coverage</title>")
+    html.append("<title>DateSAT Coverage</title>")
     html.append(
         "<style>html,body{height:100%;margin:0}body{font-family:Arial,Helvetica,sans-serif}#wrap{height:100%;display:flex;flex-direction:column}header{padding:8px 12px;border-bottom:1px solid #eee;background:#fafafa}header a{color:#0366d6;text-decoration:none}main{flex:1}iframe{border:0;width:100%;height:100%}</style>"
     )
@@ -204,7 +204,7 @@ def build_index_html(totals, rows) -> None:
     html.append("<body>")
     html.append("<div id='wrap'>")
     html.append(
-        "<header><strong>DATE-SMT Coverage</strong> — <a href='coverage_html/index.html'>open full page</a></header>"
+        "<header><strong>DateSAT Coverage</strong> — <a href='coverage_html/index.html'>open full page</a></header>"
     )
     html.append(
         "<main><iframe src='coverage_html/index.html' title='Coverage Report'></iframe></main>"
