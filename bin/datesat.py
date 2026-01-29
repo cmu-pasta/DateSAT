@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-Command-line interface for DateSMT.
+Command-line interface for DateSAT.
 
 Usage:
-    ./bin/datesmt.py < constraints.json
-    ./bin/datesmt.py --file constraints.json
-    ./bin/datesmt.py --approach hybrid --implementation bitvector < constraints.json
+    ./bin/datesat.py < constraints.json
+    ./bin/datesat.py --file constraints.json
+    ./bin/datesat.py --approach hybrid --implementation bitvector < constraints.json
     
 The input should be a JSON file with the following format:
 {
@@ -23,12 +23,12 @@ import json
 import sys
 import os
 
-# Add the parent directory to the path so we can import datesmt
+# Add the parent directory to the path so we can import datesat
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
-import datesmt
+import datesat
 
 
 def format_solution(result: dict) -> str:
@@ -63,22 +63,22 @@ def format_solution(result: dict) -> str:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="DateSMT: A framework for symbolic analysis of date-based computations.",
+        description="DateSAT: A framework for symbolic analysis of date-based computations.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
   # Read from stdin
-  ./bin/datesmt.py < constraints.json
-  cat constraints.json | ./bin/datesmt.py
+  ./bin/datesat.py < constraints.json
+  cat constraints.json | ./bin/datesat.py
   
   # Read from file
-  ./bin/datesmt.py --file constraints.json
+  ./bin/datesat.py --file constraints.json
   
   # Use different approach and implementation
-  ./bin/datesmt.py --approach hybrid --implementation bitvector < constraints.json
+  ./bin/datesat.py --approach hybrid --implementation bitvector < constraints.json
   
   # Get JSON output
-  ./bin/datesmt.py --output json < constraints.json
+  ./bin/datesat.py --output json < constraints.json
   
 Input format:
   {
@@ -173,7 +173,7 @@ Input format:
     
     # Solve
     try:
-        result = datesmt.solve(
+        result = datesat.solve(
             constraints=constraint_data,
             approach=args.approach,
             implementation=args.implementation,

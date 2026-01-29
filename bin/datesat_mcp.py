@@ -1,22 +1,22 @@
 #!/usr/bin/env python3
 """
-Launch script for the DateSMT MCP Server.
+Launch script for the DateSAT MCP Server.
 
 This script starts an HTTP server with SSE (Server-Sent Events) transport
-for the Model Context Protocol, allowing AI agents to access DateSMT's
+for the Model Context Protocol, allowing AI agents to access DateSAT's
 constraint solving capabilities.
 
 Usage:
-    python bin/datesmt_mcp.py                    # Start on default port 8000
-    python bin/datesmt_mcp.py --port 3000        # Start on port 3000
-    python bin/datesmt_mcp.py --host 0.0.0.0     # Listen on all interfaces
+    python bin/datesat_mcp.py                    # Start on default port 8000
+    python bin/datesat_mcp.py --port 3000        # Start on port 3000
+    python bin/datesat_mcp.py --host 0.0.0.0     # Listen on all interfaces
 """
 
 import argparse
 import os
 import sys
 
-# Add the parent directory to the path so we can import datesmt
+# Add the parent directory to the path so we can import datesat
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
@@ -24,21 +24,21 @@ if REPO_ROOT not in sys.path:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="DateSMT MCP Server - Expose DateSMT constraint solving via MCP protocol",
+        description="DateSAT MCP Server - Expose DateSAT constraint solving via MCP protocol",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
     # Start server on default port (8000)
-    python bin/datesmt_mcp.py
+    python bin/datesat_mcp.py
 
     # Start server on custom port
-    python bin/datesmt_mcp.py --port 3000
+    python bin/datesat_mcp.py --port 3000
 
     # Listen on all network interfaces
-    python bin/datesmt_mcp.py --host 0.0.0.0 --port 8080
+    python bin/datesat_mcp.py --host 0.0.0.0 --port 8080
 
     # With auto-reload for development
-    python bin/datesmt_mcp.py --reload
+    python bin/datesat_mcp.py --reload
 
 MCP Endpoint:
     Once running, the MCP server is available at:
@@ -78,7 +78,7 @@ MCP Endpoint:
         print("Install it with: pip install uvicorn", file=sys.stderr)
         sys.exit(1)
 
-    print(f"Starting DateSMT MCP Server...")
+    print(f"Starting DateSAT MCP Server...")
     print(f"Host: {args.host}")
     print(f"Port: {args.port}")
     print(f"MCP SSE Endpoint: http://{args.host}:{args.port}/sse")
