@@ -1,10 +1,10 @@
-# Naive Method
+# Naive Encoding
 
-The naive method uses direct year-month-day representation for dates and performs component-wise arithmetic with proper normalization.
+The naive encoding uses direct year-month-day representation for dates. Refer to the paper for more details.
 
 ## Data Types
 
-### Concrete Types (from `datesmt.core`)
+### Concrete Types (from `datesat.core`)
 - **`Date`**: Concrete date with year, month, day components
 - **`Period`**: Concrete period with years, months, days components
 
@@ -67,4 +67,4 @@ From core.py
 
 - `DateVar` - Symbolic date variable with year/month/day components
 - `NaiveSolver` - Constraint solver with comprehensive date validation
-- Helper functions: `is_leap()`, `days_in_month()`, `normalize_month()`, `eom_clamp()`, `add_days_componentwise()`, plus legacy ordinal helpers (`days_before_year()`, `days_before_month()`, `to_ordinal()`, `from_ordinal()`, `ymd_from_days_since_epoch()`, `days_since_epoch_from_ymd()`, `add_days_ordinal()`)
+- Helper functions: `is_leap()`, `days_in_month()`, `normalize_month()`, `eom_clamp()`, `add_days_componentwise()`, `ymd_from_days_since_epoch()`, `days_since_epoch_from_ymd()`

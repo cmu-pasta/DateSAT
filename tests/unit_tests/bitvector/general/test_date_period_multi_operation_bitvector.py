@@ -2,12 +2,12 @@ from datetime import date as pydate
 
 import pytest
 
-from datesmt.core import Date, Period
-from datesmt.symbolic_bitvector.alpha_beta_bv import AlphaBetaSolver
-from datesmt.symbolic_bitvector.alpha_beta_table_bv import AlphaBetaTableSolver
-from datesmt.symbolic_bitvector.naive_bv import NaiveSolver
-from datesmt.symbolic_bitvector.epoch_days_bv import EpochDaysSolver
-from datesmt.symbolic_bitvector.hybrid_bv import HybridSolver
+from datesat.core import Date, Period
+from datesat.symbolic_bitvector.alpha_beta_bv import AlphaBetaSolver
+from datesat.symbolic_bitvector.alpha_beta_table_bv import AlphaBetaTableSolver
+from datesat.symbolic_bitvector.naive_bv import NaiveSolver
+from datesat.symbolic_bitvector.epoch_days_bv import EpochDaysSolver
+from datesat.symbolic_bitvector.hybrid_bv import HybridSolver
 
 
 def _apply_sequence_python(base: Date, seq: list[Period]) -> Date:

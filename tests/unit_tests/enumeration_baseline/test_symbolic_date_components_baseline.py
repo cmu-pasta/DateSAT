@@ -4,8 +4,8 @@ Test script demonstrating symbolic components inside Date() constructor.
 This tests the new functionality in enumeration_baseline.py.
 """
 
-from datesmt.enumeration_baseline import EnumerationSolver
-from datesmt.core import Date, Period
+from datesat.enumeration_baseline import EnumerationSolver
+from datesat.core import Date, Period
 
 def test_symbolic_year():
     """Test Date with only year symbolic: Date(year_var, 1, 1)"""

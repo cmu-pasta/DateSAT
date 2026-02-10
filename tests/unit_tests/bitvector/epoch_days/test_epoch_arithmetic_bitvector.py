@@ -1,5 +1,5 @@
 """
-Unit tests for epoch date arithmetic in datesmt_bitvector.epoch_days_bv.
+Unit tests for epoch date arithmetic in datesat_bitvector.epoch_days_bv.
 
 Tests cover the days_since_epoch_from_ymd and ymd_from_days_since_epoch functions
 with March 1, 2000 as the epoch date.
@@ -11,8 +11,8 @@ from datetime import date, timedelta
 
 import pytest
 
-from datesmt.core import Date
-from datesmt.symbolic_bitvector.epoch_days_bv import (
+from datesat.core import Date
+from datesat.symbolic_bitvector.epoch_days_bv import (
     ymd_from_days_since_epoch,
     days_since_epoch_from_ymd,
 )

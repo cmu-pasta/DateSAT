@@ -1,8 +1,8 @@
 import pytest
 from dateutil.relativedelta import relativedelta
 
-from datesmt.core import Date, Period
-from datesmt.enumeration_baseline import EnumerationSolver
+from datesat.core import Date, Period
+from datesat.enumeration_baseline import EnumerationSolver
 
 # Reuse canonical test cases locally (migrated from test_date_period_operation.py)
 

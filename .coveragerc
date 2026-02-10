@@ -1,7 +1,7 @@
 [run]
 branch = True
 source =
-    datesmt
+    datesat
 
 [report]
 show_missing = True
@@ -13,8 +13,8 @@ exclude_lines =
 
 [html]
 directory = documentation/coverage/coverage_html
-title = DATE-SMT Coverage Report
+title = DateSAT Coverage Report
 
 [paths]
 source =
-    datesmt
+    datesat
