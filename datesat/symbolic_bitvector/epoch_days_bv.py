@@ -10,8 +10,6 @@ from datetime import date, timedelta
 from typing import List, Tuple, Union
 
 from z3 import (
-    UGE,
-    ULT,
     And,
     BitVec,
     BitVecRef,
@@ -22,10 +20,8 @@ from z3 import (
     ModelRef,
     Not,
     Optimize,
-    Or,
     Solver,
     sat,
-    unknown,
     unsat,
 )
 from ..core import Date, Period
@@ -53,7 +49,6 @@ def date_from_days_since_epoch(days: int) -> Date:
     result_date = _EPOCH + timedelta(days=days)
     return Date(result_date.year, result_date.month, result_date.day)
 
-
 def days_since_epoch_from_date(date_obj: Date) -> int:
     """Convert a concrete Date to concrete days since epoch (March 1, 2000)."""
     target_python = date(date_obj.year, date_obj.month, date_obj.day)
@@ -77,7 +72,6 @@ def days_before_year(y) -> BitVecRef:
         - y1 / BitVecVal(100, LEGACY_BITS)
         + y1 / BitVecVal(400, LEGACY_BITS)
     )
-
 
 def days_before_month(y, m) -> BitVecRef:
     """Z3 piecewise selection (no Python control over symbolic m)."""
@@ -149,7 +143,6 @@ def _days_since_epoch_from_ymd_bv(y: BitVecRef, m: BitVecRef, d: BitVecRef) -> B
     """Encode (y,m,d) to Z3 BitVec 'days since 2000-03-01'."""
     return to_ordinal(y, m, d) - _ORD_EPOCH
 
-
 def ymd_from_days_since_epoch(days_term):
     """
     Overload:
@@ -159,7 +152,6 @@ def ymd_from_days_since_epoch(days_term):
     if isinstance(days_term, int):
         return date_from_days_since_epoch(days_term)
     return _ymd_from_days_since_epoch_bv(days_term)
-
 
 def days_since_epoch_from_ymd(*args):
     """

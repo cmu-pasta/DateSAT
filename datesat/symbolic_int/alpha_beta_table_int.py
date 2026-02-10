@@ -28,7 +28,6 @@ from z3 import (
     Solver,
     Store,
     sat,
-    unknown,
     unsat,
 )
 from ..core import Date, Period
@@ -268,7 +267,6 @@ class DateVar:
                 # Check if result stays within same month
                 alpha1 = self.months_var
                 idx1 = mod48(alpha1)
-                abs1 = alpha_to_abs_month(alpha1)
                 dim1 = Select(_DIM48_LIST, idx1)
                 beta1 = eom_clamp(dim1, self.beta_var)
 
@@ -295,7 +293,6 @@ class DateVar:
 
                 idx2 = best
                 diff2 = idx2 - idx1
-                abs2 = alpha_to_abs_month(alpha1 + q0 * IntVal(_FOUR_YEAR_MONTHS) + diff2)
                 beta2 = r0 - (Select(_DBM48_LIST, idx2))
 
                 dim2 = Select(_DIM48_LIST, idx2)
@@ -315,7 +312,6 @@ class DateVar:
             # Full path: with month shift
             alpha1 = self.months_var + months_delta
             idx1 = mod48(alpha1)
-            abs1 = alpha_to_abs_month(alpha1)
             dim1 = Select(_DIM48_LIST, idx1)
             beta1 = eom_clamp(dim1, self.beta_var)
 
@@ -352,7 +348,6 @@ class DateVar:
 
                 idx2 = best
                 diff2 = idx2 - idx1
-                abs2 = alpha_to_abs_month(alpha1 + q0 * IntVal(_FOUR_YEAR_MONTHS) + diff2)
                 beta2 = r0 - (Select(_DBM48_LIST, idx2))
 
                 # End-of-month overflow carry: if beta2 equals/exceeds the month length,

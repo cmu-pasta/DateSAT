@@ -10,9 +10,7 @@ from typing import List, Tuple, Union
 
 from z3 import (
     UGE,
-    ULT,
     And,
-    ArithRef,
     BitVec,
     BitVecRef,
     BitVecVal,
@@ -25,7 +23,6 @@ from z3 import (
     Or,
     Solver,
     sat,
-    unknown,
     unsat,
 )
 from ..core import Date, Period
