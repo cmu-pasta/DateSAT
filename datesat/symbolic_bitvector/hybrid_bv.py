@@ -27,35 +27,32 @@ from z3 import (
     ULE,
     ULT,
     And,
-    ArithRef,
     BitVec,
     BitVecRef,
     BitVecVal,
     BoolRef,
     CheckSatResult,
-    If,
     ModelRef,
     Not,
     Optimize,
     Or,
     Solver,
     sat,
-    unknown,
     unsat,
 )
 from ..core import Date, Period
 from .bitwidths import LEGACY_BITS
+from .naive_bv import (
+    eom_clamp,
+    normalize_month,
+    days_in_month
+)
 from .epoch_days_bv import (
     date_from_days_since_epoch,
     days_since_epoch_from_date,
     add_days_ordinal,
     days_since_epoch_from_ymd,
     ymd_from_days_since_epoch
-)
-from .naive_bv import (
-    eom_clamp,
-    normalize_month,
-    days_in_month
 )
 
 class DateVar:

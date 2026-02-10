@@ -21,7 +21,6 @@ from z3 import (
     Or,
     Solver,
     sat,
-    unknown,
     unsat,
 )
 from ..core import Date, Period

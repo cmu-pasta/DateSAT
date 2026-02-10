@@ -21,16 +21,18 @@ from z3 import (
     Or,
     Solver,
     sat,
-    unknown,
     unsat,
 )
 
 from ..core import Date, Period
+from .naive_bv import (
+    eom_clamp,
+    days_in_month
+)
 from .epoch_days_bv import (
     days_since_epoch_from_ymd,
     ymd_from_days_since_epoch,
 )
-from .naive_bv import eom_clamp, days_in_month
 from .bitwidths import LEGACY_BITS
 
 # -------------------------------

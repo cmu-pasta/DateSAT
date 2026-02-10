@@ -28,7 +28,6 @@ from z3 import (
     Solver,
     Store,
     sat,
-    unknown,
     unsat,
 )
 from ..core import Date, Period

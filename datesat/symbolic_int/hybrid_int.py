@@ -26,7 +26,6 @@ from z3 import (
     ArithRef,
     BoolRef,
     CheckSatResult,
-    If,
     Int,
     IntVal,
     ModelRef,
@@ -35,7 +34,6 @@ from z3 import (
     Or,
     Solver,
     sat,
-    unknown,
     unsat,
 )
 from ..core import Date, Period

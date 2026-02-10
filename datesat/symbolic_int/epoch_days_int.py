@@ -20,10 +20,8 @@ from z3 import (
     ModelRef,
     Not,
     Optimize,
-    Or,
     Solver,
     sat,
-    unknown,
     unsat,
 )
 from ..core import Date, Period

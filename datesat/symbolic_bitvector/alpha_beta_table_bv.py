@@ -29,7 +29,6 @@ from z3 import (
     Solver,
     Store,
     sat,
-    unknown,
     unsat,
 )
 from ..symbolic_int.alpha_beta_table_int import build_dim_dbm_48_from_epoch
