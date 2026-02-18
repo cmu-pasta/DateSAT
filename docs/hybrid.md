@@ -1,10 +1,10 @@
 # Hybrid Method
 
-The hybrid method uses a dual-lazy representation: both epoch and Y/M/D exist conceptually, and either side is derived lazily only when needed. Neither side is auto-linked to the other; instead, operations derive the required representation on demand.
+The hybrid method uses a dual-lazy representation: both epoch and Y/M/D exist conceptually, and either side is derived lazily only when needed. Neither side is auto-linked to the other; instead, operations derive the required representation on demand. Please refer to the paper for more details.
 
 ## Data Types
 
-### Concrete Types (from `datesmt.core`)
+### Concrete Types (from `datesat.core`)
 - **`Date`**: Concrete date with year, month, day components
 - **`Period`**: Concrete period with years, months, days components
 
@@ -54,7 +54,7 @@ From core.py
 
 2. **Add Months/Years**: Use Y/M/D terms; derive them on demand if needed
    - If Y/M/D is consistent, use them directly; else derive via `ymd_from_days_since_epoch(epoch_expr(self))`
-   - Apply baseline semantics (reuse `normalize_month()`, `eom_clamp()`, `add_days_ordinal()`)
+   - Apply naive semantics (reuse `normalize_month()`, `eom_clamp()`, `add_days_ordinal()`)
    - `add_days_ordinal()` includes within-month fast path to avoid ordinal conversion when possible
    - Constrain only the result Y/M/D; mark result as Y/M/D-consistent (epoch remains lazy and is derived only if/when needed)
 
@@ -68,8 +68,8 @@ Comparisons choose the cheapest available consistent representation:
 ### Implementation Classes
 
 - `DateVar` - Symbolic date variable with dual-lazy representation
-  - **Constructor**: `DateVar(ctx, name: str)` - Requires solver context and name
+  - **Constructor**: `DateVar(ctx, name: str, is_user_var: bool = True)` - Requires solver context, name, and optional flag to indicate if this is a user-declared variable
   - **Context Integration**: All operations require solver context for constraint management
   - **Lazy derivation**: Y/M/D and epoch are derived on-demand; no auto forward linking
 - `HybridSolver` - Constraint solver with epoch range validation
-- Helper functions: `from_days_since_epoch()` (reused from epoch_days), `to_days_since_epoch()` (reused from epoch_days), `is_leap()` (reused from baseline), `days_in_month()` (reused from baseline), `normalize_month()` (reused from baseline), `days_before_year()` (reused from baseline), `days_before_month()` (reused from baseline), `to_ordinal()` (reused from baseline), `from_ordinal()` (reused from baseline), `ymd_from_days_since_epoch()` (reused from baseline), `days_since_epoch_from_ymd()` (reused from baseline), `eom_clamp()` (reused from baseline), `add_days_ordinal()` (reused from baseline)
+- Helper functions: `ymd_from_days_since_epoch()` (reused from epoch_days), `days_since_epoch_from_ymd()` (reused from epoch_days), `normalize_month()` (reused from naive), `days_in_month()` (reused from naive), `eom_clamp()` (reused from naive), `add_days_ordinal()` (reused from epoch_days)

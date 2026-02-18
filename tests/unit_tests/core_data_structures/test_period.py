@@ -1,9 +1,9 @@
 """
-Unit tests for the Period class in datesmt.core.
+Unit tests for the Period class in datesat.core.
 """
 
 import pytest
-from datesmt.core import Period
+from datesat.core import Period
 
 # --------------------------------------------------------------------
 # Constructor & basic value semantics

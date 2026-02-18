@@ -1,6 +1,6 @@
-# Integer vs Bitvector Implementations
+# Integer vs Bitvector Theory for DateSAT Encodings
 
-This document explains the differences between integer and bitvector implementations across all symbolic methods in DATE-SMT.
+This document explains the differences between integer and bitvector implementations across all symbolic methods in DateSAT.
 
 ## Overview
 
@@ -9,13 +9,16 @@ Each symbolic method is available in two Z3 implementation types:
 - **Integer (int)**: Uses Z3's integer theory (`IntSort`)
 - **Bitvector (bv)**: Uses Z3's bitvector theory (`BitVecSort`)
 
-DATE-SMT's bitvector implementations share a legacy width constant,
-`LEGACY_BITS = 21` (`datesmt/symbolic_bitvector/bitwidths.py`). Each solver uses
-this 21-bit width for variables and literals.
-
-The differences are **consistent across all methods** (baseline, epoch_days, hybrid, alpha_beta, alpha_beta_table).
+DateSAT's bitvector implementations share a legacy width constant, `LEGACY_BITS = 21` (`datesat/symbolic_bitvector/bitwidths.py`). 
+Each solver uses this 21-bit width for variables and literals.
 
 ## Core Differences
+
+Below differences are **consistent across all methods** (naive, epoch_days, hybrid, alpha_beta, alpha_beta_table).
+
+### Important Difference
+
+To avoid bitvector overflows, we currently bound concrete integer and integer variables to be within [0, 8000].
 
 ### Z3 Types Used
 
@@ -54,23 +57,9 @@ The differences are **consistent across all methods** (baseline, epoch_days, hyb
 | Signed Conversion | Not needed | `If(is_negative, x - BitVecVal(2**21, 21), x)` |
 | Remainder Check | Simple `r != 0` | `And(UGE(signed_x, BitVecVal(2**20, 21)), r != BitVecVal(0, 21))` |
 
-## Method-Specific Examples
+## Encoding-Specific Differences
 
-### Baseline Method
-- **Integer**: `normalize_month(y, m)` uses simple `(m-1) // 12` and `(m-1) % 12`
-- **Bitvector**: Complex signed arithmetic with `UGE` checks and floor division
-  - Checks for negative values: `UGE(m, BitVecVal(2**20, 21))`
-  - Converts to signed: `If(is_negative, m - BitVecVal(2**21, 21), m)`
-  - Implements floor division manually with remainder checks
+### Alpha-Beta Table Encoding
 
-### Epoch Days Method
-- **Integer**: `days_var = Int("days")` with `IntVal(36525)` for range constraints
-- **Bitvector**: `days_var = BitVec("days", 21)` with `BitVecVal(36525, 21)`
-
-### Alpha/Beta Methods
-- **Integer**: `months_var = Int("months")`, `beta_var = Int("beta")`
-- **Bitvector**: `months_var = BitVec("months", 21)`, `beta_var = BitVec("beta", 21)`
-
-### Hybrid Method
-- **Integer**: `epoch_var = Int("epoch")` with lazy `Int("year")`, `Int("month")`, `Int("day")`
-- **Bitvector**: `epoch_var = BitVec("epoch", 21)` with lazy `BitVec("year", 21)`, etc.
+How bitvector's Alpha-Beta Table encoding handles converting a day from the (alpha, beta) representation to the single integer days-since-epoch representation is different from int.
+Specifically, int's constraints check days since the epoch date (March 1, 2000) directly. However, bitvector's constraints currently check days since ordinal (Jan 1, 0001) instead, and then offset the value with a precomputed number of days of the epoch date since ordinal. This is because it is tricky for the bitvector encodings to handle negative values.

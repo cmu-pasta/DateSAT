@@ -1,5 +1,5 @@
 """
-Pytest configuration and shared fixtures for DATE-SMT tests.
+Pytest configuration and shared fixtures for DateSAT tests.
 """
 
 import os
@@ -8,12 +8,12 @@ from datetime import date, timedelta
 
 import pytest
 
-# Ensure repository root is on sys.path so `import datesmt` works
+# Ensure repository root is on sys.path so `import datesat` works
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
-from datesmt.core import Date, Period
+from datesat.core import Date, Period
 
 # --------------------------------------------------------------------
 # Date fixtures
@@ -293,18 +293,18 @@ def invalid_period_format_tuple(request):
     return request.param
 
 
-# Autouse session fixture to import all modules under `datesmt_int` so coverage includes files
+# Autouse session fixture to import all modules under `datesat_int` so coverage includes files
 import importlib
 import pkgutil
 
 
 @pytest.fixture(autouse=True, scope="session")
-def _import_all_datesmt_modules():
+def _import_all_datesat_modules():
     try:
-        pkg = importlib.import_module("datesmt_int")
+        pkg = importlib.import_module("datesat_int")
         if hasattr(pkg, "__path__"):
             for _, name, _ in pkgutil.walk_packages(
-                pkg.__path__, prefix="datesmt_int."
+                pkg.__path__, prefix="datesat_int."
             ):
                 try:
                     importlib.import_module(name)
@@ -330,7 +330,7 @@ def pytest_collection_modifyitems(config, items):
             or fspath.endswith("tests/unit_tests/core_data_structures/test_date.py")
             or fspath.endswith("tests/unit_tests/core_data_structures/test_period.py")
         ):
-            item.add_marker("baseline")
+            item.add_marker("naive")
             item.add_marker("epoch_days")
             item.add_marker("hybrid")
             item.add_marker("alpha_beta")

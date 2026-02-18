@@ -80,5 +80,8 @@ local/
 PIPr/
 Miniforge3-MacOSX-arm64.sh
 
-# Ignore all results folders in dataset subdirectories
-dataset/*/results/
+# Ignore all results folders in datesatbench subdirectories
+datesatbench/*/results/
+
+# Ignore big files
+datesatbench/legal_doc_constraints/raw_data
