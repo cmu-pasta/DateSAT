@@ -288,6 +288,7 @@ def run_constraints_file(
     return all_results
 
 
+
 def main():
     """
     Run benchmarks on all constraint sets and optionally analyze results.
@@ -359,6 +360,13 @@ def main():
         help="List of datesatbench names to run (e.g., --datesatbenchs legal llm). "
         "Short names: 'legal', 'llm', 'grammar'. If not specified, all datesatbenchs are tested.",
     )
+    parser.add_argument(
+        "--runs",
+        type=int,
+        default=1,
+        help="Number of times to repeat the full benchmark (default: 1). "
+        "Each run is saved to results/run_1/, run_2/, … subdirectories.",
+    )
 
     args = parser.parse_args()
 
@@ -385,6 +393,7 @@ def main():
     # Print configuration
     print(f"Configuration:")
     print(f"  Timeout: {args.timeout}ms")
+    print(f"  Runs: {args.runs}")
     print(f"  MaxSAT: {'Enabled' if args.maxsat else 'Disabled'}")
     print(f"  Analysis: {'Enabled' if not args.no_analysis else 'Disabled'}")
     if args.approaches:
@@ -396,7 +405,6 @@ def main():
     # Filter constraint sets if specified
     if args.datesatbenchs:
         constraint_sets = [cs for cs in constraint_sets if cs["name"] in args.datesatbenchs]
-        constraint_sets = [cs for cs in constraint_sets if cs["name"] in args.datesatbenchs]
         if not constraint_sets:
             print(f"⚠️  Warning: No matching datesatbenchs found. Available datesatbenchs:")
             print(f"    - legal (Legal Document Constraints)")
@@ -404,46 +412,63 @@ def main():
             print(f"    - grammar (Grammar Constraints)")
             return
 
-    # Run benchmarks for each constraint set
-    for constraint_set in constraint_sets:
-        name = constraint_set["name"]
-        constraints_file = constraint_set["constraints_file"]
-        output_dir = constraint_set["output_dir"]
+    # Collect (run_idx, dataset_name, output_dir) for deferred analysis
+    completed_runs: list[tuple[int, str, Path]] = []
 
-        print(f"{'='*70}")
-        print(f"Running: {name}")
-        print(f"{'='*70}")
-        print(f"Constraints file: {constraints_file}")
-        print(f"Output directory: {output_dir}")
+    # Run benchmarks for each constraint set, repeated args.runs times
+    for run_idx in range(1, args.runs + 1):
+        if args.runs > 1:
+            print(f"\n{'#'*70}")
+            print(f"RUN {run_idx} of {args.runs}")
+            print(f"{'#'*70}\n")
 
-        if not constraints_file.exists():
-            print(f"⚠️  Skipping - Constraints file not found: {constraints_file}\n")
-            continue
+        for constraint_set in constraint_sets:
+            name = constraint_set["name"]
+            constraints_file = constraint_set["constraints_file"]
+            base_output_dir = constraint_set["output_dir"]
 
-        # Create output directory if it doesn't exist
-        output_dir.mkdir(parents=True, exist_ok=True)
+            # When running multiple times, nest results under run_N subdirectory
+            output_dir = base_output_dir / f"run_{run_idx}" if args.runs > 1 else base_output_dir
 
-        # Run constraint execution
-        run_constraints_file(
-            str(constraints_file),
-            str(output_dir),
-            args.timeout,
-            use_maxsat=args.maxsat,
-            approaches=args.approaches,
-        )
+            print(f"{'='*70}")
+            print(f"Running: {name}")
+            print(f"{'='*70}")
+            print(f"Constraints file: {constraints_file}")
+            print(f"Output directory: {output_dir}")
 
-        # Run analysis if enabled
-        if not args.no_analysis:
+            if not constraints_file.exists():
+                print(f"⚠️  Skipping - Constraints file not found: {constraints_file}\n")
+                continue
+
+            output_dir.mkdir(parents=True, exist_ok=True)
+
+            run_constraints_file(
+                str(constraints_file),
+                str(output_dir),
+                args.timeout,
+                use_maxsat=args.maxsat,
+                approaches=args.approaches,
+            )
+
+            completed_runs.append((run_idx, name, Path(output_dir)))
+            print()  # Blank line between constraint sets
+
+    # Run analysis for all completed runs at the end
+    if not args.no_analysis and completed_runs:
+        print(f"\n{'#'*70}")
+        print("RUNNING ANALYSIS FOR ALL RUNS")
+        print(f"{'#'*70}")
+
+        for run_idx, name, results_dir in completed_runs:
+            run_label = f" (run {run_idx})" if args.runs > 1 else ""
             print(f"\n{'='*60}")
-            print("RUNNING ANALYSIS")
+            print(f"Analyzing: {name}{run_label}")
             print(f"{'='*60}")
 
-            results_dir = Path(output_dir)
             if not results_dir.exists() or not results_dir.is_dir():
                 print(f"❌ Error: Results directory not found: {results_dir}")
                 continue
 
-            # Analyze constraints supported by enumeration baseline
             summary_supported = check_results_dir(
                 results_dir, enumeration_filter="supported"
             )
@@ -459,7 +484,6 @@ def main():
             )
             print(f"Analysis saved to: {analysis_output}")
 
-            # Handle constraints not supported by enumeration baseline
             enum_support = summary_supported.get("enumeration_support", {})
             not_supported_count = enum_support.get("not_supported_count", 0)
             if not_supported_count > 0:
@@ -473,11 +497,10 @@ def main():
                     json.dumps(unsupported_summary, indent=2, sort_keys=False)
                 )
                 print(
-                    f"⚠️  {not_supported_count} constraints without enumeration support "
+                    f"⚠️ {not_supported_count} constraints without enumeration support "
                     f"(saved to: {unsupported_output})"
                 )
 
-            # Print summary statistics
             counts = summary_supported["counts_by_approach"]
             print(f"\nSummary by approach (enumeration supported):")
             for approach, counts_dict in counts.items():
@@ -485,8 +508,6 @@ def main():
                 correct = counts_dict.get("correct", 0)
                 percentage = correct / total * 100 if total > 0 else 0
                 print(f"  {approach}: {correct}/{total} correct ({percentage:.1f}%)")
-
-        print()  # Blank line between constraint sets
 
 
 if __name__ == "__main__":

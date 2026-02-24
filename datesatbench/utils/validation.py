@@ -167,7 +167,6 @@ def validate_solution_with_concrete(
     constraint_data: dict,
     solution: Dict[str, Union[str, Date, Period]],
     constraint_id: str = "",
-    save_dir: Optional[Path] = None,
     approach: str = "concrete",
 ) -> Tuple[bool, str, Optional[str]]:
     """
@@ -182,7 +181,6 @@ def validate_solution_with_concrete(
         solution: Dictionary mapping variable names to their concrete values
                  (can be strings like "Date(2020, 3, 15)" or actual Date/Period objects)
         constraint_id: ID of the constraint
-        save_dir: Optional directory to save validated constraint strings
         approach: Approach name (e.g., "hybrid_bitvector") for file naming
 
     Returns:
@@ -250,75 +248,6 @@ def validate_solution_with_concrete(
         validated_constraints_str,
     )
 
-    # Save the solution and constraints with substituted values
-    # This shows what was actually validated using Python constraint validator
-    # Note: We save as .txt since these are constraint strings, not SMT-LIB
-    # The folder name "smt2_assertion" is historical - these files contain constraint strings
-    if save_dir is not None and validated_constraints_str:
-        # Create a filename based on constraint_id and approach
-        constraint_file = (
-            save_dir / f"{constraint_id}_{approach}_concrete_validation.txt"
-        )
-        constraint_file.parent.mkdir(parents=True, exist_ok=True)
-
-        try:
-            with constraint_file.open("w", encoding="utf-8") as f:
-                # Write header
-                f.write(
-                    "; Constraints validated through concrete (Python) validation\n"
-                )
-                f.write(
-                    "; Validation performed using Python date arithmetic (constraint validator), not SMT-LIB\n\n"
-                )
-
-                # Write the solution (variable assignments)
-                f.write("; Solution:\n")
-                for var_name, var_value in solution.items():
-                    f.write(f"{var_name} = {var_value}\n")
-                f.write("\n")
-
-                # Write the original constraints
-                f.write("; Original constraints:\n")
-                for constraint_item in constraint_data.get("constraints", []):
-                    if isinstance(constraint_item, list):
-                        # OR clause: format as (c1 OR c2 OR ...)
-                        f.write(f";   ({' OR '.join(constraint_item)})\n")
-                    else:
-                        f.write(f";   {constraint_item}\n")
-                f.write("\n")
-
-                # Write constraints with solution substituted (what was actually evaluated)
-                f.write(
-                    "; Constraints with solution substituted (what was validated):\n"
-                )
-                for constraint_item in constraint_data.get("constraints", []):
-                    # Handle CNF format
-                    if isinstance(constraint_item, list):
-                        # OR clause: format as (c1 OR c2 OR ...)
-                        constraint = f"({' OR '.join(constraint_item)})"
-                    else:
-                        constraint = constraint_item
-                    # Substitute each variable in the constraint with its solution value
-                    substituted = constraint
-                    for var_name, var_value in solution.items():
-                        # Replace variable names with their values
-                        # Simple substitution - replace 'x' with 'Date(2000, 2, 29)' etc.
-                        # This is approximate but shows the concept
-                        substituted = substituted.replace(var_name, var_value)
-                    f.write(f"{substituted}\n")
-        except Exception as e:
-            # If we can't save the file, continue without it
-            pass
-
-    if success:
-        return (
-            True,
-            "Solution validated successfully with concrete validation",
-            validated_constraints_str,
-        )
-    else:
-        return False, message, validated_constraints_str
-
 
 # --------------------------
 # Results loading and grouping
@@ -383,7 +312,7 @@ def group_by_constraint(
 
 
 def validate_sat_record(
-    constraint_id: str, rec: Dict[str, Any], save_dir: Optional[Path] = None
+    constraint_id: str, rec: Dict[str, Any]
 ) -> Tuple[bool, str]:
     """
     Validates the provided SAT solution by executing constraints with concrete values.
@@ -409,7 +338,7 @@ def validate_sat_record(
     # Construct approach name from approach and implementation
     approach_name = f"{approach}_{rec.get('implementation', 'unknown')}"
     is_valid, message, _ = validate_solution_with_concrete(
-        constraint_data, solution, constraint_id, save_dir, approach_name
+        constraint_data, solution, constraint_id, approach_name
     )
 
     return is_valid, message
@@ -418,7 +347,6 @@ def validate_sat_record(
 def summarize_constraint(
     cid: str,
     approaches: Dict[str, Dict[str, Dict[str, Any]]],
-    save_dir: Optional[Path] = None,
 ) -> Dict[str, Any]:
     """
     Summarize validation results for a single constraint across all approaches.
@@ -429,7 +357,6 @@ def summarize_constraint(
     Args:
         cid: Constraint ID
         approaches: Nested dict structure {approach: {implementation: record}}
-        save_dir: Optional directory to save constraint validation files
 
     Returns:
         Dictionary with constraint summary including verdicts and validation results
@@ -476,7 +403,7 @@ def summarize_constraint(
     # Always validate SAT records using the Python constraint validator
     # (validation does not depend on enumeration baseline availability).
     for a, r in sat_recs.items():
-        ok, msg = validate_sat_record(cid, r, save_dir=save_dir)
+        ok, msg = validate_sat_record(cid, r)
         sat_validation[a] = {"valid": ok, "message": msg, "solution": r.get("solution")}
 
     # Determine per-approach verdicts using enumeration baseline results as ground truth
@@ -701,12 +628,10 @@ def check_results_dir(
 
     summaries: List[Dict[str, Any]] = []
     counts_by_approach: Dict[str, Dict[str, int]] = {}
-    save_dir = results_dir / "smt2_assertion"
-    save_dir.mkdir(parents=True, exist_ok=True)
 
     # Build summaries for every constraint first so we can filter later
     for cid, approaches in sorted(grouped.items(), key=lambda kv: kv[0]):
-        summary = summarize_constraint(cid, approaches, save_dir=save_dir)
+        summary = summarize_constraint(cid, approaches)
         summaries.append(summary)
 
     # Categorize constraints by enumeration baseline support
@@ -1109,7 +1034,7 @@ def validate_results_with_concrete(results_dir: Path) -> Dict[str, Any]:
 
                 # Validate by executing constraints with concrete values
                 is_valid, message, _ = validate_solution_with_concrete(
-                    constraint_data, solution, cid, None, approach_key
+                    constraint_data, solution, cid, approach_key
                 )
 
                 sat_validation[approach_key] = {
