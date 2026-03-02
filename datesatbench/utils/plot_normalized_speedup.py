@@ -8,6 +8,7 @@ relative performance across multiple test cases.
 """
 
 import json
+import statistics
 import sys
 from pathlib import Path
 
@@ -76,31 +77,72 @@ TIMEOUT_SECONDS = 60.0
 TIMEOUT_SPEEDUP = 1e-3  # 0.001
 
 
-def load_results(results_path: Path, verbose: bool = False) -> dict[str, list[dict]]:
+def get_run_dirs(results_dir: Path) -> list[Path]:
+    """Return run_* subdirectories sorted numerically."""
+    runs = [d for d in results_dir.iterdir() if d.is_dir() and d.name.startswith("run_")]
+    return sorted(runs, key=lambda d: int(d.name.split("_")[1]))
+
+
+def load_results(results_path: Path, verbose: bool = False) -> dict[str, dict[str, dict]]:
     """
-    Load all technique result files from the results directory.
+    Load all technique result files across run_* subdirectories and aggregate.
+
+    For each constraint, execution_time is averaged across runs.  Status is set
+    to "timeout" only when every run timed out; otherwise the most common
+    non-timeout status is kept.
 
     Args:
-        results_path: Path to the results directory
+        results_path: Path to the results directory containing run_* subdirs
         verbose: If True, print loading details
 
     Returns:
-        Dictionary mapping technique name to list of constraint results
+        Dictionary mapping technique name to {constraint_id: aggregated_item}
     """
+    run_dirs = get_run_dirs(results_path)
+    if not run_dirs:
+        if verbose:
+            print(f"  Warning: No run_* directories found in {results_path}")
+        return {technique: {} for technique in TECHNIQUES}
+
     results = {}
 
     for technique, config in TECHNIQUES.items():
-        file_path = results_path / config["file"]
-        if file_path.exists():
+        times_by_id: dict[str, list[float]] = {}
+        statuses_by_id: dict[str, list[str]] = {}
+        base_items: dict[str, dict] = {}
+
+        for run_dir in run_dirs:
+            file_path = run_dir / config["file"]
+            if not file_path.exists():
+                continue
             with open(file_path, "r") as f:
                 data = json.load(f)
-                results[technique] = {item["id"]: item for item in data}
-                if verbose:
-                    print(f"  Loaded {len(data)} from {config['file']}")
-        else:
-            if verbose:
-                print(f"  Warning: {config['file']} not found")
-            results[technique] = {}
+            for item in data:
+                pid = item["id"]
+                if pid not in base_items:
+                    base_items[pid] = dict(item)
+                statuses_by_id.setdefault(pid, []).append(item.get("status", "unknown"))
+                if item.get("execution_time") is not None:
+                    times_by_id.setdefault(pid, []).append(item["execution_time"])
+
+        aggregated: dict[str, dict] = {}
+        for pid, base_item in base_items.items():
+            entry = dict(base_item)
+            if pid in times_by_id:
+                entry["execution_time"] = statistics.mean(times_by_id[pid])
+
+            statuses = statuses_by_id.get(pid, [])
+            if all(s == "timeout" for s in statuses):
+                entry["status"] = "timeout"
+            else:
+                non_timeout = [s for s in statuses if s != "timeout"]
+                entry["status"] = max(set(non_timeout), key=non_timeout.count) if non_timeout else "timeout"
+
+            aggregated[pid] = entry
+
+        results[technique] = aggregated
+        if verbose:
+            print(f"  Loaded {len(aggregated)} from {config['file']} across {len(run_dirs)} runs")
 
     return results
 
@@ -549,18 +591,14 @@ def process_combined_datesatbenchs():
         if not results_path.exists():
             continue
 
+        ds_results = load_results(results_path, verbose=False)
         count = 0
-        for technique, config in TECHNIQUES.items():
-            file_path = results_path / config["file"]
-            if file_path.exists():
-                with open(file_path, "r") as f:
-                    data = json.load(f)
-                    # Add datesatbench prefix to make IDs unique
-                    for item in data:
-                        unique_id = f"{datesatbench_name}_{item['id']}"
-                        combined_results[technique][unique_id] = item
-                    if technique == BASELINE_TECHNIQUE:
-                        count = len(data)
+        for technique in TECHNIQUES:
+            for pid, item in ds_results[technique].items():
+                unique_id = f"{datesatbench_name}_{pid}"
+                combined_results[technique][unique_id] = item
+            if technique == BASELINE_TECHNIQUE:
+                count = len(ds_results[technique])
 
         datesatbench_counts.append(f"{datesatbench_name}={count}")
 
