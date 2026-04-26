@@ -229,10 +229,6 @@ Constraints are specified in JSON format with variable declarations and constrai
 
 We provide a thorough testing set to aid future DateSAT solver implementation. See `tests/README.md` for more details.
 
-## DateSATBench
-
-We also provide a carefully curated benchmark for DateSAT. See `datesatbench/README.md` for more details.
-
 ## Development
 
 ### CI/CD Pipeline
