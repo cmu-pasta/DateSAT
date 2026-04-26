@@ -1,0 +1,11 @@
+import Lake
+open Lake DSL
+
+package "DateTheory" where
+  name := "DateTheory"
+
+lean_lib "DateSemantic" where
+  roots := #[`DateSemantic]
+
+lean_lib "DateSemanticTests" where
+  roots := #[`DateSemanticTests]
