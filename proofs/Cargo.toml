@@ -1,0 +1,7 @@
+[package]
+name = "datesat-verus"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+vstd =           { git = "https://github.com/verus-lang/verus" }
