@@ -155,22 +155,50 @@ def main():
 
     for benchmark in BENCHMARKS:
         for encoding in ENCODINGS:
-            file_path = datesatbench_dir / benchmark / "results" / encoding
-            if not file_path.exists():
-                missing_files.append(str(file_path))
-                continue
+            results_dir = datesatbench_dir / benchmark / "results"
 
-            try:
-                results = load_results(file_path)
-                for entry in results:
-                    entry["_benchmark"] = benchmark
-                    entry["_encoding"] = encoding
-                    all_entries.append(entry)
-                    stats_by_benchmark[benchmark].append(entry)
-                    stats_by_encoding[encoding].append(entry)
-                    stats_by_both[(benchmark, encoding)].append(entry)
-            except Exception as e:
-                print(f"Warning: Failed to load {file_path}: {e}")
+            # Collect from run_N subdirectories if they exist, else fall back to flat file
+            run_dirs = (
+                sorted(
+                    [
+                        d
+                        for d in results_dir.iterdir()
+                        if d.is_dir() and d.name.startswith("run_")
+                    ],
+                    key=lambda d: int(d.name.split("_")[1]),
+                )
+                if results_dir.exists()
+                else []
+            )
+
+            if run_dirs:
+                sources = [d / encoding for d in run_dirs]
+            else:
+                sources = [results_dir / encoding]
+
+            found_any = False
+            for file_path in sources:
+                if not file_path.exists():
+                    missing_files.append(str(file_path))
+                    continue
+                try:
+                    results = load_results(file_path)
+                    run_name = file_path.parent.name if run_dirs else None
+                    for entry in results:
+                        entry["_benchmark"] = benchmark
+                        entry["_encoding"] = encoding
+                        if run_name:
+                            entry["_run"] = run_name
+                        all_entries.append(entry)
+                        stats_by_benchmark[benchmark].append(entry)
+                        stats_by_encoding[encoding].append(entry)
+                        stats_by_both[(benchmark, encoding)].append(entry)
+                    found_any = True
+                except Exception as e:
+                    print(f"Warning: Failed to load {file_path}: {e}")
+
+            if not found_any and not run_dirs:
+                missing_files.append(str(results_dir / encoding))
 
     if missing_files:
         print(f"\nWarning: {len(missing_files)} result files not found:")
