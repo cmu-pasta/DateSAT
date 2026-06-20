@@ -19,6 +19,7 @@ verus! {
         And(Box<BoolExpr>, Box<BoolExpr>),
         Or(Box<BoolExpr>, Box<BoolExpr>),
         Not(Box<BoolExpr>),
+        Implies(Box<BoolExpr>, Box<BoolExpr>),
         Literal(bool),
         DateLt(Box<DateExpr>, Box<DateExpr>),
         DateEq(Box<DateExpr>, Box<DateExpr>),
@@ -109,6 +110,7 @@ verus! {
                 BoolExpr::And(a, b) => a.eval::<D>(env) && b.eval::<D>(env),
                 BoolExpr::Or(a, b) => a.eval::<D>(env) || b.eval::<D>(env),
                 BoolExpr::Not(a) => !a.eval::<D>(env),
+                BoolExpr::Implies(a, b) => a.eval::<D>(env) ==> b.eval::<D>(env),
                 BoolExpr::Literal(v) => v,
                 BoolExpr::DateLt(a, b) => a.eval::<D>(env).lt(b.eval::<D>(env)),
                 BoolExpr::DateEq(a, b) => a.eval::<D>(env).eq(b.eval::<D>(env)),
@@ -169,6 +171,7 @@ verus! {
                 BoolExpr::And(a, b) => a.is_well_formed(env) && b.is_well_formed(env),
                 BoolExpr::Or(a, b) => a.is_well_formed(env) && b.is_well_formed(env),
                 BoolExpr::Not(a) => a.is_well_formed(env),
+                BoolExpr::Implies(a, b) => a.is_well_formed(env) && b.is_well_formed(env),
                 BoolExpr::Literal(_) => true,
                 BoolExpr::DateLt(a, b) => a.is_well_formed(env) && b.is_well_formed(env),
                 BoolExpr::DateEq(a, b) => a.is_well_formed(env) && b.is_well_formed(env),
@@ -280,6 +283,10 @@ verus! {
             },
             BoolExpr::Not(a) => {
                 lemma_bool_expr_equiv(*a, env);
+            },
+            BoolExpr::Implies(a, b) => {
+                lemma_bool_expr_equiv(*a, env);
+                lemma_bool_expr_equiv(*b, env);
             },
             BoolExpr::Literal(_) => {},
             BoolExpr::DateLt(a, b) => {
@@ -413,6 +420,10 @@ verus! {
             BoolExpr::Not(a) => {
                 lemma_bool_expr_hybrid_equiv(*a, env);
             },
+            BoolExpr::Implies(a, b) => {
+                lemma_bool_expr_hybrid_equiv(*a, env);
+                lemma_bool_expr_hybrid_equiv(*b, env);
+            },
             BoolExpr::Literal(_) => {},
             BoolExpr::DateLt(a, b) => {
                 lemma_date_expr_hybrid_congruent(*a, env);
@@ -540,6 +551,10 @@ verus! {
             },
             BoolExpr::Not(a) => {
                 lemma_bool_expr_ab_equiv(*a, env);
+            },
+            BoolExpr::Implies(a, b) => {
+                lemma_bool_expr_ab_equiv(*a, env);
+                lemma_bool_expr_ab_equiv(*b, env);
             },
             BoolExpr::Literal(_) => {},
             BoolExpr::DateLt(a, b) => {
