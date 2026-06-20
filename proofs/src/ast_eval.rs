@@ -8,6 +8,7 @@ verus! {
 
     pub struct Environment {
         pub int_vars: Map<Identifier, int>,
+        pub bool_vars: Map<Identifier, bool>,
         pub date_vars: Map<Identifier, SimpleDate>,
     }
 
@@ -21,6 +22,7 @@ verus! {
         Not(Box<BoolExpr>),
         Implies(Box<BoolExpr>, Box<BoolExpr>),
         Literal(bool),
+        Var(Identifier),
         DateLt(Box<DateExpr>, Box<DateExpr>),
         DateEq(Box<DateExpr>, Box<DateExpr>),
         IntLt(Box<IntExpr>, Box<IntExpr>),
@@ -103,6 +105,7 @@ verus! {
                 BoolExpr::Not(a) => a.is_well_formed(env),
                 BoolExpr::Implies(a, b) => a.is_well_formed(env) && b.is_well_formed(env),
                 BoolExpr::Literal(_) => true,
+                BoolExpr::Var(id) => env.bool_vars.dom().contains(id),
                 BoolExpr::DateLt(a, b) => a.is_well_formed(env) && b.is_well_formed(env),
                 BoolExpr::DateEq(a, b) => a.is_well_formed(env) && b.is_well_formed(env),
                 BoolExpr::IntLt(a, b) => a.is_well_formed(env) && b.is_well_formed(env),
@@ -166,6 +169,7 @@ verus! {
                 BoolExpr::Not(a) => !a.eval::<D>(env),
                 BoolExpr::Implies(a, b) => a.eval::<D>(env) ==> b.eval::<D>(env),
                 BoolExpr::Literal(v) => v,
+                BoolExpr::Var(id) => env.bool_vars[id],
                 BoolExpr::DateLt(a, b) => a.eval::<D>(env).lt(b.eval::<D>(env)),
                 BoolExpr::DateEq(a, b) => a.eval::<D>(env).eq(b.eval::<D>(env)),
                 BoolExpr::IntLt(a, b) => a.eval::<D>(env) < b.eval::<D>(env),

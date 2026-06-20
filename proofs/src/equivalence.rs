@@ -112,6 +112,7 @@ verus! {
                 lemma_bool_expr_epoch_delta_equiv(*b, env);
             },
             BoolExpr::Literal(_) => {},
+            BoolExpr::Var(_) => {},
             BoolExpr::DateLt(a, b) => {
                 lemma_date_expr_epoch_delta_congruent(*a, env);
                 lemma_date_expr_epoch_delta_congruent(*b, env);
@@ -247,6 +248,7 @@ verus! {
                 lemma_bool_expr_hybrid_equiv(*b, env);
             },
             BoolExpr::Literal(_) => {},
+            BoolExpr::Var(_) => {},
             BoolExpr::DateLt(a, b) => {
                 lemma_date_expr_hybrid_congruent(*a, env);
                 lemma_date_expr_hybrid_congruent(*b, env);
@@ -379,6 +381,7 @@ verus! {
                 lemma_bool_expr_ab_equiv(*b, env);
             },
             BoolExpr::Literal(_) => {},
+            BoolExpr::Var(_) => {},
             BoolExpr::DateLt(a, b) => {
                 lemma_date_expr_ab_congruent(*a, env);
                 lemma_date_expr_ab_congruent(*b, env);
