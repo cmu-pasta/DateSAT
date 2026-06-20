@@ -19,8 +19,11 @@ use hybrid::*;
 mod alpha_beta;
 use alpha_beta::*;
 
-mod datesat;
-use datesat::*;
+mod ast_eval;
+use ast_eval::*;
+
+mod equivalence;
+use equivalence::*;
 
 verus! {
 
@@ -54,7 +57,7 @@ verus! {
         assert forall|ast: Ast, env: Environment| #![auto]
             ast.is_well_formed(env) implies
                 ast.eval::<SimpleDate>(env) == ast.eval::<EpochDelta>(env)
-            by { theorem_ast_epoch_equiv(ast, env); }
+            by { theorem_ast_epoch_delta_equiv(ast, env); }
 
         // Theorem 4: Hybrid equivalence
         assert forall|ast: Ast, env: Environment| #![auto]
