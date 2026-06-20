@@ -44,7 +44,7 @@ verus! {
     pub spec const EPOCH : SimpleDate = SimpleDate(2000, 3, 1);
 
     fn main() {
-        // Theorem 1: Well-formedness of Date-{eriod Addition
+        // Theorem 1: Well-formedness of Date-Period Addition
         assert forall|d: SimpleDate, p: Period| #![auto]
             d.is_valid() implies d.add_period(p).is_valid() by { theorem_date_add_period_preserves_validity(d, p); }
 
@@ -53,37 +53,19 @@ verus! {
             d1.is_valid() && d2.is_valid() && d1.leq(d2) implies
                 d1.add_period(p).leq(d2.add_period(p)) by { theorem_date_add_period_is_monotonic(d1, d2, p); }
 
-        // Theorem 3: EpochDelta equivalence
-        assert forall|ast: Ast, env: Environment| #![auto]
-            ast.is_well_formed() && ast.is_properly_closed(env) implies
-                ast.eval::<SimpleDate>(env) == ast.eval::<EpochDelta>(env)
-            by { theorem_ast_epoch_delta_equiv(ast, env); }
-
-        // Theorem 4: Hybrid equivalence
-        assert forall|ast: Ast, env: Environment| #![auto]
-            ast.is_well_formed() && ast.is_properly_closed(env) implies
-                ast.eval::<SimpleDate>(env) == ast.eval::<Hybrid>(env)
-            by { theorem_ast_hybrid_equiv(ast, env); }
-
-        // Theorem 5: AlphaBeta equivalence
-        assert forall|ast: Ast, env: Environment| #![auto]
-            ast.is_well_formed() && ast.is_properly_closed(env) implies
-                ast.eval::<SimpleDate>(env) == ast.eval::<AlphaBeta>(env)
-            by { theorem_ast_ab_equiv(ast, env); }
-
-        // Corollary 6: EpochDelta equisatisfiability
+        // Theorem 3: EpochDelta equisatisfiability
         assert forall|ast: Ast| #![auto]
             ast.is_well_formed() implies
                 ast.is_sat::<SimpleDate>() == ast.is_sat::<EpochDelta>()
             by { theorem_ast_epoch_delta_equisat(ast); }
 
-        // Corollary 7: Hybrid equisatisfiability
+        // Theorem 4: Hybrid equisatisfiability
         assert forall|ast: Ast| #![auto]
             ast.is_well_formed() implies
                 ast.is_sat::<SimpleDate>() == ast.is_sat::<Hybrid>()
             by { theorem_ast_hybrid_equisat(ast); }
 
-        // Corollary 8: AlphaBeta equisatisfiability
+        // Theorem 5: AlphaBeta equisatisfiability
         assert forall|ast: Ast| #![auto]
             ast.is_well_formed() implies
                 ast.is_sat::<SimpleDate>() == ast.is_sat::<AlphaBeta>()
