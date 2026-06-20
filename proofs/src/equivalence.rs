@@ -424,4 +424,48 @@ verus! {
         lemma_bool_expr_ab_equiv(ast.root, env);
     }
 
+    // ── Equisatisfiability theorems ─────────────────────────────────────
+
+    pub proof fn theorem_ast_epoch_delta_equisat(ast: Ast)
+        requires ast.is_well_formed(),
+        ensures ast.is_sat::<SimpleDate>() == ast.is_sat::<EpochDelta>(),
+    {
+        if ast.is_sat::<SimpleDate>() {
+            let env = choose|env: Environment| ast.is_closed(env) && ast.eval::<SimpleDate>(env);
+            theorem_ast_epoch_delta_equiv(ast, env);
+        }
+        if ast.is_sat::<EpochDelta>() {
+            let env = choose|env: Environment| ast.is_closed(env) && ast.eval::<EpochDelta>(env);
+            theorem_ast_epoch_delta_equiv(ast, env);
+        }
+    }
+
+    pub proof fn theorem_ast_hybrid_equisat(ast: Ast)
+        requires ast.is_well_formed(),
+        ensures ast.is_sat::<SimpleDate>() == ast.is_sat::<Hybrid>(),
+    {
+        if ast.is_sat::<SimpleDate>() {
+            let env = choose|env: Environment| ast.is_closed(env) && ast.eval::<SimpleDate>(env);
+            theorem_ast_hybrid_equiv(ast, env);
+        }
+        if ast.is_sat::<Hybrid>() {
+            let env = choose|env: Environment| ast.is_closed(env) && ast.eval::<Hybrid>(env);
+            theorem_ast_hybrid_equiv(ast, env);
+        }
+    }
+
+    pub proof fn theorem_ast_ab_equisat(ast: Ast)
+        requires ast.is_well_formed(),
+        ensures ast.is_sat::<SimpleDate>() == ast.is_sat::<AlphaBeta>(),
+    {
+        if ast.is_sat::<SimpleDate>() {
+            let env = choose|env: Environment| ast.is_closed(env) && ast.eval::<SimpleDate>(env);
+            theorem_ast_ab_equiv(ast, env);
+        }
+        if ast.is_sat::<AlphaBeta>() {
+            let env = choose|env: Environment| ast.is_closed(env) && ast.eval::<AlphaBeta>(env);
+            theorem_ast_ab_equiv(ast, env);
+        }
+    }
+
 } // verus!

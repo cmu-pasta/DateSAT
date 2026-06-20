@@ -71,6 +71,24 @@ verus! {
                 ast.eval::<SimpleDate>(env) == ast.eval::<AlphaBeta>(env)
             by { theorem_ast_ab_equiv(ast, env); }
 
+        // Corollary 6: EpochDelta equisatisfiability
+        assert forall|ast: Ast| #![auto]
+            ast.is_well_formed() implies
+                ast.is_sat::<SimpleDate>() == ast.is_sat::<EpochDelta>()
+            by { theorem_ast_epoch_delta_equisat(ast); }
+
+        // Corollary 7: Hybrid equisatisfiability
+        assert forall|ast: Ast| #![auto]
+            ast.is_well_formed() implies
+                ast.is_sat::<SimpleDate>() == ast.is_sat::<Hybrid>()
+            by { theorem_ast_hybrid_equisat(ast); }
+
+        // Corollary 8: AlphaBeta equisatisfiability
+        assert forall|ast: Ast| #![auto]
+            ast.is_well_formed() implies
+                ast.is_sat::<SimpleDate>() == ast.is_sat::<AlphaBeta>()
+            by { theorem_ast_ab_equisat(ast); }
+
     }
 
 } // verus!

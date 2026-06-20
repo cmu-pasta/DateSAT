@@ -247,4 +247,13 @@ verus! {
     }
 
 
+    // ── Satisfiability ────────────────────────────────────────────────
+
+    impl Ast {
+        pub open spec fn is_sat<D: DateEncoding>(self) -> bool {
+            exists|env: Environment| #![auto]
+                self.is_closed(env) && self.eval::<D>(env) == true
+        }
+    }
+
 } // verus!
