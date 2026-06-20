@@ -18,13 +18,13 @@ verus! {
         }
 
         /// Component-wise addition of two periods.
-        spec fn add(self, other: Self) -> Period {
+        pub open spec fn add(self, other: Self) -> Period {
             Period(self.years() + other.years(),
                 self.months() + other.months(), self.days() + other.days())
         }
 
         /// Component-wise scaling of a period by an integer factor.
-        spec fn scale(self, factor: int) -> Period {
+        pub open spec fn scale(self, factor: int) -> Period {
             Period(self.years() * factor, self.months() * factor, self.days() * factor)
         }
     }

@@ -22,6 +22,8 @@ verus! {
         Literal(bool),
         DateLt(Box<DateExpr>, Box<DateExpr>),
         DateEq(Box<DateExpr>, Box<DateExpr>),
+        IntLt(Box<IntExpr>, Box<IntExpr>),
+        IntEq(Box<IntExpr>, Box<IntExpr>),
     }
 
     pub enum IntExpr {
@@ -30,6 +32,9 @@ verus! {
         Year(Box<DateExpr>),
         Month(Box<DateExpr>),
         Day(Box<DateExpr>),
+        Add(Box<IntExpr>, Box<IntExpr>),
+        Sub(Box<IntExpr>, Box<IntExpr>),
+        Mul(Box<IntExpr>, int),
     }
 
     pub enum DateExpr {
@@ -40,6 +45,8 @@ verus! {
 
     pub enum PeriodExpr {
         Literal(int, int, int),
+        Add(Box<PeriodExpr>, Box<PeriodExpr>),
+        Scale(Box<PeriodExpr>, int),
     }
 
     impl Environment {
@@ -68,6 +75,9 @@ verus! {
                 IntExpr::Year(d) => d.eval::<D>(env).year(),
                 IntExpr::Month(d) => d.eval::<D>(env).month(),
                 IntExpr::Day(d) => d.eval::<D>(env).day(),
+                IntExpr::Add(a, b) => a.eval::<D>(env) + b.eval::<D>(env),
+                IntExpr::Sub(a, b) => a.eval::<D>(env) - b.eval::<D>(env),
+                IntExpr::Mul(a, k) => a.eval::<D>(env) * k,
             }
         }
     }
@@ -102,14 +112,20 @@ verus! {
                 BoolExpr::Literal(v) => v,
                 BoolExpr::DateLt(a, b) => a.eval::<D>(env).lt(b.eval::<D>(env)),
                 BoolExpr::DateEq(a, b) => a.eval::<D>(env).eq(b.eval::<D>(env)),
+                BoolExpr::IntLt(a, b) => a.eval::<D>(env) < b.eval::<D>(env),
+                BoolExpr::IntEq(a, b) => a.eval::<D>(env) == b.eval::<D>(env),
             }
         }
     }
 
     impl PeriodExpr {
-        pub open spec fn eval(self) -> Period {
+        pub open spec fn eval(self) -> Period
+            decreases self,
+        {
             match self {
                 PeriodExpr::Literal(y, m, d) => Period(y, m, d),
+                PeriodExpr::Add(a, b) => a.eval().add(b.eval()),
+                PeriodExpr::Scale(p, k) => p.eval().scale(k),
             }
         }
     }
@@ -138,6 +154,9 @@ verus! {
                 IntExpr::Year(d) => d.is_well_formed(env),
                 IntExpr::Month(d) => d.is_well_formed(env),
                 IntExpr::Day(d) => d.is_well_formed(env),
+                IntExpr::Add(a, b) => a.is_well_formed(env) && b.is_well_formed(env),
+                IntExpr::Sub(a, b) => a.is_well_formed(env) && b.is_well_formed(env),
+                IntExpr::Mul(a, _) => a.is_well_formed(env),
             }
         }
     }
@@ -153,6 +172,8 @@ verus! {
                 BoolExpr::Literal(_) => true,
                 BoolExpr::DateLt(a, b) => a.is_well_formed(env) && b.is_well_formed(env),
                 BoolExpr::DateEq(a, b) => a.is_well_formed(env) && b.is_well_formed(env),
+                BoolExpr::IntLt(a, b) => a.is_well_formed(env) && b.is_well_formed(env),
+                BoolExpr::IntEq(a, b) => a.is_well_formed(env) && b.is_well_formed(env),
             }
         }
     }
@@ -228,6 +249,17 @@ verus! {
                 let sd = d.eval::<SimpleDate>(env);
                 theorem_epoch_delta_to_ymd_from_simple_date_inverse(sd);
             },
+            IntExpr::Add(a, b) => {
+                lemma_int_expr_equiv(*a, env);
+                lemma_int_expr_equiv(*b, env);
+            },
+            IntExpr::Sub(a, b) => {
+                lemma_int_expr_equiv(*a, env);
+                lemma_int_expr_equiv(*b, env);
+            },
+            IntExpr::Mul(a, _) => {
+                lemma_int_expr_equiv(*a, env);
+            },
         }
     }
 
@@ -273,6 +305,14 @@ verus! {
                     b.eval::<SimpleDate>(env),
                     b.eval::<EpochDelta>(env),
                 );
+            },
+            BoolExpr::IntLt(a, b) => {
+                lemma_int_expr_equiv(*a, env);
+                lemma_int_expr_equiv(*b, env);
+            },
+            BoolExpr::IntEq(a, b) => {
+                lemma_int_expr_equiv(*a, env);
+                lemma_int_expr_equiv(*b, env);
             },
         }
     }
@@ -342,6 +382,17 @@ verus! {
                 let h = d.eval::<Hybrid>(env);
                 lemma_hybrid_to_ymd(sd, h);
             },
+            IntExpr::Add(a, b) => {
+                lemma_int_expr_hybrid_equiv(*a, env);
+                lemma_int_expr_hybrid_equiv(*b, env);
+            },
+            IntExpr::Sub(a, b) => {
+                lemma_int_expr_hybrid_equiv(*a, env);
+                lemma_int_expr_hybrid_equiv(*b, env);
+            },
+            IntExpr::Mul(a, _) => {
+                lemma_int_expr_hybrid_equiv(*a, env);
+            },
         }
     }
 
@@ -386,6 +437,14 @@ verus! {
                     b.eval::<SimpleDate>(env),
                     b.eval::<Hybrid>(env),
                 );
+            },
+            BoolExpr::IntLt(a, b) => {
+                lemma_int_expr_hybrid_equiv(*a, env);
+                lemma_int_expr_hybrid_equiv(*b, env);
+            },
+            BoolExpr::IntEq(a, b) => {
+                lemma_int_expr_hybrid_equiv(*a, env);
+                lemma_int_expr_hybrid_equiv(*b, env);
             },
         }
     }
@@ -451,6 +510,17 @@ verus! {
                 let sd = d.eval::<SimpleDate>(env);
                 theorem_ab_to_ymd_from_simple_date_inverse(sd);
             },
+            IntExpr::Add(a, b) => {
+                lemma_int_expr_ab_equiv(*a, env);
+                lemma_int_expr_ab_equiv(*b, env);
+            },
+            IntExpr::Sub(a, b) => {
+                lemma_int_expr_ab_equiv(*a, env);
+                lemma_int_expr_ab_equiv(*b, env);
+            },
+            IntExpr::Mul(a, _) => {
+                lemma_int_expr_ab_equiv(*a, env);
+            },
         }
     }
 
@@ -495,6 +565,14 @@ verus! {
                     b.eval::<SimpleDate>(env),
                     b.eval::<AlphaBeta>(env),
                 );
+            },
+            BoolExpr::IntLt(a, b) => {
+                lemma_int_expr_ab_equiv(*a, env);
+                lemma_int_expr_ab_equiv(*b, env);
+            },
+            BoolExpr::IntEq(a, b) => {
+                lemma_int_expr_ab_equiv(*a, env);
+                lemma_int_expr_ab_equiv(*b, env);
             },
         }
     }
