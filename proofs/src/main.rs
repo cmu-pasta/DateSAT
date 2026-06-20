@@ -55,19 +55,19 @@ verus! {
 
         // Theorem 3: EpochDelta equivalence
         assert forall|ast: Ast, env: Environment| #![auto]
-            ast.is_well_formed() && ast.is_closed(env) implies
+            ast.is_well_formed() && ast.is_properly_closed(env) implies
                 ast.eval::<SimpleDate>(env) == ast.eval::<EpochDelta>(env)
             by { theorem_ast_epoch_delta_equiv(ast, env); }
 
         // Theorem 4: Hybrid equivalence
         assert forall|ast: Ast, env: Environment| #![auto]
-            ast.is_well_formed() && ast.is_closed(env) implies
+            ast.is_well_formed() && ast.is_properly_closed(env) implies
                 ast.eval::<SimpleDate>(env) == ast.eval::<Hybrid>(env)
             by { theorem_ast_hybrid_equiv(ast, env); }
 
         // Theorem 5: AlphaBeta equivalence
         assert forall|ast: Ast, env: Environment| #![auto]
-            ast.is_well_formed() && ast.is_closed(env) implies
+            ast.is_well_formed() && ast.is_properly_closed(env) implies
                 ast.eval::<SimpleDate>(env) == ast.eval::<AlphaBeta>(env)
             by { theorem_ast_ab_equiv(ast, env); }
 

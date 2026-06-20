@@ -6,7 +6,7 @@ verus! {
     // ── Well-formedness ───────────────────────────────────────────────────
 
     pub proof fn lemma_date_wf_implies_valid(e: DateExpr, env: Environment)
-        requires e.is_well_formed(), e.is_closed(env),
+        requires e.is_well_formed(), e.is_properly_closed(env),
         ensures e.eval::<SimpleDate>(env).is_valid(),
         decreases e,
     {
@@ -26,7 +26,7 @@ verus! {
     // ── EpochDelta equivalence proofs ───────────────────────────────────
 
     pub proof fn lemma_date_expr_epoch_delta_congruent(e: DateExpr, env: Environment)
-        requires e.is_well_formed(), e.is_closed(env),
+        requires e.is_well_formed(), e.is_properly_closed(env),
         ensures ed_congruent(e.eval::<SimpleDate>(env), e.eval::<EpochDelta>(env)),
         decreases e,
     {
@@ -51,7 +51,7 @@ verus! {
     }
 
     pub proof fn lemma_int_expr_epoch_delta_equiv(e: IntExpr, env: Environment)
-        requires e.is_well_formed(), e.is_closed(env),
+        requires e.is_well_formed(), e.is_properly_closed(env),
         ensures e.eval::<SimpleDate>(env) == e.eval::<EpochDelta>(env),
         decreases e,
     {
@@ -91,7 +91,7 @@ verus! {
     }
 
     pub proof fn lemma_bool_expr_epoch_delta_equiv(e: BoolExpr, env: Environment)
-        requires e.is_well_formed(), e.is_closed(env),
+        requires e.is_well_formed(), e.is_properly_closed(env),
         ensures e.eval::<SimpleDate>(env) == e.eval::<EpochDelta>(env),
         decreases e,
     {
@@ -149,7 +149,7 @@ verus! {
     }
 
     pub proof fn theorem_ast_epoch_delta_equiv(ast: Ast, env: Environment)
-        requires ast.is_well_formed(), ast.is_closed(env),
+        requires ast.is_well_formed(), ast.is_properly_closed(env),
         ensures ast.eval::<SimpleDate>(env) == ast.eval::<EpochDelta>(env),
     {
         lemma_bool_expr_epoch_delta_equiv(ast.root, env);
@@ -159,7 +159,7 @@ verus! {
     // ── Hybrid equivalence proofs ──────────────────────────────────────
 
     pub proof fn lemma_date_expr_hybrid_congruent(e: DateExpr, env: Environment)
-        requires e.is_well_formed(), e.is_closed(env),
+        requires e.is_well_formed(), e.is_properly_closed(env),
         ensures hybrid_congruent(e.eval::<SimpleDate>(env), e.eval::<Hybrid>(env)),
         decreases e,
     {
@@ -184,7 +184,7 @@ verus! {
     }
 
     pub proof fn lemma_int_expr_hybrid_equiv(e: IntExpr, env: Environment)
-        requires e.is_well_formed(), e.is_closed(env),
+        requires e.is_well_formed(), e.is_properly_closed(env),
         ensures e.eval::<SimpleDate>(env) == e.eval::<Hybrid>(env),
         decreases e,
     {
@@ -227,7 +227,7 @@ verus! {
     }
 
     pub proof fn lemma_bool_expr_hybrid_equiv(e: BoolExpr, env: Environment)
-        requires e.is_well_formed(), e.is_closed(env),
+        requires e.is_well_formed(), e.is_properly_closed(env),
         ensures e.eval::<SimpleDate>(env) == e.eval::<Hybrid>(env),
         decreases e,
     {
@@ -285,7 +285,7 @@ verus! {
     }
 
     pub proof fn theorem_ast_hybrid_equiv(ast: Ast, env: Environment)
-        requires ast.is_well_formed(), ast.is_closed(env),
+        requires ast.is_well_formed(), ast.is_properly_closed(env),
         ensures ast.eval::<SimpleDate>(env) == ast.eval::<Hybrid>(env),
     {
         lemma_bool_expr_hybrid_equiv(ast.root, env);
@@ -295,7 +295,7 @@ verus! {
     // ── AlphaBeta equivalence proofs ───────────────────────────────────
 
     pub proof fn lemma_date_expr_ab_congruent(e: DateExpr, env: Environment)
-        requires e.is_well_formed(), e.is_closed(env),
+        requires e.is_well_formed(), e.is_properly_closed(env),
         ensures ab_congruent(e.eval::<SimpleDate>(env), e.eval::<AlphaBeta>(env)),
         decreases e,
     {
@@ -320,7 +320,7 @@ verus! {
     }
 
     pub proof fn lemma_int_expr_ab_equiv(e: IntExpr, env: Environment)
-        requires e.is_well_formed(), e.is_closed(env),
+        requires e.is_well_formed(), e.is_properly_closed(env),
         ensures e.eval::<SimpleDate>(env) == e.eval::<AlphaBeta>(env),
         decreases e,
     {
@@ -360,7 +360,7 @@ verus! {
     }
 
     pub proof fn lemma_bool_expr_ab_equiv(e: BoolExpr, env: Environment)
-        requires e.is_well_formed(), e.is_closed(env),
+        requires e.is_well_formed(), e.is_properly_closed(env),
         ensures e.eval::<SimpleDate>(env) == e.eval::<AlphaBeta>(env),
         decreases e,
     {
@@ -418,7 +418,7 @@ verus! {
     }
 
     pub proof fn theorem_ast_ab_equiv(ast: Ast, env: Environment)
-        requires ast.is_well_formed(), ast.is_closed(env),
+        requires ast.is_well_formed(), ast.is_properly_closed(env),
         ensures ast.eval::<SimpleDate>(env) == ast.eval::<AlphaBeta>(env),
     {
         lemma_bool_expr_ab_equiv(ast.root, env);
@@ -431,11 +431,11 @@ verus! {
         ensures ast.is_sat::<SimpleDate>() == ast.is_sat::<EpochDelta>(),
     {
         if ast.is_sat::<SimpleDate>() {
-            let env = choose|env: Environment| ast.is_closed(env) && ast.eval::<SimpleDate>(env);
+            let env = choose|env: Environment| ast.is_properly_closed(env) && ast.eval::<SimpleDate>(env);
             theorem_ast_epoch_delta_equiv(ast, env);
         }
         if ast.is_sat::<EpochDelta>() {
-            let env = choose|env: Environment| ast.is_closed(env) && ast.eval::<EpochDelta>(env);
+            let env = choose|env: Environment| ast.is_properly_closed(env) && ast.eval::<EpochDelta>(env);
             theorem_ast_epoch_delta_equiv(ast, env);
         }
     }
@@ -445,11 +445,11 @@ verus! {
         ensures ast.is_sat::<SimpleDate>() == ast.is_sat::<Hybrid>(),
     {
         if ast.is_sat::<SimpleDate>() {
-            let env = choose|env: Environment| ast.is_closed(env) && ast.eval::<SimpleDate>(env);
+            let env = choose|env: Environment| ast.is_properly_closed(env) && ast.eval::<SimpleDate>(env);
             theorem_ast_hybrid_equiv(ast, env);
         }
         if ast.is_sat::<Hybrid>() {
-            let env = choose|env: Environment| ast.is_closed(env) && ast.eval::<Hybrid>(env);
+            let env = choose|env: Environment| ast.is_properly_closed(env) && ast.eval::<Hybrid>(env);
             theorem_ast_hybrid_equiv(ast, env);
         }
     }
@@ -459,11 +459,11 @@ verus! {
         ensures ast.is_sat::<SimpleDate>() == ast.is_sat::<AlphaBeta>(),
     {
         if ast.is_sat::<SimpleDate>() {
-            let env = choose|env: Environment| ast.is_closed(env) && ast.eval::<SimpleDate>(env);
+            let env = choose|env: Environment| ast.is_properly_closed(env) && ast.eval::<SimpleDate>(env);
             theorem_ast_ab_equiv(ast, env);
         }
         if ast.is_sat::<AlphaBeta>() {
-            let env = choose|env: Environment| ast.is_closed(env) && ast.eval::<AlphaBeta>(env);
+            let env = choose|env: Environment| ast.is_properly_closed(env) && ast.eval::<AlphaBeta>(env);
             theorem_ast_ab_equiv(ast, env);
         }
     }

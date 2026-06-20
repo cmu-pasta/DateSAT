@@ -117,55 +117,55 @@ verus! {
     }
 
     impl Ast {
-        pub open spec fn is_closed(self, env: Environment) -> bool {
-            self.root.is_closed(env)
+        pub open spec fn is_properly_closed(self, env: Environment) -> bool {
+            self.root.is_properly_closed(env)
         }
     }
 
     impl DateExpr {
-        pub open spec fn is_closed(self, env: Environment) -> bool
+        pub open spec fn is_properly_closed(self, env: Environment) -> bool
             decreases self,
         {
             match self {
                 DateExpr::Literal(_, _, _) => true,
                 DateExpr::Var(id) => env.date_var_valid(id),
-                DateExpr::Add(base, _) => base.is_closed(env),
+                DateExpr::Add(base, _) => base.is_properly_closed(env),
             }
         }
     }
 
     impl IntExpr {
-        pub open spec fn is_closed(self, env: Environment) -> bool
+        pub open spec fn is_properly_closed(self, env: Environment) -> bool
             decreases self,
         {
             match self {
                 IntExpr::Literal(_) => true,
                 IntExpr::Var(id) => env.int_vars.dom().contains(id),
-                IntExpr::Year(d) => d.is_closed(env),
-                IntExpr::Month(d) => d.is_closed(env),
-                IntExpr::Day(d) => d.is_closed(env),
-                IntExpr::Add(a, b) => a.is_closed(env) && b.is_closed(env),
-                IntExpr::Sub(a, b) => a.is_closed(env) && b.is_closed(env),
-                IntExpr::Mul(a, _) => a.is_closed(env),
+                IntExpr::Year(d) => d.is_properly_closed(env),
+                IntExpr::Month(d) => d.is_properly_closed(env),
+                IntExpr::Day(d) => d.is_properly_closed(env),
+                IntExpr::Add(a, b) => a.is_properly_closed(env) && b.is_properly_closed(env),
+                IntExpr::Sub(a, b) => a.is_properly_closed(env) && b.is_properly_closed(env),
+                IntExpr::Mul(a, _) => a.is_properly_closed(env),
             }
         }
     }
 
     impl BoolExpr {
-        pub open spec fn is_closed(self, env: Environment) -> bool
+        pub open spec fn is_properly_closed(self, env: Environment) -> bool
             decreases self,
         {
             match self {
-                BoolExpr::And(a, b) => a.is_closed(env) && b.is_closed(env),
-                BoolExpr::Or(a, b) => a.is_closed(env) && b.is_closed(env),
-                BoolExpr::Not(a) => a.is_closed(env),
-                BoolExpr::Implies(a, b) => a.is_closed(env) && b.is_closed(env),
+                BoolExpr::And(a, b) => a.is_properly_closed(env) && b.is_properly_closed(env),
+                BoolExpr::Or(a, b) => a.is_properly_closed(env) && b.is_properly_closed(env),
+                BoolExpr::Not(a) => a.is_properly_closed(env),
+                BoolExpr::Implies(a, b) => a.is_properly_closed(env) && b.is_properly_closed(env),
                 BoolExpr::Literal(_) => true,
                 BoolExpr::Var(id) => env.bool_vars.dom().contains(id),
-                BoolExpr::DateLt(a, b) => a.is_closed(env) && b.is_closed(env),
-                BoolExpr::DateEq(a, b) => a.is_closed(env) && b.is_closed(env),
-                BoolExpr::IntLt(a, b) => a.is_closed(env) && b.is_closed(env),
-                BoolExpr::IntEq(a, b) => a.is_closed(env) && b.is_closed(env),
+                BoolExpr::DateLt(a, b) => a.is_properly_closed(env) && b.is_properly_closed(env),
+                BoolExpr::DateEq(a, b) => a.is_properly_closed(env) && b.is_properly_closed(env),
+                BoolExpr::IntLt(a, b) => a.is_properly_closed(env) && b.is_properly_closed(env),
+                BoolExpr::IntEq(a, b) => a.is_properly_closed(env) && b.is_properly_closed(env),
             }
         }
     }
@@ -252,7 +252,7 @@ verus! {
     impl Ast {
         pub open spec fn is_sat<D: DateEncoding>(self) -> bool {
             exists|env: Environment| #![auto]
-                self.is_closed(env) && self.eval::<D>(env) == true
+                self.is_properly_closed(env) && self.eval::<D>(env) == true
         }
     }
 
