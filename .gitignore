@@ -81,4 +81,4 @@ PIPr/
 Miniforge3-MacOSX-arm64.sh
 
 # Ignore all results folders in datesatbench subdirectories
-datesat_eval/results/
+eval/results/

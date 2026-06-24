@@ -4,7 +4,7 @@ Test enumeration baseline validation functionality.
 
 import pytest
 
-from datesat_eval.utils.validation import (
+from eval.utils.validation import (
     parse_date_string,
     parse_period_string,
     validate_solution_with_concrete,

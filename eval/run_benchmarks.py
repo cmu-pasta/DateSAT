@@ -12,7 +12,7 @@ if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
 import datesat
-from datesat_eval.utils.validation import check_results_dir
+from eval.utils.validation import check_results_dir
 
 TIMEOUT_MS = 60000
 
@@ -310,7 +310,7 @@ def main():
         help=(
             "Path to an external DateSATBench repo checkout. If provided, constraint "
             "files are loaded from that repo (auto-detects either <repo>/datesatbench/... "
-            "or <repo>/... layouts). Results are still written under datesat_eval/."
+            "or <repo>/... layouts). Results are still written under eval/."
         ),
     )
     parser.add_argument(
@@ -375,7 +375,7 @@ def main():
 
     datesatbench_root = _resolve_datesatbench_root(args.datesatbench_repo)
 
-    # Where to load constraints from (either local symlinks under datesat_eval/, or external repo)
+    # Where to load constraints from (either local symlinks under eval/, or external repo)
     constraint_sets = [
         {
             "name": "LLM Generated Constraints",
@@ -383,7 +383,7 @@ def main():
             / "llm_constraints"
             / "constraints"
             / "constraints.json",
-            # Always write results under datesat_eval/ (avoid symlinks to external repo)
+            # Always write results under eval/ (avoid symlinks to external repo)
             "output_dir": results_root / "llm",
         },
         {
