@@ -66,7 +66,7 @@ def solve(
 
         approach: Solver approach to use. Options:
                  - "epoch_days" (default, recommended): Convert dates to days since epoch
-                 - "naive": Direct encoding of date arithmetic
+                 - "simple": Direct encoding of date arithmetic
                  - "hybrid": Hybrid approach combining multiple encodings
                  - "alpha_beta": Alpha-beta encoding for optimized arithmetic
                  - "alpha_beta_table": Table-based alpha-beta encoding
@@ -120,7 +120,7 @@ def solve(
         - date - date is not supported (use periods instead)
     """
     # Validate approach
-    valid_approaches = ["naive", "epoch_days", "hybrid", "alpha_beta", "alpha_beta_table"]
+    valid_approaches = ["simple", "epoch_days", "hybrid", "alpha_beta", "alpha_beta_table"]
     if approach not in valid_approaches:
         return {
             "status": "error",

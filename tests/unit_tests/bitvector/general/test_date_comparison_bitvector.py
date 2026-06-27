@@ -5,7 +5,7 @@ import pytest
 from datesat.core import Date
 from datesat.symbolic_bitvector.alpha_beta_bv import AlphaBetaSolver
 from datesat.symbolic_bitvector.alpha_beta_table_bv import AlphaBetaTableSolver
-from datesat.symbolic_bitvector.naive_bv import NaiveSolver
+from datesat.symbolic_bitvector.simple_bv import SimpleSolver
 from datesat.symbolic_bitvector.epoch_days_bv import EpochDaysSolver
 from datesat.symbolic_bitvector.hybrid_bv import HybridSolver
 
@@ -86,12 +86,12 @@ def _solve_compare(solver_cls, a: Date, b: Date, op_symbol: str) -> bool:
     [pytest.param(a, b, id=f"{a}_vs_{b}") for a, b in CASES],
 )
 @pytest.mark.parametrize("op_name,op", OPS)
-@pytest.mark.naive
+@pytest.mark.simple
 @pytest.mark.bitvector
-def test_naive_date_comparisons_match_truth(op_name: str, op, a: Date, b: Date):
+def test_simple_date_comparisons_match_truth(op_name: str, op, a: Date, b: Date):
     expect = _expect_truth(op, a, b)
-    sat = _solve_compare(NaiveSolver, a, b, op_name)
-    assert sat == expect, f"Naive: expected {expect} for {a} {op_name} {b}"
+    sat = _solve_compare(SimpleSolver, a, b, op_name)
+    assert sat == expect, f"Simple: expected {expect} for {a} {op_name} {b}"
 
 
 @pytest.mark.parametrize(

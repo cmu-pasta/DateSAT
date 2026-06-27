@@ -1,7 +1,7 @@
 """
 High-level solver API for DateSAT.
 
-This module provides a simple interface for solving date constraints.
+This module provides an interface for solving date constraints.
 """
 
 import json
@@ -34,7 +34,7 @@ def solve(
         declarations: Optional list of variable declarations, e.g., ["x: date", "y: date"]
             Only used if constraints is a list. If constraints is a dict, declarations
             are taken from the dict.
-        approach: Solver approach - "naive", "epoch_days", "hybrid", "alpha_beta", or "alpha_beta_table"
+        approach: Solver approach - "simple", "epoch_days", "hybrid", "alpha_beta", or "alpha_beta_table"
         implementation: Implementation type - "int" or "bitvector"
         timeout_ms: Timeout in milliseconds (default: 600000 = 10 minutes)
         verbose: If True, print results to stdout (default: True)
@@ -50,7 +50,7 @@ def solve(
             - implementation: The implementation used
     
     Examples:
-        >>> # Simple API usage
+        >>> # API usage
         >>> result = datesat.solve(
         ...     constraints=["x >= Date(2000,1,1)", "x < Date(2000,12,31)"],
         ...     declarations=["x: date"]

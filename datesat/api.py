@@ -25,7 +25,7 @@ class DateSATBuilder:
         """Initialize the builder with the specified approach, implementation, and timeout.
 
         Args:
-            approach: Either "naive", "epoch_days", "hybrid", "alpha_beta", or "alpha_beta_table"
+            approach: Either "simple", "epoch_days", "hybrid", "alpha_beta", or "alpha_beta_table"
             implementation: Either "int" or "bitvector" (default: "int")
             timeout_ms: Timeout in milliseconds (default: 600000 = 10 minutes)
             use_maxsat: If True, use MaxSAT optimization with soft constraints for dates near today
@@ -39,13 +39,13 @@ class DateSATBuilder:
         if implementation == "bitvector":
             from .symbolic_bitvector.alpha_beta_bv import AlphaBetaSolver
             from .symbolic_bitvector.alpha_beta_table_bv import AlphaBetaTableSolver
-            from .symbolic_bitvector.naive_bv import NaiveSolver
+            from .symbolic_bitvector.simple_bv import SimpleSolver
             from .symbolic_bitvector.epoch_days_bv import EpochDaysSolver
             from .symbolic_bitvector.hybrid_bv import HybridSolver
         elif implementation == "int":
             from .symbolic_int.alpha_beta_int import AlphaBetaSolver
             from .symbolic_int.alpha_beta_table_int import AlphaBetaTableSolver
-            from .symbolic_int.naive_int import NaiveSolver
+            from .symbolic_int.simple_int import SimpleSolver
             from .symbolic_int.epoch_days_int import EpochDaysSolver
             from .symbolic_int.hybrid_int import HybridSolver
         else:
@@ -54,8 +54,8 @@ class DateSATBuilder:
             )
 
         # Initialize the appropriate solver
-        if approach == "naive":
-            self.solver = NaiveSolver(timeout_ms=timeout_ms, use_maxsat=use_maxsat)
+        if approach == "simple":
+            self.solver = SimpleSolver(timeout_ms=timeout_ms, use_maxsat=use_maxsat)
         elif approach == "epoch_days":
             self.solver = EpochDaysSolver(timeout_ms=timeout_ms, use_maxsat=use_maxsat)
         elif approach == "hybrid":
@@ -66,7 +66,7 @@ class DateSATBuilder:
             self.solver = AlphaBetaTableSolver(timeout_ms=timeout_ms, use_maxsat=use_maxsat)
         else:
             raise ValueError(
-                f"Unknown approach: {approach}. Must be 'naive', 'epoch_days', 'hybrid', 'alpha_beta', or 'alpha_beta_table'"
+                f"Unknown approach: {approach}. Must be 'simple', 'epoch_days', 'hybrid', 'alpha_beta', or 'alpha_beta_table'"
             )
 
         self.constraints = []

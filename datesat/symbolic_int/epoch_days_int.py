@@ -25,7 +25,7 @@ from z3 import (
     unsat,
 )
 from ..core import Date, Period
-from .naive_int import (
+from .simple_int import (
     eom_clamp,
     normalize_month
 )

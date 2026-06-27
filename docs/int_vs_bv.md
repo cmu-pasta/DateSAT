@@ -14,7 +14,7 @@ Each solver uses this 21-bit width for variables and literals.
 
 ## Core Differences
 
-Below differences are **consistent across all methods** (naive, epoch_days, hybrid, alpha_beta, alpha_beta_table).
+Below differences are **consistent across all methods** (simple, epoch_days, hybrid, alpha_beta, alpha_beta_table).
 
 ### Important Difference
 

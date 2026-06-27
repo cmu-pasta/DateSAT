@@ -1,7 +1,7 @@
 """
-Naive DateSAT implementation using component-based representation.
+Simple DateSAT implementation using component-based representation.
 
-This module implements the naive approach where dates are represented
+This module implements the simple approach where dates are represented
 as separate year, month, and day variables, and period arithmetic is done
 component-wise with proper normalization.
 """
@@ -9,14 +9,13 @@ component-wise with proper normalization.
 from typing import List, Tuple, Union
 
 from z3 import (
-    UGE,
     And,
-    BitVec,
-    BitVecRef,
-    BitVecVal,
+    ArithRef,
     BoolRef,
     CheckSatResult,
     If,
+    Int,
+    IntVal,
     ModelRef,
     Not,
     Optimize,
@@ -26,89 +25,56 @@ from z3 import (
     unsat,
 )
 from ..core import Date, Period
-from .bitwidths import LEGACY_BITS
 
 _NONLEAP_PREFIX = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334]
 _LEAP_PREFIX = [0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335]
+# -------------------------------
+# Epoch binding: 2000-03-01
+# -------------------------------
+# _ORD_EPOCH = to_ordinal(IntVal(2000), IntVal(3), IntVal(1))  # original ground Z3 term
+_ORD_EPOCH = IntVal(730179)  # precomputed ordinal of 2000-03-01 (0001-01-01 = 0)
 
 
 def is_leap(year) -> BoolRef:
     """Check if a year is a leap year."""
-    return Or(
-        And(
-            year % BitVecVal(4, LEGACY_BITS) == BitVecVal(0, LEGACY_BITS),
-            year % BitVecVal(100, LEGACY_BITS) != BitVecVal(0, LEGACY_BITS),
-        ),
-        year % BitVecVal(400, LEGACY_BITS) == BitVecVal(0, LEGACY_BITS),
-    )
+    return Or(And(year % 4 == 0, year % 100 != 0), year % 400 == 0)
 
 
-def days_in_month(year, month) -> BitVecRef:
+def days_in_month(year, month) -> ArithRef:
     """Get the number of days in a month, accounting for leap years."""
     return If(
-        month == BitVecVal(2, LEGACY_BITS),
-        If(is_leap(year), BitVecVal(29, LEGACY_BITS), BitVecVal(28, LEGACY_BITS)),
-        If(
-            Or(
-                month == BitVecVal(4, LEGACY_BITS),
-                month == BitVecVal(6, LEGACY_BITS),
-                month == BitVecVal(9, LEGACY_BITS),
-                month == BitVecVal(11, LEGACY_BITS),
-            ),
-            BitVecVal(30, LEGACY_BITS),
-            BitVecVal(31, LEGACY_BITS),
-        ),
+        month == 2,
+        If(is_leap(year), 29, 28),
+        If(Or(month == 4, month == 6, month == 9, month == 11), 30, 31),
     )
 
 
-def normalize_month(y, m) -> Tuple[BitVecRef, BitVecRef]:
+def normalize_month(y, m) -> Tuple[ArithRef, ArithRef]:
     """
     NormMonth(y,m) = (y + ((m-1) div 12), ((m-1) mod 12) + 1)
     Works for concrete and symbolic inputs.
     """
-    # Check if m is negative (>= 2^(LEGACY_BITS-1), the sign bit)
-    sign_bit = 2 ** (LEGACY_BITS - 1)
-    is_negative = UGE(m, BitVecVal(sign_bit, LEGACY_BITS))
+    t = m - 1
+    q = t / 12  # Z3 integer division
+    r = t % 12  # Z3 modulo
+    return y + q, r + 1
 
-    # Convert to signed value
-    wrap_around = 2**LEGACY_BITS
-    signed_m = If(is_negative, m - BitVecVal(wrap_around, LEGACY_BITS), m)
-
-    # Normalize using signed arithmetic with floor division
-    t = signed_m - BitVecVal(1, LEGACY_BITS)
-
-    # Implement floor division: if t < 0 and t % 12 != 0, subtract 1 from quotient
-    q_trunc = t / BitVecVal(12, LEGACY_BITS)  # Truncating division
-    r = t % BitVecVal(12, LEGACY_BITS)  # Modulo
-    # Check if t is negative by checking if it's >= sign bit (unsigned comparison)
-    is_negative_t = UGE(t, BitVecVal(sign_bit, LEGACY_BITS))
-    is_negative_and_has_remainder = And(is_negative_t, r != BitVecVal(0, LEGACY_BITS))
-    q = If(is_negative_and_has_remainder, q_trunc - BitVecVal(1, LEGACY_BITS), q_trunc)
-
-    return y + q, r + BitVecVal(1, LEGACY_BITS)
-
-def eom_clamp(year, month, day) -> BitVecRef:
+def eom_clamp(year, month, day) -> ArithRef:
     """
     End-of-month clamp: ensure day is valid for the given year/month.
     """
     max_day = days_in_month(year, month)
-    return If(
-        day < BitVecVal(1, LEGACY_BITS),
-        BitVecVal(1, LEGACY_BITS),
-        If(day > max_day, max_day, day),
-    )
+    return If(day < 1, 1, If(day > max_day, max_day, day))
 
-def add_days_componentwise(
-    y, m, d, delta_days: int
-) -> Tuple[BitVecRef, BitVecRef, BitVecRef]:
+def add_days_componentwise(y, m, d, delta_days: int) -> Tuple[ArithRef, ArithRef, ArithRef]:
     """
     Add a concrete day offset by iteratively carrying into months/years.
     """
     if delta_days == 0:
         return y, m, d
 
-    one = BitVecVal(1, LEGACY_BITS)
-    twelve = BitVecVal(12, LEGACY_BITS)
+    one = IntVal(1)
+    twelve = IntVal(12)
     cur_y, cur_m, cur_d = y, m, d
 
     if delta_days > 0:
@@ -152,22 +118,17 @@ def add_days_componentwise(
 
     return cur_y, cur_m, cur_d
 
+
 class DateVar:
-    """Symbolic date variable for naive implementation."""
+    """Symbolic date variable for simple implementation."""
 
     def __init__(self, name: str):
         """Create a symbolic date variable."""
         self.name = name
-        # Create separate Z3 bitvector variables for year, month, day
-        self.year = BitVec(
-            f"{name}_year", LEGACY_BITS
-        )  # Use LEGACY_BITS for arithmetic compatibility
-        self.month = BitVec(
-            f"{name}_month", LEGACY_BITS
-        )  # Use LEGACY_BITS for arithmetic compatibility
-        self.day = BitVec(
-            f"{name}_day", LEGACY_BITS
-        )  # Use LEGACY_BITS for arithmetic compatibility
+        # Create separate Z3 integer variables for year, month, day
+        self.year = Int(f"{name}_year")
+        self.month = Int(f"{name}_month")
+        self.day = Int(f"{name}_day")
         # Solver reference for adding bounds to intermediate dates (set after creation if needed)
         self._solver = None
 
@@ -184,23 +145,13 @@ class DateVar:
     def __ge__(self, other) -> BoolRef:
         """Support x >= date comparison."""
         if isinstance(other, (Date, DateVar)):
-            # Convert Date to bitvector values if needed
-            if isinstance(other, Date):
-                other_year = BitVecVal(other.year, LEGACY_BITS)
-                other_month = BitVecVal(other.month, LEGACY_BITS)
-                other_day = BitVecVal(other.day, LEGACY_BITS)
-            else:  # isinstance(other, DateVar)
-                other_year = other.year
-                other_month = other.month
-                other_day = other.day
-
             return Or(
-                self.year > other_year,
+                self.year > other.year,
                 And(
-                    self.year == other_year,
+                    self.year == other.year,
                     Or(
-                        self.month > other_month,
-                        And(self.month == other_month, self.day >= other_day),
+                        self.month > other.month,
+                        And(self.month == other.month, self.day >= other.day),
                     ),
                 ),
             )
@@ -210,23 +161,13 @@ class DateVar:
     def __le__(self, other) -> BoolRef:
         """Support x <= date comparison."""
         if isinstance(other, (Date, DateVar)):
-            # Convert Date to bitvector values if needed
-            if isinstance(other, Date):
-                other_year = BitVecVal(other.year, LEGACY_BITS)
-                other_month = BitVecVal(other.month, LEGACY_BITS)
-                other_day = BitVecVal(other.day, LEGACY_BITS)
-            else:  # isinstance(other, DateVar)
-                other_year = other.year
-                other_month = other.month
-                other_day = other.day
-
             return Or(
-                self.year < other_year,
+                self.year < other.year,
                 And(
-                    self.year == other_year,
+                    self.year == other.year,
                     Or(
-                        self.month < other_month,
-                        And(self.month == other_month, self.day <= other_day),
+                        self.month < other.month,
+                        And(self.month == other.month, self.day <= other.day),
                     ),
                 ),
             )
@@ -250,26 +191,16 @@ class DateVar:
     def __eq__(self, other) -> BoolRef:
         """Support x == date comparison."""
         if isinstance(other, (Date, DateVar)):
-            # Convert Date to bitvector values if needed
-            if isinstance(other, Date):
-                other_year = BitVecVal(other.year, LEGACY_BITS)
-                other_month = BitVecVal(other.month, LEGACY_BITS)
-                other_day = BitVecVal(other.day, LEGACY_BITS)
-            else:  # isinstance(other, DateVar)
-                other_year = other.year
-                other_month = other.month
-                other_day = other.day
-
             return And(
-                self.year == other_year,
-                self.month == other_month,
-                self.day == other_day,
+                self.year == other.year,
+                self.month == other.month,
+                self.day == other.day,
             )
         else:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
     def __ne__(self, other) -> BoolRef:
-        """Support x != date comparison using ordinal arithmetic."""
+        """Support x != date comparison."""
         if isinstance(other, (Date, DateVar)):
             return Not(self.__eq__(other))
         else:
@@ -286,27 +217,27 @@ class DateVar:
             Or(
                 # 1900-03-01 to 1900-12-31
                 And(
-                    self.year == BitVecVal(1900, LEGACY_BITS),
-                    self.month >= BitVecVal(3, LEGACY_BITS),
-                    self.month <= BitVecVal(12, LEGACY_BITS),
-                    self.day >= BitVecVal(1, LEGACY_BITS),
+                    self.year == 1900,
+                    self.month >= 3,
+                    self.month <= 12,
+                    self.day >= 1,
                     self.day <= days_in_month(self.year, self.month),
                 ),
                 # 1901-01-01 to 2099-12-31
                 And(
-                    self.year >= BitVecVal(1901, LEGACY_BITS),
-                    self.year <= BitVecVal(2099, LEGACY_BITS),
-                    self.month >= BitVecVal(1, LEGACY_BITS),
-                    self.month <= BitVecVal(12, LEGACY_BITS),
-                    self.day >= BitVecVal(1, LEGACY_BITS),
+                    self.year >= 1901,
+                    self.year <= 2099,
+                    self.month >= 1,
+                    self.month <= 12,
+                    self.day >= 1,
                     self.day <= days_in_month(self.year, self.month),
                 ),
                 # 2100-01-01 to 2100-02-28
                 And(
-                    self.year == BitVecVal(2100, LEGACY_BITS),
-                    self.month >= BitVecVal(1, LEGACY_BITS),
-                    self.month <= BitVecVal(2, LEGACY_BITS),
-                    self.day >= BitVecVal(1, LEGACY_BITS),
+                    self.year == 2100,
+                    self.month >= 1,
+                    self.month <= 2,
+                    self.day >= 1,
                     self.day <= days_in_month(self.year, self.month),
                 ),
             )
@@ -314,7 +245,7 @@ class DateVar:
 
     def __add__(self, other) -> 'DateVar':
         """
-        DateVar + Period following naive semantics:
+        DateVar + Period following simple semantics:
         1) Combine Y and M (normalize months into 1..12 with year carry)
         2) Apply EOM clamp: day := min(original_day, days_in_month(new_year,new_month))
         3) Add D days via iterative day carry (month/year rollover as required)
@@ -340,10 +271,10 @@ class DateVar:
             else:
                 # Full path: Step 1: Combine Y and M (normalize months into 1..12 with year carry)
                 # Convert period years to months and combine with period months
-                period_total_months = BitVecVal(period_years, LEGACY_BITS) * BitVecVal(12, LEGACY_BITS) + BitVecVal(period_months, LEGACY_BITS)
+                period_total_months = IntVal(period_years) * IntVal(12) + IntVal(period_months)
                 # Add to current month and normalize
                 total_months = self.month + period_total_months
-                year_carry, m1 = normalize_month(BitVecVal(0, LEGACY_BITS), total_months)
+                year_carry, m1 = normalize_month(IntVal(0), total_months)
                 y1 = self.year + year_carry
 
                 # Step 2: Apply EOM clamp: day := min(original_day, days_in_month(new_year,new_month))
@@ -371,8 +302,8 @@ class DateVar:
             raise TypeError(f"Cannot subtract {type(other)} from DateVar")
 
 
-class NaiveSolver:
-    """Naive date constraint solver using component-based representation."""
+class SimpleSolver:
+    """Simple date constraint solver using component-based representation."""
 
     def __init__(self, timeout_ms=600000, use_maxsat=False):
         """Initialize the solver with optional year bounds and timeout.
@@ -433,15 +364,15 @@ class NaiveSolver:
             for name, date_var in self.date_vars.items():
                 # High weight: today ± 50 years
                 within_50_years = And(
-                    date_var.year >= BitVecVal(today_year - 50, LEGACY_BITS),
-                    date_var.year <= BitVecVal(today_year + 50, LEGACY_BITS),
+                    date_var.year >= IntVal(today_year - 50),
+                    date_var.year <= IntVal(today_year + 50),
                 )
                 self.solver.add_soft(within_50_years, weight=100)
 
                 # Low weight: today ± 10 years
                 within_10_years = And(
-                    date_var.year >= BitVecVal(today_year - 10, LEGACY_BITS),
-                    date_var.year <= BitVecVal(today_year + 10, LEGACY_BITS),
+                    date_var.year >= IntVal(today_year - 10),
+                    date_var.year <= IntVal(today_year + 10),
                 )
                 self.solver.add_soft(within_10_years, weight=10)
 

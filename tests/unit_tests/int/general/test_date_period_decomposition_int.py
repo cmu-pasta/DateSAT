@@ -6,7 +6,7 @@ from dateutil.relativedelta import relativedelta
 from datesat.core import Date, Period
 from datesat.symbolic_int.alpha_beta_int import AlphaBetaSolver
 from datesat.symbolic_int.alpha_beta_table_int import AlphaBetaTableSolver
-from datesat.symbolic_int.naive_int import NaiveSolver
+from datesat.symbolic_int.simple_int import SimpleSolver
 from datesat.symbolic_int.epoch_days_int import EpochDaysSolver
 from datesat.symbolic_int.hybrid_int import HybridSolver
 
@@ -225,13 +225,13 @@ def _solve_decomposed_with_solver_sub(solver_cls, base: Date, seq: list[Period])
         for base, per, label, seq in all_decomposed_cases()
     ],
 )
-@pytest.mark.naive
+@pytest.mark.simple
 @pytest.mark.integer
-def test_naive_matches_java_decomposed(
+def test_simple_matches_java_decomposed(
     base: Date, per: Period, label: str, seq: list[Period]
 ):
     expect = python_date_plus_sequence(base, seq, label)
-    model = _solve_decomposed_with_solver(NaiveSolver, base, seq)
+    model = _solve_decomposed_with_solver(SimpleSolver, base, seq)
     assert model["status"] == "sat"
     got = model["dates"]["y"]
     assert (
@@ -334,12 +334,12 @@ def test_alpha_beta_table_matches_java_decomposed(
         for base, per, label, seq in all_decomposed_cases()
     ],
 )
-@pytest.mark.naive
+@pytest.mark.simple
 @pytest.mark.integer
-def test_naive_sub_matches_java_decomposed(
+def test_simple_sub_matches_java_decomposed(
     base: Date, per: Period, label: str, seq: list[Period]
 ):
-    model = _solve_decomposed_with_solver_sub(NaiveSolver, base, seq)
+    model = _solve_decomposed_with_solver_sub(SimpleSolver, base, seq)
     if model["status"] == "unsat":
         return
     expect = python_date_plus_sequence(base, seq, label)

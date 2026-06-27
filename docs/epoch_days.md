@@ -46,8 +46,8 @@ From core.py
 
 2. **Add Months/Years**: Convert to Y/M/D, perform month/year addition, convert back to epoch
    - Convert current date to year/month/day using `ymd_from_days_since_epoch()`
-   - Add period months/years using component-wise arithmetic (reuses `normalize_month()` from naive)
-   - Apply EOM clamp (reuses `eom_clamp()` from naive)
+   - Add period months/years using component-wise arithmetic (reuses `normalize_month()` from simple)
+   - Apply EOM clamp (reuses `eom_clamp()` from simple)
    - If period has days component, add using `add_days_ordinal()` (converts Y/M/D back to epoch and adds days)
    - Otherwise, convert Y/M/D back to epoch using `days_since_epoch_from_ymd()`
 
@@ -59,4 +59,4 @@ From core.py
 
 - `DateVar` - Symbolic date variable with days since epoch
 - `EpochDaysSolver` - Constraint solver with epoch-based validation
-- Helper functions: `ymd_from_days_since_epoch()`, `days_since_epoch_from_ymd()`, `add_days_ordinal()`, `normalize_month()` (reused from naive), `eom_clamp()` (reused from naive)
+- Helper functions: `ymd_from_days_since_epoch()`, `days_since_epoch_from_ymd()`, `add_days_ordinal()`, `normalize_month()` (reused from simple), `eom_clamp()` (reused from simple)

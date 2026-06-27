@@ -37,7 +37,7 @@ from z3 import (
     unsat,
 )
 from ..core import Date, Period
-from .naive_int import (
+from .simple_int import (
     normalize_month,
     days_in_month,
     eom_clamp
@@ -419,7 +419,7 @@ class DateVar:
         Steps: normalize Y/M, EOM clamp, then add D days in ordinal space.
         """
         if isinstance(other, Period):
-            # Create intermediate result with bounds (following naive/epoch_days pattern)
+            # Create intermediate result with bounds (following simple/epoch_days pattern)
             # Ensure unique name to avoid collisions
             base_name = f"{self.name}_plus_{other.years}y_{other.months}m_{other.days}d"
             name = base_name
@@ -535,7 +535,7 @@ class HybridSolver:
         dv._solver = self.solver
         self.date_vars[name] = dv
 
-        # Add bounds using _add_bounds method (following naive/epoch_days pattern)
+        # Add bounds using _add_bounds method (following simple/epoch_days pattern)
         dv._add_bounds()
         return dv
 

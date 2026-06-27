@@ -1,6 +1,6 @@
-# Naive Encoding
+# Simple Encoding
 
-The naive encoding uses direct year-month-day representation for dates. Refer to the paper for more details.
+The simple encoding uses direct year-month-day representation for dates. Refer to the paper for more details.
 
 ## Data Types
 
@@ -66,5 +66,5 @@ From core.py
 ### Implementation Classes
 
 - `DateVar` - Symbolic date variable with year/month/day components
-- `NaiveSolver` - Constraint solver with comprehensive date validation
+- `SimpleSolver` - Constraint solver with comprehensive date validation
 - Helper functions: `is_leap()`, `days_in_month()`, `normalize_month()`, `eom_clamp()`, `add_days_componentwise()`, `ymd_from_days_since_epoch()`, `days_since_epoch_from_ymd()`

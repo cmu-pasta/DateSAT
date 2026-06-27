@@ -209,7 +209,7 @@ def run_constraints_file(
 
     # Define all solver approaches and implementations to test
     all_symbolic_approaches = [
-        "naive",
+        "simple",
         "epoch_days",
         "hybrid",
         "alpha_beta",

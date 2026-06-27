@@ -75,4 +75,4 @@ From core.py
 
 - `DateVar` - Symbolic date variable with alpha/beta components
 - `AlphaBetaSolver` - Constraint solver with alpha/beta range validation
-- Helper functions: `months_since_epoch_from_ym()`, `ym_from_months_since_epoch()`, `eom_clamp()` (reused from naive), `days_in_month()` (reused from naive), `ymd_from_days_since_epoch()` (reused from epoch_days), `days_since_epoch_from_ymd()` (reused from epoch_days)
+- Helper functions: `months_since_epoch_from_ym()`, `ym_from_months_since_epoch()`, `eom_clamp()` (reused from simple), `days_in_month()` (reused from simple), `ymd_from_days_since_epoch()` (reused from epoch_days), `days_since_epoch_from_ymd()` (reused from epoch_days)

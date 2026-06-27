@@ -1341,7 +1341,6 @@ class ConstraintParser:
             args = match.group(1)
 
             # Parse the three arguments
-            # Simple comma splitting won't work due to nested expressions, so use a proper parser
             depth = 0
             current_arg = []
             parsed_args = []

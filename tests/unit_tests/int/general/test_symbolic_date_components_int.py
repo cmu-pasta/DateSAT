@@ -9,7 +9,7 @@ from datesat.core import Date
 from datesat.symbolic_int.epoch_days_int import EpochDaysSolver
 from datesat.symbolic_int.alpha_beta_int import AlphaBetaSolver
 from datesat.symbolic_int.alpha_beta_table_int import AlphaBetaTableSolver
-from datesat.symbolic_int.naive_int import NaiveSolver
+from datesat.symbolic_int.simple_int import SimpleSolver
 from datesat.symbolic_int.hybrid_int import HybridSolver
 from z3 import Int, Or, And
 
@@ -18,7 +18,7 @@ from z3 import Int, Or, And
     EpochDaysSolver,
     AlphaBetaSolver,
     AlphaBetaTableSolver,
-    NaiveSolver,
+    SimpleSolver,
     HybridSolver,
 ])
 def test_symbolic_year_int(solver_cls):
@@ -48,7 +48,7 @@ def test_symbolic_year_int(solver_cls):
     EpochDaysSolver,
     AlphaBetaSolver,
     AlphaBetaTableSolver,
-    NaiveSolver,
+    SimpleSolver,
     HybridSolver,
 ])
 def test_symbolic_month_int(solver_cls):
@@ -81,7 +81,7 @@ def test_symbolic_month_int(solver_cls):
     EpochDaysSolver,
     AlphaBetaSolver,
     AlphaBetaTableSolver,
-    NaiveSolver,
+    SimpleSolver,
     HybridSolver,
 ])
 def test_all_symbolic_int(solver_cls):
@@ -118,7 +118,7 @@ def test_all_symbolic_int(solver_cls):
     EpochDaysSolver,
     AlphaBetaSolver,
     AlphaBetaTableSolver,
-    NaiveSolver,
+    SimpleSolver,
     HybridSolver,
 ])
 def test_expression_int(solver_cls):
@@ -151,7 +151,7 @@ def test_expression_int(solver_cls):
     EpochDaysSolver,
     AlphaBetaSolver,
     AlphaBetaTableSolver,
-    NaiveSolver,
+    SimpleSolver,
     HybridSolver,
 ])
 def test_bounds_prevent_invalid_values(solver_cls):

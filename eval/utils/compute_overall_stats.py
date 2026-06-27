@@ -9,7 +9,7 @@ Benchmarks:
 - legal_doc_constraints
 
 Encodings:
-- naive_int.json
+- simple_int.json
 - epoch_days_int.json
 - hybrid_int.json
 - alpha_beta_int.json
@@ -32,7 +32,7 @@ BENCHMARKS = [
 ]
 
 ENCODINGS = [
-    "naive_int.json",
+    "simple_int.json",
     "epoch_days_int.json",
     "hybrid_int.json",
     "alpha_beta_int.json",
@@ -40,7 +40,7 @@ ENCODINGS = [
 ]
 
 ENCODING_NAMES = {
-    "naive_int.json": "Naive",
+    "simple_int.json": "Simple",
     "epoch_days_int.json": "Epoch Days",
     "hybrid_int.json": "Hybrid",
     "alpha_beta_int.json": "Alpha-Beta",

@@ -21,7 +21,7 @@ import pytest
 from z3 import sat, unsat
 
 from datesat.core import Date, Period
-from datesat.symbolic_bitvector.naive_bv import NaiveSolver
+from datesat.symbolic_bitvector.simple_bv import SimpleSolver
 from datesat.symbolic_bitvector.epoch_days_bv import EpochDaysSolver
 from datesat.symbolic_bitvector.hybrid_bv import HybridSolver
 from datesat.symbolic_bitvector.alpha_beta_bv import AlphaBetaSolver
@@ -29,7 +29,7 @@ from datesat.symbolic_bitvector.alpha_beta_table_bv import AlphaBetaTableSolver
 
 
 SOLVERS = [
-    pytest.param(NaiveSolver, id="naive", marks=pytest.mark.naive),
+    pytest.param(SimpleSolver, id="simple", marks=pytest.mark.simple),
     pytest.param(EpochDaysSolver, id="epoch_days", marks=pytest.mark.epoch_days),
     pytest.param(HybridSolver, id="hybrid", marks=pytest.mark.hybrid),
     pytest.param(AlphaBetaSolver, id="alpha_beta", marks=pytest.mark.alpha_beta),

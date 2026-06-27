@@ -102,7 +102,7 @@ Input format:
         "-a", "--approach",
         type=str,
         default="epoch_days",
-        choices=["naive", "epoch_days", "hybrid", "alpha_beta", "alpha_beta_table"],
+        choices=["simple", "epoch_days", "hybrid", "alpha_beta", "alpha_beta_table"],
         help="Solver approach (default: epoch_days)"
     )
     

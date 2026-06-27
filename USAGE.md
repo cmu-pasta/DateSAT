@@ -65,7 +65,7 @@ import datesat
 # Use different solver approaches and implementations
 result = datesat.solve(
     constraints={...},           # replace ... with actual constraints
-    approach="hybrid",           # naive, epoch_days, hybrid, alpha_beta, alpha_beta_table
+    approach="hybrid",           # simple, epoch_days, hybrid, alpha_beta, alpha_beta_table
     implementation="bitvector",  # int or bitvector
     timeout_ms=600000,          # 10 minutes
     verbose=True                # Print solver output
@@ -185,7 +185,7 @@ The MCP server exposes a single `solve` tool with the following parameters:
 |-----------|------|---------|-------------|
 | `declarations` | `list[str]` | required | Variable declarations (e.g., `["x: Date", "n: int"]`) |
 | `constraints` | `list[str]` | required | Constraint expressions to satisfy |
-| `approach` | `str` | `"epoch_days"` | Solver approach: `naive`, `epoch_days`, `hybrid`, `alpha_beta`, `alpha_beta_table` |
+| `approach` | `str` | `"epoch_days"` | Solver approach: `simple`, `epoch_days`, `hybrid`, `alpha_beta`, `alpha_beta_table` |
 | `implementation` | `str` | `"int"` | Implementation type: `int` or `bitvector` |
 | `timeout_ms` | `int` | `600000` | Solver timeout in milliseconds |
 
@@ -365,5 +365,5 @@ result = builder.solve()  # Will print SMT-LIB
 DateSAT provides several solvers with different performance characteristics.
 Each approach is available in both **int** (integer arithmetic) and **bitvector** (bit-vector arithmetic) implementations.
 
-In general, naive is often the slowest, and alpha beta table and epoch are relatively faster.
+In general, simple is often the slowest, and alpha beta table and epoch are relatively faster.
 Please learn more by reading the paper.

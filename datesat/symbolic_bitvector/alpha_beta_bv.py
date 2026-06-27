@@ -25,7 +25,7 @@ from z3 import (
 )
 
 from ..core import Date, Period
-from .naive_bv import (
+from .simple_bv import (
     eom_clamp,
     days_in_month
 )

@@ -54,7 +54,7 @@ From core.py
 
 2. **Add Months/Years**: Use Y/M/D terms; derive them on demand if needed
    - If Y/M/D is consistent, use them directly; else derive via `ymd_from_days_since_epoch(epoch_expr(self))`
-   - Apply naive semantics (reuse `normalize_month()`, `eom_clamp()`, `add_days_ordinal()`)
+   - Apply simple semantics (reuse `normalize_month()`, `eom_clamp()`, `add_days_ordinal()`)
    - `add_days_ordinal()` includes within-month fast path to avoid ordinal conversion when possible
    - Constrain only the result Y/M/D; mark result as Y/M/D-consistent (epoch remains lazy and is derived only if/when needed)
 
@@ -72,4 +72,4 @@ Comparisons choose the cheapest available consistent representation:
   - **Context Integration**: All operations require solver context for constraint management
   - **Lazy derivation**: Y/M/D and epoch are derived on-demand; no auto forward linking
 - `HybridSolver` - Constraint solver with epoch range validation
-- Helper functions: `ymd_from_days_since_epoch()` (reused from epoch_days), `days_since_epoch_from_ymd()` (reused from epoch_days), `normalize_month()` (reused from naive), `days_in_month()` (reused from naive), `eom_clamp()` (reused from naive), `add_days_ordinal()` (reused from epoch_days)
+- Helper functions: `ymd_from_days_since_epoch()` (reused from epoch_days), `days_since_epoch_from_ymd()` (reused from epoch_days), `normalize_month()` (reused from simple), `days_in_month()` (reused from simple), `eom_clamp()` (reused from simple), `add_days_ordinal()` (reused from epoch_days)

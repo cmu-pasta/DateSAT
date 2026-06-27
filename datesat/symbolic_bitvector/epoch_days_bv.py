@@ -26,7 +26,7 @@ from z3 import (
 )
 from ..core import Date, Period
 from .bitwidths import LEGACY_BITS
-from .naive_bv import (
+from .simple_bv import (
     eom_clamp,
     normalize_month,
     is_leap

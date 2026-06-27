@@ -4,7 +4,7 @@ from dateutil.relativedelta import relativedelta
 from datesat.core import Date, Period
 from datesat.symbolic_int.alpha_beta_int import AlphaBetaSolver
 from datesat.symbolic_int.alpha_beta_table_int import AlphaBetaTableSolver
-from datesat.symbolic_int.naive_int import NaiveSolver
+from datesat.symbolic_int.simple_int import SimpleSolver
 from datesat.symbolic_int.epoch_days_int import EpochDaysSolver
 from datesat.symbolic_int.hybrid_int import HybridSolver
 
@@ -192,10 +192,10 @@ def test_python_output_equals_ground_truth(base: Date, per: Period, expect: Date
         for base, per, expect in get_period_arithmetic_test_cases()
     ],
 )
-@pytest.mark.naive
+@pytest.mark.simple
 @pytest.mark.integer
-def test_naive_equals_ground_truth(base: Date, per: Period, expect: Date):
-    rb = _solve_single_add(NaiveSolver, base, per)
+def test_simple_equals_ground_truth(base: Date, per: Period, expect: Date):
+    rb = _solve_single_add(SimpleSolver, base, per)
     assert rb["status"] == "sat"
     got_b = rb["dates"]["y"]
     assert got_b == expect, f"Baseline: {base} + {per} -> {got_b}, expected {expect}"
@@ -281,10 +281,10 @@ def test_alpha_beta_table_equals_ground_truth(base: Date, per: Period, expect: D
         for base, per, _ in get_period_arithmetic_test_cases()
     ],
 )
-@pytest.mark.naive
+@pytest.mark.simple
 @pytest.mark.integer
-def test_naive_subtract_matches_python(base: Date, per: Period):
-    model = _solve_single_sub(NaiveSolver, base, per)
+def test_simple_subtract_matches_python(base: Date, per: Period):
+    model = _solve_single_sub(SimpleSolver, base, per)
     try:
         expect = python_date_plus(base, Period(-per.years, -per.months, -per.days))
     except ValueError:

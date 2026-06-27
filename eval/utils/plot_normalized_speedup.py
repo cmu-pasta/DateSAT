@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Script to generate normalized speedup plots comparing different SMT encoding techniques.
-Compares execution times against a baseline (naive_int) and shows speedup/slowdown ratios.
+Compares execution times against a baseline (simple_int) and shows speedup/slowdown ratios.
 
 The plot style is inspired by benchmark comparison visualizations showing
 relative performance across multiple test cases.
@@ -36,9 +36,9 @@ DATASETS = {
 
 # Technique files and display names with a refined color palette
 TECHNIQUES = {
-    "naive_int": {
-        "file": "naive_int.json",
-        "label": "Naive (baseline)",
+    "simple_int": {
+        "file": "simple_int.json",
+        "label": "Simple (baseline)",
         "marker": "x",
         "color": "#E91E63",
     },
@@ -68,7 +68,7 @@ TECHNIQUES = {
     },
 }
 
-BASELINE_TECHNIQUE = "naive_int"
+BASELINE_TECHNIQUE = "simple_int"
 
 # Timeout value in seconds (use this for constraints that timed out)
 TIMEOUT_SECONDS = 60.0
@@ -264,7 +264,7 @@ def plot_normalized_speedup(
     speedups: dict[str, dict],
     sorted_constraint_ids: list[str],
     output_path: Path,
-    title: str = "Normalized Speedup vs Naive (Baseline)",
+    title: str = "Normalized Speedup vs Simple (Baseline)",
     baseline_time_range: tuple[float, float] = None,
 ):
     """

@@ -25,7 +25,7 @@ CATEGORIES = [
 ]
 
 ENCODINGS = [
-    ("Naive", "naive_int.json"),
+    ("Simple", "simple_int.json"),
     ("Epoch", "epoch_days_int.json"),
     ("Hybrid", "hybrid_int.json"),
     ("αβ", "alpha_beta_int.json"),
