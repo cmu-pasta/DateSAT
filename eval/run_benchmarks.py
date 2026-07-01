@@ -390,7 +390,9 @@ def main():
         pkg_dir = p / "datesatbench"
         return pkg_dir if pkg_dir.exists() and pkg_dir.is_dir() else p
 
-    datesatbench_root = _resolve_datesatbench_root(args.datesatbench_repo)
+    datesatbench_root = _resolve_datesatbench_root(
+        args.datesatbench_repo or os.environ.get("DATESATBENCH_REPO")
+    )
 
     # Where to load constraints from (either local symlinks under eval/, or external repo)
     constraint_sets = [
