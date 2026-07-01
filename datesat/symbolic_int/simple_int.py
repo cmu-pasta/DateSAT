@@ -140,7 +140,12 @@ class DateVar:
         year = model.evaluate(self.year, model_completion=True).as_long()
         month = model.evaluate(self.month, model_completion=True).as_long()
         day = model.evaluate(self.day, model_completion=True).as_long()
-        return Date(year, month, day)
+        try:
+            return Date(year, month, day)
+        except ValueError:
+            # Year is outside the Date class's default range - date is still
+            # well-formed (bounds removed from the solver), so return unbounded.
+            return Date(year, month, day, bounded=False)
 
     def __ge__(self, other) -> BoolRef:
         """Support x >= date comparison."""
@@ -210,36 +215,46 @@ class DateVar:
         """Add date validation bounds to this DateVar if solver is available."""
         if self._solver is None:
             return
-        
-        # Add comprehensive date validation constraints
-        # Valid range is 1900-03-01 to 2100-02-28
+
+        # Year range bound removed - any year is allowed as long as the date is valid.
+        # Previous range was 1900-03-01 to 2100-02-28:
+        # self._solver.add(
+        #     Or(
+        #         # 1900-03-01 to 1900-12-31
+        #         And(
+        #             self.year == 1900,
+        #             self.month >= 3,
+        #             self.month <= 12,
+        #             self.day >= 1,
+        #             self.day <= days_in_month(self.year, self.month),
+        #         ),
+        #         # 1901-01-01 to 2099-12-31
+        #         And(
+        #             self.year >= 1901,
+        #             self.year <= 2099,
+        #             self.month >= 1,
+        #             self.month <= 12,
+        #             self.day >= 1,
+        #             self.day <= days_in_month(self.year, self.month),
+        #         ),
+        #         # 2100-01-01 to 2100-02-28
+        #         And(
+        #             self.year == 2100,
+        #             self.month >= 1,
+        #             self.month <= 2,
+        #             self.day >= 1,
+        #             self.day <= days_in_month(self.year, self.month),
+        #         ),
+        #     )
+        # )
+
+        # Well-formedness only: month in [1, 12] and day in [1, days_in_month(y, m)]
         self._solver.add(
-            Or(
-                # 1900-03-01 to 1900-12-31
-                And(
-                    self.year == 1900,
-                    self.month >= 3,
-                    self.month <= 12,
-                    self.day >= 1,
-                    self.day <= days_in_month(self.year, self.month),
-                ),
-                # 1901-01-01 to 2099-12-31
-                And(
-                    self.year >= 1901,
-                    self.year <= 2099,
-                    self.month >= 1,
-                    self.month <= 12,
-                    self.day >= 1,
-                    self.day <= days_in_month(self.year, self.month),
-                ),
-                # 2100-01-01 to 2100-02-28
-                And(
-                    self.year == 2100,
-                    self.month >= 1,
-                    self.month <= 2,
-                    self.day >= 1,
-                    self.day <= days_in_month(self.year, self.month),
-                ),
+            And(
+                self.month >= 1,
+                self.month <= 12,
+                self.day >= 1,
+                self.day <= days_in_month(self.year, self.month),
             )
         )
 

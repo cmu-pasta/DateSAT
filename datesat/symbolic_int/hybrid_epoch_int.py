@@ -368,53 +368,60 @@ class DateVar:
         """Add date validation bounds to this DateVar if solver is available."""
         if self._solver is None:
             return
-        
-        # Prioritize epoch bounds when epoch is consistent (more efficient)
-        # Fall back to Y/M/D bounds only if epoch is not consistent but Y/M/D is
-        if self._epoch_consistent:
-            # Add constraints for valid date ranges [1900-03-01 to 2100-02-28]
-            # Epoch is March 1, 2000
-            # 1900-03-01 = -36525 days from epoch
-            # 2100-02-28 = 36523 days from epoch
-            self._solver.add(self.epoch_var >= IntVal(-36525))
-            self._solver.add(self.epoch_var <= IntVal(36523))
-        elif self._ymd_consistent and self._ymd_exists:
-            # Add comprehensive date validation constraints directly to Y/M/D
-            # Valid range is 1900-03-01 to 2100-02-28
+
+        # Year range bound removed - any year is allowed as long as the date is valid.
+        # Epoch representation is naturally well-formed (any integer is a valid days-since-epoch);
+        # Y/M/D representation needs explicit well-formedness constraints.
+        # Previous range was 1900-03-01 to 2100-02-28:
+        # if self._epoch_consistent:
+        #     self._solver.add(self.epoch_var >= IntVal(-36525))
+        #     self._solver.add(self.epoch_var <= IntVal(36523))
+        # elif self._ymd_consistent and self._ymd_exists:
+        #     self._solver.add(
+        #         Or(
+        #             And(
+        #                 self._year_var == 1900,
+        #                 self._month_var >= 3,
+        #                 self._month_var <= 12,
+        #                 self._day_var >= 1,
+        #                 self._day_var <= days_in_month(self._year_var, self._month_var),
+        #             ),
+        #             And(
+        #                 self._year_var >= 1901,
+        #                 self._year_var <= 2099,
+        #                 self._month_var >= 1,
+        #                 self._month_var <= 12,
+        #                 self._day_var >= 1,
+        #                 self._day_var <= days_in_month(self._year_var, self._month_var),
+        #             ),
+        #             And(
+        #                 self._year_var == 2100,
+        #                 self._month_var >= 1,
+        #                 self._month_var <= 2,
+        #                 self._day_var >= 1,
+        #                 self._day_var <= days_in_month(self._year_var, self._month_var),
+        #             ),
+        #         )
+        #     )
+        # else:
+        #     self._solver.add(self.epoch_var >= IntVal(-36525))
+        #     self._solver.add(self.epoch_var <= IntVal(36523))
+
+        # Well-formedness: when Y/M/D vars are the source of truth, they're free Z3
+        # integers and the encoding formula (epoch = days_since_epoch_from_ymd(y,m,d))
+        # doesn't force well-formedness on Y/M/D - the solver could pick m=17, d=100.
+        # So we constrain m in [1,12] and d in [1, days_in_month(y,m)] here.
+        # When epoch is source of truth, Y/M/D are either absent or asserted from the
+        # decoding formula (which always produces valid Y/M/D), so no constraint needed.
+        if self._ymd_consistent and self._ymd_exists:
             self._solver.add(
-                Or(
-                    # 1900-03-01 to 1900-12-31
-                    And(
-                        self._year_var == 1900,
-                        self._month_var >= 3,
-                        self._month_var <= 12,
-                        self._day_var >= 1,
-                        self._day_var <= days_in_month(self._year_var, self._month_var),
-                    ),
-                    # 1901-01-01 to 2099-12-31
-                    And(
-                        self._year_var >= 1901,
-                        self._year_var <= 2099,
-                        self._month_var >= 1,
-                        self._month_var <= 12,
-                        self._day_var >= 1,
-                        self._day_var <= days_in_month(self._year_var, self._month_var),
-                    ),
-                    # 2100-01-01 to 2100-02-28
-                    And(
-                        self._year_var == 2100,
-                        self._month_var >= 1,
-                        self._month_var <= 2,
-                        self._day_var >= 1,
-                        self._day_var <= days_in_month(self._year_var, self._month_var),
-                    ),
+                And(
+                    self._month_var >= 1,
+                    self._month_var <= 12,
+                    self._day_var >= 1,
+                    self._day_var <= days_in_month(self._year_var, self._month_var),
                 )
             )
-        else:
-            # Neither representation is consistent yet - add bounds to epoch_var as fallback
-            # (epoch_var always exists, even if not consistent)
-            self._solver.add(self.epoch_var >= IntVal(-36525))
-            self._solver.add(self.epoch_var <= IntVal(36523))
 
     def __add__(self, other) -> 'DateVar':
         """

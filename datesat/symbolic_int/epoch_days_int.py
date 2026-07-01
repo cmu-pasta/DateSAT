@@ -180,7 +180,13 @@ class DateVar:
     def to_concrete_date(self, model: ModelRef) -> Date:
         """Convert Z3 model to concrete Date."""
         days = model.evaluate(self.days_var, model_completion=True).as_long()
-        return date_from_days_since_epoch(days)
+        try:
+            return date_from_days_since_epoch(days)
+        except ValueError:
+            # Days is outside the Date class's default range - date is still
+            # well-formed (bounds removed from the solver), so return unbounded.
+            result_date = _EPOCH + timedelta(days=days)
+            return Date(result_date.year, result_date.month, result_date.day, bounded=False)
 
     def __ge__(self, other) -> BoolRef:
         """Support x >= date comparison."""
@@ -234,13 +240,13 @@ class DateVar:
         """Add date validation bounds to this DateVar if solver is available."""
         if self._solver is None:
             return
-        
+
         # Add constraints for valid date ranges [1900-03-01 to 2100-02-28]
         # Epoch is March 1, 2000
         # 1900-03-01 = -36525 days from epoch
         # 2100-02-28 = 36523 days from epoch
-        self._solver.add(self.days_var >= IntVal(-36525))
-        self._solver.add(self.days_var <= IntVal(36523))
+        # self._solver.add(self.days_var >= IntVal(-36525))
+        # self._solver.add(self.days_var <= IntVal(36523))
 
     def __add__(self, other) -> "DateVar":
         """

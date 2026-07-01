@@ -117,49 +117,32 @@ def test_invalid_input_handling(invalid_period_format_tuple):
 # --------------------------------------------------------------------
 
 @pytest.mark.parametrize(
-    "years,months,days,should_raise",
+    "years,months,days",
     [
-        # Valid boundary cases
-        (200, 0, 0, False),  # Max years
-        (-200, 0, 0, False),  # Max negative years
-        (0, 2400, 0, False),  # Max months
-        (0, -2400, 0, False),  # Max negative months
-        (0, 0, 73048, False),  # Max days
-        (0, 0, -73048, False),  # Max negative days
-        # Invalid cases exceeding bounds
-        (201, 0, 0, True),  # Exceeds max years
-        (-201, 0, 0, True),  # Exceeds max negative years
-        (0, 2401, 0, True),  # Exceeds max months
-        (0, -2401, 0, True),  # Exceeds max negative months
-        (0, 0, 73049, True),  # Exceeds max days
-        (0, 0, -73049, True),  # Exceeds max negative days
-        # Mixed valid/invalid
-        (200, 0, 73049, True),  # Valid years, invalid days
-        (201, 2400, 0, True),  # Invalid years, valid months
+        # Values at the old boundary
+        (200, 0, 0),
+        (-200, 0, 0),
+        (0, 2400, 0),
+        (0, -2400, 0),
+        (0, 0, 73048),
+        (0, 0, -73048),
+        # Values that used to exceed the old [1900, 2100] period bounds - now accepted
+        (201, 0, 0),
+        (-201, 0, 0),
+        (0, 2401, 0),
+        (0, -2401, 0),
+        (0, 0, 73049),
+        (0, 0, -73049),
+        (200, 0, 73049),
+        (201, 2400, 0),
     ],
 )
-def test_period_bounds_validation(years, months, days, should_raise):
-    """Test that Period validates bounds correctly."""
-    if should_raise:
-        with pytest.raises(ValueError) as exc_info:
-            Period(years, months, days)
-        # Verify error message mentions the bound
-        error_msg = str(exc_info.value)
-        if abs(years) > Period.MAX_PERIOD_YEARS:
-            assert "years" in error_msg.lower()
-            assert str(Period.MAX_PERIOD_YEARS) in error_msg
-        if abs(months) > Period.MAX_PERIOD_MONTHS:
-            assert "months" in error_msg.lower()
-            assert str(Period.MAX_PERIOD_MONTHS) in error_msg
-        if abs(days) > Period.MAX_PERIOD_DAYS:
-            assert "days" in error_msg.lower()
-            assert str(Period.MAX_PERIOD_DAYS) in error_msg
-    else:
-        # Should not raise
-        p = Period(years, months, days)
-        assert p.years == years
-        assert p.months == months
-        assert p.days == days
+def test_period_bounds_validation(years, months, days):
+    """Period is no longer range-bounded; every integer triple must be accepted."""
+    p = Period(years, months, days)
+    assert p.years == years
+    assert p.months == months
+    assert p.days == days
 
 
 def test_period_bounds_constants():
@@ -170,28 +153,23 @@ def test_period_bounds_constants():
 
 
 def test_period_arithmetic_respects_bounds():
-    """Test that Period arithmetic operations validate bounds when creating new Periods."""
-    # Valid periods that when added exceed bounds
-    p1 = Period(101, 0, 0)  # 101 + 101 = 202 > 200
+    """Period is no longer range-bounded; arithmetic that used to overflow is now allowed."""
+    # 101 + 101 = 202: used to exceed the old 200-year cap, now valid.
+    p1 = Period(101, 0, 0)
     p2 = Period(101, 0, 0)
-    
-    # Adding them should exceed bounds and raise ValueError
-    with pytest.raises(ValueError) as exc_info:
-        result = p1 + p2  # This creates Period(202, 0, 0) which exceeds bounds
-    assert "years" in str(exc_info.value).lower()
-    
-    # Multiplication can also exceed bounds
+    result = p1 + p2
+    assert (result.years, result.months, result.days) == (202, 0, 0)
+
+    # Multiplication that would have exceeded bounds is now allowed.
     p3 = Period(101, 0, 0)
-    with pytest.raises(ValueError) as exc_info:
-        result = p3 * 2  # This creates Period(202, 0, 0) which exceeds bounds
-    assert "years" in str(exc_info.value).lower()
-    
-    # Test with days that exceed bounds when added
-    p4 = Period(0, 0, 36525)  # 36525 + 36525 = 73050 > 73048
+    result = p3 * 2
+    assert (result.years, result.months, result.days) == (202, 0, 0)
+
+    # Days that would have exceeded the old 73048-day cap are now allowed.
+    p4 = Period(0, 0, 36525)
     p5 = Period(0, 0, 36525)
-    with pytest.raises(ValueError) as exc_info:
-        result = p4 + p5
-    assert "days" in str(exc_info.value).lower()
+    result = p4 + p5
+    assert (result.years, result.months, result.days) == (0, 0, 73050)
 
 
 @pytest.mark.parametrize(
@@ -214,36 +192,11 @@ def test_period_arithmetic_respects_bounds():
     ],
 )
 def test_large_period_values_rejected(years, months, days):
-    """Test that very large Period values (e.g., 9_999_999) are rejected with appropriate error messages.
-    
-    Note: Period validation checks components in order (years, months, days) and raises on the first
-    violation, so only the first invalid component will be reported in the error message.
+    """Period is no longer range-bounded; very large integer values must be accepted.
+
+    Kept as a regression guard: the function name and fixture used to assert
+    that these values raised ValueError. The rename would obscure history, so
+    we keep the name and flip the assertion.
     """
-    with pytest.raises(ValueError) as exc_info:
-        Period(years, months, days)
-    
-    error_msg = str(exc_info.value)
-    
-    # Verify the error message is informative
-    assert "out of range" in error_msg.lower()
-    
-    # Period validation checks in order: years, months, days
-    # Only the first violation will be reported
-    if abs(years) > Period.MAX_PERIOD_YEARS:
-        # Years is checked first, so it should always be in the error if it's invalid
-        assert "years" in error_msg.lower()
-        assert str(Period.MAX_PERIOD_YEARS) in error_msg
-        assert str(years) in error_msg or str(abs(years)) in error_msg
-    elif abs(months) > Period.MAX_PERIOD_MONTHS:
-        # Months is checked second, so it should be in the error if years is valid
-        assert "months" in error_msg.lower()
-        assert str(Period.MAX_PERIOD_MONTHS) in error_msg
-        assert str(months) in error_msg or str(abs(months)) in error_msg
-    elif abs(days) > Period.MAX_PERIOD_DAYS:
-        # Days is checked last, so it should be in the error if years and months are valid
-        assert "days" in error_msg.lower()
-        assert str(Period.MAX_PERIOD_DAYS) in error_msg
-        assert str(days) in error_msg or str(abs(days)) in error_msg
-    else:
-        # This shouldn't happen - at least one component should be invalid
-        pytest.fail(f"Expected at least one component to exceed bounds: years={years}, months={months}, days={days}")
+    p = Period(years, months, days)
+    assert (p.years, p.months, p.days) == (years, months, days)

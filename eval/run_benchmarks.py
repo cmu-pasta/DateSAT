@@ -217,7 +217,7 @@ def run_constraints_file(
             "hybrid_ymd",
             "hybrid_epoch",
             "alpha_beta",
-            "alpha_beta_table",
+            # "alpha_beta_table",  # excluded from default run; pass via --approaches to include
         ],
         "bitvector": [
             "simple",

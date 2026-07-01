@@ -43,7 +43,11 @@ def test_symbolic_year_int(solver_cls):
     
     assert result["status"] == "sat", "Should find a solution"
     dates = result["dates"]
-    assert dates['k'].year >= 1900 and dates['k'].year <= 2100
+    # k > Date(2000, 1, 1) forces k.year >= 2000. Upper bound depends on the solver:
+    # unbounded solvers in datesat.symbolic_int let k.year exceed 2100 (this used to
+    # be capped by the removed solver-level range bound), while AlphaBetaTableSolver
+    # in future_work still caps at 2100. Only assert the constraint the test enforces.
+    assert dates['k'].year >= 2000
 
 
 @pytest.mark.parametrize("solver_cls", [

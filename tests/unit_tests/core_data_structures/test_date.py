@@ -24,9 +24,13 @@ def test_constructor_invalid_from_fixture(invalid_date_tuple):
         Date(y, m, d)
 
 def test_constructor_out_of_range_from_fixture(out_of_range_date_tuple):
+    # Date is no longer range-bounded; any calendar-valid date is accepted.
+    # The `out_of_range_date_tuple` fixture holds calendar-valid dates that used
+    # to fall outside the removed [1900-03-01, 2100-02-28] window - they must
+    # now be accepted.
     y, m, d = out_of_range_date_tuple
-    with pytest.raises(ValueError):
-        Date(y, m, d)
+    dobj = Date(y, m, d)
+    assert (dobj.year, dobj.month, dobj.day) == (y, m, d)
 
 
 # -------------------------
@@ -118,15 +122,15 @@ def test_february_29_rejected_in_non_leap_year(non_leap_year_year):
         Date(non_leap_year_year, 2, 29)
 
 def test_century_leap_year_validation():
-    # Century years divisible by 400 (leap) — only test within supported range
-    # 2000 is within [1900, 2100]; 1600 and 2400 are out of range and should error
-    date_leap = Date(2000, 2, 29)
-    assert date_leap.day == 29
-    for year in [1600, 2400]:
-        with pytest.raises(ValueError):
-            Date(year, 2, 29)
+    # Century years divisible by 400 are leap years and Feb 29 must be accepted
+    # regardless of range. Date is no longer range-bounded, so 1600 and 2400
+    # are also valid.
+    for year in [1600, 2000, 2400]:
+        date_leap = Date(year, 2, 29)
+        assert date_leap.day == 29
 
-    # Century years not divisible by 400 (not leap)
+    # Century years not divisible by 400 are not leap - Feb 29 must still raise
+    # (calendar validation is unchanged).
     century_non_leap_years = [1700, 1800, 1900, 2100, 2200, 2300]
     for year in century_non_leap_years:
         with pytest.raises(ValueError):
@@ -149,10 +153,12 @@ def test_invalid_inrange_error_message(invalid_date_tuple):
     assert "Invalid date" in str(exc_info.value)
 
 def test_out_of_range_error_message(out_of_range_date_tuple):
+    # Date is no longer range-bounded; the "Date outside allowed range"
+    # ValueError has been removed. Formerly out-of-range calendar-valid dates
+    # (e.g. 1600-02-29, 2400-04-30, 2100-03-01) are now accepted without error.
     y, m, d = out_of_range_date_tuple
-    with pytest.raises(ValueError) as exc_info:
-        Date(y, m, d)
-    assert "Date outside allowed range" in str(exc_info.value)
+    dobj = Date(y, m, d)
+    assert (dobj.year, dobj.month, dobj.day) == (y, m, d)
 
 def test_invalid_date_input_format(invalid_date_format_tuple):
     args = invalid_date_format_tuple

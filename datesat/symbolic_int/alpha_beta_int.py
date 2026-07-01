@@ -200,13 +200,14 @@ class DateVar:
         """Add date validation bounds to this DateVar if solver is available."""
         if self._solver is None:
             return
-        
-        # Alpha bounds: months since 2000-03
-        # 1900-03 => -1200, 2100-02 => 1199
-        self._solver.add(self.months_var >= IntVal(_ALPHA_MIN))
-        self._solver.add(self.months_var <= IntVal(_ALPHA_MAX))
 
-        # Beta bounds depend on month length: 0 <= beta < days_in_month(y,m)
+        # Alpha range bound removed - any month-since-epoch is allowed.
+        # Previous range was 1900-03 (-1200) to 2100-02 (1199):
+        # self._solver.add(self.months_var >= IntVal(_ALPHA_MIN))
+        # self._solver.add(self.months_var <= IntVal(_ALPHA_MAX))
+
+        # Well-formedness: beta must be a valid day-within-month
+        # 0 <= beta < days_in_month(y, m)
         y, m = ym_from_months_since_epoch(self.months_var)
         self._solver.add(self.beta_var >= 0)
         self._solver.add(self.beta_var < days_in_month(y, m))

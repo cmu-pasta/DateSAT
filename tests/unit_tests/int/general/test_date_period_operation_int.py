@@ -4,6 +4,8 @@ from dateutil.relativedelta import relativedelta
 from datesat.core import Date, Period
 from datesat.symbolic_int.alpha_beta_int import AlphaBetaSolver
 from future_work.datesat_bounded.alpha_beta_table_int import AlphaBetaTableSolver
+# Bounded twin for computing expected values under bounded-solver semantics.
+from future_work.datesat_bounded.core import Date as BoundedDate, Period as BoundedPeriod
 from datesat.symbolic_int.simple_int import SimpleSolver
 from datesat.symbolic_int.epoch_days_int import EpochDaysSolver
 from datesat.symbolic_int.hybrid_epoch_int import HybridEpochSolver
@@ -153,6 +155,28 @@ def python_date_plus(base: Date, per: Period) -> Date:
     return Date.from_python_date(py_res)
 
 
+def python_date_plus_unbounded(base: Date, per: Period) -> Date:
+    """
+    Compute base + period using Python's datetime + relativedelta.
+    Returns an unbounded Date so out-of-range results (e.g. 1900-02-28, 2100-03-01)
+    don't raise. Used by tests against solvers that no longer bound date variables.
+    """
+    py_base = base.to_python_date()
+    py_res = py_base + relativedelta(years=per.years, months=per.months, days=per.days)
+    return Date(py_res.year, py_res.month, py_res.day, bounded=False)
+
+
+def python_date_plus_bounded(base: Date, per: Period) -> BoundedDate:
+    """
+    Compute base + period using the *bounded* Date/Period from future_work.
+    Raises ValueError when the result falls outside [1900-03-01, 2100-02-28],
+    matching the bounded solver's UNSAT response for out-of-range arithmetic.
+    """
+    bounded_base = BoundedDate(base.year, base.month, base.day)
+    bounded_per = BoundedPeriod(per.years, per.months, per.days)
+    return bounded_base + bounded_per
+
+
 def _solve_single_add(solver_cls, base: Date, per: Period) -> dict:
     s = solver_cls()
     x = s.add_date_var("x")
@@ -292,11 +316,9 @@ def test_alpha_beta_table_equals_ground_truth(base: Date, per: Period, expect: D
 @pytest.mark.integer
 def test_simple_subtract_matches_python(base: Date, per: Period):
     model = _solve_single_sub(SimpleSolver, base, per)
-    try:
-        expect = python_date_plus(base, Period(-per.years, -per.months, -per.days))
-    except ValueError:
-        assert model["status"] == "unsat"
-        return
+    # SimpleSolver no longer bounds date variables to [1900, 2100], so results
+    # that land outside that range are still SAT. Use the unbounded reference.
+    expect = python_date_plus_unbounded(base, Period(-per.years, -per.months, -per.days))
     assert model["status"] == "sat"
     got = model["dates"]["y"]
     assert got == expect, f"Baseline sub: {base} - {per} -> {got}, expected {expect}"
@@ -313,11 +335,9 @@ def test_simple_subtract_matches_python(base: Date, per: Period):
 @pytest.mark.integer
 def test_epoch_days_subtract_matches_python(base: Date, per: Period):
     model = _solve_single_sub(EpochDaysSolver, base, per)
-    try:
-        expect = python_date_plus(base, Period(-per.years, -per.months, -per.days))
-    except ValueError:
-        assert model["status"] == "unsat"
-        return
+    # EpochDaysSolver no longer bounds date variables, so results outside
+    # [1900, 2100] are still SAT. Use the unbounded reference.
+    expect = python_date_plus_unbounded(base, Period(-per.years, -per.months, -per.days))
     assert model["status"] == "sat"
     got = model["dates"]["y"]
     assert got == expect, f"EpochDays sub: {base} - {per} -> {got}, expected {expect}"
@@ -340,11 +360,9 @@ def test_epoch_days_subtract_matches_python(base: Date, per: Period):
 @pytest.mark.integer
 def test_hybrid_subtract_matches_python(solver_cls, base: Date, per: Period):
     model = _solve_single_sub(solver_cls, base, per)
-    try:
-        expect = python_date_plus(base, Period(-per.years, -per.months, -per.days))
-    except ValueError:
-        assert model["status"] == "unsat"
-        return
+    # Hybrid solvers no longer bound date variables, so results outside
+    # [1900, 2100] are still SAT. Use the unbounded reference.
+    expect = python_date_plus_unbounded(base, Period(-per.years, -per.months, -per.days))
     assert model["status"] == "sat"
     got = model["dates"]["y"]
     assert got == expect, f"{solver_cls.__name__} sub: {base} - {per} -> {got}, expected {expect}"
@@ -361,11 +379,9 @@ def test_hybrid_subtract_matches_python(solver_cls, base: Date, per: Period):
 @pytest.mark.integer
 def test_alpha_beta_subtract_matches_python(base: Date, per: Period):
     model = _solve_single_sub(AlphaBetaSolver, base, per)
-    try:
-        expect = python_date_plus(base, Period(-per.years, -per.months, -per.days))
-    except ValueError:
-        assert model["status"] == "unsat"
-        return
+    # AlphaBetaSolver no longer bounds date variables, so results outside
+    # [1900, 2100] are still SAT. Use the unbounded reference.
+    expect = python_date_plus_unbounded(base, Period(-per.years, -per.months, -per.days))
     assert model["status"] == "sat"
     got = model["dates"]["y"]
     assert got == expect, f"AlphaBeta sub: {base} - {per} -> {got}, expected {expect}"
@@ -386,8 +402,10 @@ def test_alpha_beta_table_subtract_matches_python(base: Date, per: Period):
     if base.year == 2100 and base.month == 2:
         pytest.xfail("alpha_beta_table intentionally unsound for Feb 2100 (no special handling)")
     model = _solve_single_sub(AlphaBetaTableSolver, base, per)
+    # AlphaBetaTableSolver is bounded; use the bounded Python reference so out-of-range
+    # subtractions (e.g. 1900-03-31 minus 1 month) raise, matching the solver's UNSAT.
     try:
-        expect = python_date_plus(base, Period(-per.years, -per.months, -per.days))
+        expect = python_date_plus_bounded(base, Period(-per.years, -per.months, -per.days))
     except ValueError:
         assert model["status"] == "unsat"
         return
