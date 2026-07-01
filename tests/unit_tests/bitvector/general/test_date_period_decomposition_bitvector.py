@@ -3,7 +3,9 @@ from itertools import permutations
 import pytest
 from dateutil.relativedelta import relativedelta
 
-from datesat.core import Date, Period
+# All solvers exercised here live in future_work.datesat_bounded (bounded),
+# so use the bounded Date/Period at the interface for consistency.
+from future_work.datesat_bounded.core import Date, Period
 from future_work.datesat_bounded.bitvector.alpha_beta_bv import AlphaBetaSolver
 from future_work.datesat_bounded.bitvector.alpha_beta_table_bv import AlphaBetaTableSolver
 from future_work.datesat_bounded.bitvector.simple_bv import SimpleSolver

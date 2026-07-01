@@ -5,7 +5,8 @@ This tests the parser's automatic transformation of Date(x, y, z) patterns.
 """
 
 import pytest
-from datesat.core import Date
+# All solvers exercised here live in future_work.datesat_bounded (bounded).
+from future_work.datesat_bounded.core import Date
 from future_work.datesat_bounded.bitvector.epoch_days_bv import EpochDaysSolver
 from future_work.datesat_bounded.bitvector.alpha_beta_bv import AlphaBetaSolver
 from future_work.datesat_bounded.bitvector.alpha_beta_table_bv import AlphaBetaTableSolver

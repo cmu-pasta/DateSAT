@@ -1,11 +1,11 @@
 import pytest
 from dateutil.relativedelta import relativedelta
 
-from datesat.core import Date, Period
-# All solvers exercised in this file live in future_work.datesat_bounded (bounded).
-# python_date_plus below uses the bounded Date/Period so it raises for out-of-range
-# results, matching the bounded solvers' UNSAT response.
-from future_work.datesat_bounded.core import Date as BoundedDate, Period as BoundedPeriod
+# All solvers exercised in this file live in future_work.datesat_bounded (bounded),
+# so use the bounded Date/Period at the interface too - out-of-range literals get
+# rejected at construction, and python_date_plus (below) raises for out-of-range
+# results, matching the bounded solvers' UNSAT.
+from future_work.datesat_bounded.core import Date, Period
 from future_work.datesat_bounded.bitvector.alpha_beta_bv import AlphaBetaSolver
 from future_work.datesat_bounded.bitvector.alpha_beta_table_bv import AlphaBetaTableSolver
 from future_work.datesat_bounded.bitvector.simple_bv import SimpleSolver
@@ -154,9 +154,7 @@ def python_date_plus(base: Date, per: Period) -> Date:
     Raises ValueError if the result leaves [1900-03-01, 2100-02-28], matching
     the bounded solvers' UNSAT response for out-of-range results.
     """
-    return BoundedDate(base.year, base.month, base.day) + BoundedPeriod(
-        per.years, per.months, per.days
-    )
+    return base + per
 
 
 def _solve_single_add(solver_cls, base: Date, per: Period) -> dict:

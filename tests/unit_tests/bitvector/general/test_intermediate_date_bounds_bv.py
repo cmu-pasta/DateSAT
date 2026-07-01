@@ -20,7 +20,8 @@ Note: Period has hard limits: years <= 200, months <= 2400.
 import pytest
 from z3 import sat, unsat
 
-from datesat.core import Date, Period
+# All bitvector solvers live in future_work.datesat_bounded (bounded).
+from future_work.datesat_bounded.core import Date, Period
 from future_work.datesat_bounded.bitvector.simple_bv import SimpleSolver
 from future_work.datesat_bounded.bitvector.epoch_days_bv import EpochDaysSolver
 from future_work.datesat_bounded.bitvector.hybrid_bv import HybridSolver
