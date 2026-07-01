@@ -7,7 +7,8 @@ from datesat.symbolic_int.alpha_beta_int import AlphaBetaSolver
 from datesat.symbolic_int.alpha_beta_table_int import AlphaBetaTableSolver
 from datesat.symbolic_int.simple_int import SimpleSolver
 from datesat.symbolic_int.epoch_days_int import EpochDaysSolver
-from datesat.symbolic_int.hybrid_int import HybridSolver
+from datesat.symbolic_int.hybrid_epoch_int import HybridEpochSolver
+from datesat.symbolic_int.hybrid_ymd_int import HybridYmdSolver
 
 # We cover equality, less/greater, boundary conditions, leap cases, and month ends.
 CASES = [
@@ -107,16 +108,22 @@ def test_epoch_days_date_comparisons_match_truth(op_name: str, op, a: Date, b: D
 
 
 @pytest.mark.parametrize(
+    "solver_cls",
+    [
+        pytest.param(HybridEpochSolver, id="hybrid_epoch", marks=pytest.mark.hybrid_epoch),
+        pytest.param(HybridYmdSolver, id="hybrid_ymd", marks=pytest.mark.hybrid_ymd),
+    ],
+)
+@pytest.mark.parametrize(
     "a,b",
     [pytest.param(a, b, id=f"{a}_vs_{b}") for a, b in CASES],
 )
 @pytest.mark.parametrize("op_name,op", OPS)
-@pytest.mark.hybrid
 @pytest.mark.integer
-def test_hybrid_date_comparisons_match_truth(op_name: str, op, a: Date, b: Date):
+def test_hybrid_date_comparisons_match_truth(solver_cls, op_name: str, op, a: Date, b: Date):
     expect = _expect_truth(op, a, b)
-    sat = _solve_compare(HybridSolver, a, b, op_name)
-    assert sat == expect, f"Hybrid: expected {expect} for {a} {op_name} {b}"
+    sat = _solve_compare(solver_cls, a, b, op_name)
+    assert sat == expect, f"{solver_cls.__name__}: expected {expect} for {a} {op_name} {b}"
 
 
 @pytest.mark.parametrize(
@@ -243,23 +250,29 @@ def test_epoch_days_negative_epoch_constraints(test_case):
 
 
 @pytest.mark.parametrize(
+    "solver_cls",
+    [
+        pytest.param(HybridEpochSolver, id="hybrid_epoch", marks=pytest.mark.hybrid_epoch),
+        pytest.param(HybridYmdSolver, id="hybrid_ymd", marks=pytest.mark.hybrid_ymd),
+    ],
+)
+@pytest.mark.parametrize(
     "test_case",
     [pytest.param(tc, id=tc["name"]) for tc in NEGATIVE_EPOCH_CONSTRAINT_CASES],
 )
-@pytest.mark.hybrid
 @pytest.mark.integer
-def test_hybrid_negative_epoch_constraints(test_case):
+def test_hybrid_negative_epoch_constraints(solver_cls, test_case):
     """Test hybrid implementation with negative epoch values (dates before 2000-03-01)."""
-    res = _solve_constraints(HybridSolver, test_case["constraints"], None)
-    
+    res = _solve_constraints(solver_cls, test_case["constraints"], None)
+
     assert res["status"] == ("sat" if test_case["expected_sat"] else "unsat"), (
-        f"Hybrid: Expected {test_case['expected_sat']} for {test_case['name']}, "
+        f"{solver_cls.__name__}: Expected {test_case['expected_sat']} for {test_case['name']}, "
         f"got {res['status']}"
     )
-    
+
     if test_case["expected_sat"] and test_case["expected_date"] is not None:
         solution_date = res["dates"]["x"]
         assert solution_date == test_case["expected_date"], (
-            f"Hybrid: Expected {test_case['expected_date']} for {test_case['name']}, "
+            f"{solver_cls.__name__}: Expected {test_case['expected_date']} for {test_case['name']}, "
             f"got {solution_date}"
         )

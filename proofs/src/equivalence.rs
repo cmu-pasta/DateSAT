@@ -1,5 +1,7 @@
 use vstd::prelude::*;
 use crate::*;
+use crate::hybrid_ymd;
+use crate::hybrid_epoch;
 
 verus! {
 
@@ -156,139 +158,275 @@ verus! {
     }
 
 
-    // ── Hybrid equivalence proofs ──────────────────────────────────────
+    // ── Hybrid (YMD-initial) equivalence proofs ─────────────────────────
 
-    pub proof fn lemma_date_expr_hybrid_congruent(e: DateExpr, env: Environment)
+    pub proof fn lemma_date_expr_hybrid_ymd_congruent(e: DateExpr, env: Environment)
         requires e.is_well_formed(), e.is_properly_closed(env),
-        ensures hybrid_congruent(e.eval::<SimpleDate>(env), e.eval::<Hybrid>(env)),
+        ensures hybrid_ymd::hybrid_congruent(e.eval::<SimpleDate>(env), e.eval::<hybrid_ymd::Hybrid>(env)),
         decreases e,
     {
         match e {
             DateExpr::Literal(y, m, d) => {
-                theorem_hybrid_from_ymd_congruent(y, m, d);
+                hybrid_ymd::theorem_hybrid_from_ymd_congruent(y, m, d);
             },
             DateExpr::Var(id) => {
                 let sd = env.date_vars[id];
-                theorem_hybrid_from_ymd_congruent(sd.year(), sd.month(), sd.day());
+                hybrid_ymd::theorem_hybrid_from_ymd_congruent(sd.year(), sd.month(), sd.day());
             },
             DateExpr::Add(base, period) => {
-                lemma_date_expr_hybrid_congruent(*base, env);
+                lemma_date_expr_hybrid_ymd_congruent(*base, env);
                 lemma_date_wf_implies_valid(*base, env);
-                theorem_hybrid_add_period_preserves_congruence(
+                hybrid_ymd::theorem_hybrid_add_period_preserves_congruence(
                     base.eval::<SimpleDate>(env),
-                    base.eval::<Hybrid>(env),
+                    base.eval::<hybrid_ymd::Hybrid>(env),
                     period.eval(),
                 );
             },
         }
     }
 
-    pub proof fn lemma_int_expr_hybrid_equiv(e: IntExpr, env: Environment)
+    pub proof fn lemma_int_expr_hybrid_ymd_equiv(e: IntExpr, env: Environment)
         requires e.is_well_formed(), e.is_properly_closed(env),
-        ensures e.eval::<SimpleDate>(env) == e.eval::<Hybrid>(env),
+        ensures e.eval::<SimpleDate>(env) == e.eval::<hybrid_ymd::Hybrid>(env),
         decreases e,
     {
         match e {
             IntExpr::Literal(_) => {},
             IntExpr::Var(_) => {},
             IntExpr::Year(d) => {
-                lemma_date_expr_hybrid_congruent(*d, env);
+                lemma_date_expr_hybrid_ymd_congruent(*d, env);
                 lemma_date_wf_implies_valid(*d, env);
                 let sd = d.eval::<SimpleDate>(env);
-                let h = d.eval::<Hybrid>(env);
-                lemma_hybrid_to_ymd(sd, h);
+                let h = d.eval::<hybrid_ymd::Hybrid>(env);
+                hybrid_ymd::lemma_hybrid_to_ymd(sd, h);
             },
             IntExpr::Month(d) => {
-                lemma_date_expr_hybrid_congruent(*d, env);
+                lemma_date_expr_hybrid_ymd_congruent(*d, env);
                 lemma_date_wf_implies_valid(*d, env);
                 let sd = d.eval::<SimpleDate>(env);
-                let h = d.eval::<Hybrid>(env);
-                lemma_hybrid_to_ymd(sd, h);
+                let h = d.eval::<hybrid_ymd::Hybrid>(env);
+                hybrid_ymd::lemma_hybrid_to_ymd(sd, h);
             },
             IntExpr::Day(d) => {
-                lemma_date_expr_hybrid_congruent(*d, env);
+                lemma_date_expr_hybrid_ymd_congruent(*d, env);
                 lemma_date_wf_implies_valid(*d, env);
                 let sd = d.eval::<SimpleDate>(env);
-                let h = d.eval::<Hybrid>(env);
-                lemma_hybrid_to_ymd(sd, h);
+                let h = d.eval::<hybrid_ymd::Hybrid>(env);
+                hybrid_ymd::lemma_hybrid_to_ymd(sd, h);
             },
             IntExpr::Add(a, b) => {
-                lemma_int_expr_hybrid_equiv(*a, env);
-                lemma_int_expr_hybrid_equiv(*b, env);
+                lemma_int_expr_hybrid_ymd_equiv(*a, env);
+                lemma_int_expr_hybrid_ymd_equiv(*b, env);
             },
             IntExpr::Sub(a, b) => {
-                lemma_int_expr_hybrid_equiv(*a, env);
-                lemma_int_expr_hybrid_equiv(*b, env);
+                lemma_int_expr_hybrid_ymd_equiv(*a, env);
+                lemma_int_expr_hybrid_ymd_equiv(*b, env);
             },
             IntExpr::Mul(a, _) => {
-                lemma_int_expr_hybrid_equiv(*a, env);
+                lemma_int_expr_hybrid_ymd_equiv(*a, env);
             },
         }
     }
 
-    pub proof fn lemma_bool_expr_hybrid_equiv(e: BoolExpr, env: Environment)
+    pub proof fn lemma_bool_expr_hybrid_ymd_equiv(e: BoolExpr, env: Environment)
         requires e.is_well_formed(), e.is_properly_closed(env),
-        ensures e.eval::<SimpleDate>(env) == e.eval::<Hybrid>(env),
+        ensures e.eval::<SimpleDate>(env) == e.eval::<hybrid_ymd::Hybrid>(env),
         decreases e,
     {
         match e {
             BoolExpr::And(a, b) => {
-                lemma_bool_expr_hybrid_equiv(*a, env);
-                lemma_bool_expr_hybrid_equiv(*b, env);
+                lemma_bool_expr_hybrid_ymd_equiv(*a, env);
+                lemma_bool_expr_hybrid_ymd_equiv(*b, env);
             },
             BoolExpr::Or(a, b) => {
-                lemma_bool_expr_hybrid_equiv(*a, env);
-                lemma_bool_expr_hybrid_equiv(*b, env);
+                lemma_bool_expr_hybrid_ymd_equiv(*a, env);
+                lemma_bool_expr_hybrid_ymd_equiv(*b, env);
             },
             BoolExpr::Not(a) => {
-                lemma_bool_expr_hybrid_equiv(*a, env);
+                lemma_bool_expr_hybrid_ymd_equiv(*a, env);
             },
             BoolExpr::Implies(a, b) => {
-                lemma_bool_expr_hybrid_equiv(*a, env);
-                lemma_bool_expr_hybrid_equiv(*b, env);
+                lemma_bool_expr_hybrid_ymd_equiv(*a, env);
+                lemma_bool_expr_hybrid_ymd_equiv(*b, env);
             },
             BoolExpr::Literal(_) => {},
             BoolExpr::Var(_) => {},
             BoolExpr::DateLt(a, b) => {
-                lemma_date_expr_hybrid_congruent(*a, env);
-                lemma_date_expr_hybrid_congruent(*b, env);
+                lemma_date_expr_hybrid_ymd_congruent(*a, env);
+                lemma_date_expr_hybrid_ymd_congruent(*b, env);
                 lemma_date_wf_implies_valid(*a, env);
                 lemma_date_wf_implies_valid(*b, env);
-                theorem_hybrid_congruent_preserves_comparison(
+                hybrid_ymd::theorem_hybrid_congruent_preserves_comparison(
                     a.eval::<SimpleDate>(env),
-                    a.eval::<Hybrid>(env),
+                    a.eval::<hybrid_ymd::Hybrid>(env),
                     b.eval::<SimpleDate>(env),
-                    b.eval::<Hybrid>(env),
+                    b.eval::<hybrid_ymd::Hybrid>(env),
                 );
             },
             BoolExpr::DateEq(a, b) => {
-                lemma_date_expr_hybrid_congruent(*a, env);
-                lemma_date_expr_hybrid_congruent(*b, env);
+                lemma_date_expr_hybrid_ymd_congruent(*a, env);
+                lemma_date_expr_hybrid_ymd_congruent(*b, env);
                 lemma_date_wf_implies_valid(*a, env);
                 lemma_date_wf_implies_valid(*b, env);
-                theorem_hybrid_congruent_preserves_comparison(
+                hybrid_ymd::theorem_hybrid_congruent_preserves_comparison(
                     a.eval::<SimpleDate>(env),
-                    a.eval::<Hybrid>(env),
+                    a.eval::<hybrid_ymd::Hybrid>(env),
                     b.eval::<SimpleDate>(env),
-                    b.eval::<Hybrid>(env),
+                    b.eval::<hybrid_ymd::Hybrid>(env),
                 );
             },
             BoolExpr::IntLt(a, b) => {
-                lemma_int_expr_hybrid_equiv(*a, env);
-                lemma_int_expr_hybrid_equiv(*b, env);
+                lemma_int_expr_hybrid_ymd_equiv(*a, env);
+                lemma_int_expr_hybrid_ymd_equiv(*b, env);
             },
             BoolExpr::IntEq(a, b) => {
-                lemma_int_expr_hybrid_equiv(*a, env);
-                lemma_int_expr_hybrid_equiv(*b, env);
+                lemma_int_expr_hybrid_ymd_equiv(*a, env);
+                lemma_int_expr_hybrid_ymd_equiv(*b, env);
             },
         }
     }
 
-    pub proof fn theorem_ast_hybrid_equiv(ast: Ast, env: Environment)
+    pub proof fn theorem_ast_hybrid_ymd_equiv(ast: Ast, env: Environment)
         requires ast.is_well_formed(), ast.is_properly_closed(env),
-        ensures ast.eval::<SimpleDate>(env) == ast.eval::<Hybrid>(env),
+        ensures ast.eval::<SimpleDate>(env) == ast.eval::<hybrid_ymd::Hybrid>(env),
     {
-        lemma_bool_expr_hybrid_equiv(ast.root, env);
+        lemma_bool_expr_hybrid_ymd_equiv(ast.root, env);
+    }
+
+
+    // ── Hybrid (epoch-initial) equivalence proofs ───────────────────────
+
+    pub proof fn lemma_date_expr_hybrid_epoch_congruent(e: DateExpr, env: Environment)
+        requires e.is_well_formed(), e.is_properly_closed(env),
+        ensures hybrid_epoch::hybrid_congruent(e.eval::<SimpleDate>(env), e.eval::<hybrid_epoch::Hybrid>(env)),
+        decreases e,
+    {
+        match e {
+            DateExpr::Literal(y, m, d) => {
+                hybrid_epoch::theorem_hybrid_from_ymd_congruent(y, m, d);
+            },
+            DateExpr::Var(id) => {
+                let sd = env.date_vars[id];
+                hybrid_epoch::theorem_hybrid_from_ymd_congruent(sd.year(), sd.month(), sd.day());
+            },
+            DateExpr::Add(base, period) => {
+                lemma_date_expr_hybrid_epoch_congruent(*base, env);
+                lemma_date_wf_implies_valid(*base, env);
+                hybrid_epoch::theorem_hybrid_add_period_preserves_congruence(
+                    base.eval::<SimpleDate>(env),
+                    base.eval::<hybrid_epoch::Hybrid>(env),
+                    period.eval(),
+                );
+            },
+        }
+    }
+
+    pub proof fn lemma_int_expr_hybrid_epoch_equiv(e: IntExpr, env: Environment)
+        requires e.is_well_formed(), e.is_properly_closed(env),
+        ensures e.eval::<SimpleDate>(env) == e.eval::<hybrid_epoch::Hybrid>(env),
+        decreases e,
+    {
+        match e {
+            IntExpr::Literal(_) => {},
+            IntExpr::Var(_) => {},
+            IntExpr::Year(d) => {
+                lemma_date_expr_hybrid_epoch_congruent(*d, env);
+                lemma_date_wf_implies_valid(*d, env);
+                let sd = d.eval::<SimpleDate>(env);
+                let h = d.eval::<hybrid_epoch::Hybrid>(env);
+                hybrid_epoch::lemma_hybrid_to_ymd(sd, h);
+            },
+            IntExpr::Month(d) => {
+                lemma_date_expr_hybrid_epoch_congruent(*d, env);
+                lemma_date_wf_implies_valid(*d, env);
+                let sd = d.eval::<SimpleDate>(env);
+                let h = d.eval::<hybrid_epoch::Hybrid>(env);
+                hybrid_epoch::lemma_hybrid_to_ymd(sd, h);
+            },
+            IntExpr::Day(d) => {
+                lemma_date_expr_hybrid_epoch_congruent(*d, env);
+                lemma_date_wf_implies_valid(*d, env);
+                let sd = d.eval::<SimpleDate>(env);
+                let h = d.eval::<hybrid_epoch::Hybrid>(env);
+                hybrid_epoch::lemma_hybrid_to_ymd(sd, h);
+            },
+            IntExpr::Add(a, b) => {
+                lemma_int_expr_hybrid_epoch_equiv(*a, env);
+                lemma_int_expr_hybrid_epoch_equiv(*b, env);
+            },
+            IntExpr::Sub(a, b) => {
+                lemma_int_expr_hybrid_epoch_equiv(*a, env);
+                lemma_int_expr_hybrid_epoch_equiv(*b, env);
+            },
+            IntExpr::Mul(a, _) => {
+                lemma_int_expr_hybrid_epoch_equiv(*a, env);
+            },
+        }
+    }
+
+    pub proof fn lemma_bool_expr_hybrid_epoch_equiv(e: BoolExpr, env: Environment)
+        requires e.is_well_formed(), e.is_properly_closed(env),
+        ensures e.eval::<SimpleDate>(env) == e.eval::<hybrid_epoch::Hybrid>(env),
+        decreases e,
+    {
+        match e {
+            BoolExpr::And(a, b) => {
+                lemma_bool_expr_hybrid_epoch_equiv(*a, env);
+                lemma_bool_expr_hybrid_epoch_equiv(*b, env);
+            },
+            BoolExpr::Or(a, b) => {
+                lemma_bool_expr_hybrid_epoch_equiv(*a, env);
+                lemma_bool_expr_hybrid_epoch_equiv(*b, env);
+            },
+            BoolExpr::Not(a) => {
+                lemma_bool_expr_hybrid_epoch_equiv(*a, env);
+            },
+            BoolExpr::Implies(a, b) => {
+                lemma_bool_expr_hybrid_epoch_equiv(*a, env);
+                lemma_bool_expr_hybrid_epoch_equiv(*b, env);
+            },
+            BoolExpr::Literal(_) => {},
+            BoolExpr::Var(_) => {},
+            BoolExpr::DateLt(a, b) => {
+                lemma_date_expr_hybrid_epoch_congruent(*a, env);
+                lemma_date_expr_hybrid_epoch_congruent(*b, env);
+                lemma_date_wf_implies_valid(*a, env);
+                lemma_date_wf_implies_valid(*b, env);
+                hybrid_epoch::theorem_hybrid_congruent_preserves_comparison(
+                    a.eval::<SimpleDate>(env),
+                    a.eval::<hybrid_epoch::Hybrid>(env),
+                    b.eval::<SimpleDate>(env),
+                    b.eval::<hybrid_epoch::Hybrid>(env),
+                );
+            },
+            BoolExpr::DateEq(a, b) => {
+                lemma_date_expr_hybrid_epoch_congruent(*a, env);
+                lemma_date_expr_hybrid_epoch_congruent(*b, env);
+                lemma_date_wf_implies_valid(*a, env);
+                lemma_date_wf_implies_valid(*b, env);
+                hybrid_epoch::theorem_hybrid_congruent_preserves_comparison(
+                    a.eval::<SimpleDate>(env),
+                    a.eval::<hybrid_epoch::Hybrid>(env),
+                    b.eval::<SimpleDate>(env),
+                    b.eval::<hybrid_epoch::Hybrid>(env),
+                );
+            },
+            BoolExpr::IntLt(a, b) => {
+                lemma_int_expr_hybrid_epoch_equiv(*a, env);
+                lemma_int_expr_hybrid_epoch_equiv(*b, env);
+            },
+            BoolExpr::IntEq(a, b) => {
+                lemma_int_expr_hybrid_epoch_equiv(*a, env);
+                lemma_int_expr_hybrid_epoch_equiv(*b, env);
+            },
+        }
+    }
+
+    pub proof fn theorem_ast_hybrid_epoch_equiv(ast: Ast, env: Environment)
+        requires ast.is_well_formed(), ast.is_properly_closed(env),
+        ensures ast.eval::<SimpleDate>(env) == ast.eval::<hybrid_epoch::Hybrid>(env),
+    {
+        lemma_bool_expr_hybrid_epoch_equiv(ast.root, env);
     }
 
 
@@ -440,17 +578,31 @@ verus! {
         }
     }
 
-    pub proof fn theorem_ast_hybrid_equisat(ast: Ast)
+    pub proof fn theorem_ast_hybrid_ymd_equisat(ast: Ast)
         requires ast.is_well_formed(),
-        ensures ast.is_sat::<SimpleDate>() == ast.is_sat::<Hybrid>(),
+        ensures ast.is_sat::<SimpleDate>() == ast.is_sat::<hybrid_ymd::Hybrid>(),
     {
         if ast.is_sat::<SimpleDate>() {
             let env = choose|env: Environment| ast.is_properly_closed(env) && ast.eval::<SimpleDate>(env);
-            theorem_ast_hybrid_equiv(ast, env);
+            theorem_ast_hybrid_ymd_equiv(ast, env);
         }
-        if ast.is_sat::<Hybrid>() {
-            let env = choose|env: Environment| ast.is_properly_closed(env) && ast.eval::<Hybrid>(env);
-            theorem_ast_hybrid_equiv(ast, env);
+        if ast.is_sat::<hybrid_ymd::Hybrid>() {
+            let env = choose|env: Environment| ast.is_properly_closed(env) && ast.eval::<hybrid_ymd::Hybrid>(env);
+            theorem_ast_hybrid_ymd_equiv(ast, env);
+        }
+    }
+
+    pub proof fn theorem_ast_hybrid_epoch_equisat(ast: Ast)
+        requires ast.is_well_formed(),
+        ensures ast.is_sat::<SimpleDate>() == ast.is_sat::<hybrid_epoch::Hybrid>(),
+    {
+        if ast.is_sat::<SimpleDate>() {
+            let env = choose|env: Environment| ast.is_properly_closed(env) && ast.eval::<SimpleDate>(env);
+            theorem_ast_hybrid_epoch_equiv(ast, env);
+        }
+        if ast.is_sat::<hybrid_epoch::Hybrid>() {
+            let env = choose|env: Environment| ast.is_properly_closed(env) && ast.eval::<hybrid_epoch::Hybrid>(env);
+            theorem_ast_hybrid_epoch_equiv(ast, env);
         }
     }
 

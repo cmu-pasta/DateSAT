@@ -27,7 +27,8 @@ verification results:: 105 verified, 0 errors
 | [`src/simple_date.rs`](src/simple_date.rs) | The reference encoding: YMD representation and date-period arithmetic |
 | [`src/period.rs`](src/period.rs) | Calendar periods (years, months, days) |
 | [`src/epoch_delta.rs`](src/epoch_delta.rs) | The Epoch-Based encoding: days since March 1, 2000 |
-| [`src/hybrid.rs`](src/hybrid.rs) | The Hybrid encoding: lazy union of YMD and epoch-delta |
+| [`src/hybrid_ymd.rs`](src/hybrid_ymd.rs) | The Hybrid encoding (YMD-initial variant): lazy union of YMD and epoch-delta, literals embedded YMD-only |
+| [`src/hybrid_epoch.rs`](src/hybrid_epoch.rs) | The Hybrid encoding (epoch-initial variant): same dual representation, but literals embedded epoch-only |
 | [`src/alpha_beta.rs`](src/alpha_beta.rs) | The Alpha-Beta encoding: (months-since-epoch, day-offset) |
 | [`src/monotonicity.rs`](src/monotonicity.rs) | Proof of monotonicity of date-period addition |
 | [`src/equivalence.rs`](src/equivalence.rs) | Equisatisfiability proofs for all encodings |
@@ -45,11 +46,17 @@ assert forall|ast: Ast| #![auto]
         ast.is_sat::<SimpleDate>() == ast.is_sat::<EpochDelta>()
     by { theorem_ast_epoch_delta_equisat(ast); }
 
-// Theorem 4: Hybrid equisatisfiability
+// Theorem 4a: Hybrid (YMD-initial) equisatisfiability
 assert forall|ast: Ast| #![auto]
     ast.is_well_formed() implies
-        ast.is_sat::<SimpleDate>() == ast.is_sat::<Hybrid>()
-    by { theorem_ast_hybrid_equisat(ast); }
+        ast.is_sat::<SimpleDate>() == ast.is_sat::<hybrid_ymd::Hybrid>()
+    by { theorem_ast_hybrid_ymd_equisat(ast); }
+
+// Theorem 4b: Hybrid (epoch-initial) equisatisfiability
+assert forall|ast: Ast| #![auto]
+    ast.is_well_formed() implies
+        ast.is_sat::<SimpleDate>() == ast.is_sat::<hybrid_epoch::Hybrid>()
+    by { theorem_ast_hybrid_epoch_equisat(ast); }
 
 // Theorem 5: AlphaBeta equisatisfiability
 assert forall|ast: Ast| #![auto]

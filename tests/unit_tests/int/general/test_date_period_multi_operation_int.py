@@ -7,7 +7,8 @@ from datesat.symbolic_int.alpha_beta_int import AlphaBetaSolver
 from datesat.symbolic_int.alpha_beta_table_int import AlphaBetaTableSolver
 from datesat.symbolic_int.simple_int import SimpleSolver
 from datesat.symbolic_int.epoch_days_int import EpochDaysSolver
-from datesat.symbolic_int.hybrid_int import HybridSolver
+from datesat.symbolic_int.hybrid_epoch_int import HybridEpochSolver
+from datesat.symbolic_int.hybrid_ymd_int import HybridYmdSolver
 
 
 def _apply_sequence_python(base: Date, seq: list[Period]) -> Date:
@@ -98,12 +99,18 @@ def test_stepwise_multi_op_epoch_days_matches_python(base: Date, seq: list[Perio
     assert res["dates"]["y"] == expected
 
 
+@pytest.mark.parametrize(
+    "solver_cls",
+    [
+        pytest.param(HybridEpochSolver, id="hybrid_epoch", marks=pytest.mark.hybrid_epoch),
+        pytest.param(HybridYmdSolver, id="hybrid_ymd", marks=pytest.mark.hybrid_ymd),
+    ],
+)
 @pytest.mark.parametrize("base,seq", MULTI_OP_CASES)
-@pytest.mark.hybrid
 @pytest.mark.integer
-def test_stepwise_multi_op_hybrid_matches_python(base: Date, seq: list[Period]):
+def test_stepwise_multi_op_hybrid_matches_python(solver_cls, base: Date, seq: list[Period]):
     expected = _apply_sequence_python(base, seq)
-    res = _solve_with_solver(HybridSolver, base, seq)
+    res = _solve_with_solver(solver_cls, base, seq)
     assert res["status"] == "sat"
     assert res["dates"]["y"] == expected
 
@@ -156,11 +163,17 @@ def test_stepwise_multi_op_sub_epoch_days_matches_python(base: Date, seq: list[P
     assert res["dates"]["y"] == expected
 
 
+@pytest.mark.parametrize(
+    "solver_cls",
+    [
+        pytest.param(HybridEpochSolver, id="hybrid_epoch", marks=pytest.mark.hybrid_epoch),
+        pytest.param(HybridYmdSolver, id="hybrid_ymd", marks=pytest.mark.hybrid_ymd),
+    ],
+)
 @pytest.mark.parametrize("base,seq", MULTI_OP_CASES)
-@pytest.mark.hybrid
 @pytest.mark.integer
-def test_stepwise_multi_op_sub_hybrid_matches_python(base: Date, seq: list[Period]):
-    res = _solve_with_solver_sub(HybridSolver, base, seq)
+def test_stepwise_multi_op_sub_hybrid_matches_python(solver_cls, base: Date, seq: list[Period]):
+    res = _solve_with_solver_sub(solver_cls, base, seq)
     if res["status"] == "unsat":
         return
     expected = _apply_sequence_python(base, seq)

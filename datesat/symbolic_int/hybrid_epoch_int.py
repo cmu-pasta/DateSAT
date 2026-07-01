@@ -1,15 +1,18 @@
 """
-Hybrid DateSAT implementation using dual-lazy representation.
+Hybrid DateSAT implementation using dual-lazy representation — epoch-initial variant.
 
 This module implements a hybrid approach where dates can be represented by
 either epoch days or (Y, M, D), and each side is materialized and kept
-consistent lazily on demand:
+consistent lazily on demand. Fresh user variables start with epoch_var as
+the source of truth; Y/M/D vars are materialized lazily on first use.
+
 - epoch_var: Z3 Int, days since 2000-03-01
 - year/month/day vars: created lazily when needed
 
 Rules:
 - We track which representation is currently consistent via flags.
-- No automatic forward-link is added when Y/M/D are materialized.
+- A user variable starts with (_epoch_consistent=True, _ymd_consistent=False);
+  Y/M/D vars are not created upfront.
 - When an operation requires epoch, we use the epoch expression derived from
   whichever side is currently consistent.
 - When an operation requires Y/M/D, we use Y/M/D terms derived similarly.
@@ -501,8 +504,12 @@ class DateVar:
             raise TypeError(f"Cannot subtract {type(other)} from DateVar")
 
 
-class HybridSolver:
-    """Hybrid date constraint solver using dual representation (epoch + YMD)."""
+class HybridEpochSolver:
+    """Hybrid date constraint solver using dual representation, epoch-initial variant.
+
+    Fresh DateVars start in epoch-only state: epoch_var is the source of truth,
+    Y/M/D vars are materialized lazily on first use.
+    """
 
     def __init__(self, timeout_ms=600000, use_maxsat=False):
         """Initialize the solver with timeout.

@@ -333,5 +333,7 @@ def pytest_collection_modifyitems(config, items):
             item.add_marker("simple")
             item.add_marker("epoch_days")
             item.add_marker("hybrid")
+            item.add_marker("hybrid_ymd")
+            item.add_marker("hybrid_epoch")
             item.add_marker("alpha_beta")
             item.add_marker("alpha_beta_table")

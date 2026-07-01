@@ -25,7 +25,7 @@ class DateSATBuilder:
         """Initialize the builder with the specified approach, implementation, and timeout.
 
         Args:
-            approach: Either "simple", "epoch_days", "hybrid", "alpha_beta", or "alpha_beta_table"
+            approach: Either "simple", "epoch_days", "hybrid_ymd", "hybrid_epoch", "alpha_beta", or "alpha_beta_table"
             implementation: Either "int" or "bitvector" (default: "int")
             timeout_ms: Timeout in milliseconds (default: 600000 = 10 minutes)
             use_maxsat: If True, use MaxSAT optimization with soft constraints for dates near today
@@ -35,38 +35,58 @@ class DateSATBuilder:
         self.timeout_ms = timeout_ms
         self.use_maxsat = use_maxsat
 
-        # Import the appropriate solver based on implementation
+        # Import and dispatch the appropriate solver based on implementation.
+        # The int and bitvector implementations have different valid approaches:
+        # the int implementation splits hybrid into hybrid_ymd / hybrid_epoch,
+        # while the bitvector implementation keeps the single "hybrid" approach.
         if implementation == "bitvector":
             from .symbolic_bitvector.alpha_beta_bv import AlphaBetaSolver
             from .symbolic_bitvector.alpha_beta_table_bv import AlphaBetaTableSolver
             from .symbolic_bitvector.simple_bv import SimpleSolver
             from .symbolic_bitvector.epoch_days_bv import EpochDaysSolver
             from .symbolic_bitvector.hybrid_bv import HybridSolver
+
+            if approach == "simple":
+                self.solver = SimpleSolver(timeout_ms=timeout_ms, use_maxsat=use_maxsat)
+            elif approach == "epoch_days":
+                self.solver = EpochDaysSolver(timeout_ms=timeout_ms, use_maxsat=use_maxsat)
+            elif approach == "hybrid":
+                self.solver = HybridSolver(timeout_ms=timeout_ms, use_maxsat=use_maxsat)
+            elif approach == "alpha_beta":
+                self.solver = AlphaBetaSolver(timeout_ms=timeout_ms, use_maxsat=use_maxsat)
+            elif approach == "alpha_beta_table":
+                self.solver = AlphaBetaTableSolver(timeout_ms=timeout_ms, use_maxsat=use_maxsat)
+            else:
+                raise ValueError(
+                    f"Unknown approach for bitvector: {approach}. Must be 'simple', 'epoch_days', 'hybrid', 'alpha_beta', or 'alpha_beta_table'"
+                )
         elif implementation == "int":
             from .symbolic_int.alpha_beta_int import AlphaBetaSolver
             from .symbolic_int.alpha_beta_table_int import AlphaBetaTableSolver
             from .symbolic_int.simple_int import SimpleSolver
             from .symbolic_int.epoch_days_int import EpochDaysSolver
-            from .symbolic_int.hybrid_int import HybridSolver
+            from .symbolic_int.hybrid_epoch_int import HybridEpochSolver
+            from .symbolic_int.hybrid_ymd_int import HybridYmdSolver
+
+            if approach == "simple":
+                self.solver = SimpleSolver(timeout_ms=timeout_ms, use_maxsat=use_maxsat)
+            elif approach == "epoch_days":
+                self.solver = EpochDaysSolver(timeout_ms=timeout_ms, use_maxsat=use_maxsat)
+            elif approach == "hybrid_ymd":
+                self.solver = HybridYmdSolver(timeout_ms=timeout_ms, use_maxsat=use_maxsat)
+            elif approach == "hybrid_epoch":
+                self.solver = HybridEpochSolver(timeout_ms=timeout_ms, use_maxsat=use_maxsat)
+            elif approach == "alpha_beta":
+                self.solver = AlphaBetaSolver(timeout_ms=timeout_ms, use_maxsat=use_maxsat)
+            elif approach == "alpha_beta_table":
+                self.solver = AlphaBetaTableSolver(timeout_ms=timeout_ms, use_maxsat=use_maxsat)
+            else:
+                raise ValueError(
+                    f"Unknown approach for int: {approach}. Must be 'simple', 'epoch_days', 'hybrid_ymd', 'hybrid_epoch', 'alpha_beta', or 'alpha_beta_table'"
+                )
         else:
             raise ValueError(
                 f"Unknown implementation: {implementation}. Must be 'int' or 'bitvector'"
-            )
-
-        # Initialize the appropriate solver
-        if approach == "simple":
-            self.solver = SimpleSolver(timeout_ms=timeout_ms, use_maxsat=use_maxsat)
-        elif approach == "epoch_days":
-            self.solver = EpochDaysSolver(timeout_ms=timeout_ms, use_maxsat=use_maxsat)
-        elif approach == "hybrid":
-            self.solver = HybridSolver(timeout_ms=timeout_ms, use_maxsat=use_maxsat)
-        elif approach == "alpha_beta":
-            self.solver = AlphaBetaSolver(timeout_ms=timeout_ms, use_maxsat=use_maxsat)
-        elif approach == "alpha_beta_table":
-            self.solver = AlphaBetaTableSolver(timeout_ms=timeout_ms, use_maxsat=use_maxsat)
-        else:
-            raise ValueError(
-                f"Unknown approach: {approach}. Must be 'simple', 'epoch_days', 'hybrid', 'alpha_beta', or 'alpha_beta_table'"
             )
 
         self.constraints = []

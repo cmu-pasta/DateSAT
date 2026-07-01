@@ -48,11 +48,17 @@ TECHNIQUES = {
         "marker": "o",
         "color": "#FF9800",
     },
-    "hybrid_int": {
-        "file": "hybrid_int.json",
-        "label": "Hybrid",
+    "hybrid_ymd_int": {
+        "file": "hybrid_ymd_int.json",
+        "label": "Hybrid YMD",
         "marker": "^",
         "color": "#4CAF50",
+    },
+    "hybrid_epoch_int": {
+        "file": "hybrid_epoch_int.json",
+        "label": "Hybrid Epoch",
+        "marker": "v",
+        "color": "#388E3C",
     },
     "alpha_beta_int": {
         "file": "alpha_beta_int.json",

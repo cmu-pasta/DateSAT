@@ -34,7 +34,9 @@ def solve(
         declarations: Optional list of variable declarations, e.g., ["x: date", "y: date"]
             Only used if constraints is a list. If constraints is a dict, declarations
             are taken from the dict.
-        approach: Solver approach - "simple", "epoch_days", "hybrid", "alpha_beta", or "alpha_beta_table"
+        approach: Solver approach. For int implementation: "simple", "epoch_days", "hybrid_ymd",
+            "hybrid_epoch", "alpha_beta", or "alpha_beta_table". For bitvector implementation:
+            "simple", "epoch_days", "hybrid", "alpha_beta", or "alpha_beta_table".
         implementation: Implementation type - "int" or "bitvector"
         timeout_ms: Timeout in milliseconds (default: 600000 = 10 minutes)
         verbose: If True, print results to stdout (default: True)

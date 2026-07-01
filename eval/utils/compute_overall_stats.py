@@ -11,11 +11,12 @@ Benchmarks:
 Encodings:
 - simple_int.json
 - epoch_days_int.json
-- hybrid_int.json
+- hybrid_ymd_int.json
+- hybrid_epoch_int.json
 - alpha_beta_int.json
 - alpha_beta_table_int.json
 
-Total: 450 constraints * 5 encodings = 2250 entries
+Total: 450 constraints * 6 encodings = 2700 entries
 """
 
 import argparse
@@ -34,7 +35,8 @@ BENCHMARKS = [
 ENCODINGS = [
     "simple_int.json",
     "epoch_days_int.json",
-    "hybrid_int.json",
+    "hybrid_ymd_int.json",
+    "hybrid_epoch_int.json",
     "alpha_beta_int.json",
     "alpha_beta_table_int.json",
 ]
@@ -42,7 +44,8 @@ ENCODINGS = [
 ENCODING_NAMES = {
     "simple_int.json": "Simple",
     "epoch_days_int.json": "Epoch Days",
-    "hybrid_int.json": "Hybrid",
+    "hybrid_ymd_int.json": "Hybrid YMD",
+    "hybrid_epoch_int.json": "Hybrid Epoch",
     "alpha_beta_int.json": "Alpha-Beta",
     "alpha_beta_table_int.json": "Alpha-Beta Table",
 }

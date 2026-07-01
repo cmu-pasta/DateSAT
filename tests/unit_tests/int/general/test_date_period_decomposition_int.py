@@ -8,7 +8,8 @@ from datesat.symbolic_int.alpha_beta_int import AlphaBetaSolver
 from datesat.symbolic_int.alpha_beta_table_int import AlphaBetaTableSolver
 from datesat.symbolic_int.simple_int import SimpleSolver
 from datesat.symbolic_int.epoch_days_int import EpochDaysSolver
-from datesat.symbolic_int.hybrid_int import HybridSolver
+from datesat.symbolic_int.hybrid_epoch_int import HybridEpochSolver
+from datesat.symbolic_int.hybrid_ymd_int import HybridYmdSolver
 
 
 def get_period_arithmetic_test_cases():
@@ -261,24 +262,30 @@ def test_epoch_days_matches_java_decomposed(
 
 
 @pytest.mark.parametrize(
+    "solver_cls",
+    [
+        pytest.param(HybridEpochSolver, id="hybrid_epoch", marks=pytest.mark.hybrid_epoch),
+        pytest.param(HybridYmdSolver, id="hybrid_ymd", marks=pytest.mark.hybrid_ymd),
+    ],
+)
+@pytest.mark.parametrize(
     "base,per,label,seq",
     [
         pytest.param(base, per, label, seq, id=f"hybrid_{base}+{per}_{label}")
         for base, per, label, seq in all_decomposed_cases()
     ],
 )
-@pytest.mark.hybrid
 @pytest.mark.integer
 def test_hybrid_matches_java_decomposed(
-    base: Date, per: Period, label: str, seq: list[Period]
+    solver_cls, base: Date, per: Period, label: str, seq: list[Period]
 ):
     expect = python_date_plus_sequence(base, seq, label)
-    model = _solve_decomposed_with_solver(HybridSolver, base, seq)
+    model = _solve_decomposed_with_solver(solver_cls, base, seq)
     assert model["status"] == "sat"
     got = model["dates"]["y"]
     assert (
         got == expect
-    ), f"Hybrid order {label}: {base} + {per} -> {got}, expected {expect}"
+    ), f"{solver_cls.__name__} order {label}: {base} + {per} -> {got}, expected {expect}"
 
 
 @pytest.mark.parametrize(
@@ -372,25 +379,31 @@ def test_epoch_days_sub_matches_java_decomposed(
 
 
 @pytest.mark.parametrize(
+    "solver_cls",
+    [
+        pytest.param(HybridEpochSolver, id="hybrid_epoch", marks=pytest.mark.hybrid_epoch),
+        pytest.param(HybridYmdSolver, id="hybrid_ymd", marks=pytest.mark.hybrid_ymd),
+    ],
+)
+@pytest.mark.parametrize(
     "base,per,label,seq",
     [
         pytest.param(base, per, label, seq, id=f"hybrid_sub_{base}+{per}_{label}")
         for base, per, label, seq in all_decomposed_cases()
     ],
 )
-@pytest.mark.hybrid
 @pytest.mark.integer
 def test_hybrid_sub_matches_java_decomposed(
-    base: Date, per: Period, label: str, seq: list[Period]
+    solver_cls, base: Date, per: Period, label: str, seq: list[Period]
 ):
-    model = _solve_decomposed_with_solver_sub(HybridSolver, base, seq)
+    model = _solve_decomposed_with_solver_sub(solver_cls, base, seq)
     if model["status"] == "unsat":
         return
     expect = python_date_plus_sequence(base, seq, label)
     got = model["dates"]["y"]
     assert (
         got == expect
-    ), f"Hybrid sub {label}: {base} + {per} -> {got}, expected {expect}"
+    ), f"{solver_cls.__name__} sub {label}: {base} + {per} -> {got}, expected {expect}"
 
 
 @pytest.mark.parametrize(

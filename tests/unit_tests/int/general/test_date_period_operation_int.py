@@ -6,7 +6,8 @@ from datesat.symbolic_int.alpha_beta_int import AlphaBetaSolver
 from datesat.symbolic_int.alpha_beta_table_int import AlphaBetaTableSolver
 from datesat.symbolic_int.simple_int import SimpleSolver
 from datesat.symbolic_int.epoch_days_int import EpochDaysSolver
-from datesat.symbolic_int.hybrid_int import HybridSolver
+from datesat.symbolic_int.hybrid_epoch_int import HybridEpochSolver
+from datesat.symbolic_int.hybrid_ymd_int import HybridYmdSolver
 
 # Reuse canonical test cases locally (migrated from test_date_period_operation.py)
 
@@ -218,19 +219,25 @@ def test_epoch_days_equals_ground_truth(base: Date, per: Period, expect: Date):
 
 
 @pytest.mark.parametrize(
+    "solver_cls",
+    [
+        pytest.param(HybridEpochSolver, id="hybrid_epoch", marks=pytest.mark.hybrid_epoch),
+        pytest.param(HybridYmdSolver, id="hybrid_ymd", marks=pytest.mark.hybrid_ymd),
+    ],
+)
+@pytest.mark.parametrize(
     "base,per,expect",
     [
         pytest.param(base, per, expect, id=f"solvers_truth_{base}+{per}={expect}")
         for base, per, expect in get_period_arithmetic_test_cases()
     ],
 )
-@pytest.mark.hybrid
 @pytest.mark.integer
-def test_hybrid_equals_ground_truth(base: Date, per: Period, expect: Date):
-    rh = _solve_single_add(HybridSolver, base, per)
+def test_hybrid_equals_ground_truth(solver_cls, base: Date, per: Period, expect: Date):
+    rh = _solve_single_add(solver_cls, base, per)
     assert rh["status"] == "sat"
     got_h = rh["dates"]["y"]
-    assert got_h == expect, f"Hybrid: {base} + {per} -> {got_h}, expected {expect}"
+    assert got_h == expect, f"{solver_cls.__name__}: {base} + {per} -> {got_h}, expected {expect}"
 
 
 @pytest.mark.parametrize(
@@ -317,16 +324,22 @@ def test_epoch_days_subtract_matches_python(base: Date, per: Period):
 
 
 @pytest.mark.parametrize(
+    "solver_cls",
+    [
+        pytest.param(HybridEpochSolver, id="hybrid_epoch", marks=pytest.mark.hybrid_epoch),
+        pytest.param(HybridYmdSolver, id="hybrid_ymd", marks=pytest.mark.hybrid_ymd),
+    ],
+)
+@pytest.mark.parametrize(
     "base,per",
     [
         pytest.param(base, per, id=f"sub_{base}-{per}")
         for base, per, _ in get_period_arithmetic_test_cases()
     ],
 )
-@pytest.mark.hybrid
 @pytest.mark.integer
-def test_hybrid_subtract_matches_python(base: Date, per: Period):
-    model = _solve_single_sub(HybridSolver, base, per)
+def test_hybrid_subtract_matches_python(solver_cls, base: Date, per: Period):
+    model = _solve_single_sub(solver_cls, base, per)
     try:
         expect = python_date_plus(base, Period(-per.years, -per.months, -per.days))
     except ValueError:
@@ -334,7 +347,7 @@ def test_hybrid_subtract_matches_python(base: Date, per: Period):
         return
     assert model["status"] == "sat"
     got = model["dates"]["y"]
-    assert got == expect, f"Hybrid sub: {base} - {per} -> {got}, expected {expect}"
+    assert got == expect, f"{solver_cls.__name__} sub: {base} - {per} -> {got}, expected {expect}"
 
 
 @pytest.mark.parametrize(

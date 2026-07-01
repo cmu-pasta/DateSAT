@@ -13,8 +13,8 @@ use monotonicity::*;
 mod epoch_delta;
 use epoch_delta::*;
 
-mod hybrid;
-use hybrid::*;
+mod hybrid_ymd;
+mod hybrid_epoch;
 
 mod alpha_beta;
 use alpha_beta::*;
@@ -59,11 +59,17 @@ verus! {
                 ast.is_sat::<SimpleDate>() == ast.is_sat::<EpochDelta>()
             by { theorem_ast_epoch_delta_equisat(ast); }
 
-        // Theorem 4: Hybrid equisatisfiability
+        // Theorem 4a: Hybrid (YMD-initial) equisatisfiability
         assert forall|ast: Ast| #![auto]
             ast.is_well_formed() implies
-                ast.is_sat::<SimpleDate>() == ast.is_sat::<Hybrid>()
-            by { theorem_ast_hybrid_equisat(ast); }
+                ast.is_sat::<SimpleDate>() == ast.is_sat::<hybrid_ymd::Hybrid>()
+            by { theorem_ast_hybrid_ymd_equisat(ast); }
+
+        // Theorem 4b: Hybrid (epoch-initial) equisatisfiability
+        assert forall|ast: Ast| #![auto]
+            ast.is_well_formed() implies
+                ast.is_sat::<SimpleDate>() == ast.is_sat::<hybrid_epoch::Hybrid>()
+            by { theorem_ast_hybrid_epoch_equisat(ast); }
 
         // Theorem 5: AlphaBeta equisatisfiability
         assert forall|ast: Ast| #![auto]

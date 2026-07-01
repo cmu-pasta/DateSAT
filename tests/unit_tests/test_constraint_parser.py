@@ -817,9 +817,15 @@ def test_boolean_operators_with_z3_solvers(parser):
     
     code = parser.parse_constraint_data(constraint_data)
     
-    # Test with int implementation
+    # Test with int and bitvector implementations.
+    # The int implementation splits hybrid into hybrid_ymd / hybrid_epoch;
+    # the bitvector implementation keeps the single "hybrid" approach.
     for implementation in ['int', 'bitvector']:
-        for approach in ['simple', 'epoch_days', 'hybrid', 'alpha_beta', 'alpha_beta_table']:
+        if implementation == 'int':
+            approaches = ['simple', 'epoch_days', 'hybrid_ymd', 'hybrid_epoch', 'alpha_beta', 'alpha_beta_table']
+        else:
+            approaches = ['simple', 'epoch_days', 'hybrid', 'alpha_beta', 'alpha_beta_table']
+        for approach in approaches:
             builder = DateSATBuilder(approach=approach, implementation=implementation)
             builder.enable_smtlib_print(False)  # Suppress output during tests
             

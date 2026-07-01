@@ -207,84 +207,101 @@ def run_constraints_file(
     smt_dir = output_dir_path / "smt_constraints"
     smt_dir.mkdir(parents=True, exist_ok=True)
 
-    # Define all solver approaches and implementations to test
-    all_symbolic_approaches = [
-        "simple",
-        "epoch_days",
-        "hybrid",
-        "alpha_beta",
-        "alpha_beta_table"
-    ]
-
-
-    # Filter approaches if specified
-    if approaches is not None:
-        symbolic_approaches = [a for a in approaches if a in all_symbolic_approaches]
-        if not symbolic_approaches:
-            print(
-                f"⚠️  Warning: No valid approaches found in {approaches}. Using all approaches."
-            )
-            symbolic_approaches = all_symbolic_approaches
-        else:
-            print(f"Running with approaches: {symbolic_approaches}")
-    else:
-        symbolic_approaches = all_symbolic_approaches
-
+    # Define all solver approaches per implementation.
+    # The int implementation splits hybrid into hybrid_ymd / hybrid_epoch;
+    # the bitvector implementation keeps the single "hybrid" approach.
+    all_symbolic_approaches_by_impl = {
+        "int": [
+            "simple",
+            "epoch_days",
+            "hybrid_ymd",
+            "hybrid_epoch",
+            "alpha_beta",
+            "alpha_beta_table",
+        ],
+        "bitvector": [
+            "simple",
+            "epoch_days",
+            "hybrid",
+            "alpha_beta",
+            "alpha_beta_table",
+        ],
+    }
 
     implementations = ["int"]  # Can add "bitvector" if needed
 
+    # Build the set of (approach, implementation) pairs to run, honoring an
+    # optional approach filter from the caller.
+    runs = []
+    for implementation in implementations:
+        valid = all_symbolic_approaches_by_impl[implementation]
+        if approaches is not None:
+            selected = [a for a in approaches if a in valid]
+            if not selected:
+                print(
+                    f"⚠️  Warning: No valid approaches for {implementation} in {approaches}. "
+                    f"Using all approaches for {implementation}."
+                )
+                selected = valid
+        else:
+            selected = valid
+        for approach in selected:
+            runs.append((approach, implementation))
+
+    if approaches is not None:
+        print(f"Running with approach/implementation pairs: {runs}")
+
     all_results = {}
 
-    # Run all approaches with their respective implementations
-    for approach in symbolic_approaches:
-        for implementation in implementations:
-            print(f"\n{'='*60}")
-            print(
-                f"TESTING WITH {approach.upper()} APPROACH ({implementation.upper()})"
-            )
-            print(f"{'='*60}")
+    # Run all (approach, implementation) pairs
+    for approach, implementation in runs:
+        print(f"\n{'='*60}")
+        print(
+            f"TESTING WITH {approach.upper()} APPROACH ({implementation.upper()})"
+        )
+        print(f"{'='*60}")
 
-            results = []
-            for constraint in constraints:
-                result = run_constraint_with_approach(
-                    constraint, approach, implementation, timeout_ms, use_maxsat
-                )
-
-                # Save SMT-LIB representation to file if available
-                if result.get("smtlib"):
-                    constraint_id = _sanitize_filename(result.get("id", "unknown"))
-                    smt_output_dir = smt_dir / approach / implementation
-                    smt_output_dir.mkdir(parents=True, exist_ok=True)
-                    smt_file_path = smt_output_dir / f"{constraint_id}.smt2"
-
-                    try:
-                        smt_file_path.write_text(result["smtlib"])
-                        result["smtlib_file"] = str(smt_file_path)
-                    except Exception as e:
-                        result["smtlib_file_error"] = str(e)
-
-                    # Remove smtlib from result to avoid bloating JSON files
-                    del result["smtlib"]
-
-                results.append(result)
-
-            all_results[f"{approach}_{implementation}"] = results
-
-            # Save results for this approach and implementation
-            output_file = output_dir_path / f"{approach}_{implementation}.json"
-            output_file.write_text(json.dumps(results, indent=2, default=str))
-            print(f"\nResults saved to: {output_file}")
-
-            # Print summary statistics
-            total = len(results)
-            successful = sum(1 for r in results if r["status"] == "sat")
-            avg_time = (
-                sum(r["execution_time"] for r in results) / total if total > 0 else 0.0
+        results = []
+        for constraint in constraints:
+            result = run_constraint_with_approach(
+                constraint, approach, implementation, timeout_ms, use_maxsat
             )
 
-            print(f"\nSummary for {approach} ({implementation}):")
-            print(f"  Successful: {successful}/{total} ({successful/total*100:.1f}%)")
-            print(f"  Avg time: {avg_time:.4f}s")
+            # Save SMT-LIB representation to file if available
+            if result.get("smtlib"):
+                constraint_id = _sanitize_filename(result.get("id", "unknown"))
+                smt_output_dir = smt_dir / approach / implementation
+                smt_output_dir.mkdir(parents=True, exist_ok=True)
+                smt_file_path = smt_output_dir / f"{constraint_id}.smt2"
+
+                try:
+                    smt_file_path.write_text(result["smtlib"])
+                    result["smtlib_file"] = str(smt_file_path)
+                except Exception as e:
+                    result["smtlib_file_error"] = str(e)
+
+                # Remove smtlib from result to avoid bloating JSON files
+                del result["smtlib"]
+
+            results.append(result)
+
+        all_results[f"{approach}_{implementation}"] = results
+
+        # Save results for this approach and implementation
+        output_file = output_dir_path / f"{approach}_{implementation}.json"
+        output_file.write_text(json.dumps(results, indent=2, default=str))
+        print(f"\nResults saved to: {output_file}")
+
+        # Print summary statistics
+        total = len(results)
+        successful = sum(1 for r in results if r["status"] == "sat")
+        avg_time = (
+            sum(r["execution_time"] for r in results) / total if total > 0 else 0.0
+        )
+
+        print(f"\nSummary for {approach} ({implementation}):")
+        print(f"  Successful: {successful}/{total} ({successful/total*100:.1f}%)")
+        print(f"  Avg time: {avg_time:.4f}s")
 
     return all_results
 

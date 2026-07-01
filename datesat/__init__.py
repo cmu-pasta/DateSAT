@@ -18,7 +18,8 @@ from .symbolic_bitvector.alpha_beta_table_bv import AlphaBetaTableSolver as BitV
 # Import integer implementations
 from .symbolic_int.simple_int import SimpleSolver as IntSimpleSolver
 from .symbolic_int.epoch_days_int import EpochDaysSolver as IntEpochDaysSolver
-from .symbolic_int.hybrid_int import HybridSolver as IntHybridSolver
+from .symbolic_int.hybrid_epoch_int import HybridEpochSolver as IntHybridEpochSolver
+from .symbolic_int.hybrid_ymd_int import HybridYmdSolver as IntHybridYmdSolver
 from .symbolic_int.alpha_beta_int import AlphaBetaSolver as IntAlphaBetaSolver
 from .symbolic_int.alpha_beta_table_int import AlphaBetaTableSolver as IntAlphaBetaTableSolver
 
@@ -40,7 +41,8 @@ __all__ = [
     # Integer implementations
     "IntSimpleSolver",
     "IntEpochDaysSolver",
-    "IntHybridSolver",
+    "IntHybridEpochSolver",
+    "IntHybridYmdSolver",
     "IntAlphaBetaSolver",
     "IntAlphaBetaTableSolver",
 ]
