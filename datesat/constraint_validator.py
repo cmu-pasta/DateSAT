@@ -12,7 +12,7 @@ import datetime
 import warnings
 
 from .core import Date, Period
-from .enumeration_baseline import (
+from future_work.datesat_bounded.enumeration_baseline import (
     ConstraintWrapper,
     Or_enumeration,
     And_enumeration,

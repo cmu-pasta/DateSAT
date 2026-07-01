@@ -10,7 +10,7 @@ from eval.utils.validation import (
     validate_solution_with_concrete,
 )
 from datesat.core import Date, Period
-from datesat.enumeration_baseline import EnumerationDateVar, EnumerationSolver
+from future_work.datesat_bounded.enumeration_baseline import EnumerationDateVar, EnumerationSolver
 
 
 class TestEnumerationBaselineValidation:

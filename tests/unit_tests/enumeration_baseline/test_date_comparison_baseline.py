@@ -3,7 +3,7 @@ import operator
 import pytest
 
 from datesat.core import Date
-from datesat.enumeration_baseline import EnumerationSolver
+from future_work.datesat_bounded.enumeration_baseline import EnumerationSolver
 
 # We cover equality, less/greater, boundary conditions, leap cases, and month ends.
 CASES = [

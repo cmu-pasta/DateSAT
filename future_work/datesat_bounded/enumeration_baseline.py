@@ -12,7 +12,7 @@ from datetime import date, timedelta
 from dateutil.relativedelta import relativedelta
 from typing import Any, Dict, Optional, Union, List, Tuple
 import time
-from .core import Date, Period
+from datesat.core import Date, Period
 import itertools
 import builtins
 

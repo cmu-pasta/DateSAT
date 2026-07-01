@@ -23,7 +23,7 @@ if REPO_ROOT not in sys.path:
 from datesat.constraint_parser import ConstraintParser
 from datesat.constraint_validator import validate_constraint_solution
 from datesat.core import Date, Period
-from datesat.enumeration_baseline import (
+from future_work.datesat_bounded.enumeration_baseline import (
     ConstraintWrapper,
     EnumerationDateVar,
     EnumerationSolver,

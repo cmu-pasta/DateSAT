@@ -3,7 +3,7 @@ from datetime import date as pydate
 import pytest
 
 from datesat.core import Date, Period
-from datesat.enumeration_baseline import EnumerationSolver
+from future_work.datesat_bounded.enumeration_baseline import EnumerationSolver
 
 
 def _apply_sequence_python(base: Date, seq: list[Period]) -> Date:
