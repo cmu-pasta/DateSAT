@@ -201,10 +201,12 @@ class DateVar:
         if self._solver is None:
             return
 
-        # Alpha range bound removed - any month-since-epoch is allowed.
-        # Previous range was 1900-03 (-1200) to 2100-02 (1199):
-        # self._solver.add(self.months_var >= IntVal(_ALPHA_MIN))
-        # self._solver.add(self.months_var <= IntVal(_ALPHA_MAX))
+        # Bound months_var (alpha) to Python's datetime.date representable range.
+        # Epoch is (year=2000, month=3), i.e. alpha = (y - 2000) * 12 + (m - 3):
+        #   (year=1, month=1)      -> -23990
+        #   (year=9999, month=12)  ->  95997
+        self._solver.add(self.months_var >= IntVal(-23990))
+        self._solver.add(self.months_var <= IntVal(95997))
 
         # Well-formedness: beta must be a valid day-within-month
         # 0 <= beta < days_in_month(y, m)

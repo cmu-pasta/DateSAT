@@ -248,7 +248,13 @@ class DateVar:
         #     )
         # )
 
-        # Well-formedness only: month in [1, 12] and day in [1, days_in_month(y, m)]
+        # Year restricted to Python's datetime.date range [1, 9999] so concrete
+        # reconstruction via datetime.date() cannot raise (paper's [1900, 2100]
+        # bound is intentionally relaxed to this ~200x wider range).
+        self._solver.add(self.year >= 1)
+        self._solver.add(self.year <= 9999)
+
+        # Well-formedness: month in [1, 12] and day in [1, days_in_month(y, m)]
         self._solver.add(
             And(
                 self.month >= 1,

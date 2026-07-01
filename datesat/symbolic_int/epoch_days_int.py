@@ -241,12 +241,12 @@ class DateVar:
         if self._solver is None:
             return
 
-        # Add constraints for valid date ranges [1900-03-01 to 2100-02-28]
-        # Epoch is March 1, 2000
-        # 1900-03-01 = -36525 days from epoch
-        # 2100-02-28 = 36523 days from epoch
-        # self._solver.add(self.days_var >= IntVal(-36525))
-        # self._solver.add(self.days_var <= IntVal(36523))
+        # Bound days_var to Python's datetime.date representable range [year 1, year 9999]
+        # so concrete reconstruction cannot raise. Epoch is March 1, 2000.
+        #   date(1, 1, 1)         -> -730179 days from epoch
+        #   date(9999, 12, 31)    -> 2921879 days from epoch
+        self._solver.add(self.days_var >= IntVal(-730179))
+        self._solver.add(self.days_var <= IntVal(2921879))
 
     def __add__(self, other) -> "DateVar":
         """

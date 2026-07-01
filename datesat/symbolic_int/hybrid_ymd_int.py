@@ -430,7 +430,12 @@ class DateVar:
         # So we constrain m in [1,12] and d in [1, days_in_month(y,m)] here.
         # When epoch is source of truth, Y/M/D are either absent or asserted from the
         # decoding formula (which always produces valid Y/M/D), so no constraint needed.
+        # Bound year to Python's datetime.date representable range [1, 9999] so
+        # concrete reconstruction cannot raise. Applied on whichever representation
+        # is the source of truth for this DateVar.
         if self._ymd_consistent and self._ymd_exists:
+            self._solver.add(self._year_var >= 1)
+            self._solver.add(self._year_var <= 9999)
             self._solver.add(
                 And(
                     self._month_var >= 1,
@@ -439,6 +444,12 @@ class DateVar:
                     self._day_var <= days_in_month(self._year_var, self._month_var),
                 )
             )
+        else:
+            # Epoch-consistent: bound epoch_var to equivalent range.
+            #   date(1, 1, 1)      -> -730179
+            #   date(9999, 12, 31) -> 2921879
+            self._solver.add(self.epoch_var >= IntVal(-730179))
+            self._solver.add(self.epoch_var <= IntVal(2921879))
 
     def __add__(self, other) -> 'DateVar':
         """
