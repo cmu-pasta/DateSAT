@@ -9,7 +9,7 @@ Each symbolic method is available in two Z3 implementation types:
 - **Integer (int)**: Uses Z3's integer theory (`IntSort`)
 - **Bitvector (bv)**: Uses Z3's bitvector theory (`BitVecSort`)
 
-DateSAT's bitvector implementations share a legacy width constant, `LEGACY_BITS = 21` (`future_work/symbolic_bitvector/bitwidths.py`). 
+DateSAT's bitvector implementations share a legacy width constant, `LEGACY_BITS = 21` (`future_work/datesat_bounded/bitvector/bitwidths.py`). 
 Each solver uses this 21-bit width for variables and literals.
 
 ## Core Differences

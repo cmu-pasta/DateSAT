@@ -5,7 +5,7 @@ from dateutil.relativedelta import relativedelta
 
 from datesat.core import Date, Period
 from datesat.symbolic_int.alpha_beta_int import AlphaBetaSolver
-from datesat.symbolic_int.alpha_beta_table_int import AlphaBetaTableSolver
+from future_work.datesat_bounded.alpha_beta_table_int import AlphaBetaTableSolver
 from datesat.symbolic_int.simple_int import SimpleSolver
 from datesat.symbolic_int.epoch_days_int import EpochDaysSolver
 from datesat.symbolic_int.hybrid_epoch_int import HybridEpochSolver

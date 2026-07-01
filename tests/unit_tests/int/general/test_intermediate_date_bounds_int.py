@@ -26,7 +26,7 @@ from datesat.symbolic_int.epoch_days_int import EpochDaysSolver
 from datesat.symbolic_int.hybrid_epoch_int import HybridEpochSolver
 from datesat.symbolic_int.hybrid_ymd_int import HybridYmdSolver
 from datesat.symbolic_int.alpha_beta_int import AlphaBetaSolver
-from datesat.symbolic_int.alpha_beta_table_int import AlphaBetaTableSolver
+from future_work.datesat_bounded.alpha_beta_table_int import AlphaBetaTableSolver
 
 
 SOLVERS = [

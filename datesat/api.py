@@ -40,11 +40,11 @@ class DateSATBuilder:
         # the int implementation splits hybrid into hybrid_ymd / hybrid_epoch,
         # while the bitvector implementation keeps the single "hybrid" approach.
         if implementation == "bitvector":
-            from future_work.symbolic_bitvector.alpha_beta_bv import AlphaBetaSolver
-            from future_work.symbolic_bitvector.alpha_beta_table_bv import AlphaBetaTableSolver
-            from future_work.symbolic_bitvector.simple_bv import SimpleSolver
-            from future_work.symbolic_bitvector.epoch_days_bv import EpochDaysSolver
-            from future_work.symbolic_bitvector.hybrid_bv import HybridSolver
+            from future_work.datesat_bounded.bitvector.alpha_beta_bv import AlphaBetaSolver
+            from future_work.datesat_bounded.bitvector.alpha_beta_table_bv import AlphaBetaTableSolver
+            from future_work.datesat_bounded.bitvector.simple_bv import SimpleSolver
+            from future_work.datesat_bounded.bitvector.epoch_days_bv import EpochDaysSolver
+            from future_work.datesat_bounded.bitvector.hybrid_bv import HybridSolver
 
             if approach == "simple":
                 self.solver = SimpleSolver(timeout_ms=timeout_ms, use_maxsat=use_maxsat)
@@ -62,7 +62,9 @@ class DateSATBuilder:
                 )
         elif implementation == "int":
             from .symbolic_int.alpha_beta_int import AlphaBetaSolver
-            from .symbolic_int.alpha_beta_table_int import AlphaBetaTableSolver
+            # alpha_beta_table_int lives under future_work/datesat_bounded/ (not
+            # discussed in the paper); still exposed as approach="alpha_beta_table".
+            from future_work.datesat_bounded.alpha_beta_table_int import AlphaBetaTableSolver
             from .symbolic_int.simple_int import SimpleSolver
             from .symbolic_int.epoch_days_int import EpochDaysSolver
             from .symbolic_int.hybrid_epoch_int import HybridEpochSolver
@@ -113,7 +115,7 @@ class DateSATBuilder:
         """
         if self.implementation == "bitvector":
             from z3 import BitVec, BitVecVal
-            from future_work.symbolic_bitvector.bitwidths import INT_VAR_BITS
+            from future_work.datesat_bounded.bitvector.bitwidths import INT_VAR_BITS
             var = BitVec(name, INT_VAR_BITS)
             
             # Add automatic bounds to prevent bitvector overflow artifacts

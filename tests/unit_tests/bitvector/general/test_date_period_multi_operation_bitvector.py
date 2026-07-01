@@ -3,11 +3,11 @@ from datetime import date as pydate
 import pytest
 
 from datesat.core import Date, Period
-from future_work.symbolic_bitvector.alpha_beta_bv import AlphaBetaSolver
-from future_work.symbolic_bitvector.alpha_beta_table_bv import AlphaBetaTableSolver
-from future_work.symbolic_bitvector.simple_bv import SimpleSolver
-from future_work.symbolic_bitvector.epoch_days_bv import EpochDaysSolver
-from future_work.symbolic_bitvector.hybrid_bv import HybridSolver
+from future_work.datesat_bounded.bitvector.alpha_beta_bv import AlphaBetaSolver
+from future_work.datesat_bounded.bitvector.alpha_beta_table_bv import AlphaBetaTableSolver
+from future_work.datesat_bounded.bitvector.simple_bv import SimpleSolver
+from future_work.datesat_bounded.bitvector.epoch_days_bv import EpochDaysSolver
+from future_work.datesat_bounded.bitvector.hybrid_bv import HybridSolver
 
 
 def _apply_sequence_python(base: Date, seq: list[Period]) -> Date:

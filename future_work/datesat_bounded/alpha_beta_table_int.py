@@ -30,7 +30,7 @@ from z3 import (
     sat,
     unsat,
 )
-from ..core import Date, Period
+from datesat.core import Date, Period
 
 _EPOCH_YEAR = 2000
 _EPOCH_MONTH = 3
