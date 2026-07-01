@@ -12,7 +12,7 @@ from datetime import date, timedelta
 import pytest
 
 from datesat.core import Date
-from datesat.symbolic_bitvector.epoch_days_bv import (
+from future_work.symbolic_bitvector.epoch_days_bv import (
     ymd_from_days_since_epoch,
     days_since_epoch_from_ymd,
 )

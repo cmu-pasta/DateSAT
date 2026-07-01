@@ -8,12 +8,13 @@ from .api import DateSATBuilder
 from .core import Date, Period
 from .solver import solve, solve_from_json
 
-# Import bitvector implementations
-from .symbolic_bitvector.simple_bv import SimpleSolver as BitVectorSimpleSolver
-from .symbolic_bitvector.epoch_days_bv import EpochDaysSolver as BitVectorEpochDaysSolver
-from .symbolic_bitvector.hybrid_bv import HybridSolver as BitVectorHybridSolver
-from .symbolic_bitvector.alpha_beta_bv import AlphaBetaSolver as BitVectorAlphaBetaSolver
-from .symbolic_bitvector.alpha_beta_table_bv import AlphaBetaTableSolver as BitVectorAlphaBetaTableSolver
+# Import bitvector implementations (moved to top-level future_work/ package;
+# the code still works but is no longer part of the main package surface).
+from future_work.symbolic_bitvector.simple_bv import SimpleSolver as BitVectorSimpleSolver
+from future_work.symbolic_bitvector.epoch_days_bv import EpochDaysSolver as BitVectorEpochDaysSolver
+from future_work.symbolic_bitvector.hybrid_bv import HybridSolver as BitVectorHybridSolver
+from future_work.symbolic_bitvector.alpha_beta_bv import AlphaBetaSolver as BitVectorAlphaBetaSolver
+from future_work.symbolic_bitvector.alpha_beta_table_bv import AlphaBetaTableSolver as BitVectorAlphaBetaTableSolver
 
 # Import integer implementations
 from .symbolic_int.simple_int import SimpleSolver as IntSimpleSolver

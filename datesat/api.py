@@ -40,11 +40,11 @@ class DateSATBuilder:
         # the int implementation splits hybrid into hybrid_ymd / hybrid_epoch,
         # while the bitvector implementation keeps the single "hybrid" approach.
         if implementation == "bitvector":
-            from .symbolic_bitvector.alpha_beta_bv import AlphaBetaSolver
-            from .symbolic_bitvector.alpha_beta_table_bv import AlphaBetaTableSolver
-            from .symbolic_bitvector.simple_bv import SimpleSolver
-            from .symbolic_bitvector.epoch_days_bv import EpochDaysSolver
-            from .symbolic_bitvector.hybrid_bv import HybridSolver
+            from future_work.symbolic_bitvector.alpha_beta_bv import AlphaBetaSolver
+            from future_work.symbolic_bitvector.alpha_beta_table_bv import AlphaBetaTableSolver
+            from future_work.symbolic_bitvector.simple_bv import SimpleSolver
+            from future_work.symbolic_bitvector.epoch_days_bv import EpochDaysSolver
+            from future_work.symbolic_bitvector.hybrid_bv import HybridSolver
 
             if approach == "simple":
                 self.solver = SimpleSolver(timeout_ms=timeout_ms, use_maxsat=use_maxsat)
@@ -113,7 +113,7 @@ class DateSATBuilder:
         """
         if self.implementation == "bitvector":
             from z3 import BitVec, BitVecVal
-            from .symbolic_bitvector.bitwidths import INT_VAR_BITS
+            from future_work.symbolic_bitvector.bitwidths import INT_VAR_BITS
             var = BitVec(name, INT_VAR_BITS)
             
             # Add automatic bounds to prevent bitvector overflow artifacts

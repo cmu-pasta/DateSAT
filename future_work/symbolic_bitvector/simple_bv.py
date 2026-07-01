@@ -25,7 +25,7 @@ from z3 import (
     sat,
     unsat,
 )
-from ..core import Date, Period
+from datesat.core import Date, Period
 from .bitwidths import LEGACY_BITS
 
 _NONLEAP_PREFIX = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334]

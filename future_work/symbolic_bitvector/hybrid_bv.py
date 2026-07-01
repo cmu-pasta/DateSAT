@@ -40,7 +40,7 @@ from z3 import (
     sat,
     unsat,
 )
-from ..core import Date, Period
+from datesat.core import Date, Period
 from .bitwidths import LEGACY_BITS
 from .simple_bv import (
     eom_clamp,

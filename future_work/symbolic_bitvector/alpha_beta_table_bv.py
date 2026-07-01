@@ -31,8 +31,8 @@ from z3 import (
     sat,
     unsat,
 )
-from ..symbolic_int.alpha_beta_table_int import build_dim_dbm_48_from_epoch
-from ..core import Date, Period
+from datesat.symbolic_int.alpha_beta_table_int import build_dim_dbm_48_from_epoch
+from datesat.core import Date, Period
 from .bitwidths import LEGACY_BITS
 
 # Epoch constants as Python ints for table construction and concrete decoding

@@ -24,7 +24,7 @@ from z3 import (
     unsat,
 )
 
-from ..core import Date, Period
+from datesat.core import Date, Period
 from .simple_bv import (
     eom_clamp,
     days_in_month
