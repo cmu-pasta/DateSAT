@@ -25,11 +25,12 @@ import statistics
 from collections import defaultdict
 from pathlib import Path
 
-# Configuration
+# Configuration: category subdirectories inside a results run folder
+# (e.g. eval/results/20260701_111457/{llm,grammar,legal})
 BENCHMARKS = [
-    "llm_constraints",
-    "grammar_constraints",
-    "legal_doc_constraints",
+    "llm",
+    "grammar",
+    "legal",
 ]
 
 ENCODINGS = [
@@ -51,9 +52,9 @@ ENCODING_NAMES = {
 }
 
 BENCHMARK_NAMES = {
-    "llm_constraints": "LLM",
-    "grammar_constraints": "Grammar",
-    "legal_doc_constraints": "Legal Doc",
+    "llm": "LLM",
+    "grammar": "Grammar",
+    "legal": "Legal Doc",
 }
 
 
@@ -113,10 +114,10 @@ def main():
         description="Compute overall solve percentage and solve time statistics."
     )
     parser.add_argument(
-        "--datesatbench-dir",
+        "results_dir",
         type=str,
-        default=None,
-        help="Path to the datesatbench directory (default: auto-detect)",
+        help="Path to a results run folder (e.g. eval/results/20260701_111457) "
+        "containing llm/, grammar/, and legal/ subdirectories",
     )
     parser.add_argument(
         "--unit",
@@ -135,17 +136,9 @@ def main():
 
     args = parser.parse_args()
 
-    # Determine datesatbench directory
-    if args.datesatbench_dir:
-        datesatbench_dir = Path(args.datesatbench_dir)
-    else:
-        # Auto-detect: script is in datesatbench/utils/
-        script_dir = Path(__file__).parent
-        datesatbench_dir = script_dir.parent
-
-    # Validate datesatbench directory
-    if not datesatbench_dir.exists():
-        print(f"Error: Dataset directory '{datesatbench_dir}' does not exist.")
+    results_root = Path(args.results_dir).expanduser().resolve()
+    if not results_root.is_dir():
+        print(f"Error: Results folder '{results_root}' does not exist.")
         return 1
 
     # Collect all results
@@ -158,7 +151,7 @@ def main():
 
     for benchmark in BENCHMARKS:
         for encoding in ENCODINGS:
-            results_dir = datesatbench_dir / benchmark / "results"
+            results_dir = results_root / benchmark
 
             # Collect from run_N subdirectories if they exist, else fall back to flat file
             run_dirs = (
@@ -179,7 +172,6 @@ def main():
             else:
                 sources = [results_dir / encoding]
 
-            found_any = False
             for file_path in sources:
                 if not file_path.exists():
                     missing_files.append(str(file_path))
@@ -196,12 +188,8 @@ def main():
                         stats_by_benchmark[benchmark].append(entry)
                         stats_by_encoding[encoding].append(entry)
                         stats_by_both[(benchmark, encoding)].append(entry)
-                    found_any = True
                 except Exception as e:
                     print(f"Warning: Failed to load {file_path}: {e}")
-
-            if not found_any and not run_dirs:
-                missing_files.append(str(results_dir / encoding))
 
     if missing_files:
         print(f"\nWarning: {len(missing_files)} result files not found:")

@@ -7,6 +7,7 @@ The plot style is inspired by benchmark comparison visualizations showing
 relative performance across multiple test cases.
 """
 
+import argparse
 import json
 import statistics
 import sys
@@ -15,20 +16,21 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 
-# Hardcoded paths to constraint results
+# Category subdirectories inside a results run folder
+# (e.g. eval/results/20260701_111457/{legal,grammar,llm})
 DATASETS = {
-    "legal_doc": {
-        "path": Path(__file__).parent.parent / "legal_doc_constraints" / "results",
+    "legal": {
+        "subdir": "legal",
         "title": "Normalized Speedup Comparison on Legally Grounded Constraints",
         "output_name": "normalized_speedup_legal_doc",
     },
     "grammar": {
-        "path": Path(__file__).parent.parent / "grammar_constraints" / "results",
+        "subdir": "grammar",
         "title": "Normalized Speedup Comparison on Grammar-Sampled Constraints",
         "output_name": "normalized_speedup_grammar",
     },
     "llm": {
-        "path": Path(__file__).parent.parent / "llm_constraints" / "results",
+        "subdir": "llm",
         "title": "Normalized Speedup Comparison on LLM-Synthesized Constraints",
         "output_name": "normalized_speedup_llm",
     },
@@ -84,9 +86,12 @@ TIMEOUT_SPEEDUP = 1e-3  # 0.001
 
 
 def get_run_dirs(results_dir: Path) -> list[Path]:
-    """Return run_* subdirectories sorted numerically."""
+    """Return run_* subdirectories sorted numerically, or the directory itself for a flat layout."""
     runs = [d for d in results_dir.iterdir() if d.is_dir() and d.name.startswith("run_")]
-    return sorted(runs, key=lambda d: int(d.name.split("_")[1]))
+    if runs:
+        return sorted(runs, key=lambda d: int(d.name.split("_")[1]))
+    # Flat layout: encoding files live directly in the category directory
+    return [results_dir]
 
 
 def load_results(results_path: Path, verbose: bool = False) -> dict[str, dict[str, dict]]:
@@ -499,15 +504,18 @@ def print_statistics(speedups: dict[str, dict], sorted_constraint_ids: list[str]
             print(f"  {config['label']:<20} {'N/A':>10}")
 
 
-def process_datesatbench(datesatbench_name: str, datesatbench_config: dict):
+def process_datesatbench(
+    results_root: Path, datesatbench_name: str, datesatbench_config: dict
+):
     """
     Process a single datesatbench and generate its speedup plot.
 
     Args:
+        results_root: Path to the results run folder
         datesatbench_name: Name of the datesatbench
-        datesatbench_config: Configuration dict with path, title, output_name
+        datesatbench_config: Configuration dict with subdir, title, output_name
     """
-    results_path = datesatbench_config["path"]
+    results_path = results_root / datesatbench_config["subdir"]
     title = datesatbench_config["title"]
     output_name = datesatbench_config["output_name"]
 
@@ -567,8 +575,7 @@ def process_datesatbench(datesatbench_name: str, datesatbench_config: dict):
     print_statistics(speedups, sorted_constraint_ids)
 
     # Generate plot
-    output_path = Path(__file__).parent / "results" / output_name
-    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path = results_root / output_name
 
     plot_normalized_speedup(
         speedups,
@@ -583,16 +590,19 @@ def process_datesatbench(datesatbench_name: str, datesatbench_config: dict):
     return True
 
 
-def process_combined_datesatbenchs():
+def process_combined_datesatbenchs(results_root: Path):
     """
     Process all datesatbenchs combined into a single plot.
+
+    Args:
+        results_root: Path to the results run folder
     """
     # Collect all results from all datesatbenchs with unique IDs
     combined_results = {technique: {} for technique in TECHNIQUES}
     datesatbench_counts = []
 
     for datesatbench_name, datesatbench_config in DATASETS.items():
-        results_path = datesatbench_config["path"]
+        results_path = results_root / datesatbench_config["subdir"]
 
         if not results_path.exists():
             continue
@@ -661,8 +671,7 @@ def process_combined_datesatbenchs():
     print_statistics(speedups, sorted_constraint_ids)
 
     # Generate plot
-    output_path = Path(__file__).parent / "results" / "normalized_speedup_combined"
-    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path = results_root / "normalized_speedup_combined"
 
     plot_normalized_speedup(
         speedups,
@@ -679,7 +688,24 @@ def process_combined_datesatbenchs():
 
 def main():
     """Main entry point."""
+    arg_parser = argparse.ArgumentParser(
+        description="Generate normalized speedup plots for a results run folder."
+    )
+    arg_parser.add_argument(
+        "results_dir",
+        type=str,
+        help="Path to a results run folder (e.g. eval/results/20260701_111457) "
+        "containing llm/, grammar/, and legal/ subdirectories",
+    )
+    args = arg_parser.parse_args()
+
+    results_root = Path(args.results_dir).expanduser().resolve()
+    if not results_root.is_dir():
+        print(f"Error: Results folder '{results_root}' does not exist.")
+        sys.exit(1)
+
     print("\nNormalized Speedup Plot Generator")
+    print(f"Results folder: {results_root}")
     print(f"Baseline: {TECHNIQUES[BASELINE_TECHNIQUE]['label']}")
     print(f"  - Baseline timeout: use {TIMEOUT_SECONDS}s")
     print(f"  - Technique timeout (baseline ok): speedup = {TIMEOUT_SPEEDUP}")
@@ -687,11 +713,11 @@ def main():
 
     success_count = 0
     for datesatbench_name, datesatbench_config in DATASETS.items():
-        if process_datesatbench(datesatbench_name, datesatbench_config):
+        if process_datesatbench(results_root, datesatbench_name, datesatbench_config):
             success_count += 1
 
     # Also generate combined plot
-    if process_combined_datesatbenchs():
+    if process_combined_datesatbenchs(results_root):
         success_count += 1
 
     print(f"\nDone! Generated {success_count} plots.")
