@@ -57,28 +57,21 @@ class TestPeriodProperties:
         st.integers(min_value=-(10**9), max_value=10**9),
     )
     def test_large_values_rejected(self, y, m, d):
-        """Very large Period values should be rejected with ValueError."""
-        # Assume at least one component exceeds bounds
+        """Period is no longer range-bounded; even large integer values must be accepted.
+
+        Kept under the historical name as a regression guard: if Period ever
+        reintroduces the MAX_PERIOD_* validation, this property will catch it.
+        The bounded twin's counterpart lives in test_period_bounded_properties.py.
+        """
+        # Focus on the region that used to raise
         assume(
             abs(y) > Period.MAX_PERIOD_YEARS
             or abs(m) > Period.MAX_PERIOD_MONTHS
             or abs(d) > Period.MAX_PERIOD_DAYS
         )
-        
-        with pytest.raises(ValueError) as exc_info:
-            Period(y, m, d)
-        
-        error_msg = str(exc_info.value)
-        assert "out of range" in error_msg.lower()
-        
-        # Verify the error mentions which component(s) are invalid
-        # (Note: Period checks in order: years, months, days, so only first violation is reported)
-        if abs(y) > Period.MAX_PERIOD_YEARS:
-            assert "years" in error_msg.lower()
-        elif abs(m) > Period.MAX_PERIOD_MONTHS:
-            assert "months" in error_msg.lower()
-        elif abs(d) > Period.MAX_PERIOD_DAYS:
-            assert "days" in error_msg.lower()
+
+        p = Period(y, m, d)
+        assert (p.years, p.months, p.days) == (y, m, d)
 
     @given(
         st.integers(min_value=-Period.MAX_PERIOD_YEARS, max_value=Period.MAX_PERIOD_YEARS),
