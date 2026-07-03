@@ -22,6 +22,7 @@ from .symbolic_int.simple_int import SimpleSolver as IntSimpleSolver
 from .symbolic_int.epoch_days_int import EpochDaysSolver as IntEpochDaysSolver
 from .symbolic_int.hybrid_epoch_int import HybridEpochSolver as IntHybridEpochSolver
 from .symbolic_int.hybrid_ymd_int import HybridYmdSolver as IntHybridYmdSolver
+from .symbolic_int.hybrid_both_int import HybridBothSolver as IntHybridBothSolver
 from .symbolic_int.alpha_beta_int import AlphaBetaSolver as IntAlphaBetaSolver
 # The alpha-beta-table variant is a bounded-domain optimization that lives under
 # future_work/datesat_bounded/. It is still importable and benchmarkable.
@@ -47,6 +48,7 @@ __all__ = [
     "IntEpochDaysSolver",
     "IntHybridEpochSolver",
     "IntHybridYmdSolver",
+    "IntHybridBothSolver",
     "IntAlphaBetaSolver",
     "IntAlphaBetaTableSolver",
 ]

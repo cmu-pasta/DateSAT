@@ -28,6 +28,7 @@ ENCODINGS = [
     ("Epoch", "epoch_days_int.json"),
     ("Hybrid-YMD", "hybrid_ymd_int.json"),
     ("Hybrid-Epoch", "hybrid_epoch_int.json"),
+    ("Hybrid-Both", "hybrid_both_int.json"),
     ("αβ", "alpha_beta_int.json"),
     ("αβ-Tab", "alpha_beta_table_int.json"),
 ]

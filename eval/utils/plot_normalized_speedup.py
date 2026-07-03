@@ -62,6 +62,12 @@ TECHNIQUES = {
         "marker": "v",
         "color": "#388E3C",
     },
+    "hybrid_both_int": {
+        "file": "hybrid_both_int.json",
+        "label": "Hybrid Both",
+        "marker": "s",
+        "color": "#00695C",
+    },
     "alpha_beta_int": {
         "file": "alpha_beta_int.json",
         "label": "Alpha-Beta",

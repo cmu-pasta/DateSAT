@@ -38,6 +38,7 @@ ENCODINGS = [
     "epoch_days_int.json",
     "hybrid_ymd_int.json",
     "hybrid_epoch_int.json",
+    "hybrid_both_int.json",
     "alpha_beta_int.json",
     "alpha_beta_table_int.json",
 ]
@@ -47,6 +48,7 @@ ENCODING_NAMES = {
     "epoch_days_int.json": "Epoch Days",
     "hybrid_ymd_int.json": "Hybrid YMD",
     "hybrid_epoch_int.json": "Hybrid Epoch",
+    "hybrid_both_int.json": "Hybrid Both",
     "alpha_beta_int.json": "Alpha-Beta",
     "alpha_beta_table_int.json": "Alpha-Beta Table",
 }
