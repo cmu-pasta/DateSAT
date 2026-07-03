@@ -11,20 +11,59 @@ from datetime import date, timedelta
 from dateutil.relativedelta import relativedelta
 from z3 import *
 
+from .bounds import DEFAULT_BOUND_MODE, get_bound_spec
+
+# Process-wide bound mode for CONCRETE Date/Period semantics (the symbolic
+# side is configured per-solver via the `bound` parameter). In "paper" mode,
+# constructing a Date outside [1900-03-01 .. 2100-02-28] raises
+# "Date outside allowed range" — which datesat.solver converts to UNSAT for
+# intermediate results — and Period components are range-checked, matching the
+# original bounded evaluation. In "datetime"/"none" modes only calendar
+# correctness is validated.
+_BOUND_MODE = DEFAULT_BOUND_MODE
+
+
+def set_bound_mode(mode: str) -> None:
+    """Set the concrete-side bound mode ('paper', 'datetime', or 'none')."""
+    global _BOUND_MODE
+    get_bound_spec(mode)  # validate the name
+    _BOUND_MODE = mode
+
+
+def get_bound_mode() -> str:
+    """Return the current concrete-side bound mode."""
+    return _BOUND_MODE
+
+
+def _is_leap_int(year: int) -> bool:
+    """Proleptic Gregorian leap-year rule as pure integer arithmetic."""
+    return year % 4 == 0 and (year % 100 != 0 or year % 400 == 0)
+
+
+def _days_in_month_int(year: int, month: int) -> int:
+    """Days in a month under the proleptic Gregorian calendar (pure ints)."""
+    if month == 2:
+        return 29 if _is_leap_int(year) else 28
+    if month in (4, 6, 9, 11):
+        return 30
+    return 31
+
 
 class Date:
     """Date class with year/month/day representation."""
 
-    def __init__(self, year: int, month: int, day: int, bounded: bool = False):
+    def __init__(self, year: int, month: int, day: int, bounded: bool = None):
         """Initialize a Date with year, month, day components.
 
         Args:
             year: Year component
             month: Month component
             day: Day component
-            bounded: Retained for backwards compatibility. Date is no longer
-                     range-bounded; only calendar correctness is validated.
-                     Any value (True or False) is accepted and ignored.
+            bounded: Range-enforcement override. None (default) follows the
+                     process-wide bound mode (see set_bound_mode): the "paper"
+                     mode enforces [1900-03-01 .. 2100-02-28], other modes only
+                     validate calendar correctness. False explicitly opts out
+                     of range enforcement (used for model reconstruction).
         """
         self._year = year
         self._month = month
@@ -56,24 +95,37 @@ class Date:
                 "Invalid date format: year, month, and day must be integers"
             )
 
-        # First, validate calendar correctness
-        try:
-            date(self._year, self._month, self._day)
-        except ValueError as e:
-            raise ValueError(
-                f"Invalid date: {self._year}-{self._month:02d}-{self._day:02d}"
-            ) from e
+        # First, validate calendar correctness. datetime.date covers years
+        # 1..9999; outside that range (possible in bound mode 'none') fall
+        # back to a pure-integer proleptic Gregorian check so unbounded
+        # models can still be represented.
+        if 1 <= self._year <= 9999:
+            try:
+                date(self._year, self._month, self._day)
+            except ValueError as e:
+                raise ValueError(
+                    f"Invalid date: {self._year}-{self._month:02d}-{self._day:02d}"
+                ) from e
+        else:
+            if not (
+                1 <= self._month <= 12
+                and 1 <= self._day <= _days_in_month_int(self._year, self._month)
+            ):
+                raise ValueError(
+                    f"Invalid date: {self._year}-{self._month:02d}-{self._day:02d}"
+                )
 
-        # Date range bound removed - any calendar-valid date is allowed.
-        # Previously enforced allowed window [1900-03-01 - 2100-02-28]:
-        # if self._bounded:
-        #     min_allowed = (1900, 3, 1)
-        #     max_allowed = (2100, 2, 28)
-        #
-        #     if date_components < min_allowed or date_components > max_allowed:
-        #         raise ValueError(
-        #             f"Date outside allowed range: {self._year}-{self._month:02d}-{self._day:02d} (allowed [1900-03-01..2100-02-28])"
-        #         )
+        # Range enforcement depends on the process-wide bound mode. Only the
+        # "paper" mode enforces a window; "datetime" is already guaranteed by
+        # the calendar check above (datetime.date covers years 1..9999) and
+        # "none" adds nothing. bounded=False explicitly opts out (used when
+        # reconstructing models that legitimately exceeded the concrete range).
+        if _BOUND_MODE == "paper" and self._bounded is not False:
+            spec = get_bound_spec("paper")
+            if date_components < spec.min_ymd or date_components > spec.max_ymd:
+                raise ValueError(
+                    f"Date outside allowed range: {self._year}-{self._month:02d}-{self._day:02d} (allowed [1900-03-01..2100-02-28])"
+                )
 
     def __str__(self) -> str:
         """Return a string representation of the Date."""
@@ -214,20 +266,22 @@ class Period:
                 "Invalid Period format: years, months, and days must be integers"
             )
 
-        # Period range bounds removed - any integer period is allowed.
-        # Previously constrained to fit within the allowed date range:
-        # if abs(years) > self.MAX_PERIOD_YEARS:
-        #     raise ValueError(
-        #         f"Period years out of range: {years} (max ±{self.MAX_PERIOD_YEARS})"
-        #     )
-        # if abs(months) > self.MAX_PERIOD_MONTHS:
-        #     raise ValueError(
-        #         f"Period months out of range: {months} (max ±{self.MAX_PERIOD_MONTHS})"
-        #     )
-        # if abs(days) > self.MAX_PERIOD_DAYS:
-        #     raise ValueError(
-        #         f"Period days out of range: {days} (max ±{self.MAX_PERIOD_DAYS})"
-        #     )
+        # Period range checks apply only in "paper" bound mode, where periods
+        # must fit within the bounded date window (original evaluation
+        # semantics). Other modes allow any integer period.
+        if _BOUND_MODE == "paper":
+            if abs(years) > self.MAX_PERIOD_YEARS:
+                raise ValueError(
+                    f"Period years out of range: {years} (max ±{self.MAX_PERIOD_YEARS})"
+                )
+            if abs(months) > self.MAX_PERIOD_MONTHS:
+                raise ValueError(
+                    f"Period months out of range: {months} (max ±{self.MAX_PERIOD_MONTHS})"
+                )
+            if abs(days) > self.MAX_PERIOD_DAYS:
+                raise ValueError(
+                    f"Period days out of range: {days} (max ±{self.MAX_PERIOD_DAYS})"
+                )
 
         self._years = years
         self._months = months

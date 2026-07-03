@@ -25,6 +25,7 @@ from z3 import (
     unsat,
 )
 from ..core import Date, Period
+from ..bounds import DEFAULT_BOUND_MODE, get_bound_spec
 
 _NONLEAP_PREFIX = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334]
 _LEAP_PREFIX = [0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335]
@@ -119,6 +120,28 @@ def add_days_componentwise(y, m, d, delta_days: int) -> Tuple[ArithRef, ArithRef
     return cur_y, cur_m, cur_d
 
 
+def ymd_range_constraints(year, month, day, spec) -> list:
+    """Z3 constraints restricting (year, month, day) to spec's date window.
+
+    Assumes calendar well-formedness (month in [1,12], day valid) is asserted
+    separately. The window edges only need extra constraints when they are not
+    month-aligned to a full year (e.g. paper's 1900-03-01 lower edge); for a
+    (y, 1, 1)..(y', 12, 31) window this reduces to plain year bounds.
+    """
+    constraints = []
+    y0, m0, d0 = spec.min_ymd
+    y1, m1, d1 = spec.max_ymd
+    constraints.append(year >= y0)
+    constraints.append(year <= y1)
+    if (m0, d0) != (1, 1):
+        # At year == y0: month > m0, or month == m0 and day >= d0
+        constraints.append(Or(year > y0, month > m0, And(month == m0, day >= d0)))
+    if (m1, d1) != (12, 31):
+        # At year == y1: month < m1, or month == m1 and day <= d1
+        constraints.append(Or(year < y1, month < m1, And(month == m1, day <= d1)))
+    return constraints
+
+
 class DateVar:
     """Symbolic date variable for simple implementation."""
 
@@ -131,6 +154,9 @@ class DateVar:
         self.day = Int(f"{name}_day")
         # Solver reference for adding bounds to intermediate dates (set after creation if needed)
         self._solver = None
+        # Bound spec for the ablation study; overwritten by the owning solver
+        # (and copied to intermediates) so all DateVars share one setting.
+        self._bound_spec = get_bound_spec(DEFAULT_BOUND_MODE)
 
     def __str__(self) -> str:
         return f"DateVar({self.name})"
@@ -216,43 +242,15 @@ class DateVar:
         if self._solver is None:
             return
 
-        # Year range bound removed - any year is allowed as long as the date is valid.
-        # Previous range was 1900-03-01 to 2100-02-28:
-        # self._solver.add(
-        #     Or(
-        #         # 1900-03-01 to 1900-12-31
-        #         And(
-        #             self.year == 1900,
-        #             self.month >= 3,
-        #             self.month <= 12,
-        #             self.day >= 1,
-        #             self.day <= days_in_month(self.year, self.month),
-        #         ),
-        #         # 1901-01-01 to 2099-12-31
-        #         And(
-        #             self.year >= 1901,
-        #             self.year <= 2099,
-        #             self.month >= 1,
-        #             self.month <= 12,
-        #             self.day >= 1,
-        #             self.day <= days_in_month(self.year, self.month),
-        #         ),
-        #         # 2100-01-01 to 2100-02-28
-        #         And(
-        #             self.year == 2100,
-        #             self.month >= 1,
-        #             self.month <= 2,
-        #             self.day >= 1,
-        #             self.day <= days_in_month(self.year, self.month),
-        #         ),
-        #     )
-        # )
-
-        # Year restricted to Python's datetime.date range [1, 9999] so concrete
-        # reconstruction via datetime.date() cannot raise (paper's [1900, 2100]
-        # bound is intentionally relaxed to this ~200x wider range).
-        self._solver.add(self.year >= 1)
-        self._solver.add(self.year <= 9999)
+        # Range bound per the configured bound spec (None = no range bound):
+        #   paper    -> [1900-03-01 .. 2100-02-28] (year bounds + window edges)
+        #   datetime -> year in [1, 9999]
+        #   none     -> well-formedness only
+        if self._bound_spec is not None:
+            for constraint in ymd_range_constraints(
+                self.year, self.month, self.day, self._bound_spec
+            ):
+                self._solver.add(constraint)
 
         # Well-formedness: month in [1, 12] and day in [1, days_in_month(y, m)]
         self._solver.add(
@@ -309,6 +307,7 @@ class DateVar:
             
             # Add bounds to intermediate result
             result._solver = self._solver
+            result._bound_spec = self._bound_spec
             result._add_bounds()
             return result
         else:
@@ -326,12 +325,13 @@ class DateVar:
 class SimpleSolver:
     """Simple date constraint solver using component-based representation."""
 
-    def __init__(self, timeout_ms=600000, use_maxsat=False):
+    def __init__(self, timeout_ms=600000, use_maxsat=False, bound=DEFAULT_BOUND_MODE):
         """Initialize the solver with optional year bounds and timeout.
 
         Args:
             timeout_ms: Timeout in milliseconds (default: 60 seconds)
             use_maxsat: If True, use MaxSAT optimization with soft constraints
+            bound: Date bound mode - 'paper', 'datetime', or 'none'
         """
         self.use_maxsat = use_maxsat
         if use_maxsat:
@@ -342,11 +342,13 @@ class SimpleSolver:
         self.date_vars = {}
         self.constraints = []
         self.timeout_ms = timeout_ms
+        self.bound_spec = get_bound_spec(bound)
 
     def add_date_var(self, name: str) -> DateVar:
         """Add a symbolic date variable with comprehensive date validation."""
         date_var = DateVar(name)
         date_var._solver = self.solver
+        date_var._bound_spec = self.bound_spec
         self.date_vars[name] = date_var
 
         # Add bounds using _add_bounds method

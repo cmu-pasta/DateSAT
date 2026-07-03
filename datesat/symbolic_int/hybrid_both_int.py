@@ -42,17 +42,20 @@ from z3 import (
     unsat,
 )
 from ..core import Date, Period
+from ..bounds import DEFAULT_BOUND_MODE, get_bound_spec
 from .simple_int import (
     normalize_month,
     days_in_month,
-    eom_clamp
+    eom_clamp,
+    ymd_range_constraints
 )
 from .epoch_days_int import (
     date_from_days_since_epoch,
     days_since_epoch_from_date,
     add_days_ordinal,
     ymd_from_days_since_epoch,
-    days_since_epoch_from_ymd
+    days_since_epoch_from_ymd,
+    civil_from_days_int
 )
 
 class DateVar:
@@ -76,6 +79,12 @@ class DateVar:
         self._is_user_var = is_user_var
         # Solver reference for adding bounds to intermediate dates
         self._solver = ctx.solver if ctx else None
+        # Bound spec for the ablation study, taken from the owning solver
+        self._bound_spec = (
+            getattr(ctx, "bound_spec", get_bound_spec(DEFAULT_BOUND_MODE))
+            if ctx
+            else get_bound_spec(DEFAULT_BOUND_MODE)
+        )
         # Epoch representation always exists as a Z3 Int (used for cross-encoding linking)
         self.epoch_var = Int(f"{name}_epoch")
         if is_user_var:
@@ -164,11 +173,11 @@ class DateVar:
             e = model.evaluate(self._epoch_expr(), model_completion=True).as_long()
         try:
             return date_from_days_since_epoch(e)
-        except ValueError:
-            # Epoch out of bounds - convert to Y/M/D then create unbounded date
-            _EPOCH = date(2000, 3, 1)
-            result_date = _EPOCH + timedelta(days=e)
-            return Date(result_date.year, result_date.month, result_date.day, bounded=False)
+        except (ValueError, OverflowError):
+            # Epoch outside datetime's range (or the paper window) - decode
+            # with pure integer arithmetic and return unbounded.
+            y2, m2, d2 = civil_from_days_int(e)
+            return Date(y2, m2, d2, bounded=False)
 
     # ----- Internal helpers -----
     def _ensure_ymd(self) -> None:
@@ -360,12 +369,18 @@ class DateVar:
         # bridge (epoch = days_since_epoch_from_ymd(y,m,d)) doesn't force
         # well-formedness on Y/M/D - the solver could pick m=17, d=100. So we
         # constrain m in [1,12] and d in [1, days_in_month(y,m)] here.
-        # Year is bounded to Python's datetime.date representable range [1, 9999]
-        # so concrete reconstruction cannot raise. The bridge then bounds the
-        # epoch var implicitly, so no separate epoch interval is needed.
+        # The range bound (if any) follows the configured bound spec and is
+        # applied on the Y/M/D side (the bridge then bounds the epoch var
+        # implicitly); epoch-only intermediates get the equivalent day interval:
+        #   paper    -> [1900-03-01 .. 2100-02-28]
+        #   datetime -> [0001-01-01 .. 9999-12-31]
+        #   none     -> well-formedness only
         if self._ymd_consistent and self._ymd_exists:
-            self._solver.add(self._year_var >= 1)
-            self._solver.add(self._year_var <= 9999)
+            if self._bound_spec is not None:
+                for constraint in ymd_range_constraints(
+                    self._year_var, self._month_var, self._day_var, self._bound_spec
+                ):
+                    self._solver.add(constraint)
             self._solver.add(
                 And(
                     self._month_var >= 1,
@@ -374,12 +389,10 @@ class DateVar:
                     self._day_var <= days_in_month(self._year_var, self._month_var),
                 )
             )
-        else:
-            # Epoch-only intermediate: bound epoch_var to the equivalent range.
-            #   date(1, 1, 1)      -> -730179
-            #   date(9999, 12, 31) -> 2921879
-            self._solver.add(self.epoch_var >= IntVal(-730179))
-            self._solver.add(self.epoch_var <= IntVal(2921879))
+        elif self._bound_spec is not None:
+            # Epoch-only intermediate: bound epoch_var to the equivalent day interval.
+            self._solver.add(self.epoch_var >= IntVal(self._bound_spec.min_epoch))
+            self._solver.add(self.epoch_var <= IntVal(self._bound_spec.max_epoch))
 
     def __add__(self, other) -> 'DateVar':
         """
@@ -477,12 +490,13 @@ class HybridBothSolver:
     conversion for user variables.
     """
 
-    def __init__(self, timeout_ms=600000, use_maxsat=False):
+    def __init__(self, timeout_ms=600000, use_maxsat=False, bound=DEFAULT_BOUND_MODE):
         """Initialize the solver with timeout.
 
         Args:
             timeout_ms: Timeout in milliseconds (default: 60 seconds)
             use_maxsat: If True, use MaxSAT optimization with soft constraints
+            bound: Date bound mode - 'paper', 'datetime', or 'none'
         """
         self.use_maxsat = use_maxsat
         if use_maxsat:
@@ -493,6 +507,7 @@ class HybridBothSolver:
         self.date_vars = {}
         self.constraints = []
         self.timeout_ms = timeout_ms
+        self.bound_spec = get_bound_spec(bound)
 
     def add_date_var(self, name: str, add_bounds: bool = True) -> DateVar:
         if name is None:

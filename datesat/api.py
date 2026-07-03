@@ -21,6 +21,7 @@ class DateSATBuilder:
         implementation: str = "int",
         timeout_ms: int = 600000,
         use_maxsat: bool = False,
+        bound: str = None,
     ):
         """Initialize the builder with the specified approach, implementation, and timeout.
 
@@ -29,17 +30,38 @@ class DateSATBuilder:
             implementation: Either "int" or "bitvector" (default: "int")
             timeout_ms: Timeout in milliseconds (default: 600000 = 10 minutes)
             use_maxsat: If True, use MaxSAT optimization with soft constraints for dates near today
+            bound: Date bound mode for the ablation study - "paper"
+                ([1900-03-01..2100-02-28]), "datetime" ([0001-01-01..9999-12-31]),
+                or "none" (no range bound). Defaults to the package default
+                ("datetime"). Also sets the process-wide concrete bound mode so
+                Date/Period literal semantics match the symbolic bounds.
         """
+        from .bounds import DEFAULT_BOUND_MODE
+        from .core import set_bound_mode
+
+        if bound is None:
+            bound = DEFAULT_BOUND_MODE
+        # Keep concrete Date/Period semantics in sync with the symbolic bounds
+        # (in "paper" mode an out-of-window concrete intermediate raises, which
+        # datesat.solver converts to UNSAT - the original bounded semantics).
+        set_bound_mode(bound)
+
         self.approach = approach
         self.implementation = implementation
         self.timeout_ms = timeout_ms
         self.use_maxsat = use_maxsat
+        self.bound = bound
 
         # Import and dispatch the appropriate solver based on implementation.
         # The int and bitvector implementations have different valid approaches:
         # the int implementation splits hybrid into hybrid_ymd / hybrid_epoch,
         # while the bitvector implementation keeps the single "hybrid" approach.
         if implementation == "bitvector":
+            if bound != "datetime":
+                raise ValueError(
+                    "The bound ablation (bound='paper'/'none') is only supported for "
+                    "the int implementation approaches."
+                )
             from future_work.datesat_bounded.bitvector.alpha_beta_bv import AlphaBetaSolver
             from future_work.datesat_bounded.bitvector.alpha_beta_table_bv import AlphaBetaTableSolver
             from future_work.datesat_bounded.bitvector.simple_bv import SimpleSolver
@@ -72,18 +94,23 @@ class DateSATBuilder:
             from .symbolic_int.hybrid_both_int import HybridBothSolver
 
             if approach == "simple":
-                self.solver = SimpleSolver(timeout_ms=timeout_ms, use_maxsat=use_maxsat)
+                self.solver = SimpleSolver(timeout_ms=timeout_ms, use_maxsat=use_maxsat, bound=bound)
             elif approach == "epoch_days":
-                self.solver = EpochDaysSolver(timeout_ms=timeout_ms, use_maxsat=use_maxsat)
+                self.solver = EpochDaysSolver(timeout_ms=timeout_ms, use_maxsat=use_maxsat, bound=bound)
             elif approach == "hybrid_ymd":
-                self.solver = HybridYmdSolver(timeout_ms=timeout_ms, use_maxsat=use_maxsat)
+                self.solver = HybridYmdSolver(timeout_ms=timeout_ms, use_maxsat=use_maxsat, bound=bound)
             elif approach == "hybrid_epoch":
-                self.solver = HybridEpochSolver(timeout_ms=timeout_ms, use_maxsat=use_maxsat)
+                self.solver = HybridEpochSolver(timeout_ms=timeout_ms, use_maxsat=use_maxsat, bound=bound)
             elif approach == "hybrid_both":
-                self.solver = HybridBothSolver(timeout_ms=timeout_ms, use_maxsat=use_maxsat)
+                self.solver = HybridBothSolver(timeout_ms=timeout_ms, use_maxsat=use_maxsat, bound=bound)
             elif approach == "alpha_beta":
-                self.solver = AlphaBetaSolver(timeout_ms=timeout_ms, use_maxsat=use_maxsat)
+                self.solver = AlphaBetaSolver(timeout_ms=timeout_ms, use_maxsat=use_maxsat, bound=bound)
             elif approach == "alpha_beta_table":
+                if bound != "datetime":
+                    raise ValueError(
+                        "alpha_beta_table does not support the bound ablation "
+                        "(it is a bounded-domain optimization kept under future_work/)."
+                    )
                 self.solver = AlphaBetaTableSolver(timeout_ms=timeout_ms, use_maxsat=use_maxsat)
             else:
                 raise ValueError(

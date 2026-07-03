@@ -25,6 +25,7 @@ from z3 import (
     unsat,
 )
 from ..core import Date, Period
+from ..bounds import DEFAULT_BOUND_MODE, get_bound_spec
 from .simple_int import (
     eom_clamp,
     normalize_month
@@ -127,6 +128,28 @@ def days_since_epoch_from_ymd(*args):
         return _days_since_epoch_from_ymd_z3(y, m, d)
     raise TypeError("days_since_epoch_from_ymd expects (Date) or (y, m, d)")
 
+def civil_from_days_int(days_since_epoch: int) -> Tuple[int, int, int]:
+    """Pure-integer inverse of days-since-2000-03-01 -> (y, m, d).
+
+    Mirrors the Z3 decoder above (Howard Hinnant's civil_from_days) without
+    going through datetime, so it works for dates outside datetime's
+    [year 1, year 9999] range (needed for model extraction in bound mode
+    'none'). Python's floor division matches Z3's Euclidean div for the
+    positive divisors used here.
+    """
+    z = days_since_epoch + 730485  # days since 0000-03-01 (March-based)
+    era = z // 146097
+    doe = z - era * 146097  # 0..146096
+    yoe = (doe - doe // 1460 + doe // 36524 - doe // 146096) // 365  # 0..399
+    y = yoe + era * 400
+    doy = doe - (365 * yoe + yoe // 4 - yoe // 100)  # 0..365
+    mp = (5 * doy + 2) // 153  # 0..11 (Mar..Feb)
+    d = doy - (153 * mp + 2) // 5 + 1
+    m = mp + 3 if mp < 10 else mp - 9
+    y = y + (1 if m <= 2 else 0)
+    return y, m, d
+
+
 def date_from_days_since_epoch(days: int) -> Date:
     """Convert concrete days since epoch to a concrete Date."""
     result_date = _EPOCH + timedelta(days=days)
@@ -155,6 +178,9 @@ class DateVar:
         self.days_var = Int(f"{name}_days")
         # Solver reference for adding bounds to intermediate dates (set after creation if needed)
         self._solver = None
+        # Bound spec for the ablation study; overwritten by the owning solver
+        # (and copied to intermediates) so all DateVars share one setting.
+        self._bound_spec = get_bound_spec(DEFAULT_BOUND_MODE)
 
     def __str__(self) -> str:
         return f"DateVar({self.name})"
@@ -182,11 +208,12 @@ class DateVar:
         days = model.evaluate(self.days_var, model_completion=True).as_long()
         try:
             return date_from_days_since_epoch(days)
-        except ValueError:
-            # Days is outside the Date class's default range - date is still
-            # well-formed (bounds removed from the solver), so return unbounded.
-            result_date = _EPOCH + timedelta(days=days)
-            return Date(result_date.year, result_date.month, result_date.day, bounded=False)
+        except (ValueError, OverflowError):
+            # Days is outside datetime's range (or the paper window) - the
+            # date is still well-formed, so decode with pure integer
+            # arithmetic and return unbounded.
+            y, m, d = civil_from_days_int(days)
+            return Date(y, m, d, bounded=False)
 
     def __ge__(self, other) -> BoolRef:
         """Support x >= date comparison."""
@@ -241,12 +268,14 @@ class DateVar:
         if self._solver is None:
             return
 
-        # Bound days_var to Python's datetime.date representable range [year 1, year 9999]
-        # so concrete reconstruction cannot raise. Epoch is March 1, 2000.
-        #   date(1, 1, 1)         -> -730179 days from epoch
-        #   date(9999, 12, 31)    -> 2921879 days from epoch
-        self._solver.add(self.days_var >= IntVal(-730179))
-        self._solver.add(self.days_var <= IntVal(2921879))
+        # Range bound per the configured bound spec (None = no range bound).
+        # Every integer is a well-formed days-since-epoch value, so mode
+        # 'none' asserts nothing. Epoch is March 1, 2000:
+        #   paper    -> [-36525, 36523]    (1900-03-01 .. 2100-02-28)
+        #   datetime -> [-730179, 2921879] (0001-01-01 .. 9999-12-31)
+        if self._bound_spec is not None:
+            self._solver.add(self.days_var >= IntVal(self._bound_spec.min_epoch))
+            self._solver.add(self.days_var <= IntVal(self._bound_spec.max_epoch))
 
     def __add__(self, other) -> "DateVar":
         """
@@ -289,6 +318,7 @@ class DateVar:
             
             # Add bounds to intermediate result
             result._solver = self._solver
+            result._bound_spec = self._bound_spec
             result._add_bounds()
             return result
         else:
@@ -306,12 +336,13 @@ class DateVar:
 class EpochDaysSolver:
     """Epoch_days date constraint solver using epoch-based conversion."""
 
-    def __init__(self, timeout_ms=600000, use_maxsat=False):
+    def __init__(self, timeout_ms=600000, use_maxsat=False, bound=DEFAULT_BOUND_MODE):
         """Initialize the solver with timeout.
 
         Args:
             timeout_ms: Timeout in milliseconds (default: 60 seconds)
             use_maxsat: If True, use MaxSAT optimization with soft constraints
+            bound: Date bound mode - 'paper', 'datetime', or 'none'
         """
         self.use_maxsat = use_maxsat
         if use_maxsat:
@@ -322,11 +353,13 @@ class EpochDaysSolver:
         self.date_vars = {}
         self.constraints = []
         self.timeout_ms = timeout_ms
+        self.bound_spec = get_bound_spec(bound)
 
     def add_date_var(self, name: str) -> DateVar:
         """Add a symbolic date variable with basic constraints."""
         date_var = DateVar(name)
         date_var._solver = self.solver
+        date_var._bound_spec = self.bound_spec
         self.date_vars[name] = date_var
 
         # Add bounds using _add_bounds method

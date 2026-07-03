@@ -20,6 +20,7 @@ def solve(
     timeout_ms: int = 600000,
     verbose: bool = True,
     use_maxsat: bool = False,
+    bound: str = None,
 ) -> Dict[str, Any]:
     """
     Solve date constraints and return the result.
@@ -94,7 +95,8 @@ def solve(
             approach=approach,
             implementation=implementation,
             timeout_ms=timeout_ms,
-            use_maxsat=use_maxsat
+            use_maxsat=use_maxsat,
+            bound=bound
         )
     
     # Set up execution context with all necessary imports and the builder factory

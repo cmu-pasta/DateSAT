@@ -32,6 +32,7 @@ from .epoch_days_int import (
     ymd_from_days_since_epoch,
     days_since_epoch_from_ymd
 )
+from ..bounds import DEFAULT_BOUND_MODE, get_bound_spec
 
 # -------------------------------
 # Alpha (months-since-epoch) helpers
@@ -80,6 +81,9 @@ class DateVar:
         self.beta_var = Int(f"{name}_beta")
         # Solver reference for adding bounds to intermediate dates (set after creation if needed)
         self._solver = None
+        # Bound spec for the ablation study; overwritten by the owning solver
+        # (and copied to intermediates) so all DateVars share one setting.
+        self._bound_spec = get_bound_spec(DEFAULT_BOUND_MODE)
 
     def __str__(self) -> str:
         return f"DateVar({self.name})"
@@ -201,12 +205,14 @@ class DateVar:
         if self._solver is None:
             return
 
-        # Bound months_var (alpha) to Python's datetime.date representable range.
-        # Epoch is (year=2000, month=3), i.e. alpha = (y - 2000) * 12 + (m - 3):
-        #   (year=1, month=1)      -> -23990
-        #   (year=9999, month=12)  ->  95997
-        self._solver.add(self.months_var >= IntVal(-23990))
-        self._solver.add(self.months_var <= IntVal(95997))
+        # Range bound per the configured bound spec (None = no range bound).
+        # Alpha is month-granular; both presets are month-aligned windows,
+        # so a pure alpha interval is exact. Epoch is (2000, 3):
+        #   paper    -> [-1200, 1199]   (1900-03 .. 2100-02)
+        #   datetime -> [-23990, 95997] (0001-01 .. 9999-12)
+        if self._bound_spec is not None:
+            self._solver.add(self.months_var >= IntVal(self._bound_spec.min_alpha))
+            self._solver.add(self.months_var <= IntVal(self._bound_spec.max_alpha))
 
         # Well-formedness: beta must be a valid day-within-month
         # 0 <= beta < days_in_month(y, m)
@@ -257,6 +263,7 @@ class DateVar:
                 
                 # Add bounds to intermediate result
                 result._solver = self._solver
+                result._bound_spec = self._bound_spec
                 result._add_bounds()
                 return result
         
@@ -277,6 +284,7 @@ class DateVar:
                 result.beta_var = beta1
                 
                 result._solver = self._solver
+                result._bound_spec = self._bound_spec
                 result._add_bounds()
                 return result
 
@@ -306,6 +314,7 @@ class DateVar:
                 
                 # Add bounds to intermediate result
                 result._solver = self._solver
+                result._bound_spec = self._bound_spec
                 result._add_bounds()
                 return result
         else:
@@ -323,12 +332,13 @@ class DateVar:
 class AlphaBetaSolver:
     """Alpha-beta date constraint solver using epoch-based conversion."""
 
-    def __init__(self, timeout_ms=600000, use_maxsat=False):
+    def __init__(self, timeout_ms=600000, use_maxsat=False, bound=DEFAULT_BOUND_MODE):
         """Initialize the solver with timeout.
 
         Args:
             timeout_ms: Timeout in milliseconds (default: 60 seconds)
             use_maxsat: If True, use MaxSAT optimization with soft constraints
+            bound: Date bound mode - 'paper', 'datetime', or 'none'
         """
         self.use_maxsat = use_maxsat
         if use_maxsat:
@@ -339,11 +349,13 @@ class AlphaBetaSolver:
         self.date_vars = {}
         self.constraints = []
         self.timeout_ms = timeout_ms
+        self.bound_spec = get_bound_spec(bound)
 
     def add_date_var(self, name: str) -> DateVar:
         """Add a symbolic date variable with basic constraints."""
         date_var = DateVar(name)
         date_var._solver = self.solver
+        date_var._bound_spec = self.bound_spec
         self.date_vars[name] = date_var
 
         # Add bounds using _add_bounds method

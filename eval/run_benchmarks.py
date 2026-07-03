@@ -23,6 +23,7 @@ def _get_smtlib_for_constraint(
     implementation: str,
     timeout_ms: int,
     use_maxsat: bool = False,
+    bound: str = None,
 ) -> str | None:
     """
     Generate SMT-LIB representation for a constraint.
@@ -43,6 +44,7 @@ def _get_smtlib_for_constraint(
             implementation=implementation,
             timeout_ms=timeout_ms,
             use_maxsat=use_maxsat,
+            bound=bound,
         )
 
     exec_globals = {
@@ -57,12 +59,105 @@ def _get_smtlib_for_constraint(
     return builder.to_smt2() if builder else None
 
 
+def run_constraint_check_only(
+    constraint_data: dict,
+    approach: str,
+    implementation: str,
+    timeout_ms: int = TIMEOUT_MS,
+    bound: str = None,
+) -> dict:
+    """
+    Solve-time evaluation runner: build the constraints, then time ONLY the
+    solver's check() call and record the sat/unsat/timeout status. No model
+    (solution) is ever extracted, so the reported execution_time is a clean
+    solve-time measurement uncontaminated by model extraction or validation.
+    """
+    import time
+
+    from z3 import BoolVal, sat, unsat
+
+    from datesat.api import DateSATBuilder
+    from datesat.constraint_parser import ConstraintParser
+    from datesat.core import Date, Period
+
+    constraint_id = constraint_data.get("id", "unknown")
+
+    result = {
+        "id": constraint_id,
+        "constraints": constraint_data.get("constraints", []),
+        "declarations": constraint_data.get("declarations", []),
+        "approach": approach,
+        "implementation": implementation,
+        "bound": bound,
+        "status": "error",
+        "execution_time": 0,
+        "error_message": None,
+    }
+
+    try:
+        parser = ConstraintParser()
+        constraint_code = parser.parse_constraint_data(constraint_data)
+
+        def create_builder():
+            return DateSATBuilder(
+                approach=approach,
+                implementation=implementation,
+                timeout_ms=timeout_ms,
+                bound=bound,
+            )
+
+        exec_globals = {
+            "DateSATBuilder": create_builder,
+            "Date": Date,
+            "Period": Period,
+        }
+
+        # Mirror datesat.solve's bounded semantics: in "paper" mode an
+        # out-of-window concrete intermediate raises during constraint
+        # building and is converted to an UNSAT constraint.
+        try:
+            exec(constraint_code, exec_globals)
+        except ValueError as e:
+            if "Date outside allowed range" in str(e):
+                builder = exec_globals.get("builder")
+                if builder is None:
+                    raise
+                builder.add_constraint(BoolVal(False))
+            else:
+                raise
+
+        builder = exec_globals.get("builder")
+        if builder is None:
+            raise RuntimeError("Failed to create constraint solver")
+
+        start = time.perf_counter()
+        check_result = builder.solver.check()
+        result["execution_time"] = time.perf_counter() - start
+
+        if check_result == sat:
+            result["status"] = "sat"
+        elif check_result == unsat:
+            result["status"] = "unsat"
+        else:
+            result["status"] = "timeout"
+
+        print(f"  {constraint_id}: {result['status']} ({result['execution_time']:.3f}s)")
+
+    except Exception as e:
+        result["status"] = "error"
+        result["error_message"] = str(e)
+        print(f"  {constraint_id}: error ({e})")
+
+    return result
+
+
 def run_constraint_with_approach(
     constraint_data: dict,
     approach: str,
     implementation: str,
     timeout_ms: int = TIMEOUT_MS,
     use_maxsat: bool = False,
+    bound: str = None,
 ) -> dict:
     """
     Run a single constraint with a specific solver approach and implementation.
@@ -83,6 +178,7 @@ def run_constraint_with_approach(
         "declarations": constraint_data.get("declarations", []),
         "approach": approach,
         "implementation": implementation,
+        "bound": bound,
         "status": "error",
         "execution_time": 0,
         "error_message": None,
@@ -99,6 +195,7 @@ def run_constraint_with_approach(
             timeout_ms=timeout_ms,
             verbose=False,  # Suppress verbose output during benchmarking
             use_maxsat=use_maxsat,
+            bound=bound,
         )
 
         # Extract status and execution time
@@ -179,12 +276,63 @@ def _load_constraints(constraints_file: str) -> list[dict]:
     return constraints
 
 
+def write_agreement_report(all_results: dict, output_dir_path: Path) -> dict:
+    """
+    Compare sat/unsat statuses across all encodings that ran on this
+    constraint set (within a single bound setting) and write
+    agreement_report.json. A disagreement is a constraint where at least one
+    encoding reports sat and another reports unsat (timeouts/errors are
+    undecided and never count as disagreements).
+    """
+    statuses_by_id: dict[str, dict[str, str]] = {}
+    for approach_key, results in all_results.items():
+        for r in results:
+            statuses_by_id.setdefault(r["id"], {})[approach_key] = r["status"]
+
+    disagreements = []
+    fully_decided_agreements = 0
+    for cid, statuses in sorted(statuses_by_id.items()):
+        decided = {k: s for k, s in statuses.items() if s in ("sat", "unsat")}
+        if len(set(decided.values())) > 1:
+            disagreements.append({"id": cid, "statuses": statuses})
+        elif len(decided) == len(statuses) and decided:
+            fully_decided_agreements += 1
+
+    report = {
+        "approaches": sorted(all_results.keys()),
+        "constraints": len(statuses_by_id),
+        "fully_decided_and_agreeing": fully_decided_agreements,
+        "num_disagreements": len(disagreements),
+        "disagreements": disagreements,
+        "statuses_by_constraint": statuses_by_id,
+    }
+
+    report_path = output_dir_path / "agreement_report.json"
+    report_path.write_text(json.dumps(report, indent=2))
+
+    print(f"\nAgreement report: {report_path}")
+    print(f"  Constraints: {report['constraints']}")
+    print(f"  Fully decided & agreeing: {fully_decided_agreements}")
+    if disagreements:
+        print(f"  ⚠️  SAT/UNSAT DISAGREEMENTS: {len(disagreements)}")
+        for d in disagreements[:10]:
+            print(f"    - {d['id']}: {d['statuses']}")
+        if len(disagreements) > 10:
+            print(f"    ... and {len(disagreements) - 10} more")
+    else:
+        print("  ✅ No sat/unsat disagreements among encodings")
+
+    return report
+
+
 def run_constraints_file(
     constraints_file: str,
     output_dir: str,
     timeout_ms: int = TIMEOUT_MS,
     use_maxsat: bool = False,
     approaches: list[str] = None,
+    mode: str = "eval",
+    bound: str = None,
 ):
     """Run benchmarks on constraints from a file with specified solver approaches.
 
@@ -195,6 +343,10 @@ def run_constraints_file(
         timeout_ms: Timeout in milliseconds
         use_maxsat: Whether to use MaxSAT optimization
         approaches: List of approaches to test (None = all approaches)
+        mode: "eval" (check-only: sat/unsat status + solve time, no model
+              extraction) or "differential" (extract solutions for later
+              validation against datetime)
+        bound: Date bound mode - 'paper', 'datetime', or 'none'
     """
     # Load constraints (supports both JSON and JSONL formats)
     constraints = _load_constraints(constraints_file)
@@ -264,9 +416,16 @@ def run_constraints_file(
 
         results = []
         for constraint in constraints:
-            result = run_constraint_with_approach(
-                constraint, approach, implementation, timeout_ms, use_maxsat
-            )
+            if mode == "eval":
+                # Check-only: status + solve time, no model extraction, no
+                # SMT dump (which would rebuild the problem a second time).
+                result = run_constraint_check_only(
+                    constraint, approach, implementation, timeout_ms, bound
+                )
+            else:
+                result = run_constraint_with_approach(
+                    constraint, approach, implementation, timeout_ms, use_maxsat, bound
+                )
 
             # Save SMT-LIB representation to file if available
             if result.get("smtlib"):
@@ -304,6 +463,10 @@ def run_constraints_file(
         print(f"  Successful: {successful}/{total} ({successful/total*100:.1f}%)")
         print(f"  Avg time: {avg_time:.4f}s")
 
+    # Cross-encoding sat/unsat agreement within this bound setting
+    if len(all_results) > 1:
+        write_agreement_report(all_results, output_dir_path)
+
     return all_results
 
 
@@ -338,9 +501,33 @@ def main():
         help="Timeout in milliseconds (default: 60000 = 60 seconds)",
     )
     parser.add_argument(
-        "--no-analysis",
-        action="store_true",
-        help="Skip analysis after constraint execution (default: run analysis)",
+        "--mode",
+        choices=["eval", "differential"],
+        default="eval",
+        help=(
+            "eval: solve-time evaluation - only get sat/unsat and log the "
+            "solve time (no model extraction), then compare whether sat/unsat "
+            "agrees among all encodings. "
+            "differential: differential testing - extract solutions, validate "
+            "each SAT solution by executing the constraints concretely with "
+            "Python datetime, and compare UNSAT across all encodings "
+            "(an UNSAT is wrong only if another encoding has a validated SAT). "
+            "Default: eval"
+        ),
+    )
+    parser.add_argument(
+        "--bound",
+        choices=["paper", "datetime", "none"],
+        default="datetime",
+        help=(
+            "Date bound mode for the ablation study: "
+            "paper = [1900-03-01..2100-02-28] (original bounded evaluation, "
+            "including UNSAT-on-out-of-window intermediates); "
+            "datetime = [0001-01-01..9999-12-31] (current default); "
+            "none = no range bound at all (calendar well-formedness only). "
+            "Comparisons are only meaningful among encodings under the SAME "
+            "bound setting. Default: datetime"
+        ),
     )
     parser.add_argument(
         "--maxsat",
@@ -371,10 +558,17 @@ def main():
 
     args = parser.parse_args()
 
-    # Each invocation gets a fresh output root to avoid collisions and
-    # to make it easy to compare runs over time.
+    if args.maxsat and args.mode == "eval":
+        parser.error(
+            "--maxsat requires --mode differential (eval mode times a bare "
+            "check() and never applies MaxSAT soft constraints)"
+        )
+
+    # Each invocation gets a fresh output root to avoid collisions and to make
+    # it easy to compare runs over time. The bound and mode are part of the
+    # folder name so ablation runs are self-describing.
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    results_root = SCRIPT_DIR / "results" / timestamp
+    results_root = SCRIPT_DIR / "results" / f"{timestamp}_{args.bound}_{args.mode}"
 
     def _resolve_datesatbench_root(repo_path: str | None) -> Path:
         """
@@ -446,10 +640,11 @@ def main():
 
     # Print configuration
     print(f"Configuration:")
+    print(f"  Mode: {args.mode}")
+    print(f"  Bound: {args.bound}")
     print(f"  Timeout: {args.timeout}ms")
     print(f"  Runs: {args.runs}")
     print(f"  MaxSAT: {'Enabled' if args.maxsat else 'Disabled'}")
-    print(f"  Analysis: {'Enabled' if not args.no_analysis else 'Disabled'}")
     if args.approaches:
         print(f"  Approaches: {args.approaches}")
     if args.datesatbenchs:
@@ -502,15 +697,37 @@ def main():
                 args.timeout,
                 use_maxsat=args.maxsat,
                 approaches=args.approaches,
+                mode=args.mode,
+                bound=args.bound,
             )
 
             completed_runs.append((run_idx, name, Path(output_dir)))
             print()  # Blank line between constraint sets
 
-    # Run analysis for all completed runs at the end
-    if not args.no_analysis and completed_runs:
+    # Record the run configuration alongside the results
+    if completed_runs:
+        results_root.mkdir(parents=True, exist_ok=True)
+        (results_root / "run_config.json").write_text(
+            json.dumps(
+                {
+                    "mode": args.mode,
+                    "bound": args.bound,
+                    "timeout_ms": args.timeout,
+                    "runs": args.runs,
+                    "approaches": args.approaches,
+                    "maxsat": args.maxsat,
+                    "timestamp": timestamp,
+                },
+                indent=2,
+            )
+        )
+
+    # Differential analysis: validate SAT solutions by executing constraints
+    # concretely with Python datetime, and judge UNSATs against validated SATs
+    # across encodings (within this bound setting).
+    if args.mode == "differential" and completed_runs:
         print(f"\n{'#'*70}")
-        print("RUNNING ANALYSIS FOR ALL RUNS")
+        print("RUNNING DIFFERENTIAL ANALYSIS FOR ALL RUNS")
         print(f"{'#'*70}")
 
         for run_idx, name, results_dir in completed_runs:
@@ -527,16 +744,15 @@ def main():
                 results_dir, enumeration_filter="supported"
             )
 
-            analysis_output = results_dir / "checked_summary_with_baseline.json"
+            analysis_output = results_dir / "differential_report.json"
             analysis_output.write_text(
                 json.dumps(summary_supported, indent=2, sort_keys=False)
             )
 
             print(
-                f"\n✅ Analyzed {summary_supported['constraints_checked']} constraints "
-                "(enumeration supported)"
+                f"\n✅ Differentially tested {summary_supported['constraints_checked']} constraints"
             )
-            print(f"Analysis saved to: {analysis_output}")
+            print(f"Differential report saved to: {analysis_output}")
 
             enum_support = summary_supported.get("enumeration_support", {})
             not_supported_count = enum_support.get("not_supported_count", 0)
