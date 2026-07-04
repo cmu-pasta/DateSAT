@@ -215,7 +215,7 @@ def run_constraint_with_approach(
         # Generate SMT-LIB for benchmarking purposes (optional)
         try:
             result["smtlib"] = _get_smtlib_for_constraint(
-                constraint_data, approach, implementation, timeout_ms, use_maxsat
+                constraint_data, approach, implementation, timeout_ms, use_maxsat, bound
             )
         except Exception as e:
             result["smtlib_error"] = str(e)
@@ -517,14 +517,16 @@ def main():
     )
     parser.add_argument(
         "--bound",
-        choices=["paper", "datetime", "none"],
+        choices=["paper", "datetime", "none", "all"],
         default="datetime",
         help=(
             "Date bound mode for the ablation study: "
             "paper = [1900-03-01..2100-02-28] (original bounded evaluation, "
             "including UNSAT-on-out-of-window intermediates); "
             "datetime = [0001-01-01..9999-12-31] (current default); "
-            "none = no range bound at all (calendar well-formedness only). "
+            "none = no range bound at all (calendar well-formedness only); "
+            "all = run paper, datetime, and none sequentially, each writing "
+            "to its own results folder. "
             "Comparisons are only meaningful among encodings under the SAME "
             "bound setting. Default: datetime"
         ),
@@ -564,11 +566,10 @@ def main():
             "check() and never applies MaxSAT soft constraints)"
         )
 
-    # Each invocation gets a fresh output root to avoid collisions and to make
-    # it easy to compare runs over time. The bound and mode are part of the
-    # folder name so ablation runs are self-describing.
+    # Each invocation gets a fresh output root per bound setting to avoid
+    # collisions and to make it easy to compare runs over time. The bound and
+    # mode are part of the folder name so ablation runs are self-describing.
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    results_root = SCRIPT_DIR / "results" / f"{timestamp}_{args.bound}_{args.mode}"
 
     def _resolve_datesatbench_root(repo_path: str | None) -> Path:
         """
@@ -597,8 +598,8 @@ def main():
             / "llm_constraints"
             / "constraints"
             / "constraints.json",
-            # Always write results under eval/ (avoid symlinks to external repo)
-            "output_dir": results_root / "llm",
+            # Always written under eval/results/<timestamp>_<bound>_<mode>/<subdir>
+            "subdir": "llm",
         },
         {
             "name": "Grammar Constraints",
@@ -606,7 +607,7 @@ def main():
             / "grammar_constraints"
             / "constraints"
             / "constraints.json",
-            "output_dir": results_root / "grammar",
+            "subdir": "grammar",
         },
         {
             "name": "Legal Document Constraints",
@@ -614,7 +615,7 @@ def main():
             / "legal_doc_constraints"
             / "constraints"
             / "constraints.jsonl",
-            "output_dir": results_root / "legal",
+            "subdir": "legal",
         },
     ]
 
@@ -661,123 +662,140 @@ def main():
             print(f"    - grammar (Grammar Constraints)")
             return
 
-    # Collect (run_idx, dataset_name, output_dir) for deferred analysis
-    completed_runs: list[tuple[int, str, Path]] = []
+    def run_ablation_for_bound(bound: str) -> None:
+        """Run the full benchmark (and analysis) for one bound setting."""
+        results_root = SCRIPT_DIR / "results" / f"{timestamp}_{bound}_{args.mode}"
 
-    # Run benchmarks for each constraint set, repeated args.runs times
-    for run_idx in range(1, args.runs + 1):
-        if args.runs > 1:
+        # Collect (run_idx, dataset_name, output_dir) for deferred analysis
+        completed_runs: list[tuple[int, str, Path]] = []
+
+        # Run benchmarks for each constraint set, repeated args.runs times
+        for run_idx in range(1, args.runs + 1):
+            if args.runs > 1:
+                print(f"\n{'#'*70}")
+                print(f"RUN {run_idx} of {args.runs}")
+                print(f"{'#'*70}\n")
+
+            for constraint_set in constraint_sets:
+                name = constraint_set["name"]
+                constraints_file = constraint_set["constraints_file"]
+                base_output_dir = results_root / constraint_set["subdir"]
+
+                # When running multiple times, nest results under run_N subdirectory
+                output_dir = base_output_dir / f"run_{run_idx}" if args.runs > 1 else base_output_dir
+
+                print(f"{'='*70}")
+                print(f"Running: {name}")
+                print(f"{'='*70}")
+                print(f"Constraints file: {constraints_file}")
+                print(f"Output directory: {output_dir}")
+
+                if not constraints_file.exists():
+                    print(f"⚠️  Skipping - Constraints file not found: {constraints_file}\n")
+                    continue
+
+                output_dir.mkdir(parents=True, exist_ok=True)
+
+                run_constraints_file(
+                    str(constraints_file),
+                    str(output_dir),
+                    args.timeout,
+                    use_maxsat=args.maxsat,
+                    approaches=args.approaches,
+                    mode=args.mode,
+                    bound=bound,
+                )
+
+                completed_runs.append((run_idx, name, Path(output_dir)))
+                print()  # Blank line between constraint sets
+
+        # Record the run configuration alongside the results
+        if completed_runs:
+            results_root.mkdir(parents=True, exist_ok=True)
+            (results_root / "run_config.json").write_text(
+                json.dumps(
+                    {
+                        "mode": args.mode,
+                        "bound": bound,
+                        "timeout_ms": args.timeout,
+                        "runs": args.runs,
+                        "approaches": args.approaches,
+                        "maxsat": args.maxsat,
+                        "timestamp": timestamp,
+                    },
+                    indent=2,
+                )
+            )
+
+        # Differential analysis: validate SAT solutions by executing constraints
+        # concretely with Python datetime, and judge UNSATs against validated SATs
+        # across encodings (within this bound setting).
+        if args.mode == "differential" and completed_runs:
             print(f"\n{'#'*70}")
-            print(f"RUN {run_idx} of {args.runs}")
-            print(f"{'#'*70}\n")
+            print("RUNNING DIFFERENTIAL ANALYSIS FOR ALL RUNS")
+            print(f"{'#'*70}")
 
-        for constraint_set in constraint_sets:
-            name = constraint_set["name"]
-            constraints_file = constraint_set["constraints_file"]
-            base_output_dir = constraint_set["output_dir"]
+            for run_idx, name, results_dir in completed_runs:
+                run_label = f" (run {run_idx})" if args.runs > 1 else ""
+                print(f"\n{'='*60}")
+                print(f"Analyzing: {name}{run_label}")
+                print(f"{'='*60}")
 
-            # When running multiple times, nest results under run_N subdirectory
-            output_dir = base_output_dir / f"run_{run_idx}" if args.runs > 1 else base_output_dir
+                if not results_dir.exists() or not results_dir.is_dir():
+                    print(f"❌ Error: Results directory not found: {results_dir}")
+                    continue
 
-            print(f"{'='*70}")
-            print(f"Running: {name}")
-            print(f"{'='*70}")
-            print(f"Constraints file: {constraints_file}")
-            print(f"Output directory: {output_dir}")
-
-            if not constraints_file.exists():
-                print(f"⚠️  Skipping - Constraints file not found: {constraints_file}\n")
-                continue
-
-            output_dir.mkdir(parents=True, exist_ok=True)
-
-            run_constraints_file(
-                str(constraints_file),
-                str(output_dir),
-                args.timeout,
-                use_maxsat=args.maxsat,
-                approaches=args.approaches,
-                mode=args.mode,
-                bound=args.bound,
-            )
-
-            completed_runs.append((run_idx, name, Path(output_dir)))
-            print()  # Blank line between constraint sets
-
-    # Record the run configuration alongside the results
-    if completed_runs:
-        results_root.mkdir(parents=True, exist_ok=True)
-        (results_root / "run_config.json").write_text(
-            json.dumps(
-                {
-                    "mode": args.mode,
-                    "bound": args.bound,
-                    "timeout_ms": args.timeout,
-                    "runs": args.runs,
-                    "approaches": args.approaches,
-                    "maxsat": args.maxsat,
-                    "timestamp": timestamp,
-                },
-                indent=2,
-            )
-        )
-
-    # Differential analysis: validate SAT solutions by executing constraints
-    # concretely with Python datetime, and judge UNSATs against validated SATs
-    # across encodings (within this bound setting).
-    if args.mode == "differential" and completed_runs:
-        print(f"\n{'#'*70}")
-        print("RUNNING DIFFERENTIAL ANALYSIS FOR ALL RUNS")
-        print(f"{'#'*70}")
-
-        for run_idx, name, results_dir in completed_runs:
-            run_label = f" (run {run_idx})" if args.runs > 1 else ""
-            print(f"\n{'='*60}")
-            print(f"Analyzing: {name}{run_label}")
-            print(f"{'='*60}")
-
-            if not results_dir.exists() or not results_dir.is_dir():
-                print(f"❌ Error: Results directory not found: {results_dir}")
-                continue
-
-            summary_supported = check_results_dir(
-                results_dir, enumeration_filter="supported"
-            )
-
-            analysis_output = results_dir / "differential_report.json"
-            analysis_output.write_text(
-                json.dumps(summary_supported, indent=2, sort_keys=False)
-            )
-
-            print(
-                f"\n✅ Differentially tested {summary_supported['constraints_checked']} constraints"
-            )
-            print(f"Differential report saved to: {analysis_output}")
-
-            enum_support = summary_supported.get("enumeration_support", {})
-            not_supported_count = enum_support.get("not_supported_count", 0)
-            if not_supported_count > 0:
-                unsupported_summary = check_results_dir(
-                    results_dir, enumeration_filter="not_supported"
+                summary_supported = check_results_dir(
+                    results_dir, enumeration_filter="supported"
                 )
-                unsupported_output = (
-                    results_dir / "checked_summary_without_baseline.json"
+
+                analysis_output = results_dir / "differential_report.json"
+                analysis_output.write_text(
+                    json.dumps(summary_supported, indent=2, sort_keys=False)
                 )
-                unsupported_output.write_text(
-                    json.dumps(unsupported_summary, indent=2, sort_keys=False)
-                )
+
                 print(
-                    f"⚠️ {not_supported_count} constraints without enumeration support "
-                    f"(saved to: {unsupported_output})"
+                    f"\n✅ Differentially tested {summary_supported['constraints_checked']} constraints"
                 )
+                print(f"Differential report saved to: {analysis_output}")
 
-            counts = summary_supported["counts_by_approach"]
-            print(f"\nSummary by approach (enumeration supported):")
-            for approach, counts_dict in counts.items():
-                total = sum(counts_dict.values())
-                correct = counts_dict.get("correct", 0)
-                percentage = correct / total * 100 if total > 0 else 0
-                print(f"  {approach}: {correct}/{total} correct ({percentage:.1f}%)")
+                enum_support = summary_supported.get("enumeration_support", {})
+                not_supported_count = enum_support.get("not_supported_count", 0)
+                if not_supported_count > 0:
+                    unsupported_summary = check_results_dir(
+                        results_dir, enumeration_filter="not_supported"
+                    )
+                    unsupported_output = (
+                        results_dir / "checked_summary_without_baseline.json"
+                    )
+                    unsupported_output.write_text(
+                        json.dumps(unsupported_summary, indent=2, sort_keys=False)
+                    )
+                    print(
+                        f"⚠️ {not_supported_count} constraints without enumeration support "
+                        f"(saved to: {unsupported_output})"
+                    )
+
+                counts = summary_supported["counts_by_approach"]
+                print(f"\nSummary by approach (enumeration supported):")
+                for approach, counts_dict in counts.items():
+                    total = sum(counts_dict.values())
+                    correct = counts_dict.get("correct", 0)
+                    percentage = correct / total * 100 if total > 0 else 0
+                    print(f"  {approach}: {correct}/{total} correct ({percentage:.1f}%)")
+
+    # --bound all runs the full ablation: each bound setting in sequence,
+    # each writing to its own <timestamp>_<bound>_<mode> results folder.
+    bounds_to_run = (
+        ["paper", "datetime", "none"] if args.bound == "all" else [args.bound]
+    )
+
+    for i, bound in enumerate(bounds_to_run, 1):
+        if len(bounds_to_run) > 1:
+            print(f"\n{'@'*70}")
+            print(f"@ BOUND SETTING {i}/{len(bounds_to_run)}: {bound.upper()}")
+            print(f"{'@'*70}\n")
+        run_ablation_for_bound(bound)
 
 
 if __name__ == "__main__":
