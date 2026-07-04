@@ -15,6 +15,7 @@ coverage>=7.0.0
 # Data Analysis & Visualization Dependencies
 matplotlib>=3.5.0
 numpy>=1.21.0
+rich
 
 # LLM Constraint Pipeline Dependencies
 openai>=1.0.0
