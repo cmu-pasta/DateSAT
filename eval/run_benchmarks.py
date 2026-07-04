@@ -276,6 +276,60 @@ def _load_constraints(constraints_file: str) -> list[dict]:
     return constraints
 
 
+def write_timing_summary(all_results: dict, output_dir_path: Path, bound: str) -> dict:
+    """
+    Cross-encoding timing summary for one constraint set under one bound
+    setting. Times use the penalized (PAR-1) convention - every entry's
+    recorded execution_time counts, with timeouts contributing the timeout
+    ceiling - matching checked_summary / compute_time.py. Solved-only times
+    are included separately, clearly labeled.
+    """
+    import statistics
+
+    summary = {"bound": bound, "approaches": {}}
+    for approach_key, results in sorted(all_results.items()):
+        total = len(results)
+        by_status = {}
+        for r in results:
+            by_status[r["status"]] = by_status.get(r["status"], 0) + 1
+        solved = by_status.get("sat", 0) + by_status.get("unsat", 0)
+        times_all = [r["execution_time"] for r in results if r.get("execution_time")]
+        times_solved = [
+            r["execution_time"]
+            for r in results
+            if r["status"] in ("sat", "unsat") and r.get("execution_time")
+        ]
+        summary["approaches"][approach_key] = {
+            "total": total,
+            "status_counts": by_status,
+            "solve_rate_pct": (solved / total * 100) if total else 0.0,
+            "mean_time_s": statistics.mean(times_all) if times_all else None,
+            "median_time_s": statistics.median(times_all) if times_all else None,
+            "std_dev_s": statistics.stdev(times_all) if len(times_all) > 1 else 0.0,
+            "mean_time_solved_only_s": (
+                statistics.mean(times_solved) if times_solved else None
+            ),
+            "median_time_solved_only_s": (
+                statistics.median(times_solved) if times_solved else None
+            ),
+        }
+
+    summary_path = output_dir_path / "timing_summary.json"
+    summary_path.write_text(json.dumps(summary, indent=2))
+
+    fmt = lambda v: f"{v:9.3f}" if v is not None else "        -"
+    print(f"\nTiming summary (bound={bound}, penalized: timeouts count at their recorded time):")
+    print(f"  {'approach':<24} {'solve%':>7} {'mean(s)':>9} {'median(s)':>9} {'std(s)':>9}")
+    for approach_key, m in summary["approaches"].items():
+        print(
+            f"  {approach_key:<24} {m['solve_rate_pct']:>6.2f}% "
+            f"{fmt(m['mean_time_s'])} {fmt(m['median_time_s'])} {fmt(m['std_dev_s'])}"
+        )
+    print(f"  Saved to: {summary_path}")
+
+    return summary
+
+
 def write_agreement_report(all_results: dict, output_dir_path: Path) -> dict:
     """
     Compare sat/unsat statuses across all encodings that ran on this
@@ -417,11 +471,18 @@ def run_constraints_file(
         results = []
         for constraint in constraints:
             if mode == "eval":
-                # Check-only: status + solve time, no model extraction, no
-                # SMT dump (which would rebuild the problem a second time).
+                # Check-only: status + solve time, no model extraction. The
+                # SMT-LIB dump uses a separate builder AFTER the timed check,
+                # so it cannot contaminate the timing.
                 result = run_constraint_check_only(
                     constraint, approach, implementation, timeout_ms, bound
                 )
+                try:
+                    result["smtlib"] = _get_smtlib_for_constraint(
+                        constraint, approach, implementation, timeout_ms, False, bound
+                    )
+                except Exception as e:
+                    result["smtlib_error"] = str(e)
             else:
                 result = run_constraint_with_approach(
                     constraint, approach, implementation, timeout_ms, use_maxsat, bound
@@ -463,7 +524,9 @@ def run_constraints_file(
         print(f"  Successful: {successful}/{total} ({successful/total*100:.1f}%)")
         print(f"  Avg time: {avg_time:.4f}s")
 
-    # Cross-encoding sat/unsat agreement within this bound setting
+    # Cross-encoding timing summary and sat/unsat agreement within this
+    # bound setting
+    write_timing_summary(all_results, output_dir_path, bound)
     if len(all_results) > 1:
         write_agreement_report(all_results, output_dir_path)
 
