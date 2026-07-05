@@ -620,6 +620,15 @@ def main():
         help="Number of times to repeat the full benchmark (default: 1). "
         "Each run is saved to results/run_1/, run_2/, … subdirectories.",
     )
+    parser.add_argument(
+        "--tag",
+        type=str,
+        default=None,
+        help="Optional label appended to the results folder name "
+        "(e.g. --tag bench-paper -> <timestamp>_<bound>_<mode>_bench-paper). "
+        "Useful to distinguish runs on derived datasets such as the "
+        "bound-injected datesatbench_bounded variants.",
+    )
 
     args = parser.parse_args()
 
@@ -727,7 +736,10 @@ def main():
 
     def run_ablation_for_bound(bound: str) -> None:
         """Run the full benchmark (and analysis) for one bound setting."""
-        results_root = SCRIPT_DIR / "results" / f"{timestamp}_{bound}_{args.mode}"
+        folder = f"{timestamp}_{bound}_{args.mode}"
+        if args.tag:
+            folder += f"_{args.tag}"
+        results_root = SCRIPT_DIR / "results" / folder
 
         # Collect (run_idx, dataset_name, output_dir) for deferred analysis
         completed_runs: list[tuple[int, str, Path]] = []
@@ -785,6 +797,8 @@ def main():
                         "approaches": args.approaches,
                         "maxsat": args.maxsat,
                         "timestamp": timestamp,
+                        "tag": args.tag,
+                        "datesatbench_root": str(datesatbench_root),
                     },
                     indent=2,
                 )
