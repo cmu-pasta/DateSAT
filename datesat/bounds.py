@@ -9,13 +9,13 @@ Three bound modes are supported, selected by name:
               construction, reproducing the pre-unbounded semantics where an
               out-of-window intermediate makes the constraint UNSAT.
 - "datetime": [0001-01-01 .. 9999-12-31] — Python's datetime.date representable
-              range. This is the current default: wide enough to be effectively
-              unbounded for realistic constraints, while every model remains
-              extractable and concretely validatable via datetime.
-- "none":     no range bound at all. Only calendar well-formedness is asserted
-              (month in [1,12], day valid for the month). Models may fall
-              outside datetime's range, in which case concrete extraction /
-              validation is best-effort.
+              range. Wide enough to be effectively unbounded for realistic
+              constraints, while every model remains extractable and concretely
+              validatable via datetime.
+- "none":     no range bound at all (CURRENT DEFAULT). Only calendar
+              well-formedness is asserted (month in [1,12], day valid for the
+              month). Models may fall outside datetime's range, in which case
+              concrete extraction / validation is best-effort.
 
 Each mode is described by a BoundSpec giving the window in every native
 representation the encodings use, so each encoding can assert it directly on
@@ -76,8 +76,8 @@ BOUND_MODES = {
     "none": None,
 }
 
-# Default matches the current evaluation setting.
-DEFAULT_BOUND_MODE = "datetime"
+# Default is now unbounded (no range constraints on symbolic variables).
+DEFAULT_BOUND_MODE = "none"
 
 
 def get_bound_spec(mode: str) -> Optional[BoundSpec]:
