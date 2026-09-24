@@ -1,8 +1,10 @@
 import argparse
 import json
+import multiprocessing as mp
 import os
 import re
 import sys
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -15,6 +17,8 @@ import datesat
 from eval.utils.validation import check_results_dir
 
 TIMEOUT_MS = 60000
+# Default wall-clock limit per instance, as a multiple of the solver timeout.
+HARD_TIMEOUT_FACTOR = 2
 
 
 def _get_smtlib_for_constraint(
@@ -57,15 +61,128 @@ def _get_smtlib_for_constraint(
     return builder.to_smt2() if builder else None
 
 
+def _solve_task(
+    constraint_data: dict,
+    approach: str,
+    implementation: str,
+    timeout_ms: int,
+    use_maxsat: bool,
+) -> dict:
+    """Solve one instance and keep only the result fields the runner records."""
+    solve_result = datesat.solve(
+        constraints=constraint_data,
+        approach=approach,
+        implementation=implementation,
+        timeout_ms=timeout_ms,
+        verbose=False,  # Suppress verbose output during benchmarking
+        use_maxsat=use_maxsat,
+    )
+
+    # Merge solution from all variable types
+    merged_solution = {}
+    for var_type in ["dates", "ints", "bools"]:
+        vars_dict = solve_result.get(var_type, {})
+        if vars_dict:
+            for name, value in vars_dict.items():
+                merged_solution[name] = str(value) if var_type == "dates" else value
+
+    return {
+        "status": solve_result.get("status", "error"),
+        "execution_time": solve_result.get("execution_time", 0.0),
+        "solution": merged_solution or None,
+    }
+
+
+def _benchmark_worker(conn) -> None:
+    """
+    Child-process loop: for each task, send the solve result, then the SMT-LIB.
+
+    The two are sent separately so the parent keeps the solve result even when
+    SMT-LIB generation, which rebuilds the constraints, is the step that hangs.
+    """
+    while True:
+        task = conn.recv()
+        try:
+            conn.send(("solved", _solve_task(*task)))
+        except Exception as e:
+            conn.send(("error", str(e)))
+            continue
+        try:
+            conn.send(("smtlib", _get_smtlib_for_constraint(*task)))
+        except Exception as e:
+            conn.send(("smtlib_error", str(e)))
+
+
+class _SolverWorker:
+    """
+    A child process that runs benchmark instances one at a time.
+
+    datesat's timeout_ms only bounds the Z3 check. Building the constraints is
+    unbounded and can hang (e.g. the simple approach unrolls one step per day of
+    a Period, so a Period of 20,000 days never finishes asserting). Running in
+    a child lets the parent enforce a wall-clock limit by killing it.
+    """
+
+    def __init__(self):
+        self._ctx = mp.get_context("spawn")
+        self._start()
+
+    def __enter__(self) -> "_SolverWorker":
+        return self
+
+    def __exit__(self, *exc) -> None:
+        self.close()
+
+    def _start(self) -> None:
+        self._conn, child_conn = self._ctx.Pipe()
+        self._proc = self._ctx.Process(
+            target=_benchmark_worker, args=(child_conn,), daemon=True
+        )
+        self._proc.start()
+        child_conn.close()
+
+    def close(self) -> None:
+        self._proc.kill()
+        self._proc.join()
+        self._conn.close()
+
+    def send(self, task: tuple) -> None:
+        self._conn.send(task)
+
+    def recv(self, limit_s: float) -> tuple | None:
+        """
+        Next (kind, payload) message from the child, or None if none arrived
+        within limit_s. If the child overran or died, it is replaced.
+        """
+        if self._conn.poll(limit_s):
+            try:
+                return self._conn.recv()
+            except EOFError:
+                self._proc.join()
+                message = ("error", f"worker process died (exit code {self._proc.exitcode})")
+        else:
+            message = None
+        self.close()
+        self._start()
+        return message
+
+
 def run_constraint_with_approach(
     constraint_data: dict,
     approach: str,
     implementation: str,
+    worker: _SolverWorker,
     timeout_ms: int = TIMEOUT_MS,
     use_maxsat: bool = False,
+    hard_timeout_ms: int | None = None,
 ) -> dict:
     """
     Run a single constraint with a specific solver approach and implementation.
+
+    The work runs in `worker`. If solving, or separately SMT-LIB generation,
+    exceeds hard_timeout_ms of wall-clock time (default: HARD_TIMEOUT_FACTOR x
+    timeout_ms), the worker is killed and the step is abandoned; a killed
+    solve is recorded as a timeout with "hard_timeout": True.
 
     Returns a dict containing the constraint ID, status, execution time,
     solution (if SAT), and optionally SMT-LIB representation.
@@ -88,58 +205,50 @@ def run_constraint_with_approach(
         "error_message": None,
         "solution": None,
         "smtlib": None,
+        "hard_timeout": False,
     }
 
-    try:
-        # Solve using the high-level API
-        solve_result = datesat.solve(
-            constraints=constraint_data,
-            approach=approach,
-            implementation=implementation,
-            timeout_ms=timeout_ms,
-            verbose=False,  # Suppress verbose output during benchmarking
-            use_maxsat=use_maxsat,
-        )
+    limit_s = (hard_timeout_ms or HARD_TIMEOUT_FACTOR * timeout_ms) / 1000
+    start_time = time.time()
+    worker.send((constraint_data, approach, implementation, timeout_ms, use_maxsat))
 
-        # Extract status and execution time
-        result["status"] = solve_result.get("status", "error")
-        result["execution_time"] = solve_result.get("execution_time", 0.0)
+    message = worker.recv(limit_s)
+    if message is None:
+        result["status"] = "timeout"
+        result["hard_timeout"] = True
+        result["execution_time"] = time.time() - start_time
+        result["error_message"] = f"killed after exceeding the {limit_s:g}s hard timeout"
+        print(f"⏱️ Killed after exceeding the {limit_s:g}s hard timeout")
+        return result
 
-        # Merge solution from all variable types
-        merged_solution = {}
-        for var_type in ["dates", "ints", "bools"]:
-            vars_dict = solve_result.get(var_type, {})
-            if vars_dict:
-                for name, value in vars_dict.items():
-                    merged_solution[name] = str(value) if var_type == "dates" else value
+    kind, payload = message
+    if kind == "error":
+        result["error_message"] = payload
+        print(f"❌ Error: {payload}")
+        return result
+    result.update(payload)
 
-        result["solution"] = merged_solution or None
+    # SMT-LIB for benchmarking purposes (optional); it rebuilds the
+    # constraints, so it gets its own hard timeout
+    message = worker.recv(limit_s)
+    if message is None:
+        result["smtlib_error"] = f"exceeded the {limit_s:g}s hard timeout"
+    elif message[0] == "smtlib":
+        result["smtlib"] = message[1]
+    else:
+        result["smtlib_error"] = message[1]
 
-        # Generate SMT-LIB for benchmarking purposes (optional)
-        try:
-            result["smtlib"] = _get_smtlib_for_constraint(
-                constraint_data, approach, implementation, timeout_ms, use_maxsat
-            )
-        except Exception as e:
-            result["smtlib_error"] = str(e)
-
-        # Print status
-        if result["status"] == "sat":
-            print(f"✅ Solution found:")
-            for name, value in result["solution"].items():
-                print(f"  {name} = {value}")
-        elif result["status"] == "timeout":
-            print("⏱️ Solver timeout")
-        elif result["status"] == "unsat":
-            print("❌ No solution found (UNSAT)")
-        else:
-            print(f"❌ Status: {result['status']}")
-
-    except Exception as e:
-        result["status"] = "error"
-        result["error_message"] = str(e)
-        result["execution_time"] = 0.0
-        print(f"❌ Error: {e}")
+    # Print status
+    if result["status"] == "sat":
+        print(f"✅ Solution found:")
+        for name, value in result["solution"].items():
+            print(f"  {name} = {value}")
+    elif result["status"] == "timeout":
+        print("⏱️ Solver timeout")
+    elif result["status"] == "unsat":
+        print("❌ No solution found (UNSAT)")
+    else:
+        print(f"❌ Status: {result['status']}")
 
     return result
 
@@ -243,6 +352,7 @@ def run_constraints_file(
     timeout_ms: int = TIMEOUT_MS,
     use_maxsat: bool = False,
     approaches: list[str] = None,
+    hard_timeout_ms: int | None = None,
 ):
     """Run benchmarks on constraints from a file with specified solver approaches.
 
@@ -253,6 +363,8 @@ def run_constraints_file(
         timeout_ms: Timeout in milliseconds
         use_maxsat: Whether to use MaxSAT optimization
         approaches: List of approaches to test (None = all approaches)
+        hard_timeout_ms: Wall-clock limit per instance, after which it is
+            killed (None = HARD_TIMEOUT_FACTOR x timeout_ms)
     """
     # Load constraints (supports both JSON and JSONL formats)
     constraints = _load_constraints(constraints_file)
@@ -281,28 +393,35 @@ def run_constraints_file(
         print(f"{'='*60}")
 
         results = []
-        for constraint in constraints:
-            result = run_constraint_with_approach(
-                constraint, approach, implementation, timeout_ms, use_maxsat
-            )
+        with _SolverWorker() as worker:
+            for constraint in constraints:
+                result = run_constraint_with_approach(
+                    constraint,
+                    approach,
+                    implementation,
+                    worker,
+                    timeout_ms,
+                    use_maxsat,
+                    hard_timeout_ms,
+                )
 
-            # Save SMT-LIB representation to file if available
-            if result.get("smtlib"):
-                constraint_id = _sanitize_filename(result.get("id", "unknown"))
-                smt_output_dir = smt_dir / approach / implementation
-                smt_output_dir.mkdir(parents=True, exist_ok=True)
-                smt_file_path = smt_output_dir / f"{constraint_id}.smt2"
+                # Save SMT-LIB representation to file if available
+                if result.get("smtlib"):
+                    constraint_id = _sanitize_filename(result.get("id", "unknown"))
+                    smt_output_dir = smt_dir / approach / implementation
+                    smt_output_dir.mkdir(parents=True, exist_ok=True)
+                    smt_file_path = smt_output_dir / f"{constraint_id}.smt2"
 
-                try:
-                    smt_file_path.write_text(result["smtlib"])
-                    result["smtlib_file"] = str(smt_file_path)
-                except Exception as e:
-                    result["smtlib_file_error"] = str(e)
+                    try:
+                        smt_file_path.write_text(result["smtlib"])
+                        result["smtlib_file"] = str(smt_file_path)
+                    except Exception as e:
+                        result["smtlib_file_error"] = str(e)
 
-                # Remove smtlib from result to avoid bloating JSON files
-                del result["smtlib"]
+                    # Remove smtlib from result to avoid bloating JSON files
+                    del result["smtlib"]
 
-            results.append(result)
+                results.append(result)
 
         all_results[f"{approach}_{implementation}"] = results
 
@@ -356,6 +475,14 @@ def main():
         help="Timeout in milliseconds (default: 60000 = 60 seconds)",
     )
     parser.add_argument(
+        "--hard-timeout",
+        type=int,
+        default=None,
+        help="Wall-clock limit per instance in milliseconds, covering constraint "
+        "construction as well as solving; an instance that exceeds it is killed and "
+        f"recorded as a timeout (default: {HARD_TIMEOUT_FACTOR} x --timeout)",
+    )
+    parser.add_argument(
         "--no-analysis",
         action="store_true",
         help="Skip analysis after constraint execution (default: run analysis)",
@@ -401,6 +528,8 @@ def main():
     )
 
     args = parser.parse_args()
+    if args.hard_timeout is None:
+        args.hard_timeout = HARD_TIMEOUT_FACTOR * args.timeout
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     tag = args.tag or timestamp
@@ -490,6 +619,7 @@ def main():
     # Print configuration
     print(f"Configuration:")
     print(f"  Timeout: {args.timeout}ms")
+    print(f"  Hard timeout: {args.hard_timeout}ms")
     print(f"  Runs: {args.runs}")
     print(f"  MaxSAT: {'Enabled' if args.maxsat else 'Disabled'}")
     print(f"  Analysis: {'Enabled' if not args.no_analysis else 'Disabled'}")
@@ -521,6 +651,7 @@ def main():
     ]
     run_config = {
         "timeout_ms": args.timeout,
+        "hard_timeout_ms": args.hard_timeout,
         "approaches": sorted(
             set(prior.get("approaches", [])) | {a for a, _ in approach_pairs}
         ),
@@ -574,6 +705,7 @@ def main():
                 args.timeout,
                 use_maxsat=args.maxsat,
                 approaches=args.approaches,
+                hard_timeout_ms=args.hard_timeout,
             )
 
             completed_runs.append((run_idx, name, Path(output_dir)))
