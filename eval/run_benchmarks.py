@@ -16,8 +16,8 @@ import datesat
 from eval.utils.validation import check_results_dir
 
 TIMEOUT_MS = 60000
-# Default wall-clock limit per instance, as a multiple of the solver timeout.
-HARD_TIMEOUT_FACTOR = 2
+# Default wall-clock limit per instance, covering build and solve.
+HARD_TIMEOUT_MS = 60000
 
 
 def _solve_task(
@@ -48,6 +48,8 @@ def _solve_task(
     return {
         "status": solve_result.get("status", "error"),
         "execution_time": solve_result.get("execution_time", 0.0),
+        "build_time": solve_result.get("build_time"),
+        "solve_time": solve_result.get("solve_time"),
         "solution": merged_solution or None,
     }
 
@@ -129,7 +131,7 @@ def run_constraint_with_approach(
     Run a single constraint with a specific solver approach and implementation.
 
     The work runs in `worker`. If it exceeds hard_timeout_ms of wall-clock
-    time (default: HARD_TIMEOUT_FACTOR x timeout_ms), the worker is killed and
+    time (default: HARD_TIMEOUT_MS), the worker is killed and
     the instance is recorded as a timeout with "hard_timeout": True.
 
     Returns a dict containing the constraint ID, status, execution time and
@@ -150,12 +152,14 @@ def run_constraint_with_approach(
         "implementation": implementation,
         "status": "error",
         "execution_time": 0,
+        "build_time": None,
+        "solve_time": None,
         "error_message": None,
         "solution": None,
         "hard_timeout": False,
     }
 
-    limit_s = (hard_timeout_ms or HARD_TIMEOUT_FACTOR * timeout_ms) / 1000
+    limit_s = (hard_timeout_ms or HARD_TIMEOUT_MS) / 1000
     start_time = time.time()
     worker.send((constraint_data, approach, implementation, timeout_ms, use_maxsat))
 
@@ -296,7 +300,7 @@ def run_constraints_file(
         use_maxsat: Whether to use MaxSAT optimization
         approaches: List of approaches to test (None = all approaches)
         hard_timeout_ms: Wall-clock limit per instance, after which it is
-            killed (None = HARD_TIMEOUT_FACTOR x timeout_ms)
+            killed (None = HARD_TIMEOUT_MS)
     """
     # Load constraints (supports both JSON and JSONL formats)
     constraints = _load_constraints(constraints_file)
@@ -390,10 +394,10 @@ def main():
     parser.add_argument(
         "--hard-timeout",
         type=int,
-        default=None,
+        default=HARD_TIMEOUT_MS,
         help="Wall-clock limit per instance in milliseconds, covering constraint "
         "construction as well as solving; an instance that exceeds it is killed and "
-        f"recorded as a timeout (default: {HARD_TIMEOUT_FACTOR} x --timeout)",
+        f"recorded as a timeout (default: {HARD_TIMEOUT_MS} = 60 seconds)",
     )
     parser.add_argument(
         "--no-analysis",
@@ -441,8 +445,6 @@ def main():
     )
 
     args = parser.parse_args()
-    if args.hard_timeout is None:
-        args.hard_timeout = HARD_TIMEOUT_FACTOR * args.timeout
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     tag = args.tag or timestamp

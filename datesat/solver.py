@@ -47,7 +47,9 @@ def solve(
             - dates: Dict mapping date variable names to Date objects (if sat)
             - ints: Dict mapping int variable names to int values (if sat)
             - bools: Dict mapping bool variable names to bool values (if sat)
-            - execution_time: Time taken to solve in seconds
+            - execution_time: Time taken to solve in seconds (build_time + solve_time)
+            - build_time: Seconds spent building the constraints into the solver
+            - solve_time: Seconds spent in the solver check and model extraction
             - approach: The approach used
             - implementation: The implementation used
     
@@ -125,7 +127,9 @@ def solve(
     builder = exec_globals.get("builder")
     if not builder:
         raise RuntimeError("Failed to create constraint solver")
-    
+
+    build_time = time.time() - start_time
+
     # Temporarily disable builder's verbose output if verbose=False
     if not verbose:
         original_solve = builder.solve
@@ -152,6 +156,8 @@ def solve(
     result = {
         **solve_result,
         "execution_time": execution_time,
+        "build_time": build_time,
+        "solve_time": execution_time - build_time,
         "approach": approach,
         "implementation": implementation,
     }
