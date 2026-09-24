@@ -179,6 +179,64 @@ def _load_constraints(constraints_file: str) -> list[dict]:
     return constraints
 
 
+# Define all solver approaches per implementation.
+# The int implementation splits hybrid into hybrid_ymd / hybrid_epoch;
+# the bitvector implementation keeps the single "hybrid" approach.
+ALL_SYMBOLIC_APPROACHES_BY_IMPL = {
+    "int": [
+        "simple",
+        "epoch_days",
+        "hybrid_ymd",
+        "hybrid_epoch",
+        "alpha_beta",
+        # "alpha_beta_table",  # excluded from default run; pass via --approaches to include
+    ],
+    "bitvector": [
+        "simple",
+        "epoch_days",
+        "hybrid",
+        "alpha_beta",
+        "alpha_beta_table",
+    ],
+}
+
+IMPLEMENTATIONS = ["int"]  # Can add "bitvector" if needed
+
+
+def _resolve_approach_pairs(approaches: list[str] | None) -> list[tuple[str, str]]:
+    """Build the (approach, implementation) pairs to run, honoring an optional approach filter."""
+    runs = []
+    for implementation in IMPLEMENTATIONS:
+        valid = ALL_SYMBOLIC_APPROACHES_BY_IMPL[implementation]
+        if approaches is not None:
+            selected = [a for a in approaches if a in valid]
+            if not selected:
+                print(
+                    f"⚠️  Warning: No valid approaches for {implementation} in {approaches}. "
+                    f"Using all approaches for {implementation}."
+                )
+                selected = valid
+        else:
+            selected = valid
+        for approach in selected:
+            runs.append((approach, implementation))
+    return runs
+
+
+def _next_run_index(dataset_dir: Path, result_files: list[str]) -> int:
+    """
+    Smallest N such that dataset_dir/run_N/ holds none of result_files.
+
+    Re-invoking with the same approaches moves on to a fresh run_N, while
+    invocations covering different approaches (e.g. launched in parallel)
+    share one run_N.
+    """
+    n = 1
+    while any((dataset_dir / f"run_{n}" / f).exists() for f in result_files):
+        n += 1
+    return n
+
+
 def run_constraints_file(
     constraints_file: str,
     output_dir: str,
@@ -207,46 +265,7 @@ def run_constraints_file(
     smt_dir = output_dir_path / "smt_constraints"
     smt_dir.mkdir(parents=True, exist_ok=True)
 
-    # Define all solver approaches per implementation.
-    # The int implementation splits hybrid into hybrid_ymd / hybrid_epoch;
-    # the bitvector implementation keeps the single "hybrid" approach.
-    all_symbolic_approaches_by_impl = {
-        "int": [
-            "simple",
-            "epoch_days",
-            "hybrid_ymd",
-            "hybrid_epoch",
-            "alpha_beta",
-            # "alpha_beta_table",  # excluded from default run; pass via --approaches to include
-        ],
-        "bitvector": [
-            "simple",
-            "epoch_days",
-            "hybrid",
-            "alpha_beta",
-            "alpha_beta_table",
-        ],
-    }
-
-    implementations = ["int"]  # Can add "bitvector" if needed
-
-    # Build the set of (approach, implementation) pairs to run, honoring an
-    # optional approach filter from the caller.
-    runs = []
-    for implementation in implementations:
-        valid = all_symbolic_approaches_by_impl[implementation]
-        if approaches is not None:
-            selected = [a for a in approaches if a in valid]
-            if not selected:
-                print(
-                    f"⚠️  Warning: No valid approaches for {implementation} in {approaches}. "
-                    f"Using all approaches for {implementation}."
-                )
-                selected = valid
-        else:
-            selected = valid
-        for approach in selected:
-            runs.append((approach, implementation))
+    runs = _resolve_approach_pairs(approaches)
 
     if approaches is not None:
         print(f"Running with approach/implementation pairs: {runs}")
@@ -365,15 +384,26 @@ def main():
         type=int,
         default=1,
         help="Number of times to repeat the full benchmark (default: 1). "
-        "Each run is saved to results/run_1/, run_2/, … subdirectories.",
+        "Each run is saved to a <dataset>/run_N/ subdirectory, numbered after any "
+        "runs already present under the same --tag.",
+    )
+    parser.add_argument(
+        "--tag",
+        default=None,
+        help="Name of the results subdirectory (default: a YYYYmmdd_HHMMSS timestamp). "
+        "Invocations sharing a tag write into the same directory.",
+    )
+    parser.add_argument(
+        "--results-dir",
+        default=None,
+        help="Directory under which <tag>/ is created. Defaults to <DateSATBench repo>/results "
+        "when --datesatbench-repo is given, otherwise eval/results.",
     )
 
     args = parser.parse_args()
 
-    # Each invocation gets a fresh output root to avoid collisions and
-    # to make it easy to compare runs over time.
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    results_root = SCRIPT_DIR / "results" / timestamp
+    tag = args.tag or timestamp
 
     def _resolve_datesatbench_root(repo_path: str | None) -> Path:
         """
@@ -390,9 +420,24 @@ def main():
         pkg_dir = p / "datesatbench"
         return pkg_dir if pkg_dir.exists() and pkg_dir.is_dir() else p
 
-    datesatbench_root = _resolve_datesatbench_root(
-        args.datesatbench_repo or os.environ.get("DATESATBENCH_REPO")
-    )
+    def _find_repo_root(start: Path) -> Path | None:
+        """Walk up from a dataset dir (e.g. datesatbench_new/) to the repo's pyproject.toml."""
+        for d in [start, *start.parents]:
+            if (d / "pyproject.toml").is_file():
+                return d
+        return None
+
+    datesatbench_repo = args.datesatbench_repo or os.environ.get("DATESATBENCH_REPO")
+    datesatbench_root = _resolve_datesatbench_root(datesatbench_repo)
+
+    # Results go to <DateSATBench repo>/results/<tag>/ so they sit next to the
+    # dataset they were produced from; eval/results/ is the fallback.
+    if args.results_dir:
+        results_base = Path(args.results_dir).expanduser().resolve()
+    else:
+        bench_repo_root = _find_repo_root(datesatbench_root) if datesatbench_repo else None
+        results_base = (bench_repo_root or SCRIPT_DIR) / "results"
+    results_root = results_base / tag
 
     # Where to load constraints from (either local symlinks under eval/, or external repo)
     constraint_sets = [
@@ -402,7 +447,6 @@ def main():
             / "llm_constraints"
             / "constraints"
             / "constraints.json",
-            # Always write results under eval/ (avoid symlinks to external repo)
             "output_dir": results_root / "llm",
         },
         {
@@ -453,6 +497,7 @@ def main():
         print(f"  Approaches: {args.approaches}")
     if args.datesatbenchs:
         print(f"  DateSATBench Datasets: {args.datesatbenchs}")
+    print(f"  Results: {results_root}")
     print()
 
     # Filter constraint sets if specified
@@ -465,23 +510,51 @@ def main():
             print(f"    - grammar (Grammar Constraints)")
             return
 
+    # Record how this run was produced. Invocations sharing a --tag (e.g. one
+    # per approach, run in parallel) accumulate their approaches and datasets.
+    results_root.mkdir(parents=True, exist_ok=True)
+    run_config_path = results_root / "run_config.json"
+    prior = json.loads(run_config_path.read_text()) if run_config_path.exists() else {}
+    approach_pairs = _resolve_approach_pairs(args.approaches)
+    datasets = [
+        cs["output_dir"].name for cs in constraint_sets if cs["constraints_file"].exists()
+    ]
+    run_config = {
+        "timeout_ms": args.timeout,
+        "approaches": sorted(
+            set(prior.get("approaches", [])) | {a for a, _ in approach_pairs}
+        ),
+        "datasets": sorted(set(prior.get("datasets", [])) | set(datasets)),
+        "maxsat": args.maxsat,
+        "timestamp": prior.get("timestamp", timestamp),
+        "tag": tag,
+        "datesatbench_root": str(datesatbench_root),
+    }
+    run_config_path.write_text(json.dumps(run_config, indent=2))
+
+    # Results always nest under <dataset>/run_N/. Numbering continues from
+    # earlier invocations under the same tag, so repeated evals never overwrite.
+    result_files = [f"{a}_{impl}.json" for a, impl in approach_pairs]
+    first_run_index = {
+        cs["name"]: _next_run_index(cs["output_dir"], result_files)
+        for cs in constraint_sets
+    }
+
     # Collect (run_idx, dataset_name, output_dir) for deferred analysis
     completed_runs: list[tuple[int, str, Path]] = []
 
     # Run benchmarks for each constraint set, repeated args.runs times
-    for run_idx in range(1, args.runs + 1):
+    for i in range(args.runs):
         if args.runs > 1:
             print(f"\n{'#'*70}")
-            print(f"RUN {run_idx} of {args.runs}")
+            print(f"RUN {i + 1} of {args.runs}")
             print(f"{'#'*70}\n")
 
         for constraint_set in constraint_sets:
             name = constraint_set["name"]
             constraints_file = constraint_set["constraints_file"]
-            base_output_dir = constraint_set["output_dir"]
-
-            # When running multiple times, nest results under run_N subdirectory
-            output_dir = base_output_dir / f"run_{run_idx}" if args.runs > 1 else base_output_dir
+            run_idx = first_run_index[name] + i
+            output_dir = constraint_set["output_dir"] / f"run_{run_idx}"
 
             print(f"{'='*70}")
             print(f"Running: {name}")
@@ -513,7 +586,7 @@ def main():
         print(f"{'#'*70}")
 
         for run_idx, name, results_dir in completed_runs:
-            run_label = f" (run {run_idx})" if args.runs > 1 else ""
+            run_label = f" (run {run_idx})"
             print(f"\n{'='*60}")
             print(f"Analyzing: {name}{run_label}")
             print(f"{'='*60}")

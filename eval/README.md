@@ -41,7 +41,23 @@ python3 eval/run_benchmarks.py --datesatbench-repo "$DATESATBENCH_REPO" \
 
 ### Output location
 
-Each invocation writes results under a timestamped directory in `eval/results/`:
+Results are written to `<results-dir>/<tag>/`:
+
+- `<results-dir>` defaults to `<DateSATBench repo>/results` (the repo containing the dataset passed to `--datesatbench-repo`), or `eval/results/` if no DateSATBench repo is given. Override with `--results-dir`.
+- `<tag>` defaults to a `YYYYmmdd_HHMMSS` timestamp. Override with `--tag`; invocations sharing a tag write into the same directory.
+- Every run goes in its own `run_N/`. Each invocation takes, per dataset, the lowest `N` whose `run_N/` has no result file for the approaches being run. So re-running with the same `--tag` adds `run_2`, `run_3`, …, while invocations covering *different* approaches (e.g. one per approach, launched in parallel) share a `run_N`. `--runs K` produces `K` consecutive run directories.
+
+```
+<results-dir>/<tag>/
+├── run_config.json                # timeout, approaches, datasets, dataset root
+└── <llm|grammar|legal>/
+    └── run_N/
+        ├── <approach>_int.json    # per-constraint status, time, solution
+        ├── smt_constraints/<approach>/int/<id>.smt2
+        └── checked_summary_with_baseline.json   # unless --no-analysis
+```
+
+A result file is written only once its approach finishes every constraint, so a killed run leaves its `run_N/` reusable. Starting the *same* approach again while an earlier invocation is still running will pick the same `run_N`.
 
 
 ## Utils
