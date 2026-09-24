@@ -55,7 +55,6 @@ Results are written to `<results-dir>/<tag>/`:
 └── <llm|grammar|legal>/
     └── run_N/
         ├── <approach>_int.json    # per-constraint status, time, solution
-        ├── smt_constraints/<approach>/int/<id>.smt2
         └── checked_summary_with_baseline.json   # unless --no-analysis
 ```
 

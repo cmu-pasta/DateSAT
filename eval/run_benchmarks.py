@@ -2,7 +2,6 @@ import argparse
 import json
 import multiprocessing as mp
 import os
-import re
 import sys
 import time
 from datetime import datetime
@@ -19,46 +18,6 @@ from eval.utils.validation import check_results_dir
 TIMEOUT_MS = 60000
 # Default wall-clock limit per instance, as a multiple of the solver timeout.
 HARD_TIMEOUT_FACTOR = 2
-
-
-def _get_smtlib_for_constraint(
-    constraint_data: dict,
-    approach: str,
-    implementation: str,
-    timeout_ms: int,
-    use_maxsat: bool = False,
-) -> str | None:
-    """
-    Generate SMT-LIB representation for a constraint.
-
-    This is used for benchmarking purposes to save SMT-LIB files
-    that can be replayed with other SMT solvers.
-    """
-    from datesat.api import DateSATBuilder
-    from datesat.constraint_parser import ConstraintParser
-    from datesat.core import Date, Period
-
-    parser = ConstraintParser()
-    constraint_code = parser.parse_constraint_data(constraint_data)
-
-    def create_builder():
-        return DateSATBuilder(
-            approach=approach,
-            implementation=implementation,
-            timeout_ms=timeout_ms,
-            use_maxsat=use_maxsat,
-        )
-
-    exec_globals = {
-        "Date": Date,
-        "Period": Period,
-        "DateSATBuilder": create_builder,
-    }
-
-    exec(constraint_code, exec_globals)
-    builder = exec_globals.get("result") or exec_globals.get("builder")
-
-    return builder.to_smt2() if builder else None
 
 
 def _solve_task(
@@ -94,23 +53,13 @@ def _solve_task(
 
 
 def _benchmark_worker(conn) -> None:
-    """
-    Child-process loop: for each task, send the solve result, then the SMT-LIB.
-
-    The two are sent separately so the parent keeps the solve result even when
-    SMT-LIB generation, which rebuilds the constraints, is the step that hangs.
-    """
+    """Child-process loop: solve each task and send back the result."""
     while True:
         task = conn.recv()
         try:
             conn.send(("solved", _solve_task(*task)))
         except Exception as e:
             conn.send(("error", str(e)))
-            continue
-        try:
-            conn.send(("smtlib", _get_smtlib_for_constraint(*task)))
-        except Exception as e:
-            conn.send(("smtlib_error", str(e)))
 
 
 class _SolverWorker:
@@ -179,13 +128,12 @@ def run_constraint_with_approach(
     """
     Run a single constraint with a specific solver approach and implementation.
 
-    The work runs in `worker`. If solving, or separately SMT-LIB generation,
-    exceeds hard_timeout_ms of wall-clock time (default: HARD_TIMEOUT_FACTOR x
-    timeout_ms), the worker is killed and the step is abandoned; a killed
-    solve is recorded as a timeout with "hard_timeout": True.
+    The work runs in `worker`. If it exceeds hard_timeout_ms of wall-clock
+    time (default: HARD_TIMEOUT_FACTOR x timeout_ms), the worker is killed and
+    the instance is recorded as a timeout with "hard_timeout": True.
 
-    Returns a dict containing the constraint ID, status, execution time,
-    solution (if SAT), and optionally SMT-LIB representation.
+    Returns a dict containing the constraint ID, status, execution time and
+    solution (if SAT).
     """
     constraint_id = constraint_data.get("id", "unknown")
     print(
@@ -204,7 +152,6 @@ def run_constraint_with_approach(
         "execution_time": 0,
         "error_message": None,
         "solution": None,
-        "smtlib": None,
         "hard_timeout": False,
     }
 
@@ -228,16 +175,6 @@ def run_constraint_with_approach(
         return result
     result.update(payload)
 
-    # SMT-LIB for benchmarking purposes (optional); it rebuilds the
-    # constraints, so it gets its own hard timeout
-    message = worker.recv(limit_s)
-    if message is None:
-        result["smtlib_error"] = f"exceeded the {limit_s:g}s hard timeout"
-    elif message[0] == "smtlib":
-        result["smtlib"] = message[1]
-    else:
-        result["smtlib_error"] = message[1]
-
     # Print status
     if result["status"] == "sat":
         print(f"✅ Solution found:")
@@ -251,11 +188,6 @@ def run_constraint_with_approach(
         print(f"❌ Status: {result['status']}")
 
     return result
-
-
-def _sanitize_filename(name: str) -> str:
-    """Sanitize a string to be safe for filenames."""
-    return re.sub(r"[^A-Za-z0-9._-]+", "_", name)
 
 
 def _load_constraints(constraints_file: str) -> list[dict]:
@@ -374,8 +306,6 @@ def run_constraints_file(
     # Create output directories
     output_dir_path = Path(output_dir)
     output_dir_path.mkdir(parents=True, exist_ok=True)
-    smt_dir = output_dir_path / "smt_constraints"
-    smt_dir.mkdir(parents=True, exist_ok=True)
 
     runs = _resolve_approach_pairs(approaches)
 
@@ -404,23 +334,6 @@ def run_constraints_file(
                     use_maxsat,
                     hard_timeout_ms,
                 )
-
-                # Save SMT-LIB representation to file if available
-                if result.get("smtlib"):
-                    constraint_id = _sanitize_filename(result.get("id", "unknown"))
-                    smt_output_dir = smt_dir / approach / implementation
-                    smt_output_dir.mkdir(parents=True, exist_ok=True)
-                    smt_file_path = smt_output_dir / f"{constraint_id}.smt2"
-
-                    try:
-                        smt_file_path.write_text(result["smtlib"])
-                        result["smtlib_file"] = str(smt_file_path)
-                    except Exception as e:
-                        result["smtlib_file_error"] = str(e)
-
-                    # Remove smtlib from result to avoid bloating JSON files
-                    del result["smtlib"]
-
                 results.append(result)
 
         all_results[f"{approach}_{implementation}"] = results
