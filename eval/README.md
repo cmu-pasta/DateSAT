@@ -69,3 +69,5 @@ The `eval/utils/` directory contains utility scripts for analysis and plotting:
 - **`plot_normalized_speedup.py`**: plots results from `run_benchmarks.py` outputs (run evaluation first).
 - **`compute_time.py`**: execution time statistics from result JSON files.
 - **`validation.py`**: validates solver solutions against constraints using concrete execution.
+
+`plot_normalized_speedup.py` and `compute_time.py` need the timeout the results were run with, in ms, and refuse to run without it: pass `--timeout <ms>` or set `DATESAT_TIMEOUT_MS`. Timed-out runs count at that timeout.

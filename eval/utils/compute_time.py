@@ -3,10 +3,17 @@
 Compute averaged execution time statistics across all runs for every
 encoding type and benchmark category.  Outputs a table matching the
 format of Table 1 in the paper.
+
+Timed-out runs count at the solver timeout, which must be given in ms with
+--timeout or the DATESAT_TIMEOUT_MS environment variable (--timeout wins):
+
+    python eval/utils/compute_time.py --timeout 20000
 """
 
+import argparse
 import csv
 import json
+import os
 import statistics
 from pathlib import Path
 
@@ -35,15 +42,18 @@ ENCODINGS = [
 
 METRICS = ["Solve (%)", "Median Time (s)", "Mean Time (s)", "Std Dev (s)"]
 
+TIMEOUT_ENV = "DATESAT_TIMEOUT_MS"
+
 
 def get_run_dirs(results_dir: Path) -> list[Path]:
     runs = [d for d in results_dir.iterdir() if d.is_dir() and d.name.startswith("run_")]
     return sorted(runs, key=lambda d: int(d.name.split("_")[1]))
 
 
-def load_run_data(results_dir: Path, encoding_file: str) -> dict:
+def load_run_data(results_dir: Path, encoding_file: str, timeout_s: float) -> dict:
     """
-    Load data for one encoding across all runs.
+    Load data for one encoding across all runs. A timed-out run counts at
+    timeout_s seconds instead of its measured time.
 
     Returns dict with:
       - "solve_pct": average solve percentage across runs
@@ -68,8 +78,10 @@ def load_run_data(results_dir: Path, encoding_file: str) -> dict:
         solve_rates.append((solved / total) * 100 if total > 0 else 0.0)
 
         for entry in data:
-            if entry.get("execution_time") is not None:
-                pid = entry.get("id", "unknown")
+            pid = entry.get("id", "unknown")
+            if entry.get("status") == "timeout":
+                times_by_id.setdefault(pid, []).append(timeout_s)
+            elif entry.get("execution_time") is not None:
                 times_by_id.setdefault(pid, []).append(entry["execution_time"])
 
     if not solve_rates:
@@ -106,6 +118,21 @@ def best_in_row(values: list[float], metric: str) -> int:
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--timeout",
+        type=float,
+        default=os.environ.get(TIMEOUT_ENV),
+        help=f"Solver timeout in ms that the results were run with "
+        f"(default: ${TIMEOUT_ENV}; one of the two is required)",
+    )
+    args = parser.parse_args()
+    if args.timeout is None:
+        parser.error(f"give the solver timeout with --timeout <ms> or {TIMEOUT_ENV}")
+    if args.timeout <= 0:
+        parser.error(f"the timeout must be positive, got {args.timeout:g} ms")
+    timeout_s = args.timeout / 1000
+
     OUTPUT_PATH.parent.mkdir(exist_ok=True)
 
     enc_labels = [label for label, _ in ENCODINGS]
@@ -124,7 +151,7 @@ def main() -> int:
         enc_data: dict[str, dict] = {}
         n_problems = 0
         for enc_label, enc_file in ENCODINGS:
-            d = load_run_data(results_dir, enc_file)
+            d = load_run_data(results_dir, enc_file, timeout_s)
             enc_data[enc_label] = d
             if d.get("n", 0) > n_problems:
                 n_problems = d["n"]

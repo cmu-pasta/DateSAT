@@ -5,9 +5,16 @@ Compares execution times against a baseline (simple_int) and shows speedup/slowd
 
 The plot style is inspired by benchmark comparison visualizations showing
 relative performance across multiple test cases.
+
+The solver timeout the results were run with must be given, in ms, with --timeout
+or the DATESAT_TIMEOUT_MS environment variable (--timeout wins):
+
+    python eval/utils/plot_normalized_speedup.py --timeout 20000
 """
 
+import argparse
 import json
+import os
 import statistics
 import sys
 from pathlib import Path
@@ -76,8 +83,10 @@ TECHNIQUES = {
 
 BASELINE_TECHNIQUE = "simple_int"
 
-# Timeout value in seconds (use this for constraints that timed out)
-TIMEOUT_SECONDS = 60.0
+# Timeout value in seconds (use this for constraints that timed out). Set in main()
+# from --timeout / $DATESAT_TIMEOUT_MS; there is no default.
+TIMEOUT_SECONDS = None
+TIMEOUT_ENV = "DATESAT_TIMEOUT_MS"
 
 # Speedup value when baseline finishes but technique times out
 TIMEOUT_SPEEDUP = 1e-3  # 0.001
@@ -165,7 +174,7 @@ def compute_speedups(
     - = 1 means same performance
 
     Special cases:
-    - If baseline times out: use TIMEOUT_SECONDS (60s) for baseline time
+    - If baseline times out: use TIMEOUT_SECONDS for baseline time
     - If baseline finishes but technique times out: speedup = TIMEOUT_SPEEDUP (10^-4)
     - If both timeout: skip the datapoint
 
@@ -523,7 +532,7 @@ def process_datesatbench(datesatbench_name: str, datesatbench_config: dict):
         print(f"  [!] {datesatbench_name}: Baseline not found")
         return False
 
-    # Get sorted constraint IDs (timeouts treated as 60s)
+    # Get sorted constraint IDs (timeouts treated as TIMEOUT_SECONDS)
     sorted_constraint_ids = get_sorted_constraint_ids(results, BASELINE_TECHNIQUE)
     total_constraints = len(sorted_constraint_ids)
 
@@ -679,9 +688,25 @@ def process_combined_datesatbenchs():
 
 def main():
     """Main entry point."""
+    global TIMEOUT_SECONDS
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--timeout",
+        type=float,
+        default=os.environ.get(TIMEOUT_ENV),
+        help=f"Solver timeout in ms that the results were run with "
+        f"(default: ${TIMEOUT_ENV}; one of the two is required)",
+    )
+    args = parser.parse_args()
+    if args.timeout is None:
+        parser.error(f"give the solver timeout with --timeout <ms> or {TIMEOUT_ENV}")
+    if args.timeout <= 0:
+        parser.error(f"the timeout must be positive, got {args.timeout:g} ms")
+    TIMEOUT_SECONDS = args.timeout / 1000
+
     print("\nNormalized Speedup Plot Generator")
     print(f"Baseline: {TECHNIQUES[BASELINE_TECHNIQUE]['label']}")
-    print(f"  - Baseline timeout: use {TIMEOUT_SECONDS}s")
+    print(f"  - Baseline timeout: use {TIMEOUT_SECONDS:g}s")
     print(f"  - Technique timeout (baseline ok): speedup = {TIMEOUT_SPEEDUP}")
     print(f"  - Both timeout: dropped")
 
