@@ -15,9 +15,9 @@ if REPO_ROOT not in sys.path:
 import datesat
 from eval.utils.validation import check_results_dir
 
-TIMEOUT_MS = 60000
+TIMEOUT_MS = 20000
 # Default wall-clock limit per instance, covering build and solve.
-HARD_TIMEOUT_MS = 60000
+HARD_TIMEOUT_MS = 20000
 
 
 def _solve_task(
@@ -389,7 +389,7 @@ def main():
         "--timeout",
         type=int,
         default=TIMEOUT_MS,
-        help="Timeout in milliseconds (default: 60000 = 60 seconds)",
+        help="Timeout in milliseconds (default: 20000 = 20 seconds)",
     )
     parser.add_argument(
         "--hard-timeout",
@@ -397,7 +397,7 @@ def main():
         default=HARD_TIMEOUT_MS,
         help="Wall-clock limit per instance in milliseconds, covering constraint "
         "construction as well as solving; an instance that exceeds it is killed and "
-        f"recorded as a timeout (default: {HARD_TIMEOUT_MS} = 60 seconds)",
+        f"recorded as a timeout (default: {HARD_TIMEOUT_MS} = 20 seconds)",
     )
     parser.add_argument(
         "--no-analysis",

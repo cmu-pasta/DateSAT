@@ -39,7 +39,7 @@ python3 eval/run_benchmarks.py --datesatbench-repo "$DATESATBENCH_REPO" \
   --datesatbenchs legal
 ```
 
-`--timeout` only bounds the Z3 check; building the constraints is not covered by it and can hang (e.g. `simple` on a `Period` with tens of thousands of days). Each instance therefore runs in a child process that is killed after `--hard-timeout` ms of wall-clock time (default: 60000). A killed instance is recorded as `"status": "timeout"` with `"hard_timeout": true`. Each result also splits `execution_time` into `build_time` (constructing the constraints) and `solve_time` (the Z3 check and model extraction).
+`--timeout` only bounds the Z3 check; building the constraints is not covered by it and can hang (e.g. `simple` on a `Period` with tens of thousands of days). Each instance therefore runs in a child process that is killed after `--hard-timeout` ms of wall-clock time (default: 20000). A killed instance is recorded as `"status": "timeout"` with `"hard_timeout": true`. Each result also splits `execution_time` into `build_time` (constructing the constraints) and `solve_time` (the Z3 check and model extraction).
 
 ### Output location
 
