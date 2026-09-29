@@ -80,9 +80,6 @@ local/
 PIPr/
 Miniforge3-MacOSX-arm64.sh
 
-# Ignore all results folders in datesatbench subdirectories
-eval/results/
-
 # Coding agent
 .claude/
 .*/
