@@ -7,7 +7,7 @@ against a provided concrete solution (no solving capability).
 """
 
 from typing import Any, Dict, Optional, Tuple, Union
-from dateutil.relativedelta import relativedelta
+import calendar
 import datetime
 import warnings
 
@@ -21,11 +21,45 @@ from future_work.datesat_bounded.enumeration_baseline import (
 )
 
 
-# Global flag used during validation to detect when any intermediate date
-# computation has gone outside DateSAT's supported range. This allows the
-# higher-level validation/summary code to classify such cases as "warning"
-# instead of fully "wrong".
-_OUT_OF_BOUNDS_USED: bool = False
+# Every encoding bounds each date it computes, including every Date + Period result,
+# to years 1..9999 (see _add_bounds in datesat/symbolic_int/). Python's date covers
+# exactly that range.
+_MIN_ORDINAL = datetime.date.min.toordinal()
+_MAX_ORDINAL = datetime.date.max.toordinal()
+_DAYS_PER_400_YEARS = 146097  # the Gregorian calendar repeats every 400 years
+
+# The Date + Period results built by the constraint code being validated.
+# validate_constraint_solution() clears it and checks that each one is in range.
+_DERIVED_DATES: list = []
+
+
+class DateRangeError(Exception):
+    """A Date + Period result fell outside years 1..9999.
+
+    Deliberately not a ValueError: ConstraintWrapper.evaluate() turns ValueError into
+    False, and a Not() around it would then turn that into True.
+    """
+
+
+def _add_period(d: Date, years: int, months: int, days: int) -> Date:
+    """Date + Period with the solver's semantics.
+
+    Add years and months, clamp the day to the end of the month, then add days. Only
+    the final result has to be in years 1..9999; the mid-step may fall outside it, so
+    it is computed on a year shifted by whole 400-year cycles into Python's range.
+    """
+    y, m = divmod(d.year * 12 + d.month - 1 + years * 12 + months, 12)
+    m += 1
+    cycles = (y - 1) // 400
+    cycle_year = y - 400 * cycles  # same calendar as y, in 1..400
+    day = min(d.day, calendar.monthrange(cycle_year, m)[1])
+    ordinal = (datetime.date(cycle_year, m, day).toordinal()
+               + cycles * _DAYS_PER_400_YEARS + days)
+    if not _MIN_ORDINAL <= ordinal <= _MAX_ORDINAL:
+        raise DateRangeError(
+            f"{d} + Period({years}, {months}, {days}) is outside years 1..9999"
+        )
+    return Date.from_python_date(datetime.date.fromordinal(ordinal))
 
 
 class EvalDateVar:
@@ -52,38 +86,11 @@ class EvalDateVar:
             left_val = left.get_value()
             if left_val is None:
                 return None
-            py_date = left_val.to_python_date()
-            delta = relativedelta(
-                years=period.years, months=period.months, days=period.days
+            # Date - Period is Date + (-Period), as in the solver.
+            sign = 1 if op_type == "add" else -1
+            self._value = _add_period(
+                left_val, sign * period.years, sign * period.months, sign * period.days
             )
-            if op_type == "add":
-                result_date = py_date + delta
-            else:
-                result_date = py_date - delta
-            try:
-                # Try to create a Date object (respects bounds)
-                result = Date.from_python_date(result_date)
-                self.set_value(result.year, result.month, result.day)
-            except ValueError:
-                # Date is out of DateSAT bounds, but still valid for validation.
-                # Store as a pseudo-Date using a custom unbounded wrapper and
-                # record that we went outside the supported range.
-                global _OUT_OF_BOUNDS_USED
-                _OUT_OF_BOUNDS_USED = True
-
-                # Emit a warning for visibility during ad‑hoc runs
-                warnings.warn(
-                    f"Intermediate date computation resulted in date outside allowed range: "
-                    f"{result_date.year}-{result_date.month:02d}-{result_date.day:02d} "
-                    f"(allowed [1900-03-01..2100-02-28]). Using unbounded date for validation.",
-                    UserWarning,
-                    stacklevel=2,
-                )
-
-                # Construct Date with bounded=False for dates outside allowed range
-                self._value = Date(
-                    result_date.year, result_date.month, result_date.day, bounded=False
-                )
         return self._value
 
     # comparisons
@@ -129,6 +136,7 @@ class EvalDateVar:
             raise TypeError("Can only add Period to DateVar")
         out = EvalDateVar(f"{self.name}_plus")
         out._lazy_op = ("add", self, other)
+        _DERIVED_DATES.append(out)
         return out
 
     def __sub__(self, other: Period) -> "EvalDateVar":
@@ -136,6 +144,7 @@ class EvalDateVar:
             raise TypeError("Can only subtract Period from DateVar")
         out = EvalDateVar(f"{self.name}_minus")
         out._lazy_op = ("sub", self, other)
+        _DERIVED_DATES.append(out)
         return out
 
     # year/month/day projections
@@ -836,88 +845,60 @@ def validate_constraint_solution(
     Execute constraint_code with a validation-only builder and evaluate
     the provided concrete solution.
     """
-    # Reset global out-of-bounds flag for this validation run
-    global _OUT_OF_BOUNDS_USED
-    _OUT_OF_BOUNDS_USED = False
+    _DERIVED_DATES.clear()
+    builder = EvalBuilder()
+    ctx = builder.get_execution_context()
 
-    # Suppress warnings from datesat.core.Date operations during constraint code execution.
-    # We only care about the _OUT_OF_BOUNDS_USED flag set by EvalDateVar, not warnings
-    # from literal Date expressions in the constraint code (like Date(2042, 12, 18) + Period(...)).
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", message="Intermediate date computation.*", category=UserWarning)
-        
-        builder = EvalBuilder()
-        ctx = builder.get_execution_context()
+    try:
+        exec(constraint_code, ctx)
+    except Exception as e:
+        return False, f"Error executing constraint code: {e}"
 
+    solver = ctx.get("result") or ctx.get("builder") or builder
+
+    # Set values
+    for var_name, raw_val in solution.items():
+        parsed = _parse_solution_value(raw_val)
+        if var_name in solver.date_vars:
+            if not isinstance(parsed, Date):
+                return False, f"Variable {var_name} expects Date, got {parsed}"
+            solver.date_vars[var_name].set_value(parsed.year, parsed.month, parsed.day)
+        elif var_name in solver.int_vars:
+            if not isinstance(parsed, int):
+                return False, f"Variable {var_name} expects int, got {parsed}"
+            solver.int_vars[var_name].set_value(parsed)
+        elif var_name in solver.bool_vars:
+            if not isinstance(parsed, bool):
+                return False, f"Variable {var_name} expects bool, got {parsed}"
+            solver.bool_vars[var_name].set_value(parsed)
+        else:
+            # Ignore unknown variables; they might be unused
+            continue
+
+    # The solver asserts every Date + Period result is in years 1..9999 wherever the
+    # expression appears, so a model that breaks this is invalid even when that result
+    # is negated or sits in a disjunct that is never evaluated.
+    for derived in _DERIVED_DATES:
         try:
-            exec(constraint_code, ctx)
-        except Exception as e:
-            return False, f"Error executing constraint code: {e}"
+            derived.get_value()
+        except DateRangeError as e:
+            return False, f"Date + Period result out of range: {e}"
 
-        solver = ctx.get("result") or ctx.get("builder") or builder
-
-        # Set values
-        for var_name, raw_val in solution.items():
-            parsed = _parse_solution_value(raw_val)
-            if var_name in solver.date_vars:
-                if not isinstance(parsed, Date):
-                    return False, f"Variable {var_name} expects Date, got {parsed}"
-                solver.date_vars[var_name].set_value(parsed.year, parsed.month, parsed.day)
-            elif var_name in solver.int_vars:
-                if not isinstance(parsed, int):
-                    return False, f"Variable {var_name} expects int, got {parsed}"
-                solver.int_vars[var_name].set_value(parsed)
-            elif var_name in solver.bool_vars:
-                if not isinstance(parsed, bool):
-                    return False, f"Variable {var_name} expects bool, got {parsed}"
-                solver.bool_vars[var_name].set_value(parsed)
+    # Evaluate constraints
+    try:
+        for c in solver.constraints:
+            if isinstance(c, bool):
+                holds = c
+            elif isinstance(c, ConstraintWrapper):
+                holds = c.evaluate()
+            elif callable(c):
+                holds = c()
             else:
-                # Ignore unknown variables; they might be unused
-                continue
-
-        # Evaluate constraints
-        validation_failed = False
-        failure_message = None
-        try:
-            for c in solver.constraints:
-                if isinstance(c, bool):
-                    if not c:
-                        validation_failed = True
-                        failure_message = "Constraint evaluated False"
-                        break
-                elif isinstance(c, ConstraintWrapper):
-                    if not c.evaluate():
-                        validation_failed = True
-                        failure_message = "Constraint evaluated False"
-                        break
-                elif callable(c):
-                    if not c():
-                        validation_failed = True
-                        failure_message = "Constraint evaluated False"
-                        break
-                else:
-                    if not bool(c):
-                        validation_failed = True
-                        failure_message = "Constraint evaluated False"
-                        break
-        except Exception as e:
-            validation_failed = True
-            failure_message = f"Error during constraint evaluation: {e}"
-
-    # If validation failed, return False with appropriate message
-    if validation_failed:
-        if _OUT_OF_BOUNDS_USED:
-            return False, f"{failure_message} (with warning: Date outside allowed range encountered during intermediate computation)"
-        return False, failure_message
-
-    # If any intermediate date went outside the supported range during evaluation,
-    # include warning info in the message. The higher-level summary code will classify
-    # these as "warning_correct" or "warning_wrong" based on whether validation actually succeeded.
-    if _OUT_OF_BOUNDS_USED:
-        return (
-            True,
-            "Solution validated successfully (with warning: Date outside allowed range encountered during intermediate computation)",
-        )
+                holds = bool(c)
+            if not holds:
+                return False, "Constraint evaluated False"
+    except Exception as e:
+        return False, f"Error during constraint evaluation: {e}"
 
     return True, "Solution validated successfully"
 
