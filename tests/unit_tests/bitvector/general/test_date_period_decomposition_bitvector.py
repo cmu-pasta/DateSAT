@@ -176,21 +176,6 @@ def all_decomposed_cases():
     return cases
 
 
-@pytest.mark.parametrize(
-    "base,per,label,seq",
-    [
-        pytest.param(base, per, label, seq, id=f"py_ref_{base}+{per}_{label}")
-        for base, per, label, seq in all_decomposed_cases()
-    ],
-)
-def test_python_decomposed_orders(
-    base: Date, per: Period, label: str, seq: list[Period]
-):
-    """Ensure Python results are well-defined for each decomposed order (sanity)."""
-    got = python_date_plus_sequence(base, seq, label)
-    assert isinstance(got, Date)
-
-
 def _solve_decomposed_with_solver(solver_cls, base: Date, seq: list[Period]):
     s = solver_cls()
     x = s.add_date_var("x")

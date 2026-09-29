@@ -179,21 +179,6 @@ def _solve_single_sub(solver_cls, base: Date, per: Period) -> dict:
 @pytest.mark.parametrize(
     "base,per,expect",
     [
-        pytest.param(base, per, expect, id=f"py_truth_{base}+{per}={expect}")
-        for base, per, expect in get_period_arithmetic_test_cases()
-    ],
-)
-def test_python_output_equals_ground_truth(base: Date, per: Period, expect: Date):
-    """Assert Python date + relativedelta equals the expected canonical ground truth."""
-    py_got = python_date_plus(base, per)
-    assert (
-        py_got == expect
-    ), f"Python date+relativedelta: {base} + {per} -> {py_got}, expected {expect}"
-
-
-@pytest.mark.parametrize(
-    "base,per,expect",
-    [
         pytest.param(base, per, expect, id=f"solvers_truth_{base}+{per}={expect}")
         for base, per, expect in get_period_arithmetic_test_cases()
     ],

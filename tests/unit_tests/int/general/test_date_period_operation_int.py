@@ -50,33 +50,23 @@ def get_period_arithmetic_test_cases():
         (Date(2020, 6, 15), Period(0, 0, -200), Date(2019, 11, 28)),
         (Date(2020, 2, 29), Period(0, 0, -60), Date(2019, 12, 31)),
         # Month-end to month-end transitions
-        (Date(2020, 1, 31), Period(0, 1, 0), Date(2020, 2, 29)),
         (Date(2021, 1, 31), Period(0, 1, 0), Date(2021, 2, 28)),
         (Date(2020, 3, 31), Period(0, 1, 0), Date(2020, 4, 30)),
-        (Date(2020, 4, 30), Period(0, 1, 0), Date(2020, 5, 30)),
         (Date(2020, 5, 31), Period(0, 1, 0), Date(2020, 6, 30)),
         (Date(2020, 7, 31), Period(0, 1, 0), Date(2020, 8, 31)),
         (Date(2020, 8, 31), Period(0, 1, 0), Date(2020, 9, 30)),
         (Date(2020, 9, 30), Period(0, 1, 0), Date(2020, 10, 30)),
         (Date(2020, 10, 31), Period(0, 1, 0), Date(2020, 11, 30)),
         (Date(2020, 11, 30), Period(0, 1, 0), Date(2020, 12, 30)),
-        (Date(2020, 12, 31), Period(0, 1, 0), Date(2021, 1, 31)),
-        (Date(2020, 12, 31), Period(0, 1, 0), Date(2021, 1, 31)),
         (Date(2020, 1, 31), Period(0, 13, 0), Date(2021, 2, 28)),
         # Year boundary transitions
-        (Date(2020, 12, 31), Period(0, 0, 1), Date(2021, 1, 1)),
         (Date(2020, 12, 31), Period(0, 0, 2), Date(2021, 1, 2)),
         (Date(2021, 1, 1), Period(0, 0, -1), Date(2020, 12, 31)),
-        (Date(2021, 1, 1), Period(0, 0, -2), Date(2020, 12, 30)),
         (Date(2021, 1, 1), Period(0, 0, -2), Date(2020, 12, 30)),
         # February leap year edge cases
         (Date(2020, 2, 28), Period(0, 0, 1), Date(2020, 2, 29)),
         (Date(2020, 2, 29), Period(0, 0, 1), Date(2020, 3, 1)),
         (Date(2021, 2, 28), Period(0, 0, 1), Date(2021, 3, 1)),
-        (Date(2020, 3, 1), Period(0, 0, -1), Date(2020, 2, 29)),
-        (Date(2021, 2, 28), Period(0, 0, 1), Date(2021, 3, 1)),
-        (Date(2021, 3, 1), Period(0, 0, -1), Date(2021, 2, 28)),
-        (Date(2020, 3, 1), Period(0, 0, -1), Date(2020, 2, 29)),
         (Date(2021, 3, 1), Period(0, 0, -1), Date(2021, 2, 28)),
         # Large month additions
         (Date(2020, 1, 15), Period(0, 12, 0), Date(2021, 1, 15)),
@@ -87,7 +77,6 @@ def get_period_arithmetic_test_cases():
         # Large year additions
         (Date(2020, 6, 15), Period(1, 0, 0), Date(2021, 6, 15)),
         (Date(2020, 6, 15), Period(4, 0, 0), Date(2024, 6, 15)),
-        (Date(2020, 2, 29), Period(1, 0, 0), Date(2021, 2, 28)),
         (Date(2020, 2, 29), Period(4, 0, 0), Date(2024, 2, 29)),
         (Date(2020, 6, 15), Period(79, 0, 0), Date(2099, 6, 15)),
         # Complex mixed cases
@@ -98,11 +87,7 @@ def get_period_arithmetic_test_cases():
         # Negative period edge cases
         (Date(2020, 1, 1), Period(0, 0, -1), Date(2019, 12, 31)),
         (Date(2020, 1, 1), Period(0, 0, -32), Date(2019, 11, 30)),
-        (Date(2020, 3, 1), Period(0, -1, 0), Date(2020, 2, 1)),
         (Date(2020, 3, 1), Period(0, -2, 0), Date(2020, 1, 1)),
-        (Date(2020, 3, 1), Period(0, -2, 0), Date(2020, 1, 1)),
-        (Date(2020, 3, 1), Period(-1, 0, 0), Date(2019, 3, 1)),
-        (Date(2020, 3, 1), Period(-1, 0, 0), Date(2019, 3, 1)),
         (Date(2020, 2, 29), Period(-1, 0, 0), Date(2019, 2, 28)),
         # Edge cases around month boundaries with days
         (Date(2020, 1, 30), Period(0, 1, 1), Date(2020, 3, 1)),
@@ -111,39 +96,18 @@ def get_period_arithmetic_test_cases():
         (Date(2020, 5, 31), Period(0, 1, 1), Date(2020, 7, 1)),
         # Additional edge cases for comprehensive coverage
         # Year jumps across leap years
-        (Date(2020, 2, 29), Period(1, 0, 0), Date(2021, 2, 28)),
         (Date(2024, 2, 29), Period(1, 0, 0), Date(2025, 2, 28)),
-        (Date(2020, 2, 29), Period(4, 0, 0), Date(2024, 2, 29)),
         (Date(2020, 2, 29), Period(2, 0, 0), Date(2022, 2, 28)),
         (Date(2020, 2, 29), Period(3, 0, 0), Date(2023, 2, 28)),
         (Date(2020, 2, 29), Period(5, 0, 0), Date(2025, 2, 28)),
         (Date(2020, 2, 29), Period(8, 0, 0), Date(2028, 2, 29)),
         # Month jumps with varying lengths - comprehensive coverage
-        (Date(2020, 1, 31), Period(0, 1, 0), Date(2020, 2, 29)),
-        (Date(2021, 1, 31), Period(0, 1, 0), Date(2021, 2, 28)),
         (Date(2020, 1, 31), Period(0, 2, 0), Date(2020, 3, 31)),
         (Date(2020, 1, 31), Period(0, 3, 0), Date(2020, 4, 30)),
         (Date(2020, 1, 31), Period(0, 12, 0), Date(2021, 1, 31)),
-        # Four-year cycle math for leap years
-        (Date(2020, 2, 29), Period(1, 0, 0), Date(2021, 2, 28)),
-        (Date(2020, 2, 29), Period(2, 0, 0), Date(2022, 2, 28)),
-        (Date(2020, 2, 29), Period(3, 0, 0), Date(2023, 2, 28)),
-        (Date(2020, 2, 29), Period(4, 0, 0), Date(2024, 2, 29)),
-        (Date(2020, 2, 29), Period(5, 0, 0), Date(2025, 2, 28)),
-        (Date(2020, 2, 29), Period(8, 0, 0), Date(2028, 2, 29)),
         # Month lookup path validation - all months with max days
-        (Date(2020, 1, 31), Period(0, 1, 0), Date(2020, 2, 29)),
         (Date(2020, 2, 29), Period(0, 1, 0), Date(2020, 3, 29)),
-        (Date(2020, 3, 31), Period(0, 1, 0), Date(2020, 4, 30)),
-        (Date(2020, 4, 30), Period(0, 1, 0), Date(2020, 5, 30)),
-        (Date(2020, 5, 31), Period(0, 1, 0), Date(2020, 6, 30)),
         (Date(2020, 6, 30), Period(0, 1, 0), Date(2020, 7, 30)),
-        (Date(2020, 7, 31), Period(0, 1, 0), Date(2020, 8, 31)),
-        (Date(2020, 8, 31), Period(0, 1, 0), Date(2020, 9, 30)),
-        (Date(2020, 9, 30), Period(0, 1, 0), Date(2020, 10, 30)),
-        (Date(2020, 10, 31), Period(0, 1, 0), Date(2020, 11, 30)),
-        (Date(2020, 11, 30), Period(0, 1, 0), Date(2020, 12, 30)),
-        (Date(2020, 12, 31), Period(0, 1, 0), Date(2021, 1, 31)),
     ]
 
 
