@@ -9,6 +9,7 @@ features_for(entry, corpus) also returns the id, corpus and label_ fields DateSA
 writes; the router reads only the names in FEATURES.
 """
 
+from collections import deque
 from itertools import combinations
 
 from .parser import (
@@ -133,6 +134,89 @@ def nnf_depth_and_polarity(tree):
 
 def atom_variables(atom, sorts):
     return {n.name for n in walk(atom) if isinstance(n, Var) and n.name in sorts}
+
+
+def period_op_kind(lhs_vars, rhs_vars):
+    """How a date comparison relates its sides, given the variables of each: "self" when
+    both mention the same single variable (a < a + p), "const" when one side mentions
+    none (a + p < Date(...)), and "cross" otherwise (a < b + p)."""
+    if len(lhs_vars) == 1 and lhs_vars == rhs_vars:
+        return "self"
+    if not lhs_vars or not rhs_vars:
+        return "const"
+    return "cross"
+
+
+def graph_diameter(edges):
+    """The most edges on a shortest path between two nodes of an undirected graph, over
+    every connected component; 0 for a graph with no edges."""
+    adj = {}
+    for u, v in edges:
+        adj.setdefault(u, set()).add(v)
+        adj.setdefault(v, set()).add(u)
+    diameter = 0
+    for start in adj:
+        dist = {start: 0}
+        queue = deque([start])
+        while queue:
+            u = queue.popleft()
+            for v in adj[u]:
+                if v not in dist:
+                    dist[v] = dist[u] + 1
+                    queue.append(v)
+        diameter = max(diameter, max(dist.values()))
+    return diameter
+
+
+def arithmetic_structure(trees, sorts):
+    """The Arithmetic structure columns: what the `date ± period` operations on variables
+    connect, and how large their steps are, counted over the date comparisons that hold
+    them. Self-referential operations (a < a + p) count only in n_self_ops, self_op_frac
+    and sum_abs_days_all."""
+    f = dict.fromkeys(ARITHMETIC_STRUCTURE, 0)
+    edges = set()
+    for t in trees:
+        for clause in flatten(to_nnf(t), "&&"):
+            in_disjunction = any(isinstance(n, BinOp) and n.op == "||" for n in walk(clause))
+            for atom in walk(clause):
+                if not (is_comparison(atom) and atom.lhs.sort == "date"):
+                    continue
+                f["n_date_eq"] += atom.op == "=="
+                f["n_date_neq"] += atom.op == "!="
+                ops = [n for n in walk(atom) if isinstance(n, DateAdd) and not is_ground_date(n)]
+                if not ops:
+                    continue
+                lhs, rhs = atom_variables(atom.lhs, sorts), atom_variables(atom.rhs, sorts)
+                kind = period_op_kind(lhs, rhs)
+                f[f"n_{kind}_ops"] += len(ops)
+                if kind == "self":
+                    continue
+                edges |= {(u, v) for u in lhs for v in rhs if u != v}
+                for n in ops:
+                    p = n.period
+                    f["n_arith_in_disj" if in_disjunction else "n_arith_unit"] += 1
+                    f["n_arith_neq"] += atom.op == "!="
+                    f["n_year_ops"] += p.ny != 0
+                    f["n_month_ops"] += p.nm != 0
+                    f["n_day_ops"] += p.nd != 0
+                    f["n_mixed_ops"] += p.months != 0 and p.nd != 0
+                    f["n_day_steps_ge28"] += abs(p.nd) >= 28
+                    f["sum_abs_days"] += abs(p.nd)
+                    f["sum_abs_months"] += abs(p.months)
+                    f["max_abs_days_nonself"] = max(f["max_abs_days_nonself"], abs(p.nd))
+                    f["max_abs_months_nonself"] = max(f["max_abs_months_nonself"], abs(p.months))
+    n_ops = f["n_self_ops"] + f["n_cross_ops"] + f["n_const_ops"]
+    f["self_op_frac"] = f["n_self_ops"] / n_ops if n_ops else 0.0
+    f["sum_abs_days_all"] = sum(abs(n.period.nd) for t in trees for n in walk(t)
+                                if isinstance(n, DateAdd) and not is_ground_date(n))
+    f["arith_graph_diameter"] = graph_diameter(edges)
+    f["n_arith_vars"] = len({v for e in edges for v in e})
+    # The calendar's first and last day are left out: they are the injected bounds.
+    years = [n.y.value for t in trees for n in walk(t)
+             if isinstance(n, DateCtor) and all(isinstance(c, IntLit) for c in (n.y, n.m, n.d))
+             and (n.y.value, n.m.value, n.d.value) not in ((1, 1, 1), (9999, 12, 31))]
+    f["lit_year_span"] = max(years) - min(years) if years else 0
+    return f
 
 
 # --------------------------------------------------------------------------
@@ -295,6 +379,9 @@ def features_for(entry, corpus):
         and any(isinstance(n, Var) and sorts.get(n.name) == "int" for n in walk(a))
     )
 
+    # ---- arithmetic structure -------------------------------------------
+    f.update(arithmetic_structure(trees, sorts))
+
     # ---- labels (solver output, NOT features) ---------------------------
     f["label_execution_time"] = entry.get("execution_time")
     entry_id = str(entry.get("id", ""))
@@ -302,6 +389,13 @@ def features_for(entry, corpus):
 
     return f
 
+
+ARITHMETIC_STRUCTURE = [
+    "n_self_ops", "n_cross_ops", "n_const_ops", "self_op_frac",
+    "n_year_ops", "n_month_ops", "n_day_ops", "n_mixed_ops", "n_day_steps_ge28",
+    "sum_abs_days", "sum_abs_months", "max_abs_days_nonself", "max_abs_months_nonself",
+    "sum_abs_days_all", "n_arith_unit", "n_arith_in_disj", "n_arith_neq",
+    "n_date_eq", "n_date_neq", "arith_graph_diameter", "n_arith_vars", "lit_year_span"]
 
 FEATURE_GROUPS = [
     ("Search space", [
@@ -320,6 +414,7 @@ FEATURE_GROUPS = [
     ("Calendar corners", ["uses_feb29", "uses_leap_year", "near_month_end_frac"]),
     ("Variable coupling", [
         "n_components", "largest_component_frac", "graph_density", "mixed_sort_coupling"]),
+    ("Arithmetic structure", ARITHMETIC_STRUCTURE),
 ]
 
 FEATURES = [f for _, feats in FEATURE_GROUPS for f in feats]
