@@ -49,8 +49,8 @@ conda activate datesat
 # 2. Install dependencies
 pip install -r requirements.txt
 
-# 3. Set PYTHONPATH
-export PYTHONPATH=$PYTHONPATH:$(pwd)
+# 3. Install DateSat itself, so it can be imported from any directory
+pip install -e .
 ```
 
 ### Python API

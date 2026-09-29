@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "datesat"
+version = "0.1.0"
+description = "DateSAT: SMT encodings for date and period constraints."
+readme = "README.md"
+requires-python = ">=3.10"
+
+# Runtime dependencies only; requirements.txt also lists the dev, plotting and LLM tools.
+dependencies = [
+  "z3-solver>=4.12.2",
+  "python-dateutil>=2.8.2",
+  "lark-parser>=0.11.0",
+]
+
+[tool.setuptools.packages.find]
+# datesat/__init__.py imports the bounded and bitvector solvers from future_work/,
+# so both packages are installed.
+include = ["datesat*", "future_work*"]
