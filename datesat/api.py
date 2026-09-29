@@ -30,6 +30,11 @@ class DateSATBuilder:
             timeout_ms: Timeout in milliseconds (default: 600000 = 10 minutes)
             use_maxsat: If True, use MaxSAT optimization with soft constraints for dates near today
         """
+        if approach == "router":
+            raise ValueError(
+                "the router approach picks an encoding from the whole constraint, so it is "
+                "only available through datesat.solve(..., approach='router')"
+            )
         self.approach = approach
         self.implementation = implementation
         self.timeout_ms = timeout_ms

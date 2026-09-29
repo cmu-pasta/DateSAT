@@ -20,3 +20,7 @@ dependencies = [
 # datesat/__init__.py imports the bounded and bitvector solvers from future_work/,
 # so both packages are installed.
 include = ["datesat*", "future_work*"]
+
+[tool.setuptools.package-data]
+# The router's bundled model (see docs/router.md).
+datesat = ["router/*.json"]
