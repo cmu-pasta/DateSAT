@@ -818,11 +818,11 @@ def test_boolean_operators_with_z3_solvers(parser):
     code = parser.parse_constraint_data(constraint_data)
     
     # Test with int and bitvector implementations.
-    # The int implementation splits hybrid into hybrid_ymd / hybrid_epoch;
+    # The int implementation splits hybrid into hybrid_init_ymd / hybrid_init_epoch;
     # the bitvector implementation keeps the single "hybrid" approach.
     for implementation in ['int', 'bitvector']:
         if implementation == 'int':
-            approaches = ['simple', 'epoch_days', 'hybrid_ymd', 'hybrid_epoch', 'alpha_beta', 'alpha_beta_table']
+            approaches = ['simple', 'epoch_days', 'hybrid_init_ymd', 'hybrid_init_epoch', 'alpha_beta', 'alpha_beta_table']
         else:
             approaches = ['simple', 'epoch_days', 'hybrid', 'alpha_beta', 'alpha_beta_table']
         for approach in approaches:

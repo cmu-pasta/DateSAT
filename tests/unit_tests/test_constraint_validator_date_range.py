@@ -26,7 +26,7 @@ def _code(date_vars, *constraints):
 
 
 def test_accepts_grammar_190_model_whose_mid_step_is_before_year_1():
-    # grammar-190 from DateSATBench; hybrid_epoch returned this model. In (3),
+    # grammar-190 from DateSATBench; hybrid_init_epoch returned this model. In (3),
     # 0009-02-28 - 10 years + 1 month = year -1, March 28; + 1000 days = 0001-12-22.
     code = _code(
         ["D0", "D1", "D2", "D3"],

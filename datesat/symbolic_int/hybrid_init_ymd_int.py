@@ -1,18 +1,18 @@
 """
-Hybrid DateSAT implementation using dual-lazy representation — epoch-initial variant.
+Hybrid DateSAT implementation using dual-lazy representation — YMD-initial variant.
 
 This module implements a hybrid approach where dates can be represented by
-either epoch days or (Y, M, D), and each side is materialized and kept
-consistent lazily on demand. Fresh user variables start with epoch_var as
-the source of truth; Y/M/D vars are materialized lazily on first use.
+either (Y, M, D) or epoch days, and each side is materialized and kept
+consistent lazily on demand. Fresh user variables start with the YMD side as
+the source of truth; the epoch side is materialized lazily on first use.
 
-- epoch_var: Z3 Int, days since 2000-03-01
-- year/month/day vars: created lazily when needed
+- year/month/day vars: Z3 Ints, valid date components in the bounded window
+- epoch_var: Z3 Int, days since 2000-03-01; derived from Y/M/D for free vars
 
 Rules:
 - We track which representation is currently consistent via flags.
-- A user variable starts with (_epoch_consistent=True, _ymd_consistent=False);
-  Y/M/D vars are not created upfront.
+- A user variable starts with (_epoch_consistent=False, _ymd_consistent=True)
+  and an encode linking constraint asserts epoch_var == days_since_epoch_from_ymd(y, m, d).
 - When an operation requires epoch, we use the epoch expression derived from
   whichever side is currently consistent.
 - When an operation requires Y/M/D, we use Y/M/D terms derived similarly.
@@ -58,11 +58,14 @@ class DateVar:
 
     def __init__(self, ctx, name: str, is_user_var: bool = True):
         """Create a symbolic date variable.
-        
+
         Args:
-            ctx: Solver context (HybridSolver instance)
+            ctx: Solver context (HybridInitYmdSolver instance)
             name: Name of the date variable
-            is_user_var: If True, this is a user-declared variable (for filtering in get_concrete_dates)
+            is_user_var: If True, this is a user-declared variable. User vars are
+                eagerly materialized with Y/M/D as the source of truth; intermediate
+                results created by __add__ leave the YMD side unmaterialized and let
+                __add__ install whichever representation the operation produced.
         """
         self.ctx = ctx
         self.name = name
@@ -70,16 +73,27 @@ class DateVar:
         self._is_user_var = is_user_var
         # Solver reference for adding bounds to intermediate dates
         self._solver = ctx.solver if ctx else None
-        # Primary epoch representation
+        # Epoch representation always exists as a Z3 Int (used for cross-encoding linking)
         self.epoch_var = Int(f"{name}_epoch")
-        # Lazy YMD vars
-        self._ymd_exists = False
-        self._year_var = None
-        self._month_var = None
-        self._day_var = None
-        # Consistency flags: which representation reflects the current value
-        self._epoch_consistent = True  # epoch_var starts as the source of truth
-        self._ymd_consistent = False  # Y/M/D not yet materialized/consistent
+        if is_user_var:
+            # YMD-initial variant: materialize Y/M/D eagerly as the source of truth
+            self._year_var = Int(f"{name}_year")
+            self._month_var = Int(f"{name}_month")
+            self._day_var = Int(f"{name}_day")
+            self._ymd_exists = True
+            # Lazy: do NOT link epoch_var here. _epoch_expr() asserts the encode
+            # link on first epoch use, so a variable never used in epoch form pays
+            # no conversion.
+            self._epoch_consistent = False
+            self._ymd_consistent = True
+        else:
+            # Intermediate result: __add__ will install the appropriate representation
+            self._ymd_exists = False
+            self._year_var = None
+            self._month_var = None
+            self._day_var = None
+            self._epoch_consistent = True
+            self._ymd_consistent = False
 
     def __str__(self) -> str:
         return f"DateVar({self.name})"
@@ -516,11 +530,13 @@ class DateVar:
             raise TypeError(f"Cannot subtract {type(other)} from DateVar")
 
 
-class HybridEpochSolver:
-    """Hybrid date constraint solver using dual representation, epoch-initial variant.
+class HybridInitYmdSolver:
+    """Hybrid date constraint solver using dual representation, YMD-initial variant.
 
-    Fresh DateVars start in epoch-only state: epoch_var is the source of truth,
-    Y/M/D vars are materialized lazily on first use.
+    Fresh DateVars start in YMD-only state: Y/M/D vars are materialized upfront and
+    asserted as a valid bounded date; epoch_var is linked via the encode formula
+    and treated as derived. Operations may flip the source of truth to epoch when
+    appropriate (day-only addition, comparisons that benefit from it).
     """
 
     def __init__(self, timeout_ms=600000, use_maxsat=False):
@@ -600,17 +616,20 @@ class HybridEpochSolver:
             # Add soft constraints for each date variable (only user-declared ones)
             for name, date_var in self.date_vars.items():
                 if date_var._is_user_var:
+                    # Ensure the epoch side is linked (lazy encode) before the soft
+                    # constraints reference it; otherwise epoch_var is unconstrained.
+                    epoch_term = date_var._epoch_expr()
                     # High weight: today ± 50 years
                     within_50_years = And(
-                        date_var.epoch_var >= IntVal(today_days - days_50_years),
-                        date_var.epoch_var <= IntVal(today_days + days_50_years),
+                        epoch_term >= IntVal(today_days - days_50_years),
+                        epoch_term <= IntVal(today_days + days_50_years),
                     )
                     self.solver.add_soft(within_50_years, weight=100)
 
                     # Low weight: today ± 10 years
                     within_10_years = And(
-                        date_var.epoch_var >= IntVal(today_days - days_10_years),
-                        date_var.epoch_var <= IntVal(today_days + days_10_years),
+                        epoch_term >= IntVal(today_days - days_10_years),
+                        epoch_term <= IntVal(today_days + days_10_years),
                     )
                     self.solver.add_soft(within_10_years, weight=10)
 

@@ -24,7 +24,7 @@ FORMAT_VERSION = 1
 MODEL_ENV = "DATESAT_ROUTER_MODEL"
 BUNDLED_MODEL = Path(__file__).with_name("model.json")
 # The int approaches the router may hand a constraint to.
-INT_APPROACHES = ("simple", "epoch_days", "hybrid_ymd", "hybrid_epoch", "alpha_beta",
+INT_APPROACHES = ("simple", "epoch_days", "hybrid_init_ymd", "hybrid_init_epoch", "alpha_beta",
                   "alpha_beta_table")
 
 

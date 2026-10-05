@@ -25,7 +25,7 @@ class DateSATBuilder:
         """Initialize the builder with the specified approach, implementation, and timeout.
 
         Args:
-            approach: Either "simple", "epoch_days", "hybrid_ymd", "hybrid_epoch", "hybrid_both", "alpha_beta", or "alpha_beta_table"
+            approach: Either "simple", "epoch_days", "hybrid_init_ymd", "hybrid_init_epoch", "hybrid_both", "alpha_beta", or "alpha_beta_table"
             implementation: Either "int" or "bitvector" (default: "int")
             timeout_ms: Timeout in milliseconds (default: 600000 = 10 minutes)
             use_maxsat: If True, use MaxSAT optimization with soft constraints for dates near today
@@ -42,7 +42,7 @@ class DateSATBuilder:
 
         # Import and dispatch the appropriate solver based on implementation.
         # The int and bitvector implementations have different valid approaches:
-        # the int implementation splits hybrid into hybrid_ymd / hybrid_epoch,
+        # the int implementation splits hybrid into hybrid_init_ymd / hybrid_init_epoch,
         # while the bitvector implementation keeps the single "hybrid" approach.
         if implementation == "bitvector":
             from future_work.datesat_bounded.bitvector.alpha_beta_bv import AlphaBetaSolver
@@ -72,18 +72,18 @@ class DateSATBuilder:
             from future_work.datesat_bounded.alpha_beta_table_int import AlphaBetaTableSolver
             from .symbolic_int.simple_int import SimpleSolver
             from .symbolic_int.epoch_days_int import EpochDaysSolver
-            from .symbolic_int.hybrid_epoch_int import HybridEpochSolver
-            from .symbolic_int.hybrid_ymd_int import HybridYmdSolver
+            from .symbolic_int.hybrid_init_epoch_int import HybridInitEpochSolver
+            from .symbolic_int.hybrid_init_ymd_int import HybridInitYmdSolver
             from .symbolic_int.hybrid_both_int import HybridBothSolver
 
             if approach == "simple":
                 self.solver = SimpleSolver(timeout_ms=timeout_ms, use_maxsat=use_maxsat)
             elif approach == "epoch_days":
                 self.solver = EpochDaysSolver(timeout_ms=timeout_ms, use_maxsat=use_maxsat)
-            elif approach == "hybrid_ymd":
-                self.solver = HybridYmdSolver(timeout_ms=timeout_ms, use_maxsat=use_maxsat)
-            elif approach == "hybrid_epoch":
-                self.solver = HybridEpochSolver(timeout_ms=timeout_ms, use_maxsat=use_maxsat)
+            elif approach == "hybrid_init_ymd":
+                self.solver = HybridInitYmdSolver(timeout_ms=timeout_ms, use_maxsat=use_maxsat)
+            elif approach == "hybrid_init_epoch":
+                self.solver = HybridInitEpochSolver(timeout_ms=timeout_ms, use_maxsat=use_maxsat)
             elif approach == "hybrid_both":
                 self.solver = HybridBothSolver(timeout_ms=timeout_ms, use_maxsat=use_maxsat)
             elif approach == "alpha_beta":
@@ -92,7 +92,7 @@ class DateSATBuilder:
                 self.solver = AlphaBetaTableSolver(timeout_ms=timeout_ms, use_maxsat=use_maxsat)
             else:
                 raise ValueError(
-                    f"Unknown approach for int: {approach}. Must be 'simple', 'epoch_days', 'hybrid_ymd', 'hybrid_epoch', 'hybrid_both', 'alpha_beta', or 'alpha_beta_table'"
+                    f"Unknown approach for int: {approach}. Must be 'simple', 'epoch_days', 'hybrid_init_ymd', 'hybrid_init_epoch', 'hybrid_both', 'alpha_beta', or 'alpha_beta_table'"
                 )
         else:
             raise ValueError(

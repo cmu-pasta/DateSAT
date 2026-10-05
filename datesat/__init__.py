@@ -20,8 +20,8 @@ from future_work.datesat_bounded.bitvector.alpha_beta_table_bv import AlphaBetaT
 # Import integer implementations
 from .symbolic_int.simple_int import SimpleSolver as IntSimpleSolver
 from .symbolic_int.epoch_days_int import EpochDaysSolver as IntEpochDaysSolver
-from .symbolic_int.hybrid_epoch_int import HybridEpochSolver as IntHybridEpochSolver
-from .symbolic_int.hybrid_ymd_int import HybridYmdSolver as IntHybridYmdSolver
+from .symbolic_int.hybrid_init_epoch_int import HybridInitEpochSolver as IntHybridInitEpochSolver
+from .symbolic_int.hybrid_init_ymd_int import HybridInitYmdSolver as IntHybridInitYmdSolver
 from .symbolic_int.alpha_beta_int import AlphaBetaSolver as IntAlphaBetaSolver
 # The alpha-beta-table variant is a bounded-domain optimization that lives under
 # future_work/datesat_bounded/. It is still importable and benchmarkable.
@@ -45,8 +45,8 @@ __all__ = [
     # Integer implementations
     "IntSimpleSolver",
     "IntEpochDaysSolver",
-    "IntHybridEpochSolver",
-    "IntHybridYmdSolver",
+    "IntHybridInitEpochSolver",
+    "IntHybridInitYmdSolver",
     "IntAlphaBetaSolver",
     "IntAlphaBetaTableSolver",
 ]
