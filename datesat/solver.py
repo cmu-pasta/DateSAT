@@ -36,7 +36,7 @@ def solve(
             Only used if constraints is a list. If constraints is a dict, declarations
             are taken from the dict.
         approach: Solver approach. For int implementation: "simple", "epoch_days", "hybrid_ymd",
-            "hybrid_epoch", "alpha_beta", "alpha_beta_table", or "router", which picks one of
+            "hybrid_epoch", "hybrid_both", "alpha_beta", "alpha_beta_table", or "router", which picks one of
             the others per constraint with a trained model (see docs/router.md). For bitvector
             implementation: "simple", "epoch_days", "hybrid", "alpha_beta", or "alpha_beta_table".
         implementation: Implementation type - "int" or "bitvector"

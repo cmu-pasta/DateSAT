@@ -33,6 +33,7 @@ from datesat.symbolic_int.simple_int import SimpleSolver
 from datesat.symbolic_int.epoch_days_int import EpochDaysSolver
 from datesat.symbolic_int.hybrid_epoch_int import HybridEpochSolver
 from datesat.symbolic_int.hybrid_ymd_int import HybridYmdSolver
+from datesat.symbolic_int.hybrid_both_int import HybridBothSolver
 from datesat.symbolic_int.alpha_beta_int import AlphaBetaSolver
 from future_work.datesat_bounded.alpha_beta_table_int import AlphaBetaTableSolver
 
@@ -43,6 +44,7 @@ SOLVERS = [
     pytest.param(EpochDaysSolver, False, id="epoch_days", marks=pytest.mark.epoch_days),
     pytest.param(HybridEpochSolver, False, id="hybrid_epoch", marks=pytest.mark.hybrid_epoch),
     pytest.param(HybridYmdSolver, False, id="hybrid_ymd", marks=pytest.mark.hybrid_ymd),
+    pytest.param(HybridBothSolver, False, id="hybrid_both", marks=pytest.mark.hybrid_both),
     pytest.param(AlphaBetaSolver, False, id="alpha_beta", marks=pytest.mark.alpha_beta),
     pytest.param(AlphaBetaTableSolver, True, id="alpha_beta_table", marks=pytest.mark.alpha_beta_table),
 ]
@@ -53,6 +55,7 @@ SOLVERS_ONLY = [
     pytest.param(EpochDaysSolver, id="epoch_days", marks=pytest.mark.epoch_days),
     pytest.param(HybridEpochSolver, id="hybrid_epoch", marks=pytest.mark.hybrid_epoch),
     pytest.param(HybridYmdSolver, id="hybrid_ymd", marks=pytest.mark.hybrid_ymd),
+    pytest.param(HybridBothSolver, id="hybrid_both", marks=pytest.mark.hybrid_both),
     pytest.param(AlphaBetaSolver, id="alpha_beta", marks=pytest.mark.alpha_beta),
     pytest.param(AlphaBetaTableSolver, id="alpha_beta_table", marks=pytest.mark.alpha_beta_table),
 ]

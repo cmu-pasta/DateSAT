@@ -81,12 +81,9 @@ class DateVar:
             self._month_var = Int(f"{name}_month")
             self._day_var = Int(f"{name}_day")
             self._ymd_exists = True
-            # Link epoch_var to Y/M/D via the encode formula
-            if self._solver is not None:
-                self._solver.add(
-                    self.epoch_var
-                    == days_since_epoch_from_ymd(self._year_var, self._month_var, self._day_var)
-                )
+            # Lazy: do NOT link epoch_var here. _epoch_expr() asserts the encode
+            # link on first epoch use, so a variable never used in epoch form pays
+            # no conversion.
             self._epoch_consistent = False
             self._ymd_consistent = True
         else:
@@ -507,14 +504,8 @@ class DateVar:
                     result._month_var = m1
                     result._day_var = d1
                     result._ymd_exists = True
-                    # Link epoch_var to the Y/M/D values (needed for dual representation consistency)
-                    # This constraint is essential because:
-                    # 1. It links epoch_var to the actual Y/M/D values (y1, m1, d1)
-                    # 2. Without it, epoch_var would be unconstrained, breaking operations that use it
-                    # 3. It ensures bounds on Y/M/D also constrain epoch_var (via the constraint)
-                    result.ctx.solver.add(
-                        result.epoch_var == days_since_epoch_from_ymd(y1, m1, d1)
-                    )
+                    # Lazy: do NOT link epoch_var here; the result is Y/M/D-consistent
+                    # and _epoch_expr() asserts the link on first epoch use.
                     result._epoch_consistent = False
                     result._ymd_consistent = True
                 else:
@@ -625,17 +616,20 @@ class HybridYmdSolver:
             # Add soft constraints for each date variable (only user-declared ones)
             for name, date_var in self.date_vars.items():
                 if date_var._is_user_var:
+                    # Ensure the epoch side is linked (lazy encode) before the soft
+                    # constraints reference it; otherwise epoch_var is unconstrained.
+                    epoch_term = date_var._epoch_expr()
                     # High weight: today ± 50 years
                     within_50_years = And(
-                        date_var.epoch_var >= IntVal(today_days - days_50_years),
-                        date_var.epoch_var <= IntVal(today_days + days_50_years),
+                        epoch_term >= IntVal(today_days - days_50_years),
+                        epoch_term <= IntVal(today_days + days_50_years),
                     )
                     self.solver.add_soft(within_50_years, weight=100)
 
                     # Low weight: today ± 10 years
                     within_10_years = And(
-                        date_var.epoch_var >= IntVal(today_days - days_10_years),
-                        date_var.epoch_var <= IntVal(today_days + days_10_years),
+                        epoch_term >= IntVal(today_days - days_10_years),
+                        epoch_term <= IntVal(today_days + days_10_years),
                     )
                     self.solver.add_soft(within_10_years, weight=10)
 
