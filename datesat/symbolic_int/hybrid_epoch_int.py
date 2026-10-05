@@ -464,14 +464,10 @@ class DateVar:
                     result._month_var = m1
                     result._day_var = d1
                     result._ymd_exists = True
-                    # Link epoch_var to the Y/M/D values (needed for dual representation consistency)
-                    # This constraint is essential because:
-                    # 1. It links epoch_var to the actual Y/M/D values (y1, m1, d1)
-                    # 2. Without it, epoch_var would be unconstrained, breaking operations that use it
-                    # 3. It ensures bounds on Y/M/D also constrain epoch_var (via the constraint)
-                    result.ctx.solver.add(
-                        result.epoch_var == days_since_epoch_from_ymd(y1, m1, d1)
-                    )
+                    # Lazy: do NOT link epoch_var here. The result is
+                    # Y/M/D-consistent, and _epoch_expr() asserts the encode link
+                    # on first epoch use, so a month-only result whose epoch side
+                    # is never needed pays no conversion.
                     result._epoch_consistent = False
                     result._ymd_consistent = True
                 else:

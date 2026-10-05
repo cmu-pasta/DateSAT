@@ -10,6 +10,7 @@ from datesat.symbolic_int.simple_int import SimpleSolver
 from datesat.symbolic_int.epoch_days_int import EpochDaysSolver
 from datesat.symbolic_int.hybrid_epoch_int import HybridEpochSolver
 from datesat.symbolic_int.hybrid_ymd_int import HybridYmdSolver
+from datesat.symbolic_int.hybrid_both_int import HybridBothSolver
 
 
 def get_period_arithmetic_test_cases():
@@ -266,6 +267,7 @@ def test_epoch_days_matches_java_decomposed(
     [
         pytest.param(HybridEpochSolver, id="hybrid_epoch", marks=pytest.mark.hybrid_epoch),
         pytest.param(HybridYmdSolver, id="hybrid_ymd", marks=pytest.mark.hybrid_ymd),
+        pytest.param(HybridBothSolver, id="hybrid_both", marks=pytest.mark.hybrid_both),
     ],
 )
 @pytest.mark.parametrize(
@@ -383,6 +385,7 @@ def test_epoch_days_sub_matches_java_decomposed(
     [
         pytest.param(HybridEpochSolver, id="hybrid_epoch", marks=pytest.mark.hybrid_epoch),
         pytest.param(HybridYmdSolver, id="hybrid_ymd", marks=pytest.mark.hybrid_ymd),
+        pytest.param(HybridBothSolver, id="hybrid_both", marks=pytest.mark.hybrid_both),
     ],
 )
 @pytest.mark.parametrize(

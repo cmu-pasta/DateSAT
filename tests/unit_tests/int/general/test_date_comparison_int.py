@@ -9,6 +9,7 @@ from datesat.symbolic_int.simple_int import SimpleSolver
 from datesat.symbolic_int.epoch_days_int import EpochDaysSolver
 from datesat.symbolic_int.hybrid_epoch_int import HybridEpochSolver
 from datesat.symbolic_int.hybrid_ymd_int import HybridYmdSolver
+from datesat.symbolic_int.hybrid_both_int import HybridBothSolver
 
 # We cover equality, less/greater, boundary conditions, leap cases, and month ends.
 CASES = [
@@ -112,6 +113,7 @@ def test_epoch_days_date_comparisons_match_truth(op_name: str, op, a: Date, b: D
     [
         pytest.param(HybridEpochSolver, id="hybrid_epoch", marks=pytest.mark.hybrid_epoch),
         pytest.param(HybridYmdSolver, id="hybrid_ymd", marks=pytest.mark.hybrid_ymd),
+        pytest.param(HybridBothSolver, id="hybrid_both", marks=pytest.mark.hybrid_both),
     ],
 )
 @pytest.mark.parametrize(
@@ -254,6 +256,7 @@ def test_epoch_days_negative_epoch_constraints(test_case):
     [
         pytest.param(HybridEpochSolver, id="hybrid_epoch", marks=pytest.mark.hybrid_epoch),
         pytest.param(HybridYmdSolver, id="hybrid_ymd", marks=pytest.mark.hybrid_ymd),
+        pytest.param(HybridBothSolver, id="hybrid_both", marks=pytest.mark.hybrid_both),
     ],
 )
 @pytest.mark.parametrize(
