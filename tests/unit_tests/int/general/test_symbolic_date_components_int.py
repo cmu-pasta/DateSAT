@@ -10,8 +10,9 @@ from datesat.symbolic_int.epoch_days_int import EpochDaysSolver
 from datesat.symbolic_int.alpha_beta_int import AlphaBetaSolver
 from future_work.datesat_bounded.alpha_beta_table_int import AlphaBetaTableSolver
 from datesat.symbolic_int.simple_int import SimpleSolver
-from datesat.symbolic_int.hybrid_epoch_int import HybridEpochSolver
-from datesat.symbolic_int.hybrid_ymd_int import HybridYmdSolver
+from datesat.symbolic_int.hybrid_init_epoch_int import HybridInitEpochSolver
+from datesat.symbolic_int.hybrid_init_ymd_int import HybridInitYmdSolver
+from datesat.symbolic_int.hybrid_both_int import HybridBothSolver
 from z3 import Int, Or, And
 
 
@@ -20,8 +21,9 @@ from z3 import Int, Or, And
     AlphaBetaSolver,
     AlphaBetaTableSolver,
     SimpleSolver,
-    HybridEpochSolver,
-    HybridYmdSolver,
+    HybridInitEpochSolver,
+    HybridInitYmdSolver,
+    HybridBothSolver,
 ])
 def test_symbolic_year_int(solver_cls):
     """Test Date with only year symbolic: Date(year_var, 2, 1)"""
@@ -55,8 +57,9 @@ def test_symbolic_year_int(solver_cls):
     AlphaBetaSolver,
     AlphaBetaTableSolver,
     SimpleSolver,
-    HybridEpochSolver,
-    HybridYmdSolver,
+    HybridInitEpochSolver,
+    HybridInitYmdSolver,
+    HybridBothSolver,
 ])
 def test_symbolic_month_int(solver_cls):
     """Test Date with only month symbolic: Date(2025, month_var, 15)"""
@@ -89,8 +92,9 @@ def test_symbolic_month_int(solver_cls):
     AlphaBetaSolver,
     AlphaBetaTableSolver,
     SimpleSolver,
-    HybridEpochSolver,
-    HybridYmdSolver,
+    HybridInitEpochSolver,
+    HybridInitYmdSolver,
+    HybridBothSolver,
 ])
 def test_all_symbolic_int(solver_cls):
     """Test Date with all components symbolic: Date(y, m, d)"""
@@ -127,8 +131,9 @@ def test_all_symbolic_int(solver_cls):
     AlphaBetaSolver,
     AlphaBetaTableSolver,
     SimpleSolver,
-    HybridEpochSolver,
-    HybridYmdSolver,
+    HybridInitEpochSolver,
+    HybridInitYmdSolver,
+    HybridBothSolver,
 ])
 def test_expression_int(solver_cls):
     """Test Date with expression: Date(x+1, 2, 1)"""
@@ -161,8 +166,9 @@ def test_expression_int(solver_cls):
     AlphaBetaSolver,
     AlphaBetaTableSolver,
     SimpleSolver,
-    HybridEpochSolver,
-    HybridYmdSolver,
+    HybridInitEpochSolver,
+    HybridInitYmdSolver,
+    HybridBothSolver,
 ])
 def test_bounds_prevent_invalid_values(solver_cls):
     """Test that automatic bounds prevent invalid values"""

@@ -7,6 +7,7 @@ This module provides an interface for solving date constraints.
 import json
 from typing import Any, Dict, List, Union
 from z3 import BoolVal
+from . import router
 from .api import DateSATBuilder
 from .constraint_parser import ConstraintParser
 from .core import Date, Period
@@ -34,9 +35,10 @@ def solve(
         declarations: Optional list of variable declarations, e.g., ["x: date", "y: date"]
             Only used if constraints is a list. If constraints is a dict, declarations
             are taken from the dict.
-        approach: Solver approach. For int implementation: "simple", "epoch_days", "hybrid_ymd",
-            "hybrid_epoch", "alpha_beta", or "alpha_beta_table". For bitvector implementation:
-            "simple", "epoch_days", "hybrid", "alpha_beta", or "alpha_beta_table".
+        approach: Solver approach. For int implementation: "simple", "epoch_days", "hybrid_init_ymd",
+            "hybrid_init_epoch", "hybrid_both", "alpha_beta", "alpha_beta_table", or "router", which picks one of
+            the others per constraint with a trained model (see docs/router.md). For bitvector
+            implementation: "simple", "epoch_days", "hybrid", "alpha_beta", or "alpha_beta_table".
         implementation: Implementation type - "int" or "bitvector"
         timeout_ms: Timeout in milliseconds (default: 600000 = 10 minutes)
         verbose: If True, print results to stdout (default: True)
@@ -47,9 +49,14 @@ def solve(
             - dates: Dict mapping date variable names to Date objects (if sat)
             - ints: Dict mapping int variable names to int values (if sat)
             - bools: Dict mapping bool variable names to bool values (if sat)
-            - execution_time: Time taken to solve in seconds
+            - execution_time: Time taken to solve in seconds (build_time + solve_time)
+            - build_time: Seconds spent building the constraints into the solver
+            - solve_time: Seconds spent in the solver check and model extraction
             - approach: The approach used
             - implementation: The implementation used
+            - routed_to: For approach "router", the encoding the router picked
+            - routing_time: For approach "router", seconds spent picking it (part of
+              execution_time)
     
     Examples:
         >>> # API usage
@@ -85,13 +92,25 @@ def solve(
     parser = ConstraintParser()
     constraint_code = parser.parse_constraint_data(constraint_data)
     
+    if approach == "router":
+        if implementation != "int":
+            raise ValueError("the router approach only routes to int encodings; "
+                             "use implementation='int'")
+        router.load_model()   # once per process, and not part of the solve time
+
     # Create builder and execution context
     start_time = time.time()
-    
+
+    # The router picks the encoding inside the timed region, so execution_time includes it.
+    routed_to = routing_time = None
+    if approach == "router":
+        routed_to, routing_time = router.route(constraint_data)
+    builder_approach = routed_to or approach
+
     # Create a builder factory that will be used in the executed code
     def create_builder():
         return DateSATBuilder(
-            approach=approach,
+            approach=builder_approach,
             implementation=implementation,
             timeout_ms=timeout_ms,
             use_maxsat=use_maxsat
@@ -125,7 +144,9 @@ def solve(
     builder = exec_globals.get("builder")
     if not builder:
         raise RuntimeError("Failed to create constraint solver")
-    
+
+    build_time = time.time() - start_time
+
     # Temporarily disable builder's verbose output if verbose=False
     if not verbose:
         original_solve = builder.solve
@@ -152,10 +173,15 @@ def solve(
     result = {
         **solve_result,
         "execution_time": execution_time,
+        "build_time": build_time,
+        "solve_time": execution_time - build_time,
         "approach": approach,
         "implementation": implementation,
     }
-    
+    if routed_to is not None:
+        result["routed_to"] = routed_to
+        result["routing_time"] = routing_time
+
     return result
 
 

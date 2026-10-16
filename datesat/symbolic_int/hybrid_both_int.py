@@ -1,5 +1,5 @@
 """
-Hybrid DateSAT implementation using dual-lazy representation — YMD-initial variant.
+Hybrid DateSAT implementation using eager dual representation — both-initial variant.
 
 This module implements a hybrid approach where dates can be represented by
 either (Y, M, D) or epoch days, and each side is materialized and kept
@@ -60,7 +60,7 @@ class DateVar:
         """Create a symbolic date variable.
 
         Args:
-            ctx: Solver context (HybridYmdSolver instance)
+            ctx: Solver context (HybridBothSolver instance)
             name: Name of the date variable
             is_user_var: If True, this is a user-declared variable. User vars are
                 eagerly materialized with Y/M/D as the source of truth; intermediate
@@ -87,7 +87,7 @@ class DateVar:
                     self.epoch_var
                     == days_since_epoch_from_ymd(self._year_var, self._month_var, self._day_var)
                 )
-            self._epoch_consistent = False
+            self._epoch_consistent = True
             self._ymd_consistent = True
         else:
             # Intermediate result: __add__ will install the appropriate representation
@@ -515,7 +515,7 @@ class DateVar:
                     result.ctx.solver.add(
                         result.epoch_var == days_since_epoch_from_ymd(y1, m1, d1)
                     )
-                    result._epoch_consistent = False
+                    result._epoch_consistent = True
                     result._ymd_consistent = True
                 else:
                     # Direct assignment for epoch_var 
@@ -539,7 +539,7 @@ class DateVar:
             raise TypeError(f"Cannot subtract {type(other)} from DateVar")
 
 
-class HybridYmdSolver:
+class HybridBothSolver:
     """Hybrid date constraint solver using dual representation, YMD-initial variant.
 
     Fresh DateVars start in YMD-only state: Y/M/D vars are materialized upfront and
