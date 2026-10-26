@@ -155,10 +155,16 @@ verus! {
         ensures (q * k + r) / k == q,
     {}
 
-    proof fn lemma_euclid_mod(q: int, r: int, k: int) by (nonlinear_arith)
+    proof fn lemma_euclid_mod(q: int, r: int, k: int)
         requires k > 0, 0 <= r, r < k,
         ensures (q * k + r) % k == r,
-    {}
+    {
+        // Derive the mod result from the (easy) div result plus the fundamental
+        // div-mod identity, avoiding the hard nonlinear `%` goal for Z3.
+        lemma_euclid_div(q, r, k);
+        vstd::arithmetic::div_mod::lemma_fundamental_div_mod(q * k + r, k);
+        assert(k * q == q * k) by (nonlinear_arith);
+    }
 
     proof fn lemma_euclid_bounded(q: int, r: int, k: int)
         requires k > 0, 0 <= r, r < k,
