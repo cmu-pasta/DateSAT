@@ -4,7 +4,7 @@ This directory contains machine-checkable proofs of the main theorems in the Dat
 
 ## Running the verifier
 
-First, [install Verus](https://github.com/verus-lang/verus/blob/main/INSTALL.md).
+First, [install Verus](https://github.com/verus-lang/verus/blob/main/INSTALL.md) (including Rustup and the specific Rust toolchain version that Verus requires; see step 4).
 
 Then, in this directory, run:
 
@@ -15,7 +15,7 @@ Then, in this directory, run:
 If verification succeeds, you will see output like:
 
 ```
-verification results:: 105 verified, 0 errors
+verification results:: 117 verified, 0 errors
 ```
 
 ## File overview

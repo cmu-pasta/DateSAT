@@ -155,10 +155,15 @@ verus! {
         ensures (q * k + r) / k == q,
     {}
 
-    proof fn lemma_euclid_mod(q: int, r: int, k: int) by (nonlinear_arith)
+    proof fn lemma_euclid_mod(q: int, r: int, k: int)
         requires k > 0, 0 <= r, r < k,
         ensures (q * k + r) % k == r,
-    {}
+    {
+        lemma_euclid_div(q, r, k);
+        // x % k == x - (x / k) * k, and (x / k) == q
+        assert((q * k + r) % k == (q * k + r) - ((q * k + r) / k) * k) by (nonlinear_arith)
+            requires k > 0;
+    }
 
     proof fn lemma_euclid_bounded(q: int, r: int, k: int)
         requires k > 0, 0 <= r, r < k,
