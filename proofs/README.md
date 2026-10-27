@@ -104,6 +104,8 @@ pub struct Environment {
 }
 ```
 
+An `Environment` is *properly closed* for an `Ast` (`is_properly_closed`) if it binds every variable that occurs in the AST, and every date variable is bound to a valid date. This ensures that evaluation never looks up an unbound variable or starts from an invalid date.
+
 Satisfiability is defined as the existence of a properly-closed environment under which the AST evaluates to true:
 
 ```rust
@@ -164,7 +166,7 @@ pub struct SimpleDate { year: int, month: int, day: int }
 pub struct EpochDelta { delta: int }
 ```
 
-**Hybrid** — a lazy union that can hold a YMD form, an epoch-delta form, or both. See [`src/hybrid.rs`](src/hybrid.rs).
+**Hybrid** — a lazy union that can hold a YMD form, an epoch-delta form, or both. There are two variants with the same `Hybrid` struct, which differ only in how literals are embedded (`from_ymd`): [`src/hybrid_ymd.rs`](src/hybrid_ymd.rs) embeds them as YMD only, while [`src/hybrid_epoch.rs`](src/hybrid_epoch.rs) embeds them as an epoch delta only. The missing form is computed lazily on first use.
 
 ```rust
 pub struct Hybrid { year: int, month: int, day: int, delta: int, ymd: bool, epoch: bool }
@@ -178,11 +180,11 @@ pub struct AlphaBeta { alpha: int, beta: int }
 
 ### Congruence: the key proof concept
 
-The central idea in the equisatisfiability proofs is **congruence**: a relation between a SimpleDate value and a target-encoding value asserting that they represent the same calendar date — i.e., that they agree on year, month, and day. For example, for EpochDelta:
+The central idea in the equisatisfiability proofs is **congruence**: a relation between a SimpleDate value and a target-encoding value asserting that they represent the same calendar date — i.e., that they agree on year, month, and day. Concretely, the encoded value must be exactly what `from_ymd` produces for the date (for valid dates, this is the same as agreeing on year, month, and day). For example, for EpochDelta:
 
 ```rust
 pub open spec fn ed_congruent(d: SimpleDate, ed: EpochDelta) -> bool {
-    ed.year() == d.year() && ed.month() == d.month() && ed.day() == d.day()
+    ed == EpochDelta::from_ymd(d.year(), d.month(), d.day())
 }
 ```
 
@@ -190,10 +192,9 @@ And for AlphaBeta:
 
 ```rust
 pub open spec fn ab_congruent(d: SimpleDate, ab: AlphaBeta) -> bool {
-    ab.year() == d.year() && ab.month() == d.month() && ab.day() == d.day()
+    ab == AlphaBeta::from_ymd(d.year(), d.month(), d.day())
 }
 ```
-
 Three properties of congruence are established for each encoding:
 
 1. **Construction**: `from_ymd` produces congruent values (the base case).
