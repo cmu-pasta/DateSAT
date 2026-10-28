@@ -102,8 +102,9 @@ Input format:
         "-a", "--approach",
         type=str,
         default="epoch_days",
-        choices=["simple", "epoch_days", "hybrid", "alpha_beta", "alpha_beta_table"],
-        help="Solver approach (default: epoch_days)"
+        choices=["simple", "epoch_days", "hybrid_init_ymd", "hybrid_init_epoch", "alpha_beta", "hybrid"],
+        help="Solver approach (default: epoch_days). hybrid_init_ymd / hybrid_init_epoch are "
+             "for --implementation int; hybrid is for --implementation bitvector"
     )
     
     parser.add_argument(

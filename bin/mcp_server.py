@@ -67,9 +67,10 @@ def solve(
         approach: Solver approach to use. Options:
                  - "epoch_days" (default, recommended): Convert dates to days since epoch
                  - "simple": Direct encoding of date arithmetic
-                 - "hybrid": Hybrid approach combining multiple encodings
+                 - "hybrid_init_ymd": Hybrid encoding whose variables start in Y/M/D (int only)
+                 - "hybrid_init_epoch": Hybrid encoding whose variables start in epoch days (int only)
+                 - "hybrid": Hybrid encoding (bitvector only)
                  - "alpha_beta": Alpha-beta encoding for optimized arithmetic
-                 - "alpha_beta_table": Table-based alpha-beta encoding
 
         implementation: Implementation type for Z3 encoding. Options:
                        - "int" (default): Use integer arithmetic
@@ -119,20 +120,23 @@ def solve(
         - Period range: Years +/-200, Months +/-2400, Days +/-73048
         - date - date is not supported (use periods instead)
     """
-    # Validate approach
-    valid_approaches = ["simple", "epoch_days", "hybrid", "alpha_beta", "alpha_beta_table"]
-    if approach not in valid_approaches:
-        return {
-            "status": "error",
-            "error": f"Invalid approach '{approach}'. Must be one of: {valid_approaches}"
-        }
-
     # Validate implementation
     valid_implementations = ["int", "bitvector"]
     if implementation not in valid_implementations:
         return {
             "status": "error",
             "error": f"Invalid implementation '{implementation}'. Must be one of: {valid_implementations}"
+        }
+
+    # Validate approach
+    if implementation == "int":
+        valid_approaches = ["simple", "epoch_days", "hybrid_init_ymd", "hybrid_init_epoch", "alpha_beta"]
+    else:
+        valid_approaches = ["simple", "epoch_days", "hybrid", "alpha_beta"]
+    if approach not in valid_approaches:
+        return {
+            "status": "error",
+            "error": f"Invalid approach '{approach}' for implementation '{implementation}'. Must be one of: {valid_approaches}"
         }
 
     try:

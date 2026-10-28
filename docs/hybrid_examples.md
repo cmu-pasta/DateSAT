@@ -64,9 +64,7 @@ b.year == 2028
 
 **Total conversions: 0, and no epoch formula is emitted at all.** `a_epoch`,
 `b_epoch`, and `result_epoch` stay unconstrained free integers — nothing ever
-reads them, so the epoch link is never asserted. (In `hybrid_both` this same
-`b == a + Period(2,3,0)` *would* eagerly emit `result_epoch == days_since_epoch_from_ymd(y1,m1,d1)`;
-that eager link is exactly the trade `hybrid_both` makes.)
+reads them, so the epoch link is never asserted.
 
 ### `hybrid_init_epoch`
 
@@ -171,8 +169,7 @@ materialized in only *one* representation, **every add finds its operand in the
 wrong representation and must convert it.** The chain ping-pongs. Both variants
 pay this; they differ only in *phase* — `hybrid_init_ymd` eats one extra conversion at
 the first add (converting `a`), while `hybrid_init_epoch` eats one extra pair at the
-final `b == r6` equality. (Contrast `hybrid_both` below, where the eager link
-breaks the ping-pong.)
+final `b == r6` equality.
 
 ### `hybrid_init_ymd`
 
@@ -235,49 +232,13 @@ a < b
 `b == r6` equality (reconcile `r6` and `b`). The final `a < b` is one integer
 inequality.
 
-### `hybrid_both` (why the eager link matters)
-
-`hybrid_both` keeps the question's eager link: the `od==0` month/year add emits
-`result_epoch == days_since_epoch_from_ymd(y1,m1,d1)` on the spot, so that result
-is consistent in **both** representations at once. That breaks the ping-pong,
-because a following day add finds the epoch side already live:
-
-```python
-a, b : Date
-# a,b START with BOTH sides live (Y/M/D + linked epoch)
-
-b == a + Period(0,0,10) + Period(0,1,0) + Period(0,0,20)
-      + Period(2,0,0) + Period(0,0,30) + Period(0,3,0)
-# r1 = a + 10d  (day add): a has epoch -> NO CONVERSION ;  r1 = epoch-only
-# r2 = r1 + 1mo (month add): r1 epoch-only ->
-#   CONVERSION: epoch -> Y/M/D for r1 ;  r2 = BOTH (eager link emitted)
-# r3 = r2 + 20d (day add): r2 has epoch (eager link) -> NO CONVERSION ;  r3 = epoch-only
-# r4 = r3 + 2y  (month add): r3 epoch-only ->
-#   CONVERSION: epoch -> Y/M/D for r3 ;  r4 = BOTH
-# r5 = r4 + 30d (day add): r4 has epoch -> NO CONVERSION ;  r5 = epoch-only
-# r6 = r5 + 3mo (month add): r5 epoch-only ->
-#   CONVERSION: epoch -> Y/M/D for r5 ;  r6 = BOTH
-# b == r6: b has epoch, r6 has epoch -> epoch equality.  NO CONVERSION.
-
-a < b
-# both have epoch -> epoch comparison.  NO CONVERSION.
-```
-
-**Total conversions: 3** (`r1`, `r3`, `r5` → Y/M/D). The eager links on `r2`,
-`r4`, `r6` cost three extra formulas up front but remove the three back-conversions
-and the equality reconciliation — so on this mixed chain `hybrid_both` (3) beats
-both lazy variants (6 and 7). On Example 1, though, those same eager links are pure
-waste. That is the whole trade, and the direct answer to "why the link": the lazy
-variants omit it to stay cheap on single-representation problems; `hybrid_both`
-pays it always to stay cheap on representation-alternating ones.
-
 ---
 
 ## Takeaway
 
 - **Example 1** is Y/M/D-native → `hybrid_init_ymd` runs with **0 conversions** (and emits no epoch formula at all), `hybrid_init_epoch` pays **3** (epoch → Y/M/D for `a` and `b`, plus a Y/M/D → epoch to reconcile the equality).
 - **Example 2** is epoch-native → `hybrid_init_epoch` runs with **0 conversions**, `hybrid_init_ymd` pays **3** (Y/M/D → epoch for `a` and `b`, plus a reconciling conversion).
-- **Example 3** is a representation-alternating chain, so the two lazy variants **ping-pong**: because each lazy intermediate is materialized in only one representation, nearly every add converts its operand. `hybrid_init_ymd` pays **6**, `hybrid_init_epoch` pays **7**, differing only in phase. `hybrid_both` pays only **3**, because its eager links keep both sides live and break the ping-pong — the trade is three wasted formulas on single-representation problems like Example 1.
+- **Example 3** is a representation-alternating chain, so the two lazy variants **ping-pong**: because each lazy intermediate is materialized in only one representation, nearly every add converts its operand. `hybrid_init_ymd` pays **6**, `hybrid_init_epoch` pays **7**, differing only in phase.
 
 The headline — *some constraints go faster starting in Y/M/D, some starting in
 epoch* — is exactly right. The mechanism underneath it is: the starting

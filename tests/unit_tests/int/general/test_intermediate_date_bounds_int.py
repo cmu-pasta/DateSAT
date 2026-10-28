@@ -19,8 +19,6 @@ Current policy (as of the range-bound removal):
   - Solvers in `datesat.symbolic_int` do NOT bound date variables to any year
     range; only well-formedness (valid calendar date) is enforced. Round-trip
     through out-of-range is therefore expected SAT for these.
-  - `AlphaBetaTableSolver` in `future_work.datesat_bounded` remains bounded to
-    [1900-03-01, 2100-02-28] and is expected UNSAT.
 
 Note: Period has hard limits: years <= 200, months <= 2400.
 """
@@ -33,9 +31,7 @@ from datesat.symbolic_int.simple_int import SimpleSolver
 from datesat.symbolic_int.epoch_days_int import EpochDaysSolver
 from datesat.symbolic_int.hybrid_init_epoch_int import HybridInitEpochSolver
 from datesat.symbolic_int.hybrid_init_ymd_int import HybridInitYmdSolver
-from datesat.symbolic_int.hybrid_both_int import HybridBothSolver
 from datesat.symbolic_int.alpha_beta_int import AlphaBetaSolver
-from future_work.datesat_bounded.alpha_beta_table_int import AlphaBetaTableSolver
 
 
 # (solver_cls, is_bounded) — is_bounded controls the expected round-trip outcome.
@@ -44,9 +40,7 @@ SOLVERS = [
     pytest.param(EpochDaysSolver, False, id="epoch_days", marks=pytest.mark.epoch_days),
     pytest.param(HybridInitEpochSolver, False, id="hybrid_init_epoch", marks=pytest.mark.hybrid_init_epoch),
     pytest.param(HybridInitYmdSolver, False, id="hybrid_init_ymd", marks=pytest.mark.hybrid_init_ymd),
-    pytest.param(HybridBothSolver, False, id="hybrid_both", marks=pytest.mark.hybrid_both),
     pytest.param(AlphaBetaSolver, False, id="alpha_beta", marks=pytest.mark.alpha_beta),
-    pytest.param(AlphaBetaTableSolver, True, id="alpha_beta_table", marks=pytest.mark.alpha_beta_table),
 ]
 
 # Solver list without the bounding flag, for tests where all solvers share the same expected outcome.
@@ -55,9 +49,7 @@ SOLVERS_ONLY = [
     pytest.param(EpochDaysSolver, id="epoch_days", marks=pytest.mark.epoch_days),
     pytest.param(HybridInitEpochSolver, id="hybrid_init_epoch", marks=pytest.mark.hybrid_init_epoch),
     pytest.param(HybridInitYmdSolver, id="hybrid_init_ymd", marks=pytest.mark.hybrid_init_ymd),
-    pytest.param(HybridBothSolver, id="hybrid_both", marks=pytest.mark.hybrid_both),
     pytest.param(AlphaBetaSolver, id="alpha_beta", marks=pytest.mark.alpha_beta),
-    pytest.param(AlphaBetaTableSolver, id="alpha_beta_table", marks=pytest.mark.alpha_beta_table),
 ]
 
 ANCHOR = Date(2000, 1, 15)  # avoid EOM/leap-day corner cases

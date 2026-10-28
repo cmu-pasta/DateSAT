@@ -65,7 +65,8 @@ import datesat
 # Use different solver approaches and implementations
 result = datesat.solve(
     constraints={...},           # replace ... with actual constraints
-    approach="hybrid",           # simple, epoch_days, hybrid, alpha_beta, alpha_beta_table
+    approach="hybrid",           # int: simple, epoch_days, hybrid_init_ymd, hybrid_init_epoch, alpha_beta
+                                 # bitvector: simple, epoch_days, hybrid, alpha_beta
     implementation="bitvector",  # int or bitvector
     timeout_ms=600000,          # 10 minutes
     verbose=True                # Print solver output
@@ -185,7 +186,7 @@ The MCP server exposes a single `solve` tool with the following parameters:
 |-----------|------|---------|-------------|
 | `declarations` | `list[str]` | required | Variable declarations (e.g., `["x: Date", "n: int"]`) |
 | `constraints` | `list[str]` | required | Constraint expressions to satisfy |
-| `approach` | `str` | `"epoch_days"` | Solver approach: `simple`, `epoch_days`, `hybrid`, `alpha_beta`, `alpha_beta_table` |
+| `approach` | `str` | `"epoch_days"` | Solver approach: `simple`, `epoch_days`, `hybrid_init_ymd`, `hybrid_init_epoch`, `alpha_beta` (int); `simple`, `epoch_days`, `hybrid`, `alpha_beta` (bitvector) |
 | `implementation` | `str` | `"int"` | Implementation type: `int` or `bitvector` |
 | `timeout_ms` | `int` | `600000` | Solver timeout in milliseconds |
 

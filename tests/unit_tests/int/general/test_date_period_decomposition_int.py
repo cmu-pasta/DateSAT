@@ -5,12 +5,10 @@ from dateutil.relativedelta import relativedelta
 
 from datesat.core import Date, Period
 from datesat.symbolic_int.alpha_beta_int import AlphaBetaSolver
-from future_work.datesat_bounded.alpha_beta_table_int import AlphaBetaTableSolver
 from datesat.symbolic_int.simple_int import SimpleSolver
 from datesat.symbolic_int.epoch_days_int import EpochDaysSolver
 from datesat.symbolic_int.hybrid_init_epoch_int import HybridInitEpochSolver
 from datesat.symbolic_int.hybrid_init_ymd_int import HybridInitYmdSolver
-from datesat.symbolic_int.hybrid_both_int import HybridBothSolver
 
 
 def get_period_arithmetic_test_cases():
@@ -217,7 +215,6 @@ def test_epoch_days_matches_java_decomposed(
     [
         pytest.param(HybridInitEpochSolver, id="hybrid_init_epoch", marks=pytest.mark.hybrid_init_epoch),
         pytest.param(HybridInitYmdSolver, id="hybrid_init_ymd", marks=pytest.mark.hybrid_init_ymd),
-        pytest.param(HybridBothSolver, id="hybrid_both", marks=pytest.mark.hybrid_both),
     ],
 )
 @pytest.mark.parametrize(
@@ -259,24 +256,3 @@ def test_alpha_beta_matches_java_decomposed(
     assert (
         got == expect
     ), f"Alpha_beta order {label}: {base} + {per} -> {got}, expected {expect}"
-
-
-@pytest.mark.parametrize(
-    "base,per,label,seq",
-    [
-        pytest.param(base, per, label, seq, id=f"alpha_beta_table_{base}+{per}_{label}")
-        for base, per, label, seq in all_decomposed_cases()
-    ],
-)
-@pytest.mark.alpha_beta
-@pytest.mark.integer
-def test_alpha_beta_table_matches_java_decomposed(
-    base: Date, per: Period, label: str, seq: list[Period]
-):
-    expect = python_date_plus_sequence(base, seq, label)
-    model = _solve_decomposed_with_solver(AlphaBetaTableSolver, base, seq)
-    assert model["status"] == "sat"
-    got = model["dates"]["y"]
-    assert (
-        got == expect
-    ), f"alpha_beta_table order {label}: {base} + {per} -> {got}, expected {expect}"

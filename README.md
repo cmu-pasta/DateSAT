@@ -98,7 +98,7 @@ result_json = datesat.solve(input_data)
 # Replace {...} with the actual data variable
 result_optimized = datesat.solve(
     constraints=input_data,      # Use the dictionary defined above
-    approach="alpha_beta_table", # Recommended: provides a median 2.73x speedup [cite: 146, 913]
+    approach="alpha_beta",       # simple, epoch_days, hybrid_init_ymd, hybrid_init_epoch, alpha_beta, or router
     implementation="int",        # Choose 'int' or 'bitvector' [cite: 146, 972]
     timeout_ms=600000            # 10 minutes [cite: 878]
 )

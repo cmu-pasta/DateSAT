@@ -18,7 +18,6 @@ pytest tests/ -m simple
 pytest tests/ -m epoch_days
 pytest tests/ -m hybrid
 pytest tests/ -m alpha_beta
-pytest tests/ -m alpha_beta_table
 
 # Test specific encoding theory
 pytest tests/ -m int

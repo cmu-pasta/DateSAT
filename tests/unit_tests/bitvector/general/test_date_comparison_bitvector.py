@@ -5,7 +5,6 @@ import pytest
 # All solvers exercised here live in future_work.datesat_bounded (bounded).
 from future_work.datesat_bounded.core import Date
 from future_work.datesat_bounded.bitvector.alpha_beta_bv import AlphaBetaSolver
-from future_work.datesat_bounded.bitvector.alpha_beta_table_bv import AlphaBetaTableSolver
 from future_work.datesat_bounded.bitvector.simple_bv import SimpleSolver
 from future_work.datesat_bounded.bitvector.epoch_days_bv import EpochDaysSolver
 from future_work.datesat_bounded.bitvector.hybrid_bv import HybridSolver
@@ -132,21 +131,6 @@ def test_alpha_beta_date_comparisons_match_truth(op_name: str, op, a: Date, b: D
     expect = _expect_truth(op, a, b)
     sat = _solve_compare(AlphaBetaSolver, a, b, op_name)
     assert sat == expect, f"AlphaBeta: expected {expect} for {a} {op_name} {b}"
-
-
-@pytest.mark.parametrize(
-    "a,b",
-    [pytest.param(a, b, id=f"{a}_vs_{b}") for a, b in CASES],
-)
-@pytest.mark.parametrize("op_name,op", OPS)
-@pytest.mark.alpha_beta_table
-@pytest.mark.bitvector
-def test_alpha_beta_table_date_comparisons_match_truth(
-    op_name: str, op, a: Date, b: Date
-):
-    expect = _expect_truth(op, a, b)
-    sat = _solve_compare(AlphaBetaTableSolver, a, b, op_name)
-    assert sat == expect, f"AlphaBetaTable: expected {expect} for {a} {op_name} {b}"
 
 
 # Tests specifically for negative epoch values (dates before 2000-03-01)
