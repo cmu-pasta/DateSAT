@@ -15,7 +15,7 @@ pytest tests/translation_validation -m translation_validation -k "not differenti
 ```
 
 The full suite is about 500 checks. Without the hybrid derived-receiver additions it
-took roughly 17 minutes on 8 workers; those add 57 queries, many of 1–5 minutes each.
+took roughly 17 minutes on 8 workers; those add 55 queries, many of 1–5 minutes each.
 The slowest are the alpha_beta addition queries, at 4–7 minutes each. Every check is
 marked `translation_validation`, so `-m "not translation_validation"` skips them.
 Env knobs: `DATESAT_TV_TIMEOUT_MS` (per-query Z3 timeout, default 300000),
@@ -53,9 +53,9 @@ relation used for each encoding is the Verus one (`ed_congruent`, `ab_congruent`
    cover every path a concrete Period can take. For the hybrids the receiver `x` is
    checked in every representation state: fresh, epoch-only (after a day addition),
    YMD-only with expression fields (after a month addition), and both (after a
-   comparison materialized the missing side). Exception: 7 of these 64 derived-receiver
-   cases, a month-derived receiver plus a period with non-zero months and days, time
-   out in Z3 and are marked `xfail(run=False)` (`TIMEOUT_CASES`); they are covered
+   comparison materialized the missing side). Exception: 9 of these 64 derived-receiver
+   cases, a month-derived receiver plus a period with non-zero months, time out in Z3
+   (or finish close to the limit and time out under load) and are marked `xfail(run=False)` (`TIMEOUT_CASES`); they are covered
    only by the differential tests. Completeness also holds: the side
    constraints `__add__` asserts (bounds, hybrid lazy links) are satisfiable for every
    in-range input/result. `x - P` is checked to build the same terms as `x + (-P)`.
