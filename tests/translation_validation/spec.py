@@ -32,8 +32,9 @@ def leap(year):
 
 
 def dim(year, month):
-    """simple_date.rs: dim(year, month). Unconstrained outside 1..12, like
-    the Verus array index (callers always guard with is_valid)."""
+    """simple_date.rs: dim(year, month). Outside 1..12 the Verus array index
+    is unspecified; this returns 31 there. Every caller guards with
+    1 <= month <= 12 (is_valid, or add_months, whose month is always in range)."""
     return If(month == 2, If(leap(year), 29, 28),
               If(Or(month == 4, month == 6, month == 9, month == 11), 30, 31))
 

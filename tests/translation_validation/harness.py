@@ -6,7 +6,7 @@ symbolic inputs and ask Z3 whether the terms they produced can ever disagree
 with the Verus reference semantics. An `unsat` answer is a proof about the
 exact terms the implementation generates (for that code path).
 
-Three pieces make the Python code runnable on symbolic inputs without editing it:
+These pieces make the Python code runnable on symbolic inputs without editing it:
 
   * `sym_period` / `sym_date` build Period / Date objects whose fields are Z3
     Ints, bypassing the constructors' concrete-int validation.
@@ -117,7 +117,7 @@ _ENCODE_CACHE = {}
 
 
 def _encode_by_contract(y, m, d):
-    key = tuple(z3.IntVal(0).__add__(t).get_id() if not z3.is_expr(t) else t.get_id() for t in (y, m, d))
+    key = tuple(_lifted_intval(t).get_id() for t in (y, m, d))
     if key not in _ENCODE_CACHE:
         e = Int(f"enc{len(_ENCODE_CACHE)}")
         _DECODE_FACTS.append(z3.Implies(And(1 <= m, m <= 12),

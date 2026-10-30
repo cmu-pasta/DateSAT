@@ -48,7 +48,7 @@ from .harness import (
     sym_ymd,
     symbolic_mode,
 )
-from .reference_eval import add_period as ref_add_period
+from .reference_eval import add_period as ref_add_period, dim as ref_dim
 
 pytestmark = pytest.mark.translation_validation
 
@@ -67,10 +67,10 @@ def test_spec_add_period_matches_recursive_verus_spec():
     transcription mistakes in spec.py."""
     from z3 import IntVal, simplify, is_true
     rng = random.Random(0)
-    for _ in range(300):
+    for _ in range(2000):
         y = rng.randint(1, 9999)
         m = rng.randint(1, 12)
-        d = rng.randint(1, 28)
+        d = rng.randint(1, ref_dim(y, m))
         p = (rng.randint(-50, 50), rng.randint(-30, 30), rng.randint(-800, 800))
         r = ref_add_period((y, m, d), p)
         if not (1 <= r[0] <= 9999):
@@ -188,27 +188,28 @@ def test_literal_embedding_exhaustive():
 
 
 class _ConstModel:
-    """Minimal stand-in for a z3 ModelRef: evaluates a fixed assignment."""
+    """Minimal stand-in for a z3 ModelRef: evaluates constants to fixed values."""
 
     def __init__(self, assignment):
-        from z3 import substitute, IntVal
-        self._subs = [(k, IntVal(v)) for k, v in assignment.items()]
+        from z3 import IntVal
+        self._vals = {k.get_id(): IntVal(v) for k, v in assignment.items()}
 
     def evaluate(self, t, model_completion=True):
-        from z3 import simplify, substitute
-        return simplify(substitute(t, *self._subs))
+        return self._vals[t.get_id()]
 
 
 def test_alpha_beta_model_decoding_exhaustive():
     """alpha_beta DateVar.to_concrete_date (pure-Python decode) agrees with
-    AlphaBeta::to_ymd for every alpha in the solver's bounds."""
+    AlphaBeta::to_ymd for every alpha in the solver's bounds and every beta
+    that is valid in that month."""
+    from z3 import IntVal, simplify
     v = alpha_beta_int.DateVar("x")
-    for alpha in range(-23990, 95997 + 1, 7):  # stride keeps this fast; all residues mod 12 hit
-        for beta in (0, 27):
-            k = alpha + 2000 * 12 + 2
-            want = (k // 12, 1 + k % 12, beta + 1)
+    for alpha in range(-23990, 95997 + 1):
+        y = simplify(spec.year_of_alpha(IntVal(alpha))).as_long()
+        m = simplify(spec.month_of_alpha(IntVal(alpha))).as_long()
+        for beta in range(ref_dim(y, m)):
             got = v.to_concrete_date(_ConstModel({v.months_var: alpha, v.beta_var: beta}))
-            assert (got.year, got.month, got.day) == want, alpha
+            assert (got.year, got.month, got.day) == (y, m, beta + 1), (alpha, beta)
 
 
 # ── 2. Construction ─────────────────────────────────────────────────────────
@@ -275,7 +276,8 @@ def test_add_period_preserves_congruence(enc_name, pattern, days_value):
 
     For `simple` the day component is concrete because add_days_componentwise
     unrolls one loop iteration per day. The +-1 cases prove the loop body
-    equals SimpleDate::add_days(+-1) on every valid date; since the body does
+    equals SimpleDate::add_days(+-1) on every valid date whose input and result
+    are in years 1..9999 (the bounds __add__ asserts); since the body does
     not depend on the iteration index and add_days_rel composes (delta shifts
     add up and validity is preserved), k iterations compute add_days(k) for
     every concrete k by induction."""
@@ -310,7 +312,8 @@ def test_sub_is_add_of_negation(enc_name):
         s1, s2 = enc.make_solver(), enc.make_solver()
         a = enc.new_var(s1, "x") - P
         b = enc.new_var(s2, "x") + Period(-P.years, -P.months, -P.days)
-        assert a.year.sexpr() == b.year.sexpr()
+        for acc in ("year", "month", "day"):
+            assert getattr(a, acc).sexpr() == getattr(b, acc).sexpr(), acc
         assert [t.sexpr() for t in enc.assertions(s1)] == [t.sexpr() for t in enc.assertions(s2)]
 
 
@@ -365,8 +368,6 @@ def _compare_cases():
 def test_comparison_agrees_with_spec(enc_name, ka, kb, op):
     """py_op(a, b) <=> ref_op(A, B) for congruent operands; comparing keeps
     the operands congruent (hybrid comparisons may materialize a lazy side)."""
-    if enc_name == "simple" and "days" in (ka, kb):
-        pytest.skip("simple needs concrete days")
     enc = ENCODINGS[enc_name]
     py_op, ref_op = OPS[op]
     with symbolic_mode():
@@ -381,3 +382,105 @@ def test_comparison_agrees_with_spec(enc_name, ka, kb, op):
         extra = [h for h in hyps if not any(h.eq(enc.congruent(o, D)) for o, D in wa + wb)]
         check_complete(enc, s, wa + wb, extra_hyps=extra + [spec.is_valid(*A), spec.is_valid(*B)],
                        label=f"{enc_name}/{ka} {op} {kb}")
+
+
+# ── 5. Addition on derived receivers (hybrids) ──────────────────────────────
+
+# Representation states a hybrid receiver can be in when `+` is applied to it,
+# beyond the fresh one covered by test_add_period_preserves_congruence:
+# epoch-only (after a day addition), YMD-only with expression fields (after a
+# month addition), and both, after a comparison materialized the missing side
+# (`_ymd_expr` / `_epoch_expr` are what the comparison operators call).
+RECEIVER_STATES = ["days", "months", "days+ymd", "months+epoch"]
+
+# Month arithmetic nested on a month-derived receiver, followed by days: Z3 times
+# out (300 s) on these. Not proved; covered only by the differential tests.
+TIMEOUT_CASES = {
+    ("hybrid_init_ymd", "months", "0MD"), ("hybrid_init_ymd", "months", "YMD"),
+    ("hybrid_init_ymd", "months+epoch", "0MD"), ("hybrid_init_ymd", "months+epoch", "YMD"),
+    ("hybrid_init_epoch", "months", "0MD"),
+    ("hybrid_init_epoch", "months+epoch", "0MD"), ("hybrid_init_epoch", "months+epoch", "YMD"),
+}
+
+
+def _derived_add_cases():
+    for enc_name in ENC_NAMES:
+        if enc_name.startswith("hybrid"):
+            for state in RECEIVER_STATES:
+                for pat in ZERO_PATTERNS:
+                    marks = []
+                    if (enc_name, state, pattern_id(pat)) in TIMEOUT_CASES:
+                        marks = [pytest.mark.xfail(run=False, reason="Z3 times out; not proved")]
+                    yield pytest.param(enc_name, state, pat, marks=marks,
+                                       id=f"{enc_name}-{state}-{pattern_id(pat)}")
+
+
+@pytest.mark.parametrize("enc_name,state,pattern", list(_derived_add_cases()))
+def test_add_period_on_derived_receiver(enc_name, state, pattern):
+    """congruent(x, D) => congruent(x + P, SimpleDate::add_period(D, P)) when x is
+    itself the result of an addition, in each representation state; x stays
+    congruent to D."""
+    enc = ENCODINGS[enc_name]
+    kind, _, materialize = state.partition("+")
+    with symbolic_mode():
+        s = enc.make_solver()
+        x, D, x_hyps, objs = _operand(enc, s, kind, "a")
+        pre = [enc.congruent(o, Do) for o, Do in objs]
+        if materialize == "ymd":
+            x._ymd_expr()
+        elif materialize == "epoch":
+            x._epoch_expr()
+        R = ref_date("r")
+        P, (py, pm, pd), conds = period_for_pattern(pattern, tag="p")
+        r = x + P
+        ref = spec.add_period_rel(D, py, pm, pd, R)
+        n = py * 12 + pm
+        lemmas = [alpha_canonical(spec.add_months(D, n)), add_months_linear(D, n)]
+        hyps = x_hyps + [ref] + conds + lemmas
+        label = f"{enc_name}/{state} add"
+        prove(And(enc.congruent(r, R), enc.congruent(x, D)), enc.assertions(s) + hyps, label=label)
+        acc = (r.year, r.month, r.day)
+        prove(And(spec.eq(acc, R), enc.congruent(r, R)), enc.assertions(s) + hyps,
+              label=f"{label} accessors")
+        extra = [h for h in x_hyps if not any(h.eq(c) for c in pre)] + [ref] + conds
+        check_complete(enc, s, objs + [(r, R)], extra_hyps=extra, label=label)
+
+
+# ── 6. Literal + Period ─────────────────────────────────────────────────────
+
+def _literal_add_cases():
+    for y in (1, 2, 4, 99, 100, 400, 1900, 1999, 2000, 2023, 2024, 2100, 9998, 9999):
+        for m in range(1, 13):
+            for d in sorted({1, 15, 28, ref_dim(y, m)}):
+                for p in [(py, pm, pd) for py in (0, 1, -1, 4, -100) for pm in (0, 1, -1, 11, -13, 25)
+                          for pd in (0, 1, -1, 30, -31, 365, -366, 1461)]:
+                    yield (y, m, d), p
+    rng = random.Random(1)
+    for _ in range(100_000):
+        y, m = rng.randint(1, 9999), rng.randint(1, 12)
+        yield (y, m, rng.randint(1, ref_dim(y, m))), (
+            rng.choice([0, rng.randint(-3, 3), rng.randint(-500, 500)]),
+            rng.choice([0, rng.randint(-14, 14), rng.randint(-6000, 6000)]),
+            rng.choice([0, rng.randint(-62, 62), rng.randint(-200_000, 200_000)]))
+
+
+def test_literal_add_period_matches_spec():
+    """Date + Period and Date - Period on literals (core.Date, via dateutil's
+    relativedelta) equal SimpleDate::add_period whenever the result and the
+    years-and-months midpoint stay in years 1..9999; otherwise they raise.
+    Tested, not proved: reference_eval.add_period is the oracle."""
+    from datesat.core import Period
+    checked = 0
+    for (y, m, d), p in _literal_add_cases():
+        want = ref_add_period((y, m, d), p)
+        mid_year = y + (m - 1 + 12 * p[0] + p[1]) // 12
+        in_range = 1 <= want[0] <= 9999 and 1 <= mid_year <= 9999
+        for op, period in (("+", Period(*p)), ("-", Period(-p[0], -p[1], -p[2]))):
+            try:
+                got = Date(y, m, d) + period if op == "+" else Date(y, m, d) - period
+            except (ValueError, OverflowError):
+                assert not in_range, ((y, m, d), op, p, want)
+                continue
+            assert in_range and (got.year, got.month, got.day) == want, ((y, m, d), op, p, want)
+            checked += 1
+    assert checked > 150_000
