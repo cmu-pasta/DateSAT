@@ -25,6 +25,8 @@ use ast_eval::*;
 mod equivalence;
 use equivalence::*;
 
+mod oracle;
+
 verus! {
 
     /// Trait for date encodings that support construction from YMD,
@@ -77,6 +79,8 @@ verus! {
                 ast.is_sat::<SimpleDate>() == ast.is_sat::<AlphaBeta>()
             by { theorem_ast_ab_equisat(ast); }
 
+        // When compiled, the binary serves the executable reference semantics (src/oracle.rs)
+        oracle::run();
     }
 
 } // verus!

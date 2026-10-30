@@ -15,7 +15,7 @@ Then, in this directory, run:
 If verification succeeds, you will see output like:
 
 ```
-verification results:: 117 verified, 0 errors
+verification results:: 131 verified, 0 errors
 ```
 
 ## File overview
@@ -32,6 +32,7 @@ verification results:: 117 verified, 0 errors
 | [`src/alpha_beta.rs`](src/alpha_beta.rs) | The Alpha-Beta encoding: (months-since-epoch, day-offset) |
 | [`src/monotonicity.rs`](src/monotonicity.rs) | Proof of monotonicity of date-period addition |
 | [`src/equivalence.rs`](src/equivalence.rs) | Equisatisfiability proofs for all encodings |
+| [`src/oracle.rs`](src/oracle.rs) | Executable reference semantics, proved equal to the spec functions; compiled into a test oracle |
 
 ## Tour of the proofs
 
@@ -202,3 +203,23 @@ Three properties of congruence are established for each encoding:
 3. **Preservation of comparisons**: congruent pairs agree on ordering and equality (the bridge to boolean evaluation).
 
 These three properties suffice to propagate evaluation equivalence through the entire AST by structural induction, yielding equisatisfiability.
+
+## Executable oracle
+
+[`src/oracle.rs`](src/oracle.rs) gives executable (`i64`) versions of the reference spec functions: `leap`, `dim`, `SimpleDate::is_valid`, `lt`, `add_months`, `add_days`, `add_period`, `EpochDelta::from_simple_date` and `to_ymd`, and the alpha-beta conversions. Each one returns an `Option` and is verified to satisfy, for example,
+
+```rust
+pub fn x_add_period(x: XDate, years: i64, months: i64, days: i64) -> (res: Option<XDate>)
+    ensures res matches Some(v) ==> v@ == x@.add_period(Period(years as int, months as int, days as int)),
+```
+
+It is written to return `None` only when a machine-integer operation would overflow, so there are no overflow proofs. That it never returns `None` on the tested inputs is checked by the tests, not proved. `x_add_days` follows the four recursive rules of `SimpleDate::add_days`, one rule per loop iteration. Euclidean division is checked against its certificate (`x == q * d + r`, `0 <= r < d`).
+
+Build the oracle binary with
+
+```
+/path/to/verus src/main.rs --compile -o build/datesat-oracle
+```
+
+When run, the binary answers line requests such as `add_period 2024 1 31 0 1 0` (answer: `2024 2 29`). Only the line-parsing driver at the bottom of `oracle.rs` is unverified. [`tests/spec_adequacy/`](../tests/spec_adequacy) uses the oracle to check that the reference semantics agrees with Python's `datetime` and with `java.time`, and that the hand transcriptions of the spec used by the implementation tests are faithful.
+
