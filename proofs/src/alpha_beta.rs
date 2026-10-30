@@ -46,22 +46,22 @@ verus! {
             self.lt(other) || self == other
         }
 
-        /// Convert a SimpleDate to AlphaBeta.
+        /// Convert a Date to AlphaBeta.
         /// alpha = years_since_epoch * 12 + months_since_march
         /// beta  = day - 1
-        pub open spec fn from_simple_date(date: SimpleDate) -> AlphaBeta {
+        pub open spec fn from_date(date: Date) -> AlphaBeta {
             let alpha = years_since_epoch(date.year(), date.month()) * 12
                       + months_since_march(date.month());
             let beta = date.day() - 1;
             AlphaBeta(alpha, beta)
         }
 
-        /// Convert AlphaBeta back to a SimpleDate.
+        /// Convert AlphaBeta back to a Date.
         /// Uses year_of_alpha/month_of_alpha to recover (year, month), then sets day = beta + 1.
-        pub open spec fn to_ymd(self) -> SimpleDate {
+        pub open spec fn to_ymd(self) -> Date {
             let y = year_of_alpha(self.alpha());
             let m = month_of_alpha(self.alpha());
-            SimpleDate(y, m, self.beta() + 1)
+            Date(y, m, self.beta() + 1)
         }
 
         /// An AlphaBeta is valid when beta is in range for the calendar month
@@ -118,7 +118,7 @@ verus! {
 
     impl DateEncoding for AlphaBeta {
         open spec fn from_ymd(y: int, m: int, d: int) -> AlphaBeta {
-            AlphaBeta::from_simple_date(SimpleDate(y, m, d))
+            AlphaBeta::from_date(Date(y, m, d))
         }
 
         open spec fn year(self) -> int {
@@ -191,27 +191,27 @@ verus! {
 
     // ── Round-trip theorem ────────────────────────────────────────────
 
-    // Round-trip: to_ymd(from_simple_date(d)) == d for valid dates.
-    pub proof fn theorem_ab_to_ymd_from_simple_date_inverse(d: SimpleDate)
+    // Round-trip: to_ymd(from_date(d)) == d for valid dates.
+    pub proof fn theorem_ab_to_ymd_from_date_inverse(d: Date)
         requires d.is_valid(),
-        ensures AlphaBeta::to_ymd(AlphaBeta::from_simple_date(d)) == d,
+        ensures AlphaBeta::to_ymd(AlphaBeta::from_date(d)) == d,
     {
-        let SimpleDate(y, m, dd) = d;
+        let Date(y, m, dd) = d;
         lemma_alpha_canonical(y, m);
         lemma_euclid_bounded(y, m - 1, 12);
         // EPOCH_ABS_MONTH + alpha = y*12 + (m-1), so year_of_alpha = y, month_of_alpha = m
-        // to_ymd: SimpleDate(y, m, (dd-1) + 1) = d
+        // to_ymd: Date(y, m, (dd-1) + 1) = d
     }
 
     // ── Congruence ────────────────────────────────────────────────────
 
-    // from_simple_date is strictly monotone: d1.lt(d2) implies from_simple_date(d1).lt(from_simple_date(d2)).
-    proof fn lemma_ab_from_simple_date_strict_monotone(d1: SimpleDate, d2: SimpleDate)
+    // from_date is strictly monotone: d1.lt(d2) implies from_date(d1).lt(from_date(d2)).
+    proof fn lemma_ab_from_date_strict_monotone(d1: Date, d2: Date)
         requires d1.is_valid(), d2.is_valid(), d1.lt(d2),
-        ensures AlphaBeta::from_simple_date(d1).lt(AlphaBeta::from_simple_date(d2)),
+        ensures AlphaBeta::from_date(d1).lt(AlphaBeta::from_date(d2)),
     {
-        let SimpleDate(y1, m1, dd1) = d1;
-        let SimpleDate(y2, m2, dd2) = d2;
+        let Date(y1, m1, dd1) = d1;
+        let Date(y2, m2, dd2) = d2;
         lemma_alpha_canonical(y1, m1);
         lemma_alpha_canonical(y2, m2);
         // alpha1 = (y1-2000)*12 + (m1-3), alpha2 = (y2-2000)*12 + (m2-3)
@@ -230,7 +230,7 @@ verus! {
 
     // Congruent pairs preserve comparison and equality.
     pub proof fn theorem_ab_congruent_preserves_comparison(
-        d1: SimpleDate, ab1: AlphaBeta, d2: SimpleDate, ab2: AlphaBeta,
+        d1: Date, ab1: AlphaBeta, d2: Date, ab2: AlphaBeta,
     )
         requires d1.is_valid(), d2.is_valid(),
                  ab_congruent(d1, ab1), ab_congruent(d2, ab2),
@@ -240,47 +240,47 @@ verus! {
     {
         lemma_date_lt_is_total(d1, d2);
         if d1.lt(d2) {
-            lemma_ab_from_simple_date_strict_monotone(d1, d2);
+            lemma_ab_from_date_strict_monotone(d1, d2);
         }
         if d2.lt(d1) {
-            lemma_ab_from_simple_date_strict_monotone(d2, d1);
+            lemma_ab_from_date_strict_monotone(d2, d1);
         }
     }
 
     // ── Congruence definition ─────────────────────────────────────────
 
-    // Congruence between SimpleDate and AlphaBeta: asserts they are related by from_ymd.
-    pub open spec fn ab_congruent(d: SimpleDate, ab: AlphaBeta) -> bool {
+    // Congruence between Date and AlphaBeta: asserts they are related by from_ymd.
+    pub open spec fn ab_congruent(d: Date, ab: AlphaBeta) -> bool {
         ab == AlphaBeta::from_ymd(d.year(), d.month(), d.day())
     }
 
-    // Congruence at construction: from_ymd is congruent with SimpleDate.
+    // Congruence at construction: from_ymd is congruent with Date.
     pub proof fn theorem_ab_from_ymd_congruent(y: int, m: int, d: int)
-        ensures ab_congruent(SimpleDate(y, m, d), AlphaBeta::from_ymd(y, m, d)),
+        ensures ab_congruent(Date(y, m, d), AlphaBeta::from_ymd(y, m, d)),
     {}
 
     // ── AlphaBeta ↔ EpochDelta bridge lemmas ────────────────────────
 
     // year_of_alpha and month_of_alpha recover the year and month of a valid date.
-    proof fn lemma_ym_of_alpha_from_simple_date(d: SimpleDate)
+    proof fn lemma_ym_of_alpha_from_date(d: Date)
         requires d.is_valid(),
         ensures
-            year_of_alpha(AlphaBeta::from_simple_date(d).alpha()) == d.year(),
-            month_of_alpha(AlphaBeta::from_simple_date(d).alpha()) == d.month(),
+            year_of_alpha(AlphaBeta::from_date(d).alpha()) == d.year(),
+            month_of_alpha(AlphaBeta::from_date(d).alpha()) == d.month(),
     {
-        let SimpleDate(y, m, dd) = d;
+        let Date(y, m, dd) = d;
         lemma_alpha_canonical(y, m);
         // alpha = (y-2000)*12 + (m-3)
         // EPOCH_ABS_MONTH + alpha = 24002 + (y-2000)*12 + (m-3) = y*12 + (m-1)
         lemma_euclid_bounded(y, m - 1, 12);
     }
 
-    // ab.to_epoch_delta() == EpochDelta::from_simple_date(d) when ab is congruent to d.
-    proof fn lemma_ab_to_epoch_delta_eq_from_simple_date(d: SimpleDate, ab: AlphaBeta)
+    // ab.to_epoch_delta() == EpochDelta::from_date(d) when ab is congruent to d.
+    proof fn lemma_ab_to_epoch_delta_eq_from_date(d: Date, ab: AlphaBeta)
         requires d.is_valid(), ab_congruent(d, ab),
-        ensures ab.to_epoch_delta() == EpochDelta::from_simple_date(d),
+        ensures ab.to_epoch_delta() == EpochDelta::from_date(d),
     {
-        let SimpleDate(y, m, dd) = d;
+        let Date(y, m, dd) = d;
         lemma_alpha_canonical(y, m);
         // alpha = (y-2000)*12 + (m-3) = yse*12 + msm
         // Need: alpha/12 == yse and alpha%12 == msm
@@ -293,52 +293,52 @@ verus! {
         }
     }
 
-    // from_epoch_delta(ed) == from_simple_date(ed.to_ymd()) — definitional.
-    proof fn lemma_ab_from_epoch_delta_eq_from_simple_date(ed: EpochDelta)
-        ensures AlphaBeta::from_epoch_delta(ed) == AlphaBeta::from_simple_date(ed.to_ymd()),
+    // from_epoch_delta(ed) == from_date(ed.to_ymd()) — definitional.
+    proof fn lemma_ab_from_epoch_delta_eq_from_date(ed: EpochDelta)
+        ensures AlphaBeta::from_epoch_delta(ed) == AlphaBeta::from_date(ed.to_ymd()),
     {}
 
     // add_days preserves congruence.
-    proof fn lemma_ab_add_days_congruent(d: SimpleDate, ab: AlphaBeta, n: int)
+    proof fn lemma_ab_add_days_congruent(d: Date, ab: AlphaBeta, n: int)
         requires d.is_valid(), ab_congruent(d, ab),
         ensures ab_congruent(d.add_days(n), ab.add_days(n)),
     {
-        let SimpleDate(y, m, dd) = d;
-        lemma_ym_of_alpha_from_simple_date(d);
+        let Date(y, m, dd) = d;
+        lemma_ym_of_alpha_from_date(d);
         // year_of_alpha(ab.alpha()) == y, month_of_alpha(ab.alpha()) == m
 
         if 0 <= ab.beta() + n && ab.beta() + n < dim(y, m) {
             // Fast path: stays in same month.
             // ab.add_days(n) = AlphaBeta(ab.alpha(), ab.beta() + n)
-            // d.add_days(n) = SimpleDate(y, m, dd + n) since 1 <= dd+n <= dim(y,m)
-            // from_simple_date(SimpleDate(y, m, dd+n)) has same alpha and beta = dd+n-1 = ab.beta()+n
+            // d.add_days(n) = Date(y, m, dd + n) since 1 <= dd+n <= dim(y,m)
+            // from_date(Date(y, m, dd+n)) has same alpha and beta = dd+n-1 = ab.beta()+n
         } else {
             // Overflow path: ab.add_days(n) = from_epoch_delta(ab.to_epoch_delta().add_days(n))
-            lemma_ab_to_epoch_delta_eq_from_simple_date(d, ab);
-            // ab.to_epoch_delta() == EpochDelta::from_simple_date(d)
-            lemma_ab_from_epoch_delta_eq_from_simple_date(ab.to_epoch_delta().add_days(n));
-            // from_epoch_delta(...) == from_simple_date(EPOCH.add_days(from_simple_date(d).delta() + n))
-            lemma_from_simple_date_add_days(d, n);
-            // from_simple_date(d).delta() + n == from_simple_date(d.add_days(n)).delta()
+            lemma_ab_to_epoch_delta_eq_from_date(d, ab);
+            // ab.to_epoch_delta() == EpochDelta::from_date(d)
+            lemma_ab_from_epoch_delta_eq_from_date(ab.to_epoch_delta().add_days(n));
+            // from_epoch_delta(...) == from_date(EPOCH.add_days(from_date(d).delta() + n))
+            lemma_from_date_add_days(d, n);
+            // from_date(d).delta() + n == from_date(d.add_days(n)).delta()
             lemma_date_add_days_preserves_validity(d, n);
-            theorem_epoch_delta_to_ymd_from_simple_date_inverse(d.add_days(n));
-            // EPOCH.add_days(from_simple_date(d.add_days(n)).delta()) == d.add_days(n)
+            theorem_epoch_delta_to_ymd_from_date_inverse(d.add_days(n));
+            // EPOCH.add_days(from_date(d.add_days(n)).delta()) == d.add_days(n)
         }
     }
 
     // ── Period addition congruence ────────────────────────────────────
 
     // Adding n months to a date shifts its alpha by exactly n.
-    proof fn lemma_ab_from_simple_date_add_months_alpha(d: SimpleDate, n: int)
+    proof fn lemma_ab_from_date_add_months_alpha(d: Date, n: int)
         requires d.is_valid(),
-        ensures AlphaBeta::from_simple_date(d.add_months(n)).alpha()
-             == AlphaBeta::from_simple_date(d).alpha() + n,
+        ensures AlphaBeta::from_date(d.add_months(n)).alpha()
+             == AlphaBeta::from_date(d).alpha() + n,
     {
-        let SimpleDate(y, m, dd) = d;
+        let Date(y, m, dd) = d;
         let k = m - 1 + n;
         let y_ = y + k / 12;
         let m_ = 1 + k % 12;
-        assert(d.add_months(n) == SimpleDate(y_, m_, min(dd as int, dim(y_, m_))));
+        assert(d.add_months(n) == Date(y_, m_, min(dd as int, dim(y_, m_))));
         lemma_alpha_canonical(y, m);
         lemma_alpha_canonical(y_, m_);
         // alpha(d) = (y-2000)*12 + (m-3)
@@ -352,17 +352,17 @@ verus! {
     }
 
     // Adding n months to a date clamps beta: min(old_beta, dim(new_y, new_m) - 1).
-    proof fn lemma_ab_from_simple_date_add_months_beta(d: SimpleDate, n: int)
+    proof fn lemma_ab_from_date_add_months_beta(d: Date, n: int)
         requires d.is_valid(),
-        ensures AlphaBeta::from_simple_date(d.add_months(n)).beta()
+        ensures AlphaBeta::from_date(d.add_months(n)).beta()
              == min(d.day() - 1, dim(d.add_months(n).year(), d.add_months(n).month()) - 1),
     {
-        // d.add_months(n) = SimpleDate(y_, m_, min(d, dim(y_, m_)))
+        // d.add_months(n) = Date(y_, m_, min(d, dim(y_, m_)))
         // beta = min(d, dim(y_, m_)) - 1 = min(d-1, dim(y_, m_)-1)
     }
 
     // Congruence is preserved under period addition.
-    pub proof fn theorem_ab_congruent_add_period(d: SimpleDate, ab: AlphaBeta, p: Period)
+    pub proof fn theorem_ab_congruent_add_period(d: Date, ab: AlphaBeta, p: Period)
         requires d.is_valid(), ab_congruent(d, ab),
         ensures ab_congruent(d.add_period(p), ab.add_period(p)),
     {
@@ -370,18 +370,18 @@ verus! {
         let days = p.days();
 
         // Step 1: d == ab.to_ymd()
-        theorem_ab_to_ymd_from_simple_date_inverse(d);
+        theorem_ab_to_ymd_from_date_inverse(d);
 
         // Step 2: d.add_months(n) is valid
         lemma_date_add_months_preserves_validity(d, n);
 
-        // Step 3: from_simple_date(d.add_months(n)) == ab.add_months(n)
+        // Step 3: from_date(d.add_months(n)) == ab.add_months(n)
         // Show alpha shifts by n and beta clamps identically.
-        lemma_ab_from_simple_date_add_months_alpha(d, n);
-        lemma_ab_from_simple_date_add_months_beta(d, n);
+        lemma_ab_from_date_add_months_alpha(d, n);
+        lemma_ab_from_date_add_months_beta(d, n);
         // Connect year_of_alpha/month_of_alpha(alpha + n) to d.add_months(n)'s (y_, m_).
         // EPOCH_ABS_MONTH + alpha + n = y*12 + k where k = m-1+n, so we apply Euclidean division.
-        let SimpleDate(y, m, dd) = d;
+        let Date(y, m, dd) = d;
         lemma_alpha_canonical(y, m);
         let k = m - 1 + n;
         lemma_euclid_bounded(k / 12, k % 12, 12);

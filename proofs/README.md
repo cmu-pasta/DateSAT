@@ -15,7 +15,7 @@ Then, in this directory, run:
 If verification succeeds, you will see output like:
 
 ```
-verification results:: 117 verified, 0 errors
+verification results:: 133 verified, 0 errors
 ```
 
 ## File overview
@@ -24,7 +24,8 @@ verification results:: 117 verified, 0 errors
 |------|---------|
 | [`src/main.rs`](src/main.rs) | Top-level theorem statements (the main claims) |
 | [`src/ast_eval.rs`](src/ast_eval.rs) | AST definition, environment, evaluation semantics, satisfiability |
-| [`src/simple_date.rs`](src/simple_date.rs) | The reference encoding: YMD representation and date-period arithmetic |
+| [`src/semantics.rs`](src/semantics.rs) | The core semantics (Fig. 3): YMD dates and date-period arithmetic |
+| [`src/simple_date.rs`](src/simple_date.rs) | The Simple encoding: a simple baseline encoding used by the Python solver |
 | [`src/period.rs`](src/period.rs) | Calendar periods (years, months, days) |
 | [`src/epoch_delta.rs`](src/epoch_delta.rs) | The Epoch-Based encoding: days since March 1, 2000 |
 | [`src/hybrid_ymd.rs`](src/hybrid_ymd.rs) | The Hybrid encoding (YMD-initial variant): lazy union of YMD and epoch-delta, literals embedded YMD-only |
@@ -37,31 +38,37 @@ verification results:: 117 verified, 0 errors
 
 ### Main claims
 
-The verified theorem statements are in [`src/main.rs`](src/main.rs). The equisatisfiability theorems state that for any well-formed DateSAT constraint, satisfiability under the reference encoding is equivalent to satisfiability under each target encoding:
+The verified theorem statements are in [`src/main.rs`](src/main.rs). The equisatisfiability theorems state that for any well-formed DateSAT constraint, satisfiability under the core semantics (`Date`) is equivalent to satisfiability under each encoding:
 
 ```rust
-// Theorem 3: EpochDelta equisatisfiability
+// Theorem 3: SimpleDate equisatisfiability
 assert forall|ast: Ast| #![auto]
     ast.is_well_formed() implies
-        ast.is_sat::<SimpleDate>() == ast.is_sat::<EpochDelta>()
+        ast.is_sat::<Date>() == ast.is_sat::<SimpleDate>()
+    by { theorem_ast_simple_date_equisat(ast); }
+
+// Theorem 4: EpochDelta equisatisfiability
+assert forall|ast: Ast| #![auto]
+    ast.is_well_formed() implies
+        ast.is_sat::<Date>() == ast.is_sat::<EpochDelta>()
     by { theorem_ast_epoch_delta_equisat(ast); }
 
-// Theorem 4a: Hybrid (YMD-initial) equisatisfiability
+// Theorem 5a: Hybrid (YMD-initial) equisatisfiability
 assert forall|ast: Ast| #![auto]
     ast.is_well_formed() implies
-        ast.is_sat::<SimpleDate>() == ast.is_sat::<hybrid_ymd::Hybrid>()
+        ast.is_sat::<Date>() == ast.is_sat::<hybrid_ymd::Hybrid>()
     by { theorem_ast_hybrid_ymd_equisat(ast); }
 
-// Theorem 4b: Hybrid (epoch-initial) equisatisfiability
+// Theorem 5b: Hybrid (epoch-initial) equisatisfiability
 assert forall|ast: Ast| #![auto]
     ast.is_well_formed() implies
-        ast.is_sat::<SimpleDate>() == ast.is_sat::<hybrid_epoch::Hybrid>()
+        ast.is_sat::<Date>() == ast.is_sat::<hybrid_epoch::Hybrid>()
     by { theorem_ast_hybrid_epoch_equisat(ast); }
 
-// Theorem 5: AlphaBeta equisatisfiability
+// Theorem 6: AlphaBeta equisatisfiability
 assert forall|ast: Ast| #![auto]
     ast.is_well_formed() implies
-        ast.is_sat::<SimpleDate>() == ast.is_sat::<AlphaBeta>()
+        ast.is_sat::<Date>() == ast.is_sat::<AlphaBeta>()
     by { theorem_ast_ab_equisat(ast); }
 ```
 
@@ -100,7 +107,7 @@ An `Environment` binds integer, boolean, and date variables:
 pub struct Environment {
     pub int_vars: Map<Identifier, int>,
     pub bool_vars: Map<Identifier, bool>,
-    pub date_vars: Map<Identifier, SimpleDate>,
+    pub date_vars: Map<Identifier, Date>,
 }
 ```
 
@@ -150,11 +157,17 @@ pub open spec fn eval<D: DateEncoding>(self, env: Environment) -> D {
 
 Boolean and integer expressions evaluate similarly, with date comparisons delegated to the encoding's `lt` and `eq` methods.
 
-### Encodings
+### Semantics and encodings
 
-Each encoding provides a different internal representation of dates but implements the same `DateEncoding` trait.
+The core semantics and every encoding implement the same `DateEncoding` trait; each encoding provides a different internal representation of dates.
 
-**SimpleDate** — the reference encoding, representing dates directly as (year, month, day) triples. See [`src/simple_date.rs`](src/simple_date.rs).
+**Date** — the core semantics (Fig. 3 of the paper), representing dates directly as (year, month, day) triples. See [`src/semantics.rs`](src/semantics.rs).
+
+```rust
+pub struct Date { year: int, month: int, day: int }
+```
+
+**SimpleDate** — a simple baseline encoding used by the Python solver, representing dates as (year, month, day) triples and adding days one at a time. See [`src/simple_date.rs`](src/simple_date.rs).
 
 ```rust
 pub struct SimpleDate { year: int, month: int, day: int }
@@ -180,10 +193,16 @@ pub struct AlphaBeta { alpha: int, beta: int }
 
 ### Congruence: the key proof concept
 
-The central idea in the equisatisfiability proofs is **congruence**: a relation between a SimpleDate value and a target-encoding value asserting that they represent the same calendar date — i.e., that they agree on year, month, and day. Concretely, the encoded value must be exactly what `from_ymd` produces for the date (for valid dates, this is the same as agreeing on year, month, and day). For example, for EpochDelta:
+The central idea in the equisatisfiability proofs is **congruence**: a relation between a `Date` value (the semantics) and an encoded value asserting that they represent the same calendar date — i.e., that they agree on year, month, and day. Concretely, the encoded value must be exactly what `from_ymd` produces for the date (for valid dates, this is the same as agreeing on year, month, and day). For example, for SimpleDate and EpochDelta:
 
 ```rust
-pub open spec fn ed_congruent(d: SimpleDate, ed: EpochDelta) -> bool {
+pub open spec fn sd_congruent(d: Date, sd: SimpleDate) -> bool {
+    sd == SimpleDate::from_ymd(d.year(), d.month(), d.day())
+}
+```
+
+```rust
+pub open spec fn ed_congruent(d: Date, ed: EpochDelta) -> bool {
     ed == EpochDelta::from_ymd(d.year(), d.month(), d.day())
 }
 ```
@@ -191,7 +210,7 @@ pub open spec fn ed_congruent(d: SimpleDate, ed: EpochDelta) -> bool {
 And for AlphaBeta:
 
 ```rust
-pub open spec fn ab_congruent(d: SimpleDate, ab: AlphaBeta) -> bool {
+pub open spec fn ab_congruent(d: Date, ab: AlphaBeta) -> bool {
     ab == AlphaBeta::from_ymd(d.year(), d.month(), d.day())
 }
 ```

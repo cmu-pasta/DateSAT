@@ -1,11 +1,11 @@
 use vstd::prelude::*;
-use vstd::math::*;
 use crate::*;
 use crate::period::*;
 
 verus! {
 
-    /// A calendar date in (year, month, day) form.
+    /// The Simple encoding: a simple baseline encoding used by the Python solver.
+    /// Dates are (year, month, day) triples, and days are added one at a time.
     pub struct SimpleDate(pub int, pub int, pub int);
 
     impl SimpleDate {
@@ -33,16 +33,58 @@ verus! {
             self.year() == other.year() && self.month() == other.month() && self.day() == other.day()
         }
 
-        /// Non-strict ordering: less-than or equal.
-        pub open spec fn leq(self, other: Self) -> bool {
-            self.lt(other) || self == other
+        /// Add n months, clamping the day to the new month's dim.
+        pub open spec fn add_months(self, n: int) -> SimpleDate {
+            let SimpleDate(y, m, d) = self;
+            let y_ = y + (m - 1 + n) / 12;
+            let m_ = 1 + ((m - 1 + n) % 12);
+            let d_ = if d < 1 { 1 } else if d > dim(y_, m_) { dim(y_, m_) } else { d };
+            SimpleDate(y_, m_, d_)
         }
 
-        /// A date is valid when its month is in 1..12 and its day is in 1..dim(year, month).
-        pub open spec fn is_valid(self) -> bool {
-            1 <= self.month() <= 12 && 1 <= self.day() <= dim(self.year(), self.month())
+        /// One day forward: overflow to the 1st of the next month (with year wrap).
+        pub open spec fn succ(self) -> SimpleDate {
+            let SimpleDate(y, m, d) = self;
+            if d + 1 > dim(y, m) {
+                if m + 1 > 12 { SimpleDate(y + 1, 1, 1) } else { SimpleDate(y, m + 1, 1) }
+            } else {
+                SimpleDate(y, m, d + 1)
+            }
         }
 
+        /// One day backward: underflow to the last day of the previous month (with year wrap).
+        pub open spec fn pred(self) -> SimpleDate {
+            let SimpleDate(y, m, d) = self;
+            let py = if m - 1 < 1 { y - 1 } else { y };
+            let pm = if m - 1 < 1 { 12 } else { m - 1 };
+            if d - 1 < 1 {
+                SimpleDate(py, pm, dim(py, pm))
+            } else {
+                SimpleDate(y, m, d - 1)
+            }
+        }
+
+        /// Add n days by unit steps: |n| applications of succ (n > 0) or pred (n < 0).
+        pub open spec fn add_days(self, n: int) -> SimpleDate
+            decreases abs(n)
+        {
+            if n > 0 {
+                self.succ().add_days(n - 1)
+            } else if n < 0 {
+                self.pred().add_days(n + 1)
+            } else {
+                self
+            }
+        }
+
+        /// Add a calendar period. Days-only periods skip the month step (fast path).
+        pub open spec fn add_period(self, period: Period) -> SimpleDate {
+            if period.years() == 0 && period.months() == 0 {
+                self.add_days(period.days())
+            } else {
+                self.add_months(period.years() * 12 + period.months()).add_days(period.days())
+            }
+        }
     }
 
     impl DateEncoding for SimpleDate {
@@ -75,200 +117,152 @@ verus! {
         }
     }
 
-    /// Whether a year is a leap year (Gregorian rule).
-    pub open spec fn leap(year: int) -> bool {
-        year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)
+    // ── Congruence with the semantics ──────────────────────────────────
+
+    pub open spec fn sd_congruent(d: Date, sd: SimpleDate) -> bool {
+        sd == SimpleDate::from_ymd(d.year(), d.month(), d.day())
     }
 
-    /// Days in month: the number of days in the given month of the given year.
-    pub open spec fn dim(year: int, month: int) -> int {
-        let calendar = [31, if leap(year) { 29 } else { 28 }, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-        calendar[month - 1]
-    }
-
-    // ── SimpleDate and calendar proofs ──────────────────────────────────────
-
-    pub proof fn lemma_dim_is_bounded(year: int, month: int)
-        requires 1 <= month <= 12,
-        ensures 28 <= dim(year, month) <= 31
+    pub proof fn theorem_simple_date_from_ymd_congruent(y: int, m: int, d: int)
+        ensures sd_congruent(Date::from_ymd(y, m, d), SimpleDate::from_ymd(y, m, d)),
     {
-        // QED
     }
 
-    proof fn lemma_epoch_is_valid() {
-        EPOCH.is_valid();
+    pub proof fn theorem_simple_date_congruent_preserves_comparison(d1: Date, sd1: SimpleDate, d2: Date, sd2: SimpleDate)
+        requires sd_congruent(d1, sd1), sd_congruent(d2, sd2),
+        ensures
+            (d1.lt(d2) <==> sd1.lt(sd2)),
+            (d1.eq(d2) <==> sd1.eq(sd2)),
+    {
     }
 
-    pub proof fn lemma_date_leq_is_reflexive(d: SimpleDate)
-        ensures d.leq(d) {}
+    // ── Unit-step day addition agrees with the semantics ───────────────
 
-    pub proof fn lemma_date_leq_is_transitive(d1: SimpleDate, d2: SimpleDate, d3: SimpleDate)
-        requires d1.leq(d2) && d2.leq(d3),
-        ensures d1.leq(d3) {}
+    /// Adding 0 days is the identity on valid dates.
+    proof fn lemma_date_add_days_zero(d: Date)
+        requires d.is_valid(),
+        ensures d.add_days(0) == d,
+    {
+        // ADD-DAYS rule with n == 0
+    }
 
-    proof fn lemma_date_leq_is_antisymmetric(d1: SimpleDate, d2: SimpleDate)
-        requires d1.leq(d2) && d2.leq(d1),
-        ensures d1 == d2 {}
+    /// Adding 0 months is the identity on valid dates.
+    proof fn lemma_date_add_months_zero(d: Date)
+        requires d.is_valid(),
+        ensures d.add_months(0) == d,
+    {
+        // (m - 1) / 12 == 0 and (m - 1) % 12 == m - 1 since 1 <= m <= 12
+    }
 
-    proof fn lemma_date_lt_is_irreflexive(d: SimpleDate)
-        ensures !d.lt(d) {}
+    /// Day additions compose: (d + a days) + b days == d + (a + b) days.
+    proof fn lemma_date_add_days_compose(d: Date, a: int, b: int)
+        requires d.is_valid(),
+        ensures d.add_days(a).add_days(b) == d.add_days(a + b),
+    {
+        let x = d.add_days(a).add_days(b);
+        let z = d.add_days(a + b);
+        // Both sides are valid ...
+        lemma_date_add_days_preserves_validity(d, a);
+        lemma_date_add_days_preserves_validity(d.add_days(a), b);
+        lemma_date_add_days_preserves_validity(d, a + b);
+        // ... and have the same epoch delta ...
+        lemma_from_date_add_days(d, a);
+        lemma_from_date_add_days(d.add_days(a), b);
+        lemma_from_date_add_days(d, a + b);
+        assert(EpochDelta::from_date(x) == EpochDelta::from_date(z));
+        // ... so they are equal by injectivity of from_date.
+        theorem_epoch_delta_to_ymd_from_date_inverse(x);
+        theorem_epoch_delta_to_ymd_from_date_inverse(z);
+    }
 
-    proof fn lemma_date_lt_is_asymmetric(d1: SimpleDate, d2: SimpleDate)
-        requires d1.lt(d2),
-        ensures !d2.lt(d1) {}
-
-    proof fn lemma_date_lt_is_transitive(d1: SimpleDate, d2: SimpleDate, d3: SimpleDate)
-        requires d1.lt(d2) && d2.lt(d3),
-        ensures d1.lt(d3) {}
-
-    pub proof fn lemma_date_lt_implies_leq(d1: SimpleDate, d2: SimpleDate)
-        requires d1.lt(d2),
-        ensures d1.leq(d2) {}
-
-    proof fn lemma_date_lt_implies_neq(d1: SimpleDate, d2: SimpleDate)
-        requires d1.lt(d2),
-        ensures d1 != d2 {}
-
-    proof fn lemma_date_leq_neq_implies_lt(d1: SimpleDate, d2: SimpleDate)
-        requires d1.leq(d2) && d1 != d2,
-        ensures d1.lt(d2) {}
-
-    pub proof fn lemma_date_lt_is_total(d1: SimpleDate, d2: SimpleDate)
-        ensures d1 == d2 || d1.lt(d2) || d2.lt(d1)
-    {}
-
-    // ── SimpleDate-period arithmetic ────────────────────────────────────────
-
-    impl SimpleDate {
-        /// Add n months to a date, clamping the day to the new month's dim.
-        pub open spec fn add_months(self, n: int) -> SimpleDate {
-            let SimpleDate(y, m, d) = self;
-            let y_ = y + (m - 1 + n) / 12;
-            let m_ = 1 + ((m - 1 + n) % 12);
-            let d_ = min(d, dim(y_, m_));
-            SimpleDate(y_, m_, d_)
-        }
-
-        /// Add n days to a date (positive or negative), recursively stepping
-        /// across month boundaries using the ADD-DAYS-OVER / ADD-DAYS-UNDER rules.
-        pub open spec fn add_days(self, n: int) -> SimpleDate
-            recommends self.is_valid(),
-            decreases (n < 0) as nat, abs(n) // see note for ADD-DAYS-UNDER-2
-        {
-            let SimpleDate(y, m, d) = self;
-
-            if 1 <= d <= dim(y, m) {
-                if 1 <= d + n <= dim(y, m) {
-                    // ADD_DAYS rule
-                    SimpleDate(y, m, d + n)
-                } else if (d + n > dim(y, m)) {
-                    // ADD-DAYS-OVER rule
-                    SimpleDate(y, m, 1).add_months(1).add_days(n - (dim(y, m) - d) - 1)
-                } else if d > 1 {
-                    // ADD-DAYS-UNDER1 rule
-                    //assert(d + n <= 0); // covered all positive cases above
-                    SimpleDate(y, m, 1).add_days(d - 1 + n)
-                } else {
-                    // ADD-DAYS-UNDER2 rule
-                    // assert(d == 1);
-                    // assert(1 + n <= 0);
-                    let SimpleDate(y_, m_, _) = self.add_months(-1);
-                    SimpleDate(y_, m_, 1).add_days(n + dim(y_, m_))
-                    // Note: Proving that this case actually does cause
-                    // recursion to terminate is tricky. For example, if we
-                    // are adding -70 days, then recursively could go down to
-                    // -39 days, -9 days, and then +21 days!! But we know that
-                    // once we are adding positive number of days, the
-                    // ADD-DAYS/ADD-DAYS-OVER rules always reduce down to zero.
-                    // So, the `decreases` clause in the spec takes into account
-                    // both the sign of `n` and its absolute value.
-                }
-             } else {
-                SimpleDate(0, 0, 0) // spec is undefined for invalid dates
+    /// succ is the semantics' +1 day.
+    proof fn lemma_succ_is_add_one(d: Date)
+        requires d.is_valid(),
+        ensures SimpleDate(d.0, d.1, d.2).succ() == ({ let r = d.add_days(1); SimpleDate(r.0, r.1, r.2) }),
+    {
+        let Date(y, m, dd) = d;
+        if dd + 1 > dim(y, m) {
+            // ADD-DAYS-OVER: first of next month, plus 0 days
+            let next = Date(y, m, 1).add_months(1);
+            assert(d.add_days(1) == next.add_days(0));
+            lemma_date_add_months_preserves_validity(Date(y, m, 1), 1);
+            lemma_date_add_days_zero(next);
+            if m == 12 {
+                assert(next == Date(y + 1, 1, 1));
+            } else {
+                assert(next == Date(y, m + 1, 1));
             }
-
-        }
-
-        /// Add a calendar period: first add years/months (as months), then add days.
-        pub open spec fn add_period(self, period: Period) -> SimpleDate
-        {
-            self.add_months(period.years() * 12 + period.months()).add_days(period.days())
         }
     }
 
-    // ── SimpleDate-period arithmetic proofs ─────────────────────────────────
-
-    pub proof fn lemma_date_add_months_preserves_validity(date: SimpleDate, n: int)
-        requires date.is_valid(),
-        ensures date.add_months(n).is_valid()
+    /// pred is the semantics' -1 day.
+    proof fn lemma_pred_is_sub_one(d: Date)
+        requires d.is_valid(),
+        ensures SimpleDate(d.0, d.1, d.2).pred() == ({ let r = d.add_days(-1); SimpleDate(r.0, r.1, r.2) }),
     {
-        // QED
-    }
-
-    proof fn lemma_date_add_days_pos_preserves_validity(date: SimpleDate, n: int)
-        requires date.is_valid() && n >= 0,
-        ensures date.add_days(n).is_valid(),
-        decreases n
-    {
-        let SimpleDate(y, m, d) = date;
-        if 1 <= d + n <= dim(y, m) {
-            // Base case: ADD-DAYS rule; trivially valid
-        } else {
-            // ADD-DAYS-OVER rule
-            assert(d + n > dim(y, m));
-            let n_ = n - (dim(y, m) - d) - 1;
-            lemma_date_add_days_pos_preserves_validity(SimpleDate(y, m, 1).add_months(1), n_);
+        let Date(y, m, dd) = d;
+        if dd == 1 {
+            // ADD-DAYS-UNDER2: last day of the previous month
+            let Date(y_, m_, _) = d.add_months(-1);
+            if m == 1 {
+                assert(y_ == y - 1 && m_ == 12);
+            } else {
+                assert(y_ == y && m_ == m - 1);
+            }
+            lemma_dim_is_bounded(y_, m_);
+            assert(d.add_days(-1) == Date(y_, m_, 1).add_days(dim(y_, m_) - 1));
         }
     }
 
-    proof fn lemma_date_add_days_neg_preserves_validity(date: SimpleDate, n: int)
-        requires date.is_valid() && n < 0,
-        ensures date.add_days(n).is_valid(),
+    /// Unit-step day addition (|n| succ/pred steps) equals the semantics' add_days.
+    pub proof fn theorem_simple_date_add_days_congruent(d: Date, n: int)
+        requires d.is_valid(),
+        ensures sd_congruent(d.add_days(n), SimpleDate(d.0, d.1, d.2).add_days(n)),
         decreases abs(n)
     {
-        let SimpleDate(y, m, d) = date;
-        if 1 <= d + n {
-            // Base case: ADD-DAYS rule
-            assert(d + n <= dim(y, m)); // since date.is_valid() && n < 0
-        } else if d > 1 {
-            // ADD-DAYS-UNDER1 rule
-            assert(d <= dim(y, m));
-            assert(d + n <= 0);
-            lemma_date_add_days_neg_preserves_validity(SimpleDate(y, m, 1), d - 1 + n);
+        if n > 0 {
+            // One succ step, then n - 1 more
+            let d1 = d.add_days(1);
+            lemma_succ_is_add_one(d);
+            lemma_date_add_days_preserves_validity(d, 1);
+            theorem_simple_date_add_days_congruent(d1, n - 1);
+            lemma_date_add_days_compose(d, 1, n - 1);
+        } else if n < 0 {
+            // One pred step, then n + 1 more
+            let d1 = d.add_days(-1);
+            lemma_pred_is_sub_one(d);
+            lemma_date_add_days_preserves_validity(d, -1);
+            theorem_simple_date_add_days_congruent(d1, n + 1);
+            lemma_date_add_days_compose(d, -1, n + 1);
         } else {
-            // ADD-DAYS-UNDER2 rule
-            assert(d == 1);
-            assert(d <= dim(y, m));
-            let SimpleDate(y_, m_, _) = date.add_months(-1);
-            let n_ = n + dim(y_, m_);
-            // Split into positive and negative cases when recursing
-            if n_ >= 0 {
-                lemma_date_add_days_pos_preserves_validity(SimpleDate(y_, m_, 1), n_)
-            } else {
-                lemma_date_add_days_neg_preserves_validity(SimpleDate(y_, m_, 1), n_)
-            }
+            lemma_date_add_days_zero(d);
         }
     }
 
-    pub proof fn lemma_date_add_days_preserves_validity(date: SimpleDate, n: int)
-        requires date.is_valid(),
-        ensures date.add_days(n).is_valid()
+    /// Month addition agrees with the semantics on valid dates.
+    proof fn lemma_simple_date_add_months_congruent(d: Date, n: int)
+        requires d.is_valid(),
+        ensures sd_congruent(d.add_months(n), SimpleDate(d.0, d.1, d.2).add_months(n)),
     {
-        if n < 0 {
-            lemma_date_add_days_neg_preserves_validity(date, n);
-        } else {
-            lemma_date_add_days_pos_preserves_validity(date, n);
-        }
+        // Same formula as the semantics; the d < 1 branch is dead since d >= 1
     }
 
-    pub proof fn theorem_date_add_period_preserves_validity(date: SimpleDate, period: Period)
-        requires date.is_valid(),
-        ensures date.add_period(period).is_valid()
+    // Congruence is preserved under period addition.
+    pub proof fn theorem_simple_date_add_period_preserves_congruence(d: Date, sd: SimpleDate, p: Period)
+        requires d.is_valid(), sd_congruent(d, sd),
+        ensures sd_congruent(d.add_period(p), sd.add_period(p)),
     {
-        let months_to_add = period.years() * 12 + period.months();
-        lemma_date_add_months_preserves_validity(date, months_to_add);
-        let d_ = date.add_months(months_to_add);
-        lemma_date_add_days_preserves_validity(d_, period.days());
+        let n = p.years() * 12 + p.months();
+        assert(sd == SimpleDate(d.0, d.1, d.2));
+        if p.years() == 0 && p.months() == 0 {
+            // Fast path: the semantics' add_months(0) is the identity
+            lemma_date_add_months_zero(d);
+            theorem_simple_date_add_days_congruent(d, p.days());
+        } else {
+            lemma_simple_date_add_months_congruent(d, n);
+            lemma_date_add_months_preserves_validity(d, n);
+            theorem_simple_date_add_days_congruent(d.add_months(n), p.days());
+        }
     }
 
 } // verus!

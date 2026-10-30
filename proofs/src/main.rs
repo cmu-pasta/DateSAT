@@ -4,6 +4,9 @@ use vstd::math::*;
 mod period;
 use period::*;
 
+mod semantics;
+use semantics::*;
+
 mod simple_date;
 use simple_date::*;
 
@@ -40,41 +43,47 @@ verus! {
     }
 
     /// The epoch: March 1, 2000. Chosen so that the leap day (Feb 29) falls
-    /// at the end of the epoch-year, simplifying the from_simple_date formula.
-    pub spec const EPOCH : SimpleDate = SimpleDate(2000, 3, 1);
+    /// at the end of the epoch-year, simplifying the from_date formula.
+    pub spec const EPOCH : Date = Date(2000, 3, 1);
 
     fn main() {
         // Theorem 1: Well-formedness of Date-Period Addition
-        assert forall|d: SimpleDate, p: Period| #![auto]
+        assert forall|d: Date, p: Period| #![auto]
             d.is_valid() implies d.add_period(p).is_valid() by { theorem_date_add_period_preserves_validity(d, p); }
 
         // Theorem 2: Monotonicity of Date-Period Addition
-        assert forall|d1: SimpleDate, d2: SimpleDate, p: Period| #![auto]
+        assert forall|d1: Date, d2: Date, p: Period| #![auto]
             d1.is_valid() && d2.is_valid() && d1.leq(d2) implies
                 d1.add_period(p).leq(d2.add_period(p)) by { theorem_date_add_period_is_monotonic(d1, d2, p); }
 
-        // Theorem 3: EpochDelta equisatisfiability
+        // Theorem 3: SimpleDate equisatisfiability
         assert forall|ast: Ast| #![auto]
             ast.is_well_formed() implies
-                ast.is_sat::<SimpleDate>() == ast.is_sat::<EpochDelta>()
+                ast.is_sat::<Date>() == ast.is_sat::<SimpleDate>()
+            by { theorem_ast_simple_date_equisat(ast); }
+
+        // Theorem 4: EpochDelta equisatisfiability
+        assert forall|ast: Ast| #![auto]
+            ast.is_well_formed() implies
+                ast.is_sat::<Date>() == ast.is_sat::<EpochDelta>()
             by { theorem_ast_epoch_delta_equisat(ast); }
 
-        // Theorem 4a: Hybrid (YMD-initial) equisatisfiability
+        // Theorem 5a: Hybrid (YMD-initial) equisatisfiability
         assert forall|ast: Ast| #![auto]
             ast.is_well_formed() implies
-                ast.is_sat::<SimpleDate>() == ast.is_sat::<hybrid_ymd::Hybrid>()
+                ast.is_sat::<Date>() == ast.is_sat::<hybrid_ymd::Hybrid>()
             by { theorem_ast_hybrid_ymd_equisat(ast); }
 
-        // Theorem 4b: Hybrid (epoch-initial) equisatisfiability
+        // Theorem 5b: Hybrid (epoch-initial) equisatisfiability
         assert forall|ast: Ast| #![auto]
             ast.is_well_formed() implies
-                ast.is_sat::<SimpleDate>() == ast.is_sat::<hybrid_epoch::Hybrid>()
+                ast.is_sat::<Date>() == ast.is_sat::<hybrid_epoch::Hybrid>()
             by { theorem_ast_hybrid_epoch_equisat(ast); }
 
-        // Theorem 5: AlphaBeta equisatisfiability
+        // Theorem 6: AlphaBeta equisatisfiability
         assert forall|ast: Ast| #![auto]
             ast.is_well_formed() implies
-                ast.is_sat::<SimpleDate>() == ast.is_sat::<AlphaBeta>()
+                ast.is_sat::<Date>() == ast.is_sat::<AlphaBeta>()
             by { theorem_ast_ab_equisat(ast); }
 
     }
