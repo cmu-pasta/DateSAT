@@ -26,10 +26,25 @@ verus! {
             self.delta() <= other.delta()
         }
 
-        /// Convert an epoch delta to a YMD date by adding delta days to the EPOCH.
+        /// Convert an epoch delta to a YMD date using a closed-form formula.
+        ///
+        /// The formula inverts from_date in four steps:
+        ///   1. Split the delta into 400-year cycles (eras) and a day of the era.
+        ///   2. Recover the March-based year of the era from the day of the era.
+        ///   3. Recover the day of that year.
+        ///   4. Recover the month and day by inverting (153 * me + 2) / 5.
         pub open spec fn to_ymd(self) -> Date
+            recommends EPOCH == Date(2000, 3, 1) // the logic depends on the specific value of EPOCH
         {
-            EPOCH.add_days(self.delta())
+            let era = self.delta() / 146097;
+            let doe = self.delta() % 146097;
+            let yoe = year_of_era(doe);
+            let doy = doe - days_before_year_of_era(yoe);
+            let me = (5 * doy + 2) / 153;
+            let d = doy - (153 * me + 2) / 5 + 1;
+            let m = if me < 10 { me + 3 } else { me - 9 };
+            let y = 2000 + 400 * era + yoe + (if m <= 2 { 1int } else { 0 });
+            Date(y, m, d)
         }
 
         /// Convert a YMD date to an epoch delta using a closed-form formula.
@@ -126,6 +141,18 @@ verus! {
     /// Since 2000 = 0 (mod 400), this is simply k/4 - k/100 + k/400.
     pub open spec fn leap_correction(k: int) -> int {
         k/4 - k/100 + k/400
+    }
+
+    /// March-based year within a 400-year era (0..399), given the day of the era (0..146096).
+    /// Subtracting doe/1460, adding doe/36524 and subtracting doe/146096 removes the
+    /// leap days elapsed so far, so that the result can be divided by 365.
+    pub open spec fn year_of_era(doe: int) -> int {
+        (doe - doe/1460 + doe/36524 - doe/146096) / 365
+    }
+
+    /// Days in an era before the start of its March-based year yoe (0..399).
+    pub open spec fn days_before_year_of_era(yoe: int) -> int {
+        365*yoe + yoe/4 - yoe/100
     }
 
     // ── EpochDelta congruence proofs ───────────────────────────────────
@@ -244,12 +271,135 @@ verus! {
     }
 
 
+    // ── Closed-form to_ymd proofs ──────────────────────────────────────
+
+    // Every day of an era splits into 100-year blocks (c), 4-year blocks (q),
+    // years (s) and a day of the year (r). The day of the year can only be 365
+    // in a leap year, which is the last year of a 4-year block, unless that
+    // block ends a century that is not the last one of the era.
+    proof fn lemma_era_block_decomposition(doe: int) -> (res: (int, int, int, int))
+        requires 0 <= doe < 146097,
+        ensures ({
+            let (c, q, s, r) = res;
+            &&& 0 <= c <= 3 && 0 <= q <= 24 && 0 <= s <= 3 && 0 <= r
+            &&& doe == 36524*c + 1461*q + 365*s + r
+            &&& r <= if s == 3 && (q != 24 || c == 3) { 365int } else { 364 }
+        })
+    {
+        let c = if doe / 36524 > 3 { 3 } else { doe / 36524 };
+        let rc = doe - 36524*c;
+        let q = rc / 1461;
+        let rq = rc % 1461;
+        let s = if rq / 365 > 3 { 3 } else { rq / 365 };
+        let r = rq - 365*s;
+        (c, q, s, r)
+    }
+
+    // year_of_era recovers the year from its block decomposition,
+    // and the remainder is the day of that year.
+    proof fn lemma_year_of_era(doe: int, c: int, q: int, s: int, r: int)
+        requires
+            0 <= c <= 3, 0 <= q <= 24, 0 <= s <= 3, 0 <= r,
+            doe == 36524*c + 1461*q + 365*s + r,
+            r <= if s == 3 && (q != 24 || c == 3) { 365int } else { 364 },
+        ensures
+            year_of_era(doe) == 100*c + 4*q + s,
+            doe - days_before_year_of_era(100*c + 4*q + s) == r,
+    {
+        let yoe = 100*c + 4*q + s;
+        // Late in a 4-year block, doe/1460 counts one block too many.
+        // This happens on day 365 of a leap year, and never on day 0,
+        // so the remainder r - e still lies in 0..364.
+        let e = if 24*c + q + 365*s + r >= 1460 { 1int } else { 0 };
+        // Only the last day of the era reaches a fifth century or a full era.
+        let z = if doe == 146096 { 1int } else { 0 };
+        assert(doe == 1460*(25*c + q + e) + (24*c + q + 365*s + r - 1460*e));
+        assert(doe / 1460 == 25*c + q + e);
+        assert(doe / 36524 == c + z);
+        assert(doe / 146096 == z);
+        assert(doe - doe/1460 + doe/36524 - doe/146096 == 365*yoe + r - e);
+        assert(year_of_era(doe) == yoe);
+        assert(yoe / 4 == 25*c + q);
+        assert(yoe / 100 == c);
+    }
+
+    // The month/day formula yields a valid day of the month for any day of a March-based year.
+    proof fn lemma_month_day_of_doy(doy: int, y: int)
+        requires 0 <= doy <= if leap(y) { 365int } else { 364 },
+        ensures ({
+            let me = (5 * doy + 2) / 153;
+            let d = doy - (153 * me + 2) / 5 + 1;
+            let m = if me < 10 { me + 3 } else { me - 9 };
+            &&& 0 <= me <= 11
+            &&& 1 <= d <= dim(y, m)
+        })
+    {
+        let me = (5 * doy + 2) / 153;
+        // Each month me starts on day (153 * me + 2) / 5 of the year
+        assert(153*me <= 5*doy + 2 < 153*me + 153);
+        assert(0 <= me <= 11);
+        assert(me == 0 || me == 1 || me == 2 || me == 3 || me == 4 || me == 5
+            || me == 6 || me == 7 || me == 8 || me == 9 || me == 10 || me == 11);
+    }
+
+    // to_ymd always yields a valid date.
+    pub proof fn lemma_to_ymd_is_valid(ed: EpochDelta)
+        ensures ed.to_ymd().is_valid(),
+    {
+        let era = ed.delta() / 146097;
+        let doe = ed.delta() % 146097;
+        let (c, q, s, r) = lemma_era_block_decomposition(doe);
+        lemma_year_of_era(doe, c, q, s, r);
+        // The year in which this March-based year's February falls
+        let y = 2000 + 400*era + 100*c + 4*q + s + 1;
+        if s == 3 && (q != 24 || c == 3) {
+            assert(y == 4 * (501 + 100*era + 25*c + q));
+            assert(y % 4 == 0);
+            if q == 24 {
+                assert(y == 400 * (6 + era));
+                assert(y % 400 == 0);
+            } else {
+                assert(y == 100 * (20 + 4*era + c) + 4*(q + 1));
+                assert(y % 100 == 4*(q + 1));
+            }
+            assert(leap(y));
+        }
+        lemma_month_day_of_doy(r, y);
+    }
+
     // Round-trip conversion: from_date(ed.to_ymd()) == ed for all ed
     pub proof fn theorem_epoch_delta_from_date_to_ymd_inverse(ed: EpochDelta)
         ensures EpochDelta::from_date(ed.to_ymd()) == ed
     {
+        let era = ed.delta() / 146097;
+        let doe = ed.delta() % 146097;
+        let (c, q, s, r) = lemma_era_block_decomposition(doe);
+        lemma_year_of_era(doe, c, q, s, r);
+        let yoe = 100*c + 4*q + s;
+        let d = ed.to_ymd();
+        // from_date sees the same March-based year and month that to_ymd produced ...
+        assert(years_since_epoch(d.year(), d.month()) == 400*era + yoe);
+        assert(months_since_march(d.month()) == (5 * r + 2) / 153);
+        // ... and each era contributes exactly 146097 days.
+        let ye = 400*era + yoe;
+        assert(ye / 4 == 100*era + yoe / 4);
+        assert(ye / 100 == 4*era + yoe / 100);
+        assert(ye / 400 == era);
+        assert(365*ye + leap_correction(ye) == 146097*era + days_before_year_of_era(yoe));
+    }
+
+    // to_ymd agrees with adding delta days to the EPOCH under the semantics.
+    pub proof fn lemma_to_ymd_is_epoch_add_days(ed: EpochDelta)
+        ensures ed.to_ymd() == EPOCH.add_days(ed.delta()),
+    {
+        let d1 = ed.to_ymd();
+        let d2 = EPOCH.add_days(ed.delta());
+        lemma_to_ymd_is_valid(ed);
+        lemma_date_add_days_preserves_validity(EPOCH, ed.delta());
+        theorem_epoch_delta_from_date_to_ymd_inverse(ed);
         lemma_epoch_is_at_delta_zero();
         lemma_from_date_add_days(EPOCH, ed.delta());
+        theorem_epoch_delta_congruent_preserves_comparison(d1, ed, d2, ed);
     }
 
     // For m1 < m2 in the same year, the first-of-month delta increases by at least dim(y, m1).
@@ -333,11 +483,11 @@ verus! {
         ensures EpochDelta::to_ymd(EpochDelta::from_date(d)) == d,
     {
         let ed = EpochDelta::from_date(d);
-        let d2 = ed.to_ymd(); // = EPOCH.add_days(from_date(d).delta())
+        let d2 = ed.to_ymd();
         // from_date(to_ymd(ed)) == ed, so from_date(d2) == from_date(d)
         theorem_epoch_delta_from_date_to_ymd_inverse(ed);
-        // d2 is valid since EPOCH is valid and add_days preserves validity
-        lemma_date_add_days_preserves_validity(EPOCH, ed.delta());
+        // d2 is valid since to_ymd always yields a valid date
+        lemma_to_ymd_is_valid(ed);
         // d and d2 are both valid with from_date(d) == from_date(d2), so d == d2 by injectivity
         theorem_epoch_delta_congruent_preserves_comparison(d, ed, d2, EpochDelta::from_date(d2));
     }
