@@ -26,20 +26,22 @@ verus! {
             self.delta() <= other.delta()
         }
 
-        /// Convert an epoch delta to a YMD date using a closed-form formula.
+        /// Convert an epoch delta to a YMD date using a closed-form formula,
+        /// following the Python decoder `_ymd_from_days_since_epoch_z3`.
         ///
         /// The formula inverts from_date in four steps:
         ///   1. Split the delta into 400-year cycles (eras) and a day of the era.
-        ///   2. Recover the March-based year of the era from the day of the era.
-        ///   3. Recover the day of that year.
+        ///   2. Split the day of the era into centuries, 4-year blocks, years,
+        ///      and a day of that March-based year (see `era_blocks`).
+        ///   3. Recover the year of the era from the block counts.
         ///   4. Recover the month and day by inverting (153 * me + 2) / 5.
         pub open spec fn to_ymd(self) -> Date
             recommends EPOCH == Date(2000, 3, 1) // the logic depends on the specific value of EPOCH
         {
             let era = self.delta() / 146097;
             let doe = self.delta() % 146097;
-            let yoe = year_of_era(doe);
-            let doy = doe - days_before_year_of_era(yoe);
+            let (c, q, s, doy) = era_blocks(doe);
+            let yoe = 100 * c + 4 * q + s;
             let me = (5 * doy + 2) / 153;
             let d = doy - (153 * me + 2) / 5 + 1;
             let m = if me < 10 { me + 3 } else { me - 9 };
@@ -143,11 +145,23 @@ verus! {
         k/4 - k/100 + k/400
     }
 
-    /// March-based year within a 400-year era (0..399), given the day of the era (0..146096).
-    /// Subtracting doe/1460, adding doe/36524 and subtracting doe/146096 removes the
-    /// leap days elapsed so far, so that the result can be divided by 365.
-    pub open spec fn year_of_era(doe: int) -> int {
-        (doe - doe/1460 + doe/36524 - doe/146096) / 365
+    /// Block decomposition of a day of the era (0..146096), as computed by the
+    /// Python decoder `_ymd_from_days_since_epoch_z3`: the century c, the 4-year
+    /// block q within it, the year s within that block, and the day r of that
+    /// March-based year. The blocks are peeled off by Euclidean division by
+    /// 36524, 1461 and 365 in turn. The century and year quotients are clamped
+    /// to 3, because the last day of the era is day 4 * 36524 of the era and
+    /// the leap day closing a 4-year block is day 4 * 365 of the block.
+    pub open spec fn era_blocks(doe: int) -> (int, int, int, int) {
+        let c_raw = doe / 36524;
+        let c = if c_raw >= 4 { 3 } else { c_raw };
+        let doc = doe - 36524 * c;
+        let q = doc / 1461;
+        let doq = doc % 1461;
+        let s_raw = doq / 365;
+        let s = if s_raw >= 4 { 3 } else { s_raw };
+        let r = doq - 365 * s;
+        (c, q, s, r)
     }
 
     /// Days in an era before the start of its March-based year yoe (0..399).
@@ -277,48 +291,29 @@ verus! {
     // years (s) and a day of the year (r). The day of the year can only be 365
     // in a leap year, which is the last year of a 4-year block, unless that
     // block ends a century that is not the last one of the era.
-    proof fn lemma_era_block_decomposition(doe: int) -> (res: (int, int, int, int))
+    proof fn lemma_era_block_decomposition(doe: int)
         requires 0 <= doe < 146097,
         ensures ({
-            let (c, q, s, r) = res;
+            let (c, q, s, r) = era_blocks(doe);
             &&& 0 <= c <= 3 && 0 <= q <= 24 && 0 <= s <= 3 && 0 <= r
             &&& doe == 36524*c + 1461*q + 365*s + r
             &&& r <= if s == 3 && (q != 24 || c == 3) { 365int } else { 364 }
         })
     {
-        let c = if doe / 36524 > 3 { 3 } else { doe / 36524 };
-        let rc = doe - 36524*c;
-        let q = rc / 1461;
-        let rq = rc % 1461;
-        let s = if rq / 365 > 3 { 3 } else { rq / 365 };
-        let r = rq - 365*s;
-        (c, q, s, r)
+        let (c, q, s, r) = era_blocks(doe);
+        assert(doe == 36524*c + 1461*q + 365*s + r);
     }
 
-    // year_of_era recovers the year from its block decomposition,
-    // and the remainder is the day of that year.
-    proof fn lemma_year_of_era(doe: int, c: int, q: int, s: int, r: int)
+    // The block decomposition locates the start of the March-based year
+    // yoe = 100c + 4q + s within the era, so the remainder r is the day of that year.
+    proof fn lemma_days_before_year_of_era(doe: int, c: int, q: int, s: int, r: int)
         requires
             0 <= c <= 3, 0 <= q <= 24, 0 <= s <= 3, 0 <= r,
             doe == 36524*c + 1461*q + 365*s + r,
-            r <= if s == 3 && (q != 24 || c == 3) { 365int } else { 364 },
         ensures
-            year_of_era(doe) == 100*c + 4*q + s,
             doe - days_before_year_of_era(100*c + 4*q + s) == r,
     {
         let yoe = 100*c + 4*q + s;
-        // Late in a 4-year block, doe/1460 counts one block too many.
-        // This happens on day 365 of a leap year, and never on day 0,
-        // so the remainder r - e still lies in 0..364.
-        let e = if 24*c + q + 365*s + r >= 1460 { 1int } else { 0 };
-        // Only the last day of the era reaches a fifth century or a full era.
-        let z = if doe == 146096 { 1int } else { 0 };
-        assert(doe == 1460*(25*c + q + e) + (24*c + q + 365*s + r - 1460*e));
-        assert(doe / 1460 == 25*c + q + e);
-        assert(doe / 36524 == c + z);
-        assert(doe / 146096 == z);
-        assert(doe - doe/1460 + doe/36524 - doe/146096 == 365*yoe + r - e);
-        assert(year_of_era(doe) == yoe);
         assert(yoe / 4 == 25*c + q);
         assert(yoe / 100 == c);
     }
@@ -348,8 +343,8 @@ verus! {
     {
         let era = ed.delta() / 146097;
         let doe = ed.delta() % 146097;
-        let (c, q, s, r) = lemma_era_block_decomposition(doe);
-        lemma_year_of_era(doe, c, q, s, r);
+        let (c, q, s, r) = era_blocks(doe);
+        lemma_era_block_decomposition(doe);
         // The year in which this March-based year's February falls
         let y = 2000 + 400*era + 100*c + 4*q + s + 1;
         if s == 3 && (q != 24 || c == 3) {
@@ -373,8 +368,9 @@ verus! {
     {
         let era = ed.delta() / 146097;
         let doe = ed.delta() % 146097;
-        let (c, q, s, r) = lemma_era_block_decomposition(doe);
-        lemma_year_of_era(doe, c, q, s, r);
+        let (c, q, s, r) = era_blocks(doe);
+        lemma_era_block_decomposition(doe);
+        lemma_days_before_year_of_era(doe, c, q, s, r);
         let yoe = 100*c + 4*q + s;
         let d = ed.to_ymd();
         // from_date sees the same March-based year and month that to_ymd produced ...
