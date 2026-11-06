@@ -468,9 +468,11 @@ def _literal_add_cases():
 
 
 def test_literal_add_period_matches_spec():
-    """Date + Period and Date - Period on literals (core.Date, via dateutil's
-    relativedelta) equal SimpleDate::add_period whenever the result and the
-    years-and-months midpoint stay in years 1..9999; otherwise they raise.
+    """Date + Period and Date - Period on literals equal SimpleDate::add_period.
+    The default (unbounded, integer-arithmetic) Date agrees with the spec on
+    every case; the python_bounds Date (bounded=True, via datetime and
+    dateutil's relativedelta) agrees whenever the result and the
+    years-and-months midpoint stay in years 1..9999 and raises otherwise.
     Tested, not proved: reference_eval.add_period is the oracle."""
     from datesat.core import Period
     checked = 0
@@ -479,8 +481,11 @@ def test_literal_add_period_matches_spec():
         mid_year = y + (m - 1 + 12 * p[0] + p[1]) // 12
         in_range = 1 <= want[0] <= 9999 and 1 <= mid_year <= 9999
         for op, period in (("+", Period(*p)), ("-", Period(-p[0], -p[1], -p[2]))):
+            got = Date(y, m, d) + period if op == "+" else Date(y, m, d) - period
+            assert (got.year, got.month, got.day) == want, ((y, m, d), op, p, want)
             try:
-                got = Date(y, m, d) + period if op == "+" else Date(y, m, d) - period
+                lit = Date(y, m, d, bounded=True)
+                got = lit + period if op == "+" else lit - period
             except (ValueError, OverflowError):
                 assert not in_range, ((y, m, d), op, p, want)
                 continue
