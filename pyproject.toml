@@ -16,6 +16,21 @@ dependencies = [
   "lark-parser>=0.11.0",
 ]
 
+[project.optional-dependencies]
+# DateSATBench's analysis/ (training the router, the report), run in DateSat's environment:
+# pip install -e ".[analysis]". Keep it in step with DateSATBench's own analysis extra.
+analysis = [
+  "matplotlib>=3.5",
+  "numpy>=1.21",
+  "pandas",
+  "scipy",
+  # the version that trained DateSATBench's committed router and fold models; another may
+  # train different forests from the same seed
+  "scikit-learn==1.5.2",
+  "joblib",
+  "pytest>=7.0",
+]
+
 [tool.setuptools.packages.find]
 # datesat/__init__.py imports the bounded and bitvector solvers from future_work/,
 # so both packages are installed.

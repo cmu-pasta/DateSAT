@@ -21,6 +21,7 @@ def solve(
     timeout_ms: int = 600000,
     verbose: bool = True,
     use_maxsat: bool = False,
+    router_model: str = None,
 ) -> Dict[str, Any]:
     """
     Solve date constraints and return the result.
@@ -42,6 +43,9 @@ def solve(
         implementation: Implementation type - "int" or "bitvector"
         timeout_ms: Timeout in milliseconds (default: 600000 = 10 minutes)
         verbose: If True, print results to stdout (default: True)
+        router_model: For approach "router", the path of the model file to route by
+            (default: $DATESAT_ROUTER_MODEL, else the model bundled with DateSat). It is
+            loaded once per process and path, outside the timed region.
     
     Returns:
         Dictionary with:
@@ -96,7 +100,9 @@ def solve(
         if implementation != "int":
             raise ValueError("the router approach only routes to int encodings; "
                              "use implementation='int'")
-        router.load_model()   # once per process, and not part of the solve time
+        router.load_model(router_model)   # once per process and path, not part of the solve time
+    elif router_model is not None:
+        raise ValueError("router_model is only used by approach='router'")
 
     # Create builder and execution context
     start_time = time.time()
@@ -104,7 +110,7 @@ def solve(
     # The router picks the encoding inside the timed region, so execution_time includes it.
     routed_to = routing_time = None
     if approach == "router":
-        routed_to, routing_time = router.route(constraint_data)
+        routed_to, routing_time = router.route(constraint_data, router_model)
     builder_approach = routed_to or approach
 
     # Create a builder factory that will be used in the executed code

@@ -8,8 +8,8 @@ left if x[feature] <= threshold; leaves have left == -1. A forest's probability 
 mean of its trees' leaf p_a. The features are rounded to 32-bit floats first, because
 scikit-learn, which chose the thresholds, compares them that way.
 
-The model is read from $DATESAT_ROUTER_MODEL when that is set, and from the model.json
-bundled next to this file otherwise.
+The model is read from the path given to load_model, else from $DATESAT_ROUTER_MODEL when
+that is set, and from the model.json bundled next to this file otherwise.
 """
 
 import json
@@ -33,9 +33,10 @@ def model_path():
     return Path(os.environ.get(MODEL_ENV) or BUNDLED_MODEL)
 
 
-def load_model():
-    """The router's model, loaded once per process and per path."""
-    return _load(str(model_path()))
+def load_model(path=None):
+    """The router's model from `path` (default: model_path()), loaded once per process and
+    per path."""
+    return _load(str(path if path is not None else model_path()))
 
 
 @lru_cache(maxsize=None)
