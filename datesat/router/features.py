@@ -1,4 +1,4 @@
-# Copied from DateSATBench: the helpers, features_for and FEATURE_GROUPS of
+# Copied from DateSATBench: the helpers, features_for, FEATURE_GROUPS and COLUMNS of
 # analysis/features/extract_features.py. The router's model is trained on features
 # computed by DateSATBench's copy, so keep the two in step: change this code only by
 # copying the DateSATBench version over it again.
@@ -15,7 +15,7 @@ from itertools import combinations
 from .parser import (
     BinOp, BoolLit, DateAdd, DateCtor, Field, IntLit, PeriodConst, UnOp, Var,
     COMPARISONS, ORDERING,
-    canonical, date_chain_base, date_chain_len, flatten, is_comparison,
+    canonical, date_chain_len, flatten, is_comparison,
     is_connective, is_ground_date, parse_constraint, parse_declarations,
     to_nnf, walk,
 )
@@ -169,10 +169,10 @@ def graph_diameter(edges):
 
 
 def arithmetic_structure(trees, sorts):
-    """The Arithmetic structure columns: what the `date ± period` operations on variables
-    connect, and how large their steps are, counted over the date comparisons that hold
-    them. Self-referential operations (a < a + p) count only in n_self_ops, self_op_frac
-    and sum_abs_days_all."""
+    """The Date arithmetic columns from n_self_ops on: what the `date ± period` operations on
+    variables connect, and how large their steps are, counted over the date comparisons that
+    hold them. Self-referential operations (a < a + p) count only in n_self_ops and
+    self_op_frac."""
     f = dict.fromkeys(ARITHMETIC_STRUCTURE, 0)
     edges = set()
     for t in trees:
@@ -207,16 +207,99 @@ def arithmetic_structure(trees, sorts):
                     f["max_abs_months_nonself"] = max(f["max_abs_months_nonself"], abs(p.months))
     n_ops = f["n_self_ops"] + f["n_cross_ops"] + f["n_const_ops"]
     f["self_op_frac"] = f["n_self_ops"] / n_ops if n_ops else 0.0
-    f["sum_abs_days_all"] = sum(abs(n.period.nd) for t in trees for n in walk(t)
-                                if isinstance(n, DateAdd) and not is_ground_date(n))
     f["arith_graph_diameter"] = graph_diameter(edges)
     f["n_arith_vars"] = len({v for e in edges for v in e})
-    # The calendar's first and last day are left out: they are the injected bounds.
-    years = [n.y.value for t in trees for n in walk(t)
-             if isinstance(n, DateCtor) and all(isinstance(c, IntLit) for c in (n.y, n.m, n.d))
-             and (n.y.value, n.m.value, n.d.value) not in ((1, 1, 1), (9999, 12, 31))]
+    years = literal_years(trees)
     f["lit_year_span"] = max(years) - min(years) if years else 0
     return f
+
+
+def literal_years(trees):
+    """Years of the literal dates, without the calendar's first and last day (the injected
+    bounds)."""
+    return [n.y.value for t in trees for n in walk(t)
+            if isinstance(n, DateCtor) and all(isinstance(c, IntLit) for c in (n.y, n.m, n.d))
+            and (n.y.value, n.m.value, n.d.value) not in ((1, 1, 1), (9999, 12, 31))]
+
+
+def step_needs(p):
+    """The form a step with period `p` needs its date in: a day count when `p` has only a
+    days part."""
+    return "ymd" if p.months else "days"
+
+
+def step_gives(p):
+    """The form a step's result is in: (year, month, day) only when `p` has a years or
+    months part and no days part."""
+    return "ymd" if p.months and not p.nd else "days"
+
+
+def form_needs(trees):
+    """Which forms, a day count or (year, month, day), each date variable is needed in, and
+    how often a step's result is needed in the form it was not made in."""
+    needs = {}                                    # variable -> forms it is needed in
+    switches = 0
+
+    def variable(n):
+        """The variable `n` stands for, or None for a literal date or a step's result. DateSat
+        replaces each symbolic Date(...) by an auxiliary variable."""
+        if isinstance(n, Var):
+            return n.name
+        if isinstance(n, DateCtor) and not is_ground_date(n):
+            return id(n)
+        return None
+
+    def need(n, form):
+        nonlocal switches
+        if is_ground_date(n):
+            return
+        v = variable(n)
+        if v is not None:
+            needs.setdefault(v, set()).add(form)
+        elif isinstance(n, DateAdd) and step_gives(n.period) != form:
+            switches += 1
+
+    for t in trees:
+        for n in walk(t):
+            if isinstance(n, DateAdd) and not is_ground_date(n):
+                need(n.base, step_needs(n.period))
+            elif isinstance(n, Field):
+                need(n.base, "ymd")
+            elif isinstance(n, DateCtor) and not is_ground_date(n):
+                need(n, "ymd")                    # DateSat sets its year, month and day
+            elif is_comparison(n) and n.lhs.sort == "date":
+                steps = [s for s in (n.lhs, n.rhs)
+                         if isinstance(s, DateAdd) and not is_ground_date(s)]
+                if len(steps) == 2:
+                    switches += step_gives(steps[0].period) != step_gives(steps[1].period)
+                elif len(steps) == 1:
+                    other = n.rhs if steps[0] is n.lhs else n.lhs
+                    if variable(other) is not None:
+                        need(other, step_gives(steps[0].period))
+
+    return needs, switches
+
+
+def encoding_costs(trees):
+    """The Encoding costs columns: for each DateSat encoding, how often the constraints use
+    the operation it pays for, counted from the text alone."""
+    steps = [n for t in trees for n in walk(t) if isinstance(n, DateAdd) and not is_ground_date(n)]
+    ymd_needs = {canonical(n.base) for n in steps if n.period.months}
+    for t in trees:
+        for n in walk(t):
+            if isinstance(n, Field) and not is_ground_date(n.base):
+                ymd_needs.add(canonical(n.base))
+            elif isinstance(n, DateCtor) and not is_ground_date(n):
+                ymd_needs.add(canonical(n))
+    needs, switches = form_needs(trees)
+    days_only = sum(1 for v in needs.values() if v == {"days"})
+    ymd_only = sum(1 for v in needs.values() if v == {"ymd"})
+    both = sum(1 for v in needs.values() if len(v) == 2)
+    return {"sum_abs_days_all": sum(abs(n.period.nd) for n in steps),
+            "n_day_steps": sum(1 for n in steps if n.period.nd),
+            "n_ymd_needs": len(ymd_needs),
+            "form_balance": days_only - ymd_only,
+            "n_unavoidable_conversions": both + switches}
 
 
 # --------------------------------------------------------------------------
@@ -340,7 +423,7 @@ def features_for(entry, corpus):
         sum(1 for n in lit_ctors if n.d.value >= 28) / len(lit_ctors)
     ) if lit_ctors else 0.0
 
-    # ---- variable coupling ----------------------------------------------
+    # ---- search space: variable coupling -----------------------------------
     edges = set()
     for a in all_atoms:
         vs = sorted(atom_variables(a, sorts))
@@ -379,8 +462,11 @@ def features_for(entry, corpus):
         and any(isinstance(n, Var) and sorts.get(n.name) == "int" for n in walk(a))
     )
 
-    # ---- arithmetic structure -------------------------------------------
+    # ---- date arithmetic: what the operations connect ----------------------
     f.update(arithmetic_structure(trees, sorts))
+
+    # ---- encoding costs --------------------------------------------------
+    f.update(encoding_costs(trees))
 
     # ---- labels (solver output, NOT features) ---------------------------
     f["label_execution_time"] = entry.get("execution_time")
@@ -390,31 +476,50 @@ def features_for(entry, corpus):
     return f
 
 
+# The Search space columns on how the variables are tied together.
+VARIABLE_COUPLING = [
+    "n_components", "largest_component_frac", "graph_density", "mixed_sort_coupling"]
+
+# The Date arithmetic columns that arithmetic_structure() computes.
 ARITHMETIC_STRUCTURE = [
     "n_self_ops", "n_cross_ops", "n_const_ops", "self_op_frac",
     "n_year_ops", "n_month_ops", "n_day_ops", "n_mixed_ops", "n_day_steps_ge28",
     "sum_abs_days", "sum_abs_months", "max_abs_days_nonself", "max_abs_months_nonself",
-    "sum_abs_days_all", "n_arith_unit", "n_arith_in_disj", "n_arith_neq",
+    "n_arith_unit", "n_arith_in_disj", "n_arith_neq",
     "n_date_eq", "n_date_neq", "arith_graph_diameter", "n_arith_vars", "lit_year_span"]
+
+# One column per encoding's costly operation: simple, alpha_beta, epoch_days, then the hybrids.
+ENCODING_COSTS = [
+    "sum_abs_days_all", "n_day_steps", "n_ymd_needs", "form_balance",
+    "n_unavoidable_conversions"]
 
 FEATURE_GROUPS = [
     ("Search space", [
         "n_free_date_vars", "n_free_int_vars", "n_free_bool_vars", "pinned_var_frac",
-        "pinned_date_frac", "pinned_int_frac", "pinned_bool_frac", "n_date_subexprs"]),
+        "pinned_date_frac", "pinned_int_frac", "pinned_bool_frac", "n_date_subexprs"]
+        + VARIABLE_COUPLING),
     ("Boolean skeleton", [
         "n_atoms", "n_date_comparisons", "n_int_comparisons", "ordering_cmp_frac",
         "n_case_splits", "max_disjunction_width", "bool_alternation_depth",
         "implication_atom_frac", "neg_ordering_frac", "n_unit_constraints"]),
     ("Date arithmetic", [
         "n_date_period_ops", "ground_arith_frac", "max_abs_years", "max_abs_months",
-        "max_abs_days", "mixed_frac", "max_date_chain_len"]),
+        "max_abs_days", "mixed_frac", "max_date_chain_len"]
+        + ARITHMETIC_STRUCTURE),
     ("Component extraction", [
         "n_dot_year", "n_dot_month", "n_dot_day", "property_access_frac",
         "n_symbolic_date_ctors"]),
     ("Calendar corners", ["uses_feb29", "uses_leap_year", "near_month_end_frac"]),
-    ("Variable coupling", [
-        "n_components", "largest_component_frac", "graph_density", "mixed_sort_coupling"]),
-    ("Arithmetic structure", ARITHMETIC_STRUCTURE),
+    ("Encoding costs", ENCODING_COSTS),
 ]
 
-FEATURES = [f for _, feats in FEATURE_GROUPS for f in feats]
+# features.csv keeps the column order it had before the groups were merged: VARIABLE_COUPLING
+# and ARITHMETIC_STRUCTURE come after Calendar corners, not inside their groups. The router's
+# forests draw features by column position, so reordering the columns would change its results.
+_LAST = VARIABLE_COUPLING + ARITHMETIC_STRUCTURE + ENCODING_COSTS
+COLUMNS = (["id", "corpus"]
+           + [f for _, feats in FEATURE_GROUPS for f in feats if f not in _LAST] + _LAST
+           + ["label_status", "label_execution_time"])
+
+# The feature columns, in features.csv's order; a model names the ones it reads.
+FEATURES = [c for c in COLUMNS if c not in ("id", "corpus") and not c.startswith("label_")]
