@@ -17,8 +17,9 @@ plus accessor correctness (.year/.month/.day return D's components) and
 correctness of the shared conversion helpers.
 
 Each check is one Z3 validity query over unbounded integers (with the
-date domain restricted to years 1..9999 where the Python code itself bounds
-dates). `unsat` = proved for the code path exercised.
+date domain restricted to years 1..9999, the range the Python solvers assert
+under python_bounds=True, which is how they are constructed here).
+`unsat` = proved for the code path exercised.
 """
 
 import os

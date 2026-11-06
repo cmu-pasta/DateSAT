@@ -133,9 +133,9 @@ def ab_lt(a, b):
 
 
 # ── Python-side domain restriction ──────────────────────────────────────────
-# The Verus model is unbounded. The Python solvers bound every date to
-# datetime.date's range [0001-01-01, 9999-12-31] so models can be turned back
-# into concrete dates. Checks that depend on the bound state it explicitly.
+# The Verus model is unbounded. The Python solvers are validated with
+# python_bounds=True, which bounds every date to datetime.date's range
+# [0001-01-01, 9999-12-31]. Checks that depend on the bound state it explicitly.
 
 YEAR_MIN, YEAR_MAX = 1, 9999
 

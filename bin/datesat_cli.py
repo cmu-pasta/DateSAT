@@ -141,6 +141,14 @@ Input format:
         action="store_true",
         help="Use MaxSAT optimization with soft constraints for dates near today"
     )
+
+    parser.add_argument(
+        "--python-bounds",
+        action="store_true",
+        help="Bound every date, including intermediate Date + Period results, to "
+             "Python's datetime.date range (years 1..9999). By default dates are "
+             "unbounded. Int implementation only"
+    )
     
     args = parser.parse_args()
     
@@ -180,7 +188,8 @@ Input format:
             implementation=args.implementation,
             timeout_ms=args.timeout,
             verbose=not args.quiet,
-            use_maxsat=args.maxsat
+            use_maxsat=args.maxsat,
+            python_bounds=args.python_bounds,
         )
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)

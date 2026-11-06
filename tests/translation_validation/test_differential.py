@@ -129,8 +129,9 @@ def render(e):
 # ── Reference evaluation (ast_eval.rs with SimpleDate) ──────────────────────
 
 class OutOfRange(Exception):
-    """An intermediate date left years 1..9999, where the Python solvers add
-    hard bounds; such cases are outside the validated domain."""
+    """An intermediate date left years 1..9999, where the Python solvers (run
+    here with python_bounds=True) add hard bounds; such cases are outside the
+    validated domain."""
 
 
 def ev(e, env):
@@ -181,7 +182,7 @@ def ev(e, env):
 
 def eval_all(asts, env):
     # Evaluate every node strictly (no short-circuit) so OutOfRange anywhere is seen,
-    # matching the Python solvers, which bound every intermediate globally.
+    # matching the Python solvers under python_bounds, which bound every intermediate globally.
     def walk(e):
         if isinstance(e, tuple):
             for c in e[1:]:
@@ -229,7 +230,8 @@ def test_differential_against_reference(approach, seed):
                         + [f"{v}: bool" for v in BOOL_VARS],
         "constraints": [render(a) for a in asts],
     }
-    res = datesat.solve(problem, approach=approach, timeout_ms=60_000, verbose=False)
+    res = datesat.solve(problem, approach=approach, timeout_ms=60_000, verbose=False,
+                        python_bounds=True)
     if res["status"] == "timeout":
         pytest.skip("solver timeout")
     # completeness: `env` satisfies every constraint under the reference semantics

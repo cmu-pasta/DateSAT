@@ -80,6 +80,8 @@ class DateVar:
         self.beta_var = Int(f"{name}_beta")
         # Solver reference for adding bounds to intermediate dates (set after creation if needed)
         self._solver = None
+        # Whether to bound this date to Python's year range 1..9999 (set by the solver)
+        self._python_bounds = False
 
     def __str__(self) -> str:
         return f"DateVar({self.name})"
@@ -109,11 +111,7 @@ class DateVar:
         year = (k - 1) // 12
         month = k - year * 12
         day = beta_val + 1
-        try:
-            return Date(year, month, day)
-        except ValueError:
-            # Intermediate result went out of bounds - use unbounded date
-            return Date(year, month, day, bounded=False)
+        return Date(year, month, day, bounded=self._python_bounds)
 
     def __ge__(self, other) -> BoolRef:
         """Support x >= date comparison."""
@@ -197,16 +195,17 @@ class DateVar:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
     def _add_bounds(self) -> None:
-        """Add date validation bounds to this DateVar if solver is available."""
+        """Add well-formedness (and, if enabled, Python range) constraints to this DateVar."""
         if self._solver is None:
             return
 
-        # Bound months_var (alpha) to Python's datetime.date representable range.
+        # Optional: bound months_var (alpha) to Python's datetime.date range.
         # Epoch is (year=2000, month=3), i.e. alpha = (y - 2000) * 12 + (m - 3):
         #   (year=1, month=1)      -> -23990
         #   (year=9999, month=12)  ->  95997
-        self._solver.add(self.months_var >= IntVal(-23990))
-        self._solver.add(self.months_var <= IntVal(95997))
+        if self._python_bounds:
+            self._solver.add(self.months_var >= IntVal(-23990))
+            self._solver.add(self.months_var <= IntVal(95997))
 
         # Well-formedness: beta must be a valid day-within-month
         # 0 <= beta < days_in_month(y, m)
@@ -257,6 +256,7 @@ class DateVar:
                 
                 # Add bounds to intermediate result
                 result._solver = self._solver
+                result._python_bounds = self._python_bounds
                 result._add_bounds()
                 return result
         
@@ -277,6 +277,7 @@ class DateVar:
                 result.beta_var = beta1
                 
                 result._solver = self._solver
+                result._python_bounds = self._python_bounds
                 result._add_bounds()
                 return result
 
@@ -306,6 +307,7 @@ class DateVar:
                 
                 # Add bounds to intermediate result
                 result._solver = self._solver
+                result._python_bounds = self._python_bounds
                 result._add_bounds()
                 return result
         else:
@@ -323,14 +325,19 @@ class DateVar:
 class AlphaBetaSolver:
     """Alpha-beta date constraint solver using epoch-based conversion."""
 
-    def __init__(self, timeout_ms=600000, use_maxsat=False):
+    def __init__(self, timeout_ms=600000, use_maxsat=False, python_bounds=False):
         """Initialize the solver with timeout.
 
         Args:
             timeout_ms: Timeout in milliseconds (default: 60 seconds)
             use_maxsat: If True, use MaxSAT optimization with soft constraints
+            python_bounds: If True, bound every date (user variables and every
+                Date + Period result) to Python's datetime.date range, years
+                1..9999. By default dates are unbounded: any calendar-valid
+                proleptic Gregorian date is allowed.
         """
         self.use_maxsat = use_maxsat
+        self.python_bounds = python_bounds
         if use_maxsat:
             self.solver = Optimize()
         else:
@@ -344,6 +351,7 @@ class AlphaBetaSolver:
         """Add a symbolic date variable with basic constraints."""
         date_var = DateVar(name)
         date_var._solver = self.solver
+        date_var._python_bounds = self.python_bounds
         self.date_vars[name] = date_var
 
         # Add bounds using _add_bounds method

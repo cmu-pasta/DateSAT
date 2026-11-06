@@ -34,6 +34,7 @@ These pieces make the Python code runnable on symbolic inputs without editing it
 """
 
 import contextlib
+import functools
 from dataclasses import dataclass, field
 from typing import Callable, List
 
@@ -313,14 +314,22 @@ def _hybrid_witness(v, D):
     return w
 
 
+# The solvers are validated with python_bounds=True: the domain checked here is
+# years 1..9999 (spec.in_python_range), which is what that option asserts on every
+# date. The default, unbounded mode adds no assertions beyond well-formedness, so
+# its terms are the same; only the completeness side-constraints differ.
+def _bounded(solver_cls):
+    return functools.partial(solver_cls, python_bounds=True)
+
+
 ENCODINGS = {
-    "simple": Encoding("simple", simple_int.SimpleSolver, _simple_congruent, _simple_witness,
+    "simple": Encoding("simple", _bounded(simple_int.SimpleSolver), _simple_congruent, _simple_witness,
                        supports_symbolic_days=False),
-    "epoch_days": Encoding("epoch_days", epoch_days_int.EpochDaysSolver, _epoch_congruent, _epoch_witness),
-    "alpha_beta": Encoding("alpha_beta", alpha_beta_int.AlphaBetaSolver, _ab_congruent, _ab_witness),
-    "hybrid_init_ymd": Encoding("hybrid_init_ymd", hybrid_init_ymd_int.HybridInitYmdSolver,
+    "epoch_days": Encoding("epoch_days", _bounded(epoch_days_int.EpochDaysSolver), _epoch_congruent, _epoch_witness),
+    "alpha_beta": Encoding("alpha_beta", _bounded(alpha_beta_int.AlphaBetaSolver), _ab_congruent, _ab_witness),
+    "hybrid_init_ymd": Encoding("hybrid_init_ymd", _bounded(hybrid_init_ymd_int.HybridInitYmdSolver),
                                 _hybrid_congruent, _hybrid_witness),
-    "hybrid_init_epoch": Encoding("hybrid_init_epoch", hybrid_init_epoch_int.HybridInitEpochSolver,
+    "hybrid_init_epoch": Encoding("hybrid_init_epoch", _bounded(hybrid_init_epoch_int.HybridInitEpochSolver),
                                   _hybrid_congruent, _hybrid_witness),
 }
 

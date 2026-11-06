@@ -131,6 +131,8 @@ class DateVar:
         self.day = Int(f"{name}_day")
         # Solver reference for adding bounds to intermediate dates (set after creation if needed)
         self._solver = None
+        # Whether to bound this date to Python's year range 1..9999 (set by the solver)
+        self._python_bounds = False
 
     def __str__(self) -> str:
         return f"DateVar({self.name})"
@@ -140,12 +142,7 @@ class DateVar:
         year = model.evaluate(self.year, model_completion=True).as_long()
         month = model.evaluate(self.month, model_completion=True).as_long()
         day = model.evaluate(self.day, model_completion=True).as_long()
-        try:
-            return Date(year, month, day)
-        except ValueError:
-            # Year is outside the Date class's default range - date is still
-            # well-formed (bounds removed from the solver), so return unbounded.
-            return Date(year, month, day, bounded=False)
+        return Date(year, month, day, bounded=self._python_bounds)
 
     def __ge__(self, other) -> BoolRef:
         """Support x >= date comparison."""
@@ -212,47 +209,15 @@ class DateVar:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
     def _add_bounds(self) -> None:
-        """Add date validation bounds to this DateVar if solver is available."""
+        """Add well-formedness (and, if enabled, Python range) constraints to this DateVar."""
         if self._solver is None:
             return
 
-        # Year range bound removed - any year is allowed as long as the date is valid.
-        # Previous range was 1900-03-01 to 2100-02-28:
-        # self._solver.add(
-        #     Or(
-        #         # 1900-03-01 to 1900-12-31
-        #         And(
-        #             self.year == 1900,
-        #             self.month >= 3,
-        #             self.month <= 12,
-        #             self.day >= 1,
-        #             self.day <= days_in_month(self.year, self.month),
-        #         ),
-        #         # 1901-01-01 to 2099-12-31
-        #         And(
-        #             self.year >= 1901,
-        #             self.year <= 2099,
-        #             self.month >= 1,
-        #             self.month <= 12,
-        #             self.day >= 1,
-        #             self.day <= days_in_month(self.year, self.month),
-        #         ),
-        #         # 2100-01-01 to 2100-02-28
-        #         And(
-        #             self.year == 2100,
-        #             self.month >= 1,
-        #             self.month <= 2,
-        #             self.day >= 1,
-        #             self.day <= days_in_month(self.year, self.month),
-        #         ),
-        #     )
-        # )
-
-        # Year restricted to Python's datetime.date range [1, 9999] so concrete
-        # reconstruction via datetime.date() cannot raise (paper's [1900, 2100]
-        # bound is intentionally relaxed to this ~200x wider range).
-        self._solver.add(self.year >= 1)
-        self._solver.add(self.year <= 9999)
+        # Optional: restrict the year to Python's datetime.date range [1, 9999].
+        # By default the year is unbounded (any proleptic Gregorian date).
+        if self._python_bounds:
+            self._solver.add(self.year >= 1)
+            self._solver.add(self.year <= 9999)
 
         # Well-formedness: month in [1, 12] and day in [1, days_in_month(y, m)]
         self._solver.add(
@@ -309,6 +274,7 @@ class DateVar:
             
             # Add bounds to intermediate result
             result._solver = self._solver
+            result._python_bounds = self._python_bounds
             result._add_bounds()
             return result
         else:
@@ -326,14 +292,19 @@ class DateVar:
 class SimpleSolver:
     """Simple date constraint solver using component-based representation."""
 
-    def __init__(self, timeout_ms=600000, use_maxsat=False):
-        """Initialize the solver with optional year bounds and timeout.
+    def __init__(self, timeout_ms=600000, use_maxsat=False, python_bounds=False):
+        """Initialize the solver with timeout.
 
         Args:
             timeout_ms: Timeout in milliseconds (default: 60 seconds)
             use_maxsat: If True, use MaxSAT optimization with soft constraints
+            python_bounds: If True, bound every date (user variables and every
+                Date + Period result) to Python's datetime.date range, years
+                1..9999. By default dates are unbounded: any calendar-valid
+                proleptic Gregorian date is allowed.
         """
         self.use_maxsat = use_maxsat
+        self.python_bounds = python_bounds
         if use_maxsat:
             self.solver = Optimize()
         else:
@@ -347,6 +318,7 @@ class SimpleSolver:
         """Add a symbolic date variable with comprehensive date validation."""
         date_var = DateVar(name)
         date_var._solver = self.solver
+        date_var._python_bounds = self.python_bounds
         self.date_vars[name] = date_var
 
         # Add bounds using _add_bounds method

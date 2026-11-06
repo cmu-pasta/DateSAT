@@ -57,19 +57,45 @@ if result["status"] == "sat":
     print(f"Boolean: {result['bools']['flag']}")
 ```
 
+### Date Range and `python_bounds`
+
+By default dates are unbounded: any calendar-valid proleptic Gregorian date is
+allowed, so a solution may contain years below 1 or above 9999. The `Date`
+objects in the result handle any year; call `Date.to_python_date()` to get a
+`datetime.date`, which only works for years 1..9999.
+
+```python
+import datesat
+
+result = datesat.solve(
+    constraints=["x == Date(9999, 6, 1)", "y == x + Period(1, 0, 0)"],
+    declarations=["x: date", "y: date"],
+)
+result["dates"]["y"]            # Date(10000, 6, 1)
+
+# Bound every date variable and intermediate Date + Period result to Python's
+# datetime.date range, years 1..9999, and handle concrete dates through datetime
+# (the original implementation).
+result = datesat.solve(
+    constraints=["x == Date(9999, 6, 1)", "y == x + Period(1, 0, 0)"],
+    declarations=["x: date", "y: date"],
+    python_bounds=True,
+)
+result["status"]                # "unsat"
+```
+
 ### Choosing Solver Approach
 
 ```python
 import datesat
 
-# Use different solver approaches and implementations
+# Use different solver approaches
 result = datesat.solve(
     constraints={...},           # replace ... with actual constraints
-    approach="hybrid",           # int: simple, epoch_days, hybrid_init_ymd, hybrid_init_epoch, alpha_beta
-                                 # bitvector: simple, epoch_days, hybrid, alpha_beta
-    implementation="bitvector",  # int or bitvector
-    timeout_ms=600000,          # 10 minutes
-    verbose=True                # Print solver output
+    approach="alpha_beta",       # simple, epoch_days, hybrid_init_ymd, hybrid_init_epoch, alpha_beta, router
+    timeout_ms=600000,           # 10 minutes
+    verbose=True,                # Print solver output
+    python_bounds=False,         # True: bound every date to years 1..9999
 )
 ```
 
@@ -120,8 +146,8 @@ Create a JSON file with declarations and constraints:
 ### CLI Options
 
 ```bash
-# Choose solver approach and implementation
-python bin/datesat_cli.py --approach hybrid --implementation bitvector < constraints.json
+# Choose solver approach
+python bin/datesat_cli.py --approach alpha_beta < constraints.json
 
 # Get JSON output instead of human-readable format
 python bin/datesat_cli.py --output json < constraints.json
@@ -131,6 +157,9 @@ python bin/datesat_cli.py --timeout 300000 < constraints.json  # 5 minutes
 
 # Quiet mode (suppress solver output)
 python bin/datesat_cli.py --quiet < constraints.json
+
+# Bound all dates to Python's datetime.date range, years 1..9999 (default: unbounded)
+python bin/datesat_cli.py --python-bounds < constraints.json
 
 # Show help
 python bin/datesat_cli.py --help
@@ -145,8 +174,8 @@ echo '{"declarations":["x: date"],"constraints":["x >= Date(2000,1,1)"]}' | pyth
 # With file input and JSON output
 python bin/datesat_cli.py --file constraints.json --output json
 
-# Using hybrid approach with bitvector implementation
-python bin/datesat_cli.py --approach hybrid --implementation bitvector --file constraints.json
+# Using the alpha_beta approach with every date bounded to years 1..9999
+python bin/datesat_cli.py --approach alpha_beta --python-bounds --file constraints.json
 ```
 
 ## MCP Server (for AI Agents)
@@ -186,9 +215,9 @@ The MCP server exposes a single `solve` tool with the following parameters:
 |-----------|------|---------|-------------|
 | `declarations` | `list[str]` | required | Variable declarations (e.g., `["x: Date", "n: int"]`) |
 | `constraints` | `list[str]` | required | Constraint expressions to satisfy |
-| `approach` | `str` | `"epoch_days"` | Solver approach: `simple`, `epoch_days`, `hybrid_init_ymd`, `hybrid_init_epoch`, `alpha_beta` (int); `simple`, `epoch_days`, `hybrid`, `alpha_beta` (bitvector) |
-| `implementation` | `str` | `"int"` | Implementation type: `int` or `bitvector` |
+| `approach` | `str` | `"epoch_days"` | Solver approach: `simple`, `epoch_days`, `hybrid_init_ymd`, `hybrid_init_epoch`, `alpha_beta` |
 | `timeout_ms` | `int` | `600000` | Solver timeout in milliseconds |
+| `python_bounds` | `bool` | `false` | Bound every date, including intermediate `Date + Period` results, to years 1..9999 |
 
 ### Response Format
 
@@ -257,8 +286,8 @@ These are included in `requirements.txt`.
 
 ### Date and Period Constructors
 
-- `Date(year, month, day)` - Create a date literal
-- `Period(years, months, days)` - Create a period literal
+- `Date(year, month, day)` - Create a date literal (any calendar-valid proleptic Gregorian date; years 1..9999 only with `python_bounds`)
+- `Period(years, months, days)` - Create a period literal (any integers)
 
 ### Date Arithmetic
 
@@ -308,9 +337,14 @@ Both Python API and CLI return results with the following structure:
     "bools": {"flag": True, ...},           # If sat
     "execution_time": 0.123,                # Time in seconds
     "approach": "epoch_days",
-    "implementation": "int"
+    "implementation": "int",
+    "python_bounds": False                  # Whether the 1..9999 bound was applied
 }
 ```
+
+`Date` values are `datesat.Date` objects, not `datetime.date`. Without
+`python_bounds` they may lie outside years 1..9999; `Date.to_python_date()`
+converts to `datetime.date` and raises `ValueError` outside that range.
 
 **Status values:**
 - `sat` - Constraints are satisfiable; solution fields are populated
@@ -326,7 +360,7 @@ For more control, you can use the `DateSATBuilder` class directly:
 ```python
 from datesat import DateSATBuilder, Date, Period
 
-builder = DateSATBuilder(approach="epoch_days", implementation="int")
+builder = DateSATBuilder(approach="epoch_days")
 
 # Create variables
 x = builder.add_date_var("x")
@@ -363,8 +397,8 @@ result = builder.solve()  # Will print SMT-LIB
 
 ## Solver Approaches
 
-DateSAT provides several solvers with different performance characteristics.
-Each approach is available in both **int** (integer arithmetic) and **bitvector** (bit-vector arithmetic) implementations.
+DateSAT provides several solvers with different performance characteristics,
+all encoded in Z3 integer arithmetic.
 
 In general, simple is often the slowest, and alpha beta table and epoch are relatively faster.
 Please learn more by reading the paper.

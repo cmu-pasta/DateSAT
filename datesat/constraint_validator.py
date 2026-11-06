@@ -7,11 +7,9 @@ against a provided concrete solution (no solving capability).
 """
 
 from typing import Any, Dict, Optional, Tuple, Union
-import calendar
-import datetime
 import warnings
 
-from .core import Date, Period
+from .core import Date, Period, PYTHON_YEAR_MAX, PYTHON_YEAR_MIN
 from future_work.datesat_bounded.enumeration_baseline import (
     ConstraintWrapper,
     Or_enumeration,
@@ -21,45 +19,33 @@ from future_work.datesat_bounded.enumeration_baseline import (
 )
 
 
-# Every encoding bounds each date it computes, including every Date + Period result,
-# to years 1..9999 (see _add_bounds in datesat/symbolic_int/). Python's date covers
-# exactly that range.
-_MIN_ORDINAL = datetime.date.min.toordinal()
-_MAX_ORDINAL = datetime.date.max.toordinal()
-_DAYS_PER_400_YEARS = 146097  # the Gregorian calendar repeats every 400 years
+# Python's datetime.date covers years 1..9999. With python_bounds, every encoding
+# bounds each date it computes, including every Date + Period result, to that range
+# (see _add_bounds in datesat/symbolic_int/); by default dates are unbounded.
+_YEAR_MIN, _YEAR_MAX = PYTHON_YEAR_MIN, PYTHON_YEAR_MAX
 
 # The Date + Period results built by the constraint code being validated.
-# validate_constraint_solution() clears it and checks that each one is in range.
+# validate_constraint_solution() clears it and, with python_bounds, checks that each
+# one is in range.
 _DERIVED_DATES: list = []
 
 
 class DateRangeError(Exception):
-    """A Date + Period result fell outside years 1..9999.
+    """A date fell outside years 1..9999 while python_bounds is in force."""
 
-    Deliberately not a ValueError: ConstraintWrapper.evaluate() turns ValueError into
-    False, and a Not() around it would then turn that into True.
-    """
+
+def _in_python_range(d: Date) -> bool:
+    return _YEAR_MIN <= d.year <= _YEAR_MAX
 
 
 def _add_period(d: Date, years: int, months: int, days: int) -> Date:
     """Date + Period with the solver's semantics.
 
-    Add years and months, clamp the day to the end of the month, then add days. Only
-    the final result has to be in years 1..9999; the mid-step may fall outside it, so
-    it is computed on a year shifted by whole 400-year cycles into Python's range.
+    Add years and months, clamp the day to the end of the month, then add days.
+    Date arithmetic is defined for every year, so this never raises; the range
+    check under python_bounds is done by validate_constraint_solution().
     """
-    y, m = divmod(d.year * 12 + d.month - 1 + years * 12 + months, 12)
-    m += 1
-    cycles = (y - 1) // 400
-    cycle_year = y - 400 * cycles  # same calendar as y, in 1..400
-    day = min(d.day, calendar.monthrange(cycle_year, m)[1])
-    ordinal = (datetime.date(cycle_year, m, day).toordinal()
-               + cycles * _DAYS_PER_400_YEARS + days)
-    if not _MIN_ORDINAL <= ordinal <= _MAX_ORDINAL:
-        raise DateRangeError(
-            f"{d} + Period({years}, {months}, {days}) is outside years 1..9999"
-        )
-    return Date.from_python_date(datetime.date.fromordinal(ordinal))
+    return d + Period(years, months, days)
 
 
 class EvalDateVar:
@@ -106,7 +92,7 @@ class EvalDateVar:
                 rhs_val = other.get_value()
             if rhs_val is None:
                 return False
-            return getattr(lhs.to_python_date(), f"__{op}__")(rhs_val.to_python_date())
+            return getattr(lhs, f"__{op}__")(rhs_val)
 
         concrete_value = other if isinstance(other, Date) else None
         return ConstraintWrapper(
@@ -839,11 +825,16 @@ def _parse_solution_value(raw: Any) -> Any:
 
 
 def validate_constraint_solution(
-    constraint_code: str, solution: Dict[str, Any]
+    constraint_code: str, solution: Dict[str, Any], python_bounds: bool = False
 ) -> Tuple[bool, str]:
     """
     Execute constraint_code with a validation-only builder and evaluate
     the provided concrete solution.
+
+    With python_bounds (matching datesat.solve(..., python_bounds=True)), every date
+    value and every Date + Period result must lie in years 1..9999, wherever the
+    expression appears; otherwise the model is rejected. By default any
+    calendar-valid proleptic Gregorian date is accepted.
     """
     _DERIVED_DATES.clear()
     builder = EvalBuilder()
@@ -862,6 +853,8 @@ def validate_constraint_solution(
         if var_name in solver.date_vars:
             if not isinstance(parsed, Date):
                 return False, f"Variable {var_name} expects Date, got {parsed}"
+            if python_bounds and not _in_python_range(parsed):
+                return False, f"Variable {var_name} = {parsed} is outside years 1..9999"
             solver.date_vars[var_name].set_value(parsed.year, parsed.month, parsed.day)
         elif var_name in solver.int_vars:
             if not isinstance(parsed, int):
@@ -875,14 +868,14 @@ def validate_constraint_solution(
             # Ignore unknown variables; they might be unused
             continue
 
-    # The solver asserts every Date + Period result is in years 1..9999 wherever the
-    # expression appears, so a model that breaks this is invalid even when that result
-    # is negated or sits in a disjunct that is never evaluated.
-    for derived in _DERIVED_DATES:
-        try:
-            derived.get_value()
-        except DateRangeError as e:
-            return False, f"Date + Period result out of range: {e}"
+    # With python_bounds the solver asserts every Date + Period result is in years
+    # 1..9999 wherever the expression appears, so a model that breaks this is invalid
+    # even when that result is negated or sits in a disjunct that is never evaluated.
+    if python_bounds:
+        for derived in _DERIVED_DATES:
+            value = derived.get_value()
+            if value is not None and not _in_python_range(value):
+                return False, f"Date + Period result out of range: {derived.name} = {value}"
 
     # Evaluate constraints
     try:

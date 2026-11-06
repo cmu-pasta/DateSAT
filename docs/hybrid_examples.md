@@ -6,9 +6,9 @@ comparison operators, the lazy `_epoch_expr()` / `_ymd_expr()` derivers). The
 *starts in*:
 
 - `hybrid_init_ymd` — a user var starts with **Y/M/D** as the source of truth
-  (`y`, `m`, `d` materialized and bounded); the epoch side is derived on demand.
+  (`y`, `m`, `d` materialized and constrained to a valid date); the epoch side is derived on demand.
 - `hybrid_init_epoch` — a user var starts with **epoch days** as the source of truth
-  (`epoch` materialized and bounded); the Y/M/D side is derived on demand.
+  (`epoch` materialized; any integer is a valid epoch day); the Y/M/D side is derived on demand.
 
 The starting representation is not a startup cost — declaring the Z3 integers is
 free. It matters because it decides, for each later operation, whether that
@@ -45,7 +45,7 @@ b.year == 2028
 
 ```python
 a, b : Date
-# a,b START in Y/M/D: a_year/month/day, b_year/month/day created + bounded
+# a,b START in Y/M/D: a_year/month/day, b_year/month/day created + constrained to valid dates
 # epoch side deferred (a_epoch/b_epoch exist but are left unconstrained)
 
 a.month == 4
@@ -70,7 +70,7 @@ reads them, so the epoch link is never asserted.
 
 ```python
 a, b : Date
-# a,b START in epoch: a_epoch, b_epoch created + range-bounded; no Y/M/D vars yet
+# a,b START in epoch: a_epoch, b_epoch created (range-bounded only with python_bounds); no Y/M/D vars yet
 
 a.month == 4
 # a.month: a is epoch, needs components ->

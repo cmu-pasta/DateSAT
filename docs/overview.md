@@ -99,15 +99,12 @@ Every method must implement a solver class with:
 - **ValueError**: For invalid date ranges or components
   - Invalid date format: "year, month, and day must be integers"
   - Invalid date: "Invalid date: YYYY-MM-DD"
-  - Date outside allowed range: "Date outside allowed range: YYYY-MM-DD (allowed [1900-03-01..2100-02-28])" (Optional)
+  - Date outside allowed range (only with `python_bounds`): "Date outside allowed range: YYYY-MM-DD (allowed [0001-01-01..9999-12-31])"
   - Invalid Period format: "years, months, and days must be integers"
-  - Period years out of range: "Period years out of range: YYYY (max ±200)" (Optional)
-  - Period months out of range: "Period months out of range: MMMM (max ±2400)" (Optional)
-  - Period days out of range: "Period days out of range: DDDD (max ±73048)" (Optional)
 - **Z3 exceptions**: For solver-specific errors
 
 ### Input Validation
 
 - **Type Checking**: All date components must be integers (booleans explicitly rejected)
-- **Calendar Correctness**: Uses Python's `date()` constructor for validation
-- **Range Validation**: Comprehensive validation for supported date range (Optional)
+- **Calendar Correctness**: Proleptic Gregorian rules, valid for any integer year
+- **Range Validation**: Years 1..9999 (Python's `datetime.date` range) only when `python_bounds` is enabled

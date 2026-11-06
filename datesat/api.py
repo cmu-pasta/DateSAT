@@ -21,6 +21,7 @@ class DateSATBuilder:
         implementation: str = "int",
         timeout_ms: int = 600000,
         use_maxsat: bool = False,
+        python_bounds: bool = False,
     ):
         """Initialize the builder with the specified approach, implementation, and timeout.
 
@@ -29,6 +30,13 @@ class DateSATBuilder:
             implementation: Either "int" or "bitvector" (default: "int")
             timeout_ms: Timeout in milliseconds (default: 600000 = 10 minutes)
             use_maxsat: If True, use MaxSAT optimization with soft constraints for dates near today
+            python_bounds: If True, bound every date variable and every
+                Date + Period result to Python's datetime.date range (years
+                1..9999), and build the Date objects of the model through
+                datetime, as the original implementation did. By default (False)
+                dates are unbounded: any calendar-valid proleptic Gregorian date
+                is allowed, so models may contain years below 1 or above 9999.
+                Int implementation only.
         """
         if approach == "router":
             raise ValueError(
@@ -39,6 +47,12 @@ class DateSATBuilder:
         self.implementation = implementation
         self.timeout_ms = timeout_ms
         self.use_maxsat = use_maxsat
+        self.python_bounds = python_bounds
+        if python_bounds and implementation != "int":
+            raise ValueError(
+                "python_bounds is only available for implementation='int'; the bitvector "
+                "implementation has its own fixed domain"
+            )
 
         # Import and dispatch the appropriate solver based on implementation.
         # The int and bitvector implementations have different valid approaches:
@@ -69,16 +83,17 @@ class DateSATBuilder:
             from .symbolic_int.hybrid_init_epoch_int import HybridInitEpochSolver
             from .symbolic_int.hybrid_init_ymd_int import HybridInitYmdSolver
 
+            kwargs = dict(timeout_ms=timeout_ms, use_maxsat=use_maxsat, python_bounds=python_bounds)
             if approach == "simple":
-                self.solver = SimpleSolver(timeout_ms=timeout_ms, use_maxsat=use_maxsat)
+                self.solver = SimpleSolver(**kwargs)
             elif approach == "epoch_days":
-                self.solver = EpochDaysSolver(timeout_ms=timeout_ms, use_maxsat=use_maxsat)
+                self.solver = EpochDaysSolver(**kwargs)
             elif approach == "hybrid_init_ymd":
-                self.solver = HybridInitYmdSolver(timeout_ms=timeout_ms, use_maxsat=use_maxsat)
+                self.solver = HybridInitYmdSolver(**kwargs)
             elif approach == "hybrid_init_epoch":
-                self.solver = HybridInitEpochSolver(timeout_ms=timeout_ms, use_maxsat=use_maxsat)
+                self.solver = HybridInitEpochSolver(**kwargs)
             elif approach == "alpha_beta":
-                self.solver = AlphaBetaSolver(timeout_ms=timeout_ms, use_maxsat=use_maxsat)
+                self.solver = AlphaBetaSolver(**kwargs)
             else:
                 raise ValueError(
                     f"Unknown approach for int: {approach}. Must be 'simple', 'epoch_days', 'hybrid_init_ymd', 'hybrid_init_epoch', or 'alpha_beta'"

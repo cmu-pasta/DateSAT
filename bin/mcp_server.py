@@ -35,7 +35,8 @@ def solve(
     constraints: list[str],
     approach: str = "epoch_days",
     implementation: str = "int",
-    timeout_ms: int = 600000
+    timeout_ms: int = 600000,
+    python_bounds: bool = False,
 ) -> dict:
     """
     Solve date constraints and return satisfying assignments if satisfiable.
@@ -78,6 +79,11 @@ def solve(
 
         timeout_ms: Solver timeout in milliseconds (default: 600000 = 10 minutes)
 
+        python_bounds: If True, bound every date value, including intermediate
+                       Date + Period results, to Python's datetime.date range
+                       (years 1..9999). Default False: dates are unbounded and
+                       results may have years below 1 or above 9999. Int only.
+
     Returns:
         A dictionary containing:
         - status: One of:
@@ -116,8 +122,9 @@ def solve(
         # Returns: {"status": "unsat", ...}
 
     Notes:
-        - Date range: All dates must be between 1900-03-01 and 2100-02-28
-        - Period range: Years +/-200, Months +/-2400, Days +/-73048
+        - Dates are any calendar-valid proleptic Gregorian date (years may be
+          <= 0 or > 9999) unless python_bounds=True restricts them to 1..9999
+        - Periods are unbounded integers
         - date - date is not supported (use periods instead)
     """
     # Validate implementation
@@ -148,7 +155,8 @@ def solve(
             approach=approach,
             implementation=implementation,
             timeout_ms=timeout_ms,
-            verbose=False
+            verbose=False,
+            python_bounds=python_bounds,
         )
 
         # Convert Date objects to strings for JSON serialization
