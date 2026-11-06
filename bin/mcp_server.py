@@ -35,7 +35,8 @@ def solve(
     constraints: list[str],
     approach: str = "epoch_days",
     implementation: str = "int",
-    timeout_ms: int = 600000
+    timeout_ms: int = 600000,
+    python_bounds: bool = False,
 ) -> dict:
     """
     Solve date constraints and return satisfying assignments if satisfiable.
@@ -67,15 +68,21 @@ def solve(
         approach: Solver approach to use. Options:
                  - "epoch_days" (default, recommended): Convert dates to days since epoch
                  - "simple": Direct encoding of date arithmetic
-                 - "hybrid": Hybrid approach combining multiple encodings
+                 - "hybrid_init_ymd": Hybrid encoding whose variables start in Y/M/D (int only)
+                 - "hybrid_init_epoch": Hybrid encoding whose variables start in epoch days (int only)
+                 - "hybrid": Hybrid encoding (bitvector only)
                  - "alpha_beta": Alpha-beta encoding for optimized arithmetic
-                 - "alpha_beta_table": Table-based alpha-beta encoding
 
         implementation: Implementation type for Z3 encoding. Options:
                        - "int" (default): Use integer arithmetic
                        - "bitvector": Use bitvector arithmetic
 
         timeout_ms: Solver timeout in milliseconds (default: 600000 = 10 minutes)
+
+        python_bounds: If True, bound every date value, including intermediate
+                       Date + Period results, to Python's datetime.date range
+                       (years 1..9999). Default False: dates are unbounded and
+                       results may have years below 1 or above 9999. Int only.
 
     Returns:
         A dictionary containing:
@@ -115,24 +122,28 @@ def solve(
         # Returns: {"status": "unsat", ...}
 
     Notes:
-        - Date range: All dates must be between 1900-03-01 and 2100-02-28
-        - Period range: Years +/-200, Months +/-2400, Days +/-73048
+        - Dates are any calendar-valid proleptic Gregorian date (years may be
+          <= 0 or > 9999) unless python_bounds=True restricts them to 1..9999
+        - Periods are unbounded integers
         - date - date is not supported (use periods instead)
     """
-    # Validate approach
-    valid_approaches = ["simple", "epoch_days", "hybrid", "alpha_beta", "alpha_beta_table"]
-    if approach not in valid_approaches:
-        return {
-            "status": "error",
-            "error": f"Invalid approach '{approach}'. Must be one of: {valid_approaches}"
-        }
-
     # Validate implementation
     valid_implementations = ["int", "bitvector"]
     if implementation not in valid_implementations:
         return {
             "status": "error",
             "error": f"Invalid implementation '{implementation}'. Must be one of: {valid_implementations}"
+        }
+
+    # Validate approach
+    if implementation == "int":
+        valid_approaches = ["simple", "epoch_days", "hybrid_init_ymd", "hybrid_init_epoch", "alpha_beta"]
+    else:
+        valid_approaches = ["simple", "epoch_days", "hybrid", "alpha_beta"]
+    if approach not in valid_approaches:
+        return {
+            "status": "error",
+            "error": f"Invalid approach '{approach}' for implementation '{implementation}'. Must be one of: {valid_approaches}"
         }
 
     try:
@@ -144,7 +155,8 @@ def solve(
             approach=approach,
             implementation=implementation,
             timeout_ms=timeout_ms,
-            verbose=False
+            verbose=False,
+            python_bounds=python_bounds,
         )
 
         # Convert Date objects to strings for JSON serialization

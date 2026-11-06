@@ -5,7 +5,7 @@
 
 ## Overview
 
-DateSAT provides implementations to multiple encodings strategies for solving date and calendar period constraints. It encodes DateSAT constraints into Z3 constraints (expressed through integer or bitvector constraints) for efficient symbolic analysis.
+DateSAT provides implementations to multiple encodings strategies for solving date and calendar period constraints. It encodes DateSAT constraints into Z3 integer constraints for efficient symbolic analysis.
 
 The library offers both a high-level Python API and a command-line interface for solving date constraints with support for:
 - Date and period arithmetic
@@ -16,26 +16,20 @@ The library offers both a high-level Python API and a command-line interface for
 
 ## Supported Ranges
 
-In the implementation, we apply the below supported ranges on Date and Period. 
-Note that a bound is not required to ensure decidability.
-Please refer to the paper (Section 3.3) for more details.
+By default, dates are **unbounded**: a `Date` is any calendar-valid day of the
+proleptic Gregorian calendar, so years may be zero, negative, or beyond 9999, and
+`Period` components are arbitrary integers. A bound is not required for
+decidability (see the paper, Section 3.3). Solutions are returned as
+`datesat.Date` objects; `Date.to_python_date()` converts one to a
+`datetime.date` and raises `ValueError` outside Python's range (years 1..9999).
 
-### Date Range
-
-All `Date` objects must fall within the following range:
-- **Minimum**: 1900-03-01
-- **Maximum**: 2100-02-28
-
-Dates outside this range will raise a `ValueError` during construction.
-
-### Period Range
-
-All `Period` objects must fall within the following bounds (based on the date range):
-- **Years**: ±200 (maximum absolute value)
-- **Months**: ±2400 (maximum absolute value, equivalent to ±200 years)
-- **Days**: ±73048 (maximum absolute value, equivalent to the full date range span)
-
-Periods exceeding these bounds will raise a `ValueError` during construction.
+Passing `python_bounds=True` to `datesat.solve` or `DateSATBuilder`
+(`--python-bounds` on the CLI, `python_bounds` on the MCP tool) restricts every
+date variable and every intermediate `Date + Period` result to Python's
+`datetime.date` range, years 1..9999, and handles every concrete `Date` (literals
+in the constraints and the dates of the model) through `datetime`, exactly as the
+original implementation did. A concrete date outside the range raises
+`ValueError`, as `datetime` does.
 
 ## Quick Start
 
@@ -98,9 +92,9 @@ result_json = datesat.solve(input_data)
 # Replace {...} with the actual data variable
 result_optimized = datesat.solve(
     constraints=input_data,      # Use the dictionary defined above
-    approach="alpha_beta_table", # Recommended: provides a median 2.73x speedup [cite: 146, 913]
-    implementation="int",        # Choose 'int' or 'bitvector' [cite: 146, 972]
-    timeout_ms=600000            # 10 minutes [cite: 878]
+    approach="alpha_beta",       # simple, epoch_days, hybrid_init_ymd, hybrid_init_epoch, alpha_beta, or router
+    timeout_ms=600000,           # 10 minutes
+    python_bounds=False          # True: bound every date to years 1..9999
 )
 
 print(result_optimized)
@@ -116,7 +110,8 @@ echo '{"declarations":["x: date"],"constraints":["x >= Date(2024,1,1)"]}' | pyth
 python bin/datesat_cli.py --file constraints.json
 
 # With options
-python bin/datesat_cli.py --approach hybrid --implementation bitvector --output json < constraints.json
+python bin/datesat_cli.py --approach alpha_beta --output json < constraints.json
+python bin/datesat_cli.py --python-bounds < constraints.json
 python bin/datesat_cli.py --help
 ```
 

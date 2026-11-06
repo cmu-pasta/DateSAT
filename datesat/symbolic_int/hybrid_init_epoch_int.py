@@ -21,7 +21,6 @@ Rules:
   on the fly and compare.
 """
 
-from datetime import date, timedelta
 from typing import List, Tuple, Union
 
 from z3 import (
@@ -66,7 +65,8 @@ class DateVar:
         """
         self.ctx = ctx
         self.name = name
-        # Track if this is a user-declared variable (needs bounds) vs intermediate result
+        # Track if this is a user-declared variable (gets well-formedness constraints
+        # up front) vs intermediate result
         self._is_user_var = is_user_var
         # Solver reference for adding bounds to intermediate dates
         self._solver = ctx.solver if ctx else None
@@ -125,15 +125,12 @@ class DateVar:
         return self.day_var
 
     def to_concrete_date(self, model: ModelRef) -> Date:
+        python_bounds = getattr(self.ctx, "python_bounds", False)
         if self._ymd_consistent and self._ymd_exists:
             y = model.evaluate(self._year_var, model_completion=True).as_long()
             m = model.evaluate(self._month_var, model_completion=True).as_long()
             d = model.evaluate(self._day_var, model_completion=True).as_long()
-            try:
-                return Date(y, m, d)
-            except ValueError:
-                # Intermediate result went out of bounds - use unbounded date
-                return Date(y, m, d, bounded=False)
+            return Date(y, m, d, bounded=python_bounds)
         # Otherwise evaluate epoch variable directly 
         # If epoch is consistent, epoch_var is the source of truth
         if self._epoch_consistent:
@@ -141,13 +138,7 @@ class DateVar:
         else:
             # Epoch not consistent, need to derive from Y/M/D
             e = model.evaluate(self._epoch_expr(), model_completion=True).as_long()
-        try:
-            return date_from_days_since_epoch(e)
-        except ValueError:
-            # Epoch out of bounds - convert to Y/M/D then create unbounded date
-            _EPOCH = date(2000, 3, 1)
-            result_date = _EPOCH + timedelta(days=e)
-            return Date(result_date.year, result_date.month, result_date.day, bounded=False)
+        return date_from_days_since_epoch(e, bounded=python_bounds)
 
     # ----- Internal helpers -----
     def _ensure_ymd(self) -> None:
@@ -413,12 +404,14 @@ class DateVar:
         # So we constrain m in [1,12] and d in [1, days_in_month(y,m)] here.
         # When epoch is source of truth, Y/M/D are either absent or asserted from the
         # decoding formula (which always produces valid Y/M/D), so no constraint needed.
-        # Bound year to Python's datetime.date representable range [1, 9999] so
-        # concrete reconstruction cannot raise. Applied on whichever representation
-        # is the source of truth for this DateVar.
+        # Optionally (solver's python_bounds) restrict the year to Python's
+        # datetime.date range [1, 9999], on whichever representation is the source
+        # of truth for this DateVar. By default dates are unbounded.
+        python_bounds = getattr(self.ctx, "python_bounds", False)
         if self._ymd_consistent and self._ymd_exists:
-            self._solver.add(self._year_var >= 1)
-            self._solver.add(self._year_var <= 9999)
+            if python_bounds:
+                self._solver.add(self._year_var >= 1)
+                self._solver.add(self._year_var <= 9999)
             self._solver.add(
                 And(
                     self._month_var >= 1,
@@ -427,8 +420,8 @@ class DateVar:
                     self._day_var <= days_in_month(self._year_var, self._month_var),
                 )
             )
-        else:
-            # Epoch-consistent: bound epoch_var to equivalent range.
+        elif python_bounds:
+            # Epoch-consistent: bound epoch_var to the equivalent range.
             #   date(1, 1, 1)      -> -730179
             #   date(9999, 12, 31) -> 2921879
             self._solver.add(self.epoch_var >= IntVal(-730179))
@@ -523,14 +516,19 @@ class HybridInitEpochSolver:
     Y/M/D vars are materialized lazily on first use.
     """
 
-    def __init__(self, timeout_ms=600000, use_maxsat=False):
+    def __init__(self, timeout_ms=600000, use_maxsat=False, python_bounds=False):
         """Initialize the solver with timeout.
 
         Args:
             timeout_ms: Timeout in milliseconds (default: 60 seconds)
             use_maxsat: If True, use MaxSAT optimization with soft constraints
+            python_bounds: If True, bound every date (user variables and every
+                Date + Period result) to Python's datetime.date range, years
+                1..9999. By default dates are unbounded: any calendar-valid
+                proleptic Gregorian date is allowed.
         """
         self.use_maxsat = use_maxsat
+        self.python_bounds = python_bounds
         if use_maxsat:
             self.solver = Optimize()
         else:
@@ -549,7 +547,7 @@ class HybridInitEpochSolver:
         while name in self.date_vars:
             suffix += 1
             name = f"{base_name}_{suffix}"
-        # Create DateVar (always bounded for user variables)
+        # Create DateVar (user variables are constrained to valid dates up front)
         dv = DateVar(self, name, is_user_var=add_bounds)
         dv._solver = self.solver
         self.date_vars[name] = dv

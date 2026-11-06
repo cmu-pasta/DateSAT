@@ -24,13 +24,16 @@ from z3 import (
     sat,
     unsat,
 )
-from ..core import Date, Period
+from ..core import Date, Period, civil_from_days, days_from_civil
 from .simple_int import (
     eom_clamp,
     normalize_month
 )
 
+# Epoch is March 1, 2000: as a datetime (Python path, bounded dates) and as
+# days since 1970-01-01 (integer path, unbounded dates).
 _EPOCH = date(2000, 3, 1)
+_EPOCH_DAYS = days_from_civil(2000, 3, 1)
 
 def _ymd_from_days_since_epoch_z3(days_term: ArithRef) -> Tuple[ArithRef, ArithRef, ArithRef]:
     """
@@ -127,16 +130,24 @@ def days_since_epoch_from_ymd(*args):
         return _days_since_epoch_from_ymd_z3(y, m, d)
     raise TypeError("days_since_epoch_from_ymd expects (Date) or (y, m, d)")
 
-def date_from_days_since_epoch(days: int) -> Date:
-    """Convert concrete days since epoch to a concrete Date."""
-    result_date = _EPOCH + timedelta(days=days)
-    return Date(result_date.year, result_date.month, result_date.day)
+def date_from_days_since_epoch(days: int, bounded: bool = False) -> Date:
+    """Convert concrete days since epoch to a concrete Date.
+
+    bounded=True takes the Python path (datetime + timedelta, years 1..9999);
+    bounded=False the integer path, defined for any year.
+    """
+    if bounded:
+        result_date = _EPOCH + timedelta(days=days)
+        return Date(result_date.year, result_date.month, result_date.day, bounded=True)
+    return Date(*civil_from_days(days + _EPOCH_DAYS))
 
 
 def days_since_epoch_from_date(date_obj: Date) -> int:
     """Convert a concrete Date to concrete days since epoch (March 1, 2000)."""
-    target_python = date(date_obj.year, date_obj.month, date_obj.day)
-    return (target_python - _EPOCH).days
+    if date_obj.bounded:
+        target_python = date(date_obj.year, date_obj.month, date_obj.day)
+        return (target_python - _EPOCH).days
+    return days_from_civil(date_obj.year, date_obj.month, date_obj.day) - _EPOCH_DAYS
 
 def add_days_ordinal(y, m, d, delta_days) -> ArithRef:
     """
@@ -155,6 +166,8 @@ class DateVar:
         self.days_var = Int(f"{name}_days")
         # Solver reference for adding bounds to intermediate dates (set after creation if needed)
         self._solver = None
+        # Whether to bound this date to Python's year range 1..9999 (set by the solver)
+        self._python_bounds = False
 
     def __str__(self) -> str:
         return f"DateVar({self.name})"
@@ -180,13 +193,7 @@ class DateVar:
     def to_concrete_date(self, model: ModelRef) -> Date:
         """Convert Z3 model to concrete Date."""
         days = model.evaluate(self.days_var, model_completion=True).as_long()
-        try:
-            return date_from_days_since_epoch(days)
-        except ValueError:
-            # Days is outside the Date class's default range - date is still
-            # well-formed (bounds removed from the solver), so return unbounded.
-            result_date = _EPOCH + timedelta(days=days)
-            return Date(result_date.year, result_date.month, result_date.day, bounded=False)
+        return date_from_days_since_epoch(days, bounded=self._python_bounds)
 
     def __ge__(self, other) -> BoolRef:
         """Support x >= date comparison."""
@@ -237,12 +244,16 @@ class DateVar:
             raise TypeError(f"Cannot compare DateVar with {type(other)}")
 
     def _add_bounds(self) -> None:
-        """Add date validation bounds to this DateVar if solver is available."""
-        if self._solver is None:
+        """Add the optional Python range bound to this DateVar.
+
+        Every integer is a well-formed days-since-epoch value, so by default
+        (unbounded) nothing is asserted.
+        """
+        if self._solver is None or not self._python_bounds:
             return
 
-        # Bound days_var to Python's datetime.date representable range [year 1, year 9999]
-        # so concrete reconstruction cannot raise. Epoch is March 1, 2000.
+        # Bound days_var to Python's datetime.date range [year 1, year 9999].
+        # Epoch is March 1, 2000.
         #   date(1, 1, 1)         -> -730179 days from epoch
         #   date(9999, 12, 31)    -> 2921879 days from epoch
         self._solver.add(self.days_var >= IntVal(-730179))
@@ -289,6 +300,7 @@ class DateVar:
             
             # Add bounds to intermediate result
             result._solver = self._solver
+            result._python_bounds = self._python_bounds
             result._add_bounds()
             return result
         else:
@@ -306,14 +318,19 @@ class DateVar:
 class EpochDaysSolver:
     """Epoch_days date constraint solver using epoch-based conversion."""
 
-    def __init__(self, timeout_ms=600000, use_maxsat=False):
+    def __init__(self, timeout_ms=600000, use_maxsat=False, python_bounds=False):
         """Initialize the solver with timeout.
 
         Args:
             timeout_ms: Timeout in milliseconds (default: 60 seconds)
             use_maxsat: If True, use MaxSAT optimization with soft constraints
+            python_bounds: If True, bound every date (user variables and every
+                Date + Period result) to Python's datetime.date range, years
+                1..9999. By default dates are unbounded: any calendar-valid
+                proleptic Gregorian date is allowed.
         """
         self.use_maxsat = use_maxsat
+        self.python_bounds = python_bounds
         if use_maxsat:
             self.solver = Optimize()
         else:
@@ -327,6 +344,7 @@ class EpochDaysSolver:
         """Add a symbolic date variable with basic constraints."""
         date_var = DateVar(name)
         date_var._solver = self.solver
+        date_var._python_bounds = self.python_bounds
         self.date_vars[name] = date_var
 
         # Add bounds using _add_bounds method

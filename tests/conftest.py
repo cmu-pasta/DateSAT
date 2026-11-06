@@ -45,7 +45,7 @@ def sample_date_obj(request):
         (2023, 1, 32),  # Day 32
         (2023, 2, 30),  # Feb 30
         (2023, 2, 31),  # Feb 31
-        (-2000, 2, 29),  # Negative year
+        (-2001, 2, 29),  # Feb 29 in a negative non-leap year (year -2000 is a leap year)
         (-2000, 13, 1),  # Month 13
         (2000, -1, 1),  # Negative month
         (2001, 1, -5),  # Negative day
@@ -336,4 +336,3 @@ def pytest_collection_modifyitems(config, items):
             item.add_marker("hybrid_init_ymd")
             item.add_marker("hybrid_init_epoch")
             item.add_marker("alpha_beta")
-            item.add_marker("alpha_beta_table")

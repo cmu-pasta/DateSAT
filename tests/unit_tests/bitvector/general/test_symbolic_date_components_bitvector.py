@@ -9,7 +9,6 @@ import pytest
 from future_work.datesat_bounded.core import Date
 from future_work.datesat_bounded.bitvector.epoch_days_bv import EpochDaysSolver
 from future_work.datesat_bounded.bitvector.alpha_beta_bv import AlphaBetaSolver
-from future_work.datesat_bounded.bitvector.alpha_beta_table_bv import AlphaBetaTableSolver
 from future_work.datesat_bounded.bitvector.simple_bv import SimpleSolver
 from future_work.datesat_bounded.bitvector.hybrid_bv import HybridSolver
 from z3 import BitVec, Or, And
@@ -19,7 +18,6 @@ from future_work.datesat_bounded.bitvector.bitwidths import LEGACY_BITS
 @pytest.mark.parametrize("solver_cls", [
     EpochDaysSolver,
     AlphaBetaSolver,
-    AlphaBetaTableSolver,
     SimpleSolver,
     HybridSolver,
 ])
@@ -49,7 +47,6 @@ def test_symbolic_year_bv(solver_cls):
 @pytest.mark.parametrize("solver_cls", [
     EpochDaysSolver,
     AlphaBetaSolver,
-    AlphaBetaTableSolver,
     SimpleSolver,
     HybridSolver,
 ])
@@ -82,7 +79,6 @@ def test_symbolic_month_bv(solver_cls):
 @pytest.mark.parametrize("solver_cls", [
     EpochDaysSolver,
     AlphaBetaSolver,
-    AlphaBetaTableSolver,
     SimpleSolver,
     HybridSolver,
 ])
@@ -119,7 +115,6 @@ def test_all_symbolic_bv(solver_cls):
 @pytest.mark.parametrize("solver_cls", [
     EpochDaysSolver,
     AlphaBetaSolver,
-    AlphaBetaTableSolver,
     SimpleSolver,
     HybridSolver,
 ])
@@ -152,7 +147,6 @@ def test_expression_bv(solver_cls):
 @pytest.mark.parametrize("solver_cls", [
     EpochDaysSolver,
     AlphaBetaSolver,
-    AlphaBetaTableSolver,
     SimpleSolver,
     HybridSolver,
 ])

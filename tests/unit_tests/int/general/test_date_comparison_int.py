@@ -4,12 +4,10 @@ import pytest
 
 from datesat.core import Date
 from datesat.symbolic_int.alpha_beta_int import AlphaBetaSolver
-from future_work.datesat_bounded.alpha_beta_table_int import AlphaBetaTableSolver
 from datesat.symbolic_int.simple_int import SimpleSolver
 from datesat.symbolic_int.epoch_days_int import EpochDaysSolver
 from datesat.symbolic_int.hybrid_init_epoch_int import HybridInitEpochSolver
 from datesat.symbolic_int.hybrid_init_ymd_int import HybridInitYmdSolver
-from datesat.symbolic_int.hybrid_both_int import HybridBothSolver
 
 # We cover equality, less/greater, boundary conditions, leap cases, and month ends.
 CASES = [
@@ -113,7 +111,6 @@ def test_epoch_days_date_comparisons_match_truth(op_name: str, op, a: Date, b: D
     [
         pytest.param(HybridInitEpochSolver, id="hybrid_init_epoch", marks=pytest.mark.hybrid_init_epoch),
         pytest.param(HybridInitYmdSolver, id="hybrid_init_ymd", marks=pytest.mark.hybrid_init_ymd),
-        pytest.param(HybridBothSolver, id="hybrid_both", marks=pytest.mark.hybrid_both),
     ],
 )
 @pytest.mark.parametrize(
@@ -139,21 +136,6 @@ def test_alpha_beta_date_comparisons_match_truth(op_name: str, op, a: Date, b: D
     expect = _expect_truth(op, a, b)
     sat = _solve_compare(AlphaBetaSolver, a, b, op_name)
     assert sat == expect, f"AlphaBeta: expected {expect} for {a} {op_name} {b}"
-
-
-@pytest.mark.parametrize(
-    "a,b",
-    [pytest.param(a, b, id=f"{a}_vs_{b}") for a, b in CASES],
-)
-@pytest.mark.parametrize("op_name,op", OPS)
-@pytest.mark.alpha_beta_table
-@pytest.mark.integer
-def test_alpha_beta_table_date_comparisons_match_truth(
-    op_name: str, op, a: Date, b: Date
-):
-    expect = _expect_truth(op, a, b)
-    sat = _solve_compare(AlphaBetaTableSolver, a, b, op_name)
-    assert sat == expect, f"AlphaBetaTable: expected {expect} for {a} {op_name} {b}"
 
 
 # Tests specifically for negative epoch values (dates before 2000-03-01)
@@ -256,7 +238,6 @@ def test_epoch_days_negative_epoch_constraints(test_case):
     [
         pytest.param(HybridInitEpochSolver, id="hybrid_init_epoch", marks=pytest.mark.hybrid_init_epoch),
         pytest.param(HybridInitYmdSolver, id="hybrid_init_ymd", marks=pytest.mark.hybrid_init_ymd),
-        pytest.param(HybridBothSolver, id="hybrid_both", marks=pytest.mark.hybrid_both),
     ],
 )
 @pytest.mark.parametrize(

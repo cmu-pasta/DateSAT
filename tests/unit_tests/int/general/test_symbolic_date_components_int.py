@@ -8,22 +8,18 @@ import pytest
 from datesat.core import Date
 from datesat.symbolic_int.epoch_days_int import EpochDaysSolver
 from datesat.symbolic_int.alpha_beta_int import AlphaBetaSolver
-from future_work.datesat_bounded.alpha_beta_table_int import AlphaBetaTableSolver
 from datesat.symbolic_int.simple_int import SimpleSolver
 from datesat.symbolic_int.hybrid_init_epoch_int import HybridInitEpochSolver
 from datesat.symbolic_int.hybrid_init_ymd_int import HybridInitYmdSolver
-from datesat.symbolic_int.hybrid_both_int import HybridBothSolver
 from z3 import Int, Or, And
 
 
 @pytest.mark.parametrize("solver_cls", [
     EpochDaysSolver,
     AlphaBetaSolver,
-    AlphaBetaTableSolver,
     SimpleSolver,
     HybridInitEpochSolver,
     HybridInitYmdSolver,
-    HybridBothSolver,
 ])
 def test_symbolic_year_int(solver_cls):
     """Test Date with only year symbolic: Date(year_var, 2, 1)"""
@@ -45,21 +41,18 @@ def test_symbolic_year_int(solver_cls):
     
     assert result["status"] == "sat", "Should find a solution"
     dates = result["dates"]
-    # k > Date(2000, 1, 1) forces k.year >= 2000. Upper bound depends on the solver:
-    # unbounded solvers in datesat.symbolic_int let k.year exceed 2100 (this used to
-    # be capped by the removed solver-level range bound), while AlphaBetaTableSolver
-    # in future_work still caps at 2100. Only assert the constraint the test enforces.
+    # k > Date(2000, 1, 1) forces k.year >= 2000. The solvers in datesat.symbolic_int
+    # are unbounded, so k.year may exceed 2100.
+    # Only assert the constraint the test enforces.
     assert dates['k'].year >= 2000
 
 
 @pytest.mark.parametrize("solver_cls", [
     EpochDaysSolver,
     AlphaBetaSolver,
-    AlphaBetaTableSolver,
     SimpleSolver,
     HybridInitEpochSolver,
     HybridInitYmdSolver,
-    HybridBothSolver,
 ])
 def test_symbolic_month_int(solver_cls):
     """Test Date with only month symbolic: Date(2025, month_var, 15)"""
@@ -90,11 +83,9 @@ def test_symbolic_month_int(solver_cls):
 @pytest.mark.parametrize("solver_cls", [
     EpochDaysSolver,
     AlphaBetaSolver,
-    AlphaBetaTableSolver,
     SimpleSolver,
     HybridInitEpochSolver,
     HybridInitYmdSolver,
-    HybridBothSolver,
 ])
 def test_all_symbolic_int(solver_cls):
     """Test Date with all components symbolic: Date(y, m, d)"""
@@ -129,11 +120,9 @@ def test_all_symbolic_int(solver_cls):
 @pytest.mark.parametrize("solver_cls", [
     EpochDaysSolver,
     AlphaBetaSolver,
-    AlphaBetaTableSolver,
     SimpleSolver,
     HybridInitEpochSolver,
     HybridInitYmdSolver,
-    HybridBothSolver,
 ])
 def test_expression_int(solver_cls):
     """Test Date with expression: Date(x+1, 2, 1)"""
@@ -164,11 +153,9 @@ def test_expression_int(solver_cls):
 @pytest.mark.parametrize("solver_cls", [
     EpochDaysSolver,
     AlphaBetaSolver,
-    AlphaBetaTableSolver,
     SimpleSolver,
     HybridInitEpochSolver,
     HybridInitYmdSolver,
-    HybridBothSolver,
 ])
 def test_bounds_prevent_invalid_values(solver_cls):
     """Test that automatic bounds prevent invalid values"""
@@ -191,4 +178,3 @@ def test_bounds_prevent_invalid_values(solver_cls):
     assert result["status"] == "sat", "Should find a solution"
     solution = result["dates"]['k']
     assert solution.month in [11, 12], "Month should be 11 or 12"
-

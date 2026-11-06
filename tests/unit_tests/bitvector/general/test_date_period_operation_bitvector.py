@@ -7,7 +7,6 @@ from dateutil.relativedelta import relativedelta
 # results, matching the bounded solvers' UNSAT.
 from future_work.datesat_bounded.core import Date, Period
 from future_work.datesat_bounded.bitvector.alpha_beta_bv import AlphaBetaSolver
-from future_work.datesat_bounded.bitvector.alpha_beta_table_bv import AlphaBetaTableSolver
 from future_work.datesat_bounded.bitvector.simple_bv import SimpleSolver
 from future_work.datesat_bounded.bitvector.epoch_days_bv import EpochDaysSolver
 from future_work.datesat_bounded.bitvector.hybrid_bv import HybridSolver
@@ -240,30 +239,6 @@ def test_alpha_beta_equals_ground_truth(base: Date, per: Period, expect: Date):
     assert got_a == expect, f"Alpha_beta: {base} + {per} -> {got_a}, expected {expect}"
 
 
-@pytest.mark.parametrize(
-    "base,per,expect",
-    [
-        pytest.param(base, per, expect, id=f"solvers_truth_{base}+{per}={expect}")
-        for base, per, expect in get_period_arithmetic_test_cases()
-    ],
-)
-@pytest.mark.alpha_beta_table
-@pytest.mark.bitvector
-def test_alpha_beta_table_equals_ground_truth(base: Date, per: Period, expect: Date):
-    # Alpha-beta-table uses a repeating 48-month table and is known to be unsound for Feb 2100
-    # unless special handling is added. We intentionally accept this unsoundness.
-    if expect.year == 2100 and expect.month == 2:
-        pytest.xfail("alpha_beta_table intentionally unsound for Feb 2100 (no special handling)")
-    ra = _solve_single_add(AlphaBetaTableSolver, base, per)
-    assert ra["status"] == "sat"
-    got_a = ra["dates"]["y"]
-    assert (
-        got_a == expect
-    ), f"alpha_beta_table: {base} + {per} -> {got_a}, expected {expect}"
-
-
-
-
 # sub: Date - Period (equivalent to add negative period). If ground truth is out of domain, expect UNSAT.
 @pytest.mark.parametrize(
     "base,per",
@@ -347,30 +322,3 @@ def test_alpha_beta_subtract_matches_python(base: Date, per: Period):
     assert model["status"] == "sat"
     got = model["dates"]["y"]
     assert got == expect, f"AlphaBeta sub: {base} - {per} -> {got}, expected {expect}"
-
-
-@pytest.mark.parametrize(
-    "base,per",
-    [
-        pytest.param(base, per, id=f"sub_{base}-{per}")
-        for base, per, _ in get_period_arithmetic_test_cases()
-    ],
-)
-@pytest.mark.alpha_beta_table
-@pytest.mark.bitvector
-def test_alpha_beta_table_subtract_matches_python(base: Date, per: Period):
-    # Alpha-beta-table uses a repeating 48-month table and is known to be unsound for Feb 2100
-    # unless special handling is added. We intentionally accept this unsoundness.
-    if base.year == 2100 and base.month == 2:
-        pytest.xfail("alpha_beta_table intentionally unsound for Feb 2100 (no special handling)")
-    model = _solve_single_sub(AlphaBetaTableSolver, base, per)
-    try:
-        expect = python_date_plus(base, Period(-per.years, -per.months, -per.days))
-    except ValueError:
-        assert model["status"] == "unsat"
-        return
-    assert model["status"] == "sat"
-    got = model["dates"]["y"]
-    assert (
-        got == expect
-    ), f"AlphaBetaTable sub: {base} - {per} -> {got}, expected {expect}"

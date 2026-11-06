@@ -13,6 +13,14 @@ from .constraint_parser import ConstraintParser
 from .core import Date, Period
 
 
+class _PythonBoundedDate(Date):
+    """Date on the Python (datetime) path, years 1..9999; used for the Date
+    literals of the constraint code under python_bounds."""
+
+    def __init__(self, year: int, month: int, day: int, bounded: bool = True):
+        super().__init__(year, month, day, bounded=True)
+
+
 def solve(
     constraints: Union[List[str], Dict[str, Any]],
     declarations: List[str] = None,
@@ -21,6 +29,7 @@ def solve(
     timeout_ms: int = 600000,
     verbose: bool = True,
     use_maxsat: bool = False,
+    python_bounds: bool = False,
     router_model: str = None,
 ) -> Dict[str, Any]:
     """
@@ -37,19 +46,29 @@ def solve(
             Only used if constraints is a list. If constraints is a dict, declarations
             are taken from the dict.
         approach: Solver approach. For int implementation: "simple", "epoch_days", "hybrid_init_ymd",
-            "hybrid_init_epoch", "hybrid_both", "alpha_beta", "alpha_beta_table", or "router", which picks one of
-            the others per constraint with a trained model (see docs/router.md). For bitvector
-            implementation: "simple", "epoch_days", "hybrid", "alpha_beta", or "alpha_beta_table".
+            "hybrid_init_epoch", "alpha_beta", or "router", which picks one of the others per
+            constraint with a trained model (see docs/router.md). For bitvector implementation:
+            "simple", "epoch_days", "hybrid", or "alpha_beta".
         implementation: Implementation type - "int" or "bitvector"
         timeout_ms: Timeout in milliseconds (default: 600000 = 10 minutes)
         verbose: If True, print results to stdout (default: True)
+        use_maxsat: If True, use MaxSAT soft constraints preferring dates near today
+        python_bounds: If True, bound every date variable and every intermediate
+            Date + Period result to Python's datetime.date range (years 1..9999),
+            and handle every concrete Date (literals in the constraints, results)
+            through datetime, exactly as the original implementation did; a
+            concrete date outside the range raises as datetime does. By default
+            (False) dates are unbounded: any calendar-valid proleptic Gregorian
+            date is allowed, concrete dates use integer arithmetic, and the Date
+            objects in the result may have years below 1 or above 9999 (use
+            Date.to_python_date() only inside Python's range). Int implementation only.
         router_model: For approach "router", the path of the model file to route by
             (default: $DATESAT_ROUTER_MODEL, else the model bundled with DateSat). It is
             loaded once per process and path, outside the timed region.
     
     Returns:
         Dictionary with:
-            - status: "sat" or "unsat"
+            - status: "sat", "unsat" or "timeout"
             - dates: Dict mapping date variable names to Date objects (if sat)
             - ints: Dict mapping int variable names to int values (if sat)
             - bools: Dict mapping bool variable names to bool values (if sat)
@@ -61,6 +80,7 @@ def solve(
             - routed_to: For approach "router", the encoding the router picked
             - routing_time: For approach "router", seconds spent picking it (part of
               execution_time)
+            - python_bounds: Whether the 1..9999 bound was applied
     
     Examples:
         >>> # API usage
@@ -119,13 +139,17 @@ def solve(
             approach=builder_approach,
             implementation=implementation,
             timeout_ms=timeout_ms,
-            use_maxsat=use_maxsat
+            use_maxsat=use_maxsat,
+            python_bounds=python_bounds,
         )
     
-    # Set up execution context with all necessary imports and the builder factory
+    # Set up execution context with all necessary imports and the builder factory.
+    # With python_bounds, the Date literals of the constraint code (and so every
+    # concrete Date + Period result) take the datetime path, as the original
+    # implementation did.
     exec_globals = {
         "DateSATBuilder": create_builder,
-        "Date": Date,
+        "Date": _PythonBoundedDate if python_bounds else Date,
         "Period": Period,
     }
     
@@ -135,7 +159,7 @@ def solve(
     except ValueError as e:
         # Check if this is a date out of bounds error
         if "Date outside allowed range" in str(e):
-            # Intermediate date went out of bounds - add a False constraint to make it UNSAT
+            # A concrete date went out of bounds - add a False constraint to make it UNSAT
             builder = exec_globals.get("builder")
             if builder:
                 builder.add_constraint(BoolVal(False))
@@ -183,6 +207,7 @@ def solve(
         "solve_time": execution_time - build_time,
         "approach": approach,
         "implementation": implementation,
+        "python_bounds": python_bounds,
     }
     if routed_to is not None:
         result["routed_to"] = routed_to

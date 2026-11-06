@@ -6,7 +6,6 @@ import pytest
 # so use the bounded Date/Period at the interface for consistency.
 from future_work.datesat_bounded.core import Date, Period
 from future_work.datesat_bounded.bitvector.alpha_beta_bv import AlphaBetaSolver
-from future_work.datesat_bounded.bitvector.alpha_beta_table_bv import AlphaBetaTableSolver
 from future_work.datesat_bounded.bitvector.simple_bv import SimpleSolver
 from future_work.datesat_bounded.bitvector.epoch_days_bv import EpochDaysSolver
 from future_work.datesat_bounded.bitvector.hybrid_bv import HybridSolver
@@ -120,20 +119,6 @@ def test_stepwise_multi_op_alpha_beta_matches_python(base: Date, seq: list[Perio
     assert res["dates"]["y"] == expected
 
 
-@pytest.mark.parametrize("base,seq", MULTI_OP_CASES)
-@pytest.mark.alpha_beta_table
-@pytest.mark.bitvector
-def test_stepwise_multi_op_alpha_beta_table_matches_python(
-    base: Date, seq: list[Period]
-):
-    expected = _apply_sequence_python(base, seq)
-    res = _solve_with_solver(AlphaBetaTableSolver, base, seq)
-    assert res["status"] == "sat"
-    assert res["dates"]["y"] == expected
-
-
-
-
 # sub sequence: implement each addition via subtracting the negated period.
 # If any intermediate step would go out of domain, the solver should report UNSAT.
 @pytest.mark.parametrize("base,seq", MULTI_OP_CASES)
@@ -174,19 +159,6 @@ def test_stepwise_multi_op_sub_hybrid_matches_python(base: Date, seq: list[Perio
 @pytest.mark.bitvector
 def test_stepwise_multi_op_sub_alpha_beta_matches_python(base: Date, seq: list[Period]):
     res = _solve_with_solver_sub(AlphaBetaSolver, base, seq)
-    if res["status"] == "unsat":
-        return
-    expected = _apply_sequence_python(base, seq)
-    assert res["dates"]["y"] == expected
-
-
-@pytest.mark.parametrize("base,seq", MULTI_OP_CASES)
-@pytest.mark.alpha_beta_table
-@pytest.mark.bitvector
-def test_stepwise_multi_op_sub_alpha_beta_table_matches_python(
-    base: Date, seq: list[Period]
-):
-    res = _solve_with_solver_sub(AlphaBetaTableSolver, base, seq)
     if res["status"] == "unsat":
         return
     expected = _apply_sequence_python(base, seq)

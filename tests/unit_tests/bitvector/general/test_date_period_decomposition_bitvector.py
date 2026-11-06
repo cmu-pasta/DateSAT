@@ -7,7 +7,6 @@ from dateutil.relativedelta import relativedelta
 # so use the bounded Date/Period at the interface for consistency.
 from future_work.datesat_bounded.core import Date, Period
 from future_work.datesat_bounded.bitvector.alpha_beta_bv import AlphaBetaSolver
-from future_work.datesat_bounded.bitvector.alpha_beta_table_bv import AlphaBetaTableSolver
 from future_work.datesat_bounded.bitvector.simple_bv import SimpleSolver
 from future_work.datesat_bounded.bitvector.epoch_days_bv import EpochDaysSolver
 from future_work.datesat_bounded.bitvector.hybrid_bv import HybridSolver
@@ -288,27 +287,6 @@ def test_alpha_beta_matches_java_decomposed(
     ), f"Alpha_beta order {label}: {base} + {per} -> {got}, expected {expect}"
 
 
-@pytest.mark.parametrize(
-    "base,per,label,seq",
-    [
-        pytest.param(base, per, label, seq, id=f"alpha_beta_table_{base}+{per}_{label}")
-        for base, per, label, seq in all_decomposed_cases()
-    ],
-)
-@pytest.mark.alpha_beta_table
-@pytest.mark.bitvector
-def test_alpha_beta_table_matches_java_decomposed(
-    base: Date, per: Period, label: str, seq: list[Period]
-):
-    expect = python_date_plus_sequence(base, seq, label)
-    model = _solve_decomposed_with_solver(AlphaBetaTableSolver, base, seq)
-    assert model["status"] == "sat"
-    got = model["dates"]["y"]
-    assert (
-        got == expect
-    ), f"alpha_beta_table order {label}: {base} + {per} -> {got}, expected {expect}"
-
-
 # sub decomposed: implement each addition via subtracting the negated period.
 # If sequence is out of domain under the model, solver should report UNSAT.
 @pytest.mark.parametrize(
@@ -397,27 +375,3 @@ def test_alpha_beta_sub_matches_java_decomposed(
     assert (
         got == expect
     ), f"Alpha_beta sub {label}: {base} + {per} -> {got}, expected {expect}"
-
-
-@pytest.mark.parametrize(
-    "base,per,label,seq",
-    [
-        pytest.param(
-            base, per, label, seq, id=f"alpha_beta_table_sub_{base}+{per}_{label}"
-        )
-        for base, per, label, seq in all_decomposed_cases()
-    ],
-)
-@pytest.mark.alpha_beta_table
-@pytest.mark.bitvector
-def test_alpha_beta_table_sub_matches_java_decomposed(
-    base: Date, per: Period, label: str, seq: list[Period]
-):
-    model = _solve_decomposed_with_solver_sub(AlphaBetaTableSolver, base, seq)
-    if model["status"] == "unsat":
-        return
-    expect = python_date_plus_sequence(base, seq, label)
-    got = model["dates"]["y"]
-    assert (
-        got == expect
-    ), f"alpha_beta_table sub {label}: {base} + {per} -> {got}, expected {expect}"
