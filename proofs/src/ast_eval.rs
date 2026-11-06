@@ -9,7 +9,7 @@ verus! {
     pub struct Environment {
         pub int_vars: Map<Identifier, int>,
         pub bool_vars: Map<Identifier, bool>,
-        pub date_vars: Map<Identifier, SimpleDate>,
+        pub date_vars: Map<Identifier, Date>,
     }
 
     pub struct Ast {
@@ -65,7 +65,7 @@ verus! {
             decreases self,
         {
             match self {
-                DateExpr::Literal(y, m, d) => SimpleDate(y, m, d).is_valid(),
+                DateExpr::Literal(y, m, d) => Date(y, m, d).is_valid(),
                 DateExpr::Var(_) => true,
                 DateExpr::Add(base, _) => base.is_well_formed(),
             }
