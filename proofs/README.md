@@ -173,7 +173,7 @@ pub struct Date { year: int, month: int, day: int }
 pub struct SimpleDate { year: int, month: int, day: int }
 ```
 
-**EpochDelta** — represents a date as the number of days since March 1, 2000. Conversions in both directions use closed-form formulas with a constant number of divisions; the conversion back to (year, month, day) splits the delta into 400-year cycles, years, and days of the year. See [`src/epoch_delta.rs`](src/epoch_delta.rs).
+**EpochDelta** — represents a date as the number of days since March 1, 2000. Conversions in both directions use closed-form formulas with a constant number of divisions; the conversion back to (year, month, day) follows the Python decoder, splitting the delta into 400-year cycles, centuries, 4-year blocks, years, and days of the year. See [`src/epoch_delta.rs`](src/epoch_delta.rs).
 
 ```rust
 pub struct EpochDelta { delta: int }
