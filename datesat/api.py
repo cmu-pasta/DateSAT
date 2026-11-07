@@ -26,7 +26,7 @@ class DateSATBuilder:
         """Initialize the builder with the specified approach, implementation, and timeout.
 
         Args:
-            approach: Either "simple", "epoch_days", "hybrid_init_ymd", "hybrid_init_epoch", or "alpha_beta"
+            approach: Either "simple", "simple_new", "epoch_days", "epoch_new", "hybrid_init_ymd", "hybrid_init_epoch", or "alpha_beta"
             implementation: Either "int" or "bitvector" (default: "int")
             timeout_ms: Timeout in milliseconds (default: 600000 = 10 minutes)
             use_maxsat: If True, use MaxSAT optimization with soft constraints for dates near today
@@ -82,12 +82,18 @@ class DateSATBuilder:
             from .symbolic_int.epoch_days_int import EpochDaysSolver
             from .symbolic_int.hybrid_init_epoch_int import HybridInitEpochSolver
             from .symbolic_int.hybrid_init_ymd_int import HybridInitYmdSolver
+            from .symbolic_int.simple_new_int import SimpleNewSolver
+            from .symbolic_int.epoch_new_int import EpochNewSolver
 
             kwargs = dict(timeout_ms=timeout_ms, use_maxsat=use_maxsat, python_bounds=python_bounds)
             if approach == "simple":
                 self.solver = SimpleSolver(**kwargs)
+            elif approach == "simple_new":
+                self.solver = SimpleNewSolver(**kwargs)
             elif approach == "epoch_days":
                 self.solver = EpochDaysSolver(**kwargs)
+            elif approach == "epoch_new":
+                self.solver = EpochNewSolver(**kwargs)
             elif approach == "hybrid_init_ymd":
                 self.solver = HybridInitYmdSolver(**kwargs)
             elif approach == "hybrid_init_epoch":
@@ -96,7 +102,7 @@ class DateSATBuilder:
                 self.solver = AlphaBetaSolver(**kwargs)
             else:
                 raise ValueError(
-                    f"Unknown approach for int: {approach}. Must be 'simple', 'epoch_days', 'hybrid_init_ymd', 'hybrid_init_epoch', or 'alpha_beta'"
+                    f"Unknown approach for int: {approach}. Must be 'simple', 'simple_new', 'epoch_days', 'epoch_new', 'hybrid_init_ymd', 'hybrid_init_epoch', or 'alpha_beta'"
                 )
         else:
             raise ValueError(
