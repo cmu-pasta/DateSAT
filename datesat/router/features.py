@@ -324,7 +324,7 @@ def features_for(entry, corpus):
     f["n_free_int_vars"] = len([v for v in declared["int"] if v not in pinned])
     f["n_free_bool_vars"] = len([v for v in declared["bool"] if v not in pinned])
     f["pinned_var_frac"] = (len(pinned) / n_vars) if n_vars else 0.0
-    for s in ("date", "int", "bool"):
+    for s in ("date", "int"):
         n_s = len(declared[s])
         n_pinned_s = sum(1 for v in declared[s] if v in pinned)
         f[f"pinned_{s}_frac"] = (n_pinned_s / n_s) if n_s else 0.0
@@ -380,11 +380,9 @@ def features_for(entry, corpus):
 
     # ---- date arithmetic ----------------------------------------------
     all_adds = [n for t in trees for n in walk(t) if isinstance(n, DateAdd)]
-    ground_adds = [n for n in all_adds if is_ground_date(n)]
     live = [n for n in all_adds if not is_ground_date(n)]
 
     f["n_date_period_ops"] = len(live)
-    f["ground_arith_frac"] = (len(ground_adds) / len(all_adds)) if all_adds else 0.0
 
     f["max_abs_years"] = max((abs(n.period.ny) for n in live), default=0)
     f["max_abs_months"] = max((abs(n.period.nm) for n in live), default=0)
@@ -496,14 +494,14 @@ ENCODING_COSTS = [
 FEATURE_GROUPS = [
     ("Search space", [
         "n_free_date_vars", "n_free_int_vars", "n_free_bool_vars", "pinned_var_frac",
-        "pinned_date_frac", "pinned_int_frac", "pinned_bool_frac", "n_date_subexprs"]
+        "pinned_date_frac", "pinned_int_frac", "n_date_subexprs"]
         + VARIABLE_COUPLING),
     ("Boolean skeleton", [
         "n_atoms", "n_date_comparisons", "n_int_comparisons", "ordering_cmp_frac",
         "n_case_splits", "max_disjunction_width", "bool_alternation_depth",
         "implication_atom_frac", "neg_ordering_frac", "n_unit_constraints"]),
     ("Date arithmetic", [
-        "n_date_period_ops", "ground_arith_frac", "max_abs_years", "max_abs_months",
+        "n_date_period_ops", "max_abs_years", "max_abs_months",
         "max_abs_days", "mixed_frac", "max_date_chain_len"]
         + ARITHMETIC_STRUCTURE),
     ("Component extraction", [
