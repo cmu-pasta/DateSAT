@@ -1,15 +1,31 @@
 """
-Pure-Python constraint validation for solved assignments.
+Constraint validation for solved assignments.
 
 This module executes generated constraint code using a lightweight builder that
 supports date, int, and bool variables, and then evaluates all constraints
 against a provided concrete solution (no solving capability).
+
+The date operations (validity, ordering, Date + Period) follow one of two
+semantics:
+
+  * "verus": the Verus oracle (proofs/src/oracle.rs), the executable reference
+    semantics, proved equal to semantics::Date in proofs/src/semantics.rs. A model
+    validated this way satisfies the constraints under the semantics the
+    equisatisfiability proofs are about.
+  * "python": datesat.core.Date, an independent Python implementation of the same
+    calendar.
+
+"auto" (the default) uses the Verus oracle when it is built and falls back to
+Python with a warning otherwise. DATESAT_VALIDATION_SEMANTICS overrides the default.
+Booleans, integers and date components are evaluated in Python either way.
 """
 
+import os
 from typing import Any, Dict, Optional, Tuple, Union
 import warnings
 
 from .core import Date, Period, PYTHON_YEAR_MAX, PYTHON_YEAR_MIN
+from . import verus_oracle
 from future_work.datesat_bounded.enumeration_baseline import (
     ConstraintWrapper,
     Or_enumeration,
@@ -38,14 +54,111 @@ def _in_python_range(d: Date) -> bool:
     return _YEAR_MIN <= d.year <= _YEAR_MAX
 
 
-def _add_period(d: Date, years: int, months: int, days: int) -> Date:
-    """Date + Period with the solver's semantics.
+# ── Date semantics ─────────────────────────────────────────────────────────
 
-    Add years and months, clamp the day to the end of the month, then add days.
-    Date arithmetic is defined for every year, so this never raises; the range
-    check under python_bounds is done by validate_constraint_solution().
-    """
-    return d + Period(years, months, days)
+class SemanticsDisagreement(RuntimeError):
+    """The Verus oracle accepted a date that datesat.core.Date rejects."""
+
+
+class _PythonSemantics:
+    name = "python"
+
+    def make_date(self, y: int, m: int, d: int) -> Optional[Date]:
+        try:
+            return Date(y, m, d)
+        except ValueError:
+            return None
+
+    def lt(self, a: Date, b: Date) -> bool:
+        return a < b
+
+    def add_period(self, d: Date, years: int, months: int, days: int) -> Date:
+        return d + Period(years, months, days)
+
+
+class _VerusSemantics:
+    """Every date operation is answered by the Verus oracle. Dates are still held in
+    datesat.core.Date objects, which only carry (y, m, d); constructing one from a
+    date the oracle accepts raises SemanticsDisagreement if Python disagrees."""
+
+    name = "verus"
+
+    def __init__(self, oracle: "verus_oracle.VerusOracle"):
+        self.oracle = oracle
+
+    @staticmethod
+    def _hold(y: int, m: int, d: int) -> Date:
+        try:
+            return Date(y, m, d)
+        except ValueError as e:
+            raise SemanticsDisagreement(
+                f"Verus oracle accepts {y}-{m}-{d} but datesat.core.Date rejects it") from e
+
+    def make_date(self, y: int, m: int, d: int) -> Optional[Date]:
+        return self._hold(y, m, d) if self.oracle.is_valid(y, m, d) else None
+
+    def lt(self, a: Date, b: Date) -> bool:
+        return self.oracle.lt(a._ymd(), b._ymd())
+
+    def add_period(self, d: Date, years: int, months: int, days: int) -> Date:
+        return self._hold(*self.oracle.add_period(d._ymd(), years, months, days))
+
+
+_PYTHON = _PythonSemantics()
+_SEMANTICS: Any = _PYTHON
+_warned_fallback = False
+
+
+def _select_semantics(semantics: Optional[str]):
+    global _warned_fallback
+    if semantics is None:
+        semantics = os.environ.get("DATESAT_VALIDATION_SEMANTICS", "auto")
+    if semantics == "python":
+        return _PYTHON
+    if semantics == "verus":
+        if not verus_oracle.oracle_available():
+            raise verus_oracle.OracleUnavailable(
+                f"semantics='verus' but the Verus oracle is not built at {verus_oracle.oracle_path()}")
+        return _VerusSemantics(verus_oracle.shared_oracle())
+    if semantics == "auto":
+        if verus_oracle.oracle_available():
+            return _VerusSemantics(verus_oracle.shared_oracle())
+        if not _warned_fallback:
+            warnings.warn(
+                f"Verus oracle not built at {verus_oracle.oracle_path()}; validating with "
+                "datesat.core.Date instead (pass semantics='verus' to require the oracle)")
+            _warned_fallback = True
+        return _PYTHON
+    raise ValueError(f"unknown semantics {semantics!r}: expected 'verus', 'python' or 'auto'")
+
+
+def _make_date(y: int, m: int, d: int) -> Optional[Date]:
+    """The date (y, m, d), or None if it is not a valid date."""
+    return _SEMANTICS.make_date(y, m, d)
+
+
+def _compare(op: str, a: Date, b: Date) -> bool:
+    eq = a._ymd() == b._ymd()  # equality is component-wise in every semantics
+    if op == "eq":
+        return eq
+    if op == "ne":
+        return not eq
+    if op == "lt":
+        return _SEMANTICS.lt(a, b)
+    if op == "le":
+        return eq or _SEMANTICS.lt(a, b)
+    if op == "gt":
+        return _SEMANTICS.lt(b, a)
+    if op == "ge":
+        return eq or _SEMANTICS.lt(b, a)
+    raise ValueError(op)
+
+
+def _add_period(d: Date, years: int, months: int, days: int) -> Date:
+    """Date + Period: add years and months, clamp the day to the end of the month,
+    then add days. Defined for every year; the range check under python_bounds is
+    done by validate_constraint_solution()."""
+    return _SEMANTICS.add_period(d, years, months, days)
 
 
 class EvalDateVar:
@@ -55,10 +168,7 @@ class EvalDateVar:
         self._lazy_op = None  # ("add"|"sub", EvalDateVar, Period)
 
     def set_value(self, year: int, month: int, day: int) -> None:
-        try:
-            self._value = Date(year, month, day)
-        except ValueError:
-            self._value = None
+        self._value = _make_date(year, month, day)
 
     def clear_value(self) -> None:
         self._value = None
@@ -92,7 +202,7 @@ class EvalDateVar:
                 rhs_val = other.get_value()
             if rhs_val is None:
                 return False
-            return getattr(lhs, f"__{op}__")(rhs_val)
+            return _compare(op, lhs, rhs_val)
 
         concrete_value = other if isinstance(other, Date) else None
         return ConstraintWrapper(
@@ -761,16 +871,19 @@ class EvalBuilder:
                     d = day_var.get_value() if isinstance(day_var, EvalIntVar) else day_var
                     if y is None or m is None or d is None:
                         return None
-                    try:
-                        return Date(int(y), int(m), int(d))
-                    except ValueError:
-                        return None
+                    return _make_date(int(y), int(m), int(d))
                 
                 lazy_date.get_value = get_date_value  # type: ignore
                 return lazy_date
             else:
-                # All concrete values, can create Date immediately
-                return Date(int(year), int(month), int(day))
+                # A concrete literal. It is wrapped in an EvalDateVar so that comparing
+                # it, or adding a Period to it, also goes through the semantics.
+                value = _make_date(int(year), int(month), int(day))
+                if value is None:
+                    raise ValueError(f"Invalid date: Date({year}, {month}, {day})")
+                literal = EvalDateVar(f"Date({year}, {month}, {day})")
+                literal.get_value = lambda: value  # type: ignore
+                return literal
 
         return {
             "Date": DateWrapper,
@@ -794,7 +907,10 @@ def _parse_date_string(date_str: str) -> Date:
         if len(parts) != 3:
             raise ValueError(f"Unrecognized Date format: {date_str}")
         y, m, d = map(int, parts)
-        return Date(y, m, d)
+        value = _make_date(y, m, d)
+        if value is None:
+            raise ValueError(f"Invalid date: {date_str}")
+        return value
     raise ValueError(f"Unrecognized Date format: {date_str}")
 
 
@@ -825,7 +941,10 @@ def _parse_solution_value(raw: Any) -> Any:
 
 
 def validate_constraint_solution(
-    constraint_code: str, solution: Dict[str, Any], python_bounds: bool = False
+    constraint_code: str,
+    solution: Dict[str, Any],
+    python_bounds: bool = False,
+    semantics: Optional[str] = None,
 ) -> Tuple[bool, str]:
     """
     Execute constraint_code with a validation-only builder and evaluate
@@ -835,7 +954,28 @@ def validate_constraint_solution(
     value and every Date + Period result must lie in years 1..9999, wherever the
     expression appears; otherwise the model is rejected. By default any
     calendar-valid proleptic Gregorian date is accepted.
+
+    semantics selects how date operations are evaluated: "verus" (the Verus oracle,
+    required), "python" (datesat.core.Date) or "auto" (the oracle if built,
+    otherwise Python). None means $DATESAT_VALIDATION_SEMANTICS, or "auto".
     """
+    global _SEMANTICS
+    _SEMANTICS = _select_semantics(semantics)
+    try:
+        return _validate(constraint_code, solution, python_bounds)
+    finally:
+        _SEMANTICS = _PYTHON
+
+
+def validation_semantics(semantics: Optional[str] = None) -> str:
+    """The semantics validate_constraint_solution(semantics=...) would use: "verus" or
+    "python"."""
+    return _select_semantics(semantics).name
+
+
+def _validate(
+    constraint_code: str, solution: Dict[str, Any], python_bounds: bool
+) -> Tuple[bool, str]:
     _DERIVED_DATES.clear()
     builder = EvalBuilder()
     ctx = builder.get_execution_context()
@@ -849,13 +989,18 @@ def validate_constraint_solution(
 
     # Set values
     for var_name, raw_val in solution.items():
-        parsed = _parse_solution_value(raw_val)
+        try:
+            parsed = _parse_solution_value(raw_val)
+        except (ValueError, SemanticsDisagreement) as e:
+            return False, f"Variable {var_name}: {e}"
         if var_name in solver.date_vars:
             if not isinstance(parsed, Date):
                 return False, f"Variable {var_name} expects Date, got {parsed}"
             if python_bounds and not _in_python_range(parsed):
                 return False, f"Variable {var_name} = {parsed} is outside years 1..9999"
             solver.date_vars[var_name].set_value(parsed.year, parsed.month, parsed.day)
+            if solver.date_vars[var_name].get_value() is None:
+                return False, f"Variable {var_name} = {parsed} is not a valid date"
         elif var_name in solver.int_vars:
             if not isinstance(parsed, int):
                 return False, f"Variable {var_name} expects int, got {parsed}"
@@ -873,7 +1018,10 @@ def validate_constraint_solution(
     # even when that result is negated or sits in a disjunct that is never evaluated.
     if python_bounds:
         for derived in _DERIVED_DATES:
-            value = derived.get_value()
+            try:
+                value = derived.get_value()
+            except ArithmeticError as e:
+                return False, f"Error computing {derived.name}: {e}"
             if value is not None and not _in_python_range(value):
                 return False, f"Date + Period result out of range: {derived.name} = {value}"
 

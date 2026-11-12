@@ -1,8 +1,8 @@
 # Spec adequacy and transcription checks
 
 The Verus proofs in [`proofs/`](../../proofs) show that the encodings are
-equisatisfiable with a *reference* date semantics (`SimpleDate` in
-`simple_date.rs`). Nothing proves that the reference semantics describes the real
+equisatisfiable with a *reference* date semantics (`Date` in
+`semantics.rs`). Nothing proves that the reference semantics describes the real
 calendar. And the implementation checks in
 [`tests/translation_validation/`](../translation_validation) compare Python against
 a hand transcription of that spec. This directory checks both links against a
@@ -75,7 +75,7 @@ spec has no range and could still end inside it.
 
 **Result:** the reference semantics agrees with both libraries on every case.
 
-What this shows: `SimpleDate` is the proleptic Gregorian calendar, and `add_period`
+What this shows: the reference semantics is the proleptic Gregorian calendar, and `add_period`
 follows the add-years-and-months, clamp-to-end-of-month, then add-days convention
 of `relativedelta` and `java.time`. Other libraries use other conventions, for
 example not clamping, which sends Jan 31 + 1 month to early March. This is
