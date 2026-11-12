@@ -3,15 +3,16 @@ use vstd::math::*;
 use vstd::arithmetic::div_mod::lemma_fundamental_div_mod_converse;
 use crate::*;
 
-// Executable counterparts of the reference spec functions, used as a test oracle
-// (see tests/spec_adequacy/). Each one is proved to agree with its spec function
+// Executable counterparts of the reference semantics (semantics::Date), used as a
+// test oracle (see tests/spec_adequacy/) and to validate solver models
+// (datesat/constraint_validator.py). Each one is proved to agree with its spec function
 // whenever it returns Some; it returns None only when a machine-integer operation
 // would overflow, so there are no overflow proofs. That the oracle returns Some on
 // every tested input is checked by the tests, not proved.
 
 verus! {
 
-    /// An executable SimpleDate.
+    /// An executable semantics::Date.
     pub struct XDate {
         pub y: i64,
         pub m: i64,
@@ -19,8 +20,8 @@ verus! {
     }
 
     impl XDate {
-        pub open spec fn view(self) -> SimpleDate {
-            SimpleDate(self.y as int, self.m as int, self.d as int)
+        pub open spec fn view(self) -> Date {
+            Date(self.y as int, self.m as int, self.d as int)
         }
     }
 
@@ -142,7 +143,7 @@ verus! {
     }
 
     pub fn x_from_simple_date(x: XDate) -> (res: Option<i64>)
-        ensures res matches Some(v) ==> v as int == EpochDelta::from_simple_date(x@).delta(),
+        ensures res matches Some(v) ==> v as int == EpochDelta::from_date(x@).delta(),
     {
         let ye = (if x.m <= 2 { x.y.checked_sub(1)? } else { x.y }).checked_sub(2000)?;
         let (q4, _) = x_ediv(ye, 4)?;
@@ -158,6 +159,8 @@ verus! {
     pub fn x_epoch_to_ymd(delta: i64) -> (res: Option<XDate>)
         ensures res matches Some(v) ==> v@ == EpochDelta(delta as int).to_ymd(),
     {
+        // to_ymd is a closed-form decoder; it equals EPOCH.add_days(delta).
+        proof { lemma_to_ymd_is_epoch_add_days(EpochDelta(delta as int)); }
         x_add_days(XDate { y: 2000, m: 3, d: 1 }, delta)
     }
 
@@ -176,8 +179,8 @@ verus! {
     }
 
     pub fn x_ab_from_simple_date(x: XDate) -> (res: Option<(i64, i64)>)
-        ensures res matches Some((a, b)) ==> a as int == AlphaBeta::from_simple_date(x@).alpha()
-                                            && b as int == AlphaBeta::from_simple_date(x@).beta(),
+        ensures res matches Some((a, b)) ==> a as int == AlphaBeta::from_date(x@).alpha()
+                                            && b as int == AlphaBeta::from_date(x@).beta(),
     {
         let ye = (if x.m <= 2 { x.y.checked_sub(1)? } else { x.y }).checked_sub(2000)?;
         let me = if x.m <= 2 { x.m.checked_add(9)? } else { x.m.checked_sub(3)? };
@@ -194,7 +197,8 @@ verus! {
 /// Line-oriented driver for the compiled oracle. Not verified: it only parses
 /// integers, calls the functions above, and prints their results. Each input line
 /// is `op arg...`; each output line is the result, or `none` when the oracle
-/// returned None.
+/// returned None. Output is buffered; a blank input line flushes it, so a client
+/// can ask one question at a time.
 mod driver {
     use super::*;
     use std::io::{BufRead, BufWriter, Write};
@@ -239,7 +243,9 @@ mod driver {
         let mut out = BufWriter::new(std::io::stdout().lock());
         for line in stdin.lock().lines() {
             let line = line.expect("read stdin");
-            if !line.trim().is_empty() {
+            if line.trim().is_empty() {
+                out.flush().expect("flush stdout");
+            } else {
                 writeln!(out, "{}", eval(&line)).expect("write stdout");
             }
         }

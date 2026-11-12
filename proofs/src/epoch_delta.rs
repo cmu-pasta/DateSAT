@@ -1,4 +1,5 @@
 use vstd::prelude::*;
+use vstd::arithmetic::div_mod::lemma_mod_multiples_vanish;
 use crate::*;
 
 verus! {
@@ -215,6 +216,11 @@ verus! {
         assert(k/100 - (k-1)/100 == if k%100 == 0 { 1int } else { 0 });
         lemma_div_step(k, 400);
         assert(k/400 - (k-1)/400 == if k%400 == 0 { 1int } else { 0 });
+        // leap(k + 2000) depends on k only through k % 4, k % 100 and k % 400.
+        lemma_mod_multiples_vanish(500, k, 4);
+        lemma_mod_multiples_vanish(20, k, 100);
+        lemma_mod_multiples_vanish(5, k, 400);
+        assert((k + 2000) % 4 == k % 4 && (k + 2000) % 100 == k % 100 && (k + 2000) % 400 == k % 400);
         assert(leap_correction(k) - leap_correction(k-1)
             == (k/4 - (k-1)/4) - (k/100 - (k-1)/100) + (k/400 - (k-1)/400));
     }
