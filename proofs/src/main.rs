@@ -49,40 +49,40 @@ verus! {
     pub spec const EPOCH : Date = Date(2000, 3, 1);
 
     fn main() {
-        // Theorem 1: Well-formedness of Date-Period Addition
+        // Theorem 3.5: Normalization and Well-Formedness of Date-Period Addition
         assert forall|d: Date, p: Period| #![auto]
             d.is_valid() implies d.add_period(p).is_valid() by { theorem_date_add_period_preserves_validity(d, p); }
 
-        // Theorem 2: Monotonicity of Date-Period Addition
+        // Property 3.6: Monotonicity of Date-Period Addition
         assert forall|d1: Date, d2: Date, p: Period| #![auto]
             d1.is_valid() && d2.is_valid() && d1.leq(d2) implies
                 d1.add_period(p).leq(d2.add_period(p)) by { theorem_date_add_period_is_monotonic(d1, d2, p); }
 
-        // Theorem 3: SimpleDate equisatisfiability
+        // Theorem 4.2: Equisatisfiability of Simple encoding
         assert forall|ast: Ast| #![auto]
             ast.is_well_formed() implies
                 ast.is_sat::<Date>() == ast.is_sat::<SimpleDate>()
             by { theorem_ast_simple_date_equisat(ast); }
 
-        // Theorem 4: EpochDelta equisatisfiability
+        // Theorem 4.3: Equisatisfiability of Epoch-based encoding
         assert forall|ast: Ast| #![auto]
             ast.is_well_formed() implies
                 ast.is_sat::<Date>() == ast.is_sat::<EpochDelta>()
             by { theorem_ast_epoch_delta_equisat(ast); }
 
-        // Theorem 5a: Hybrid (YMD-initial) equisatisfiability
+        // Theorem 4.4: Equisatisfiability of Hybrid (init_ymd) encoding
         assert forall|ast: Ast| #![auto]
             ast.is_well_formed() implies
                 ast.is_sat::<Date>() == ast.is_sat::<hybrid_ymd::Hybrid>()
             by { theorem_ast_hybrid_ymd_equisat(ast); }
 
-        // Theorem 5b: Hybrid (epoch-initial) equisatisfiability
+        // Theorem 4.5: Equisatisfiability of Hybrid (init_epoch) encoding
         assert forall|ast: Ast| #![auto]
             ast.is_well_formed() implies
                 ast.is_sat::<Date>() == ast.is_sat::<hybrid_epoch::Hybrid>()
             by { theorem_ast_hybrid_epoch_equisat(ast); }
 
-        // Theorem 6: AlphaBeta equisatisfiability
+        // Theorem 4.6: Equisatisfiability of Alpha-Beta encoding
         assert forall|ast: Ast| #![auto]
             ast.is_well_formed() implies
                 ast.is_sat::<Date>() == ast.is_sat::<AlphaBeta>()
