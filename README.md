@@ -1,8 +1,5 @@
 # DateSAT: A Framework for Solving Date and Period Constraints
 
-[![CI Badge](https://github.com/cmu-pasta/DateSAT/actions/workflows/ci.yml/badge.svg)](https://github.com/cmu-pasta/DateSAT/actions/workflows/ci.yml)
-[![Coverage Badge](https://pastalab.org/DateSAT/badge.svg)](https://pastalab.org/DateSAT/)
-
 ## Overview
 
 DateSAT provides implementations to multiple encodings strategies for solving date and calendar period constraints. It encodes DateSAT constraints into Z3 integer constraints for efficient symbolic analysis.
