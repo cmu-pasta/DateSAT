@@ -293,29 +293,6 @@ def invalid_period_format_tuple(request):
     return request.param
 
 
-# Autouse session fixture to import all modules under `datesat_int` so coverage includes files
-import importlib
-import pkgutil
-
-
-@pytest.fixture(autouse=True, scope="session")
-def _import_all_datesat_modules():
-    try:
-        pkg = importlib.import_module("datesat_int")
-        if hasattr(pkg, "__path__"):
-            for _, name, _ in pkgutil.walk_packages(
-                pkg.__path__, prefix="datesat_int."
-            ):
-                try:
-                    importlib.import_module(name)
-                except Exception:
-                    # Ignore optional or platform-specific modules that may fail to import
-                    pass
-    except Exception:
-        # If the root package itself fails to import, let tests proceed; failures will surface elsewhere
-        pass
-
-
 # Ensure general core_data_structures tests run under any solver mark filter
 def pytest_collection_modifyitems(config, items):
     try:
@@ -332,7 +309,6 @@ def pytest_collection_modifyitems(config, items):
         ):
             item.add_marker("simple")
             item.add_marker("epoch_days")
-            item.add_marker("hybrid")
             item.add_marker("hybrid_init_ymd")
             item.add_marker("hybrid_init_epoch")
             item.add_marker("alpha_beta")

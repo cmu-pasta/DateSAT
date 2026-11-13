@@ -34,7 +34,6 @@ def solve(
     declarations: list[str],
     constraints: list[str],
     approach: str = "epoch_days",
-    implementation: str = "int",
     timeout_ms: int = 600000,
     python_bounds: bool = False,
 ) -> dict:
@@ -68,14 +67,9 @@ def solve(
         approach: Solver approach to use. Options:
                  - "epoch_days" (default, recommended): Convert dates to days since epoch
                  - "simple": Direct encoding of date arithmetic
-                 - "hybrid_init_ymd": Hybrid encoding whose variables start in Y/M/D (int only)
-                 - "hybrid_init_epoch": Hybrid encoding whose variables start in epoch days (int only)
-                 - "hybrid": Hybrid encoding (bitvector only)
+                 - "hybrid_init_ymd": Hybrid encoding whose variables start in Y/M/D
+                 - "hybrid_init_epoch": Hybrid encoding whose variables start in epoch days
                  - "alpha_beta": Alpha-beta encoding for optimized arithmetic
-
-        implementation: Implementation type for Z3 encoding. Options:
-                       - "int" (default): Use integer arithmetic
-                       - "bitvector": Use bitvector arithmetic
 
         timeout_ms: Solver timeout in milliseconds (default: 600000 = 10 minutes)
 
@@ -127,23 +121,12 @@ def solve(
         - Periods are unbounded integers
         - date - date is not supported (use periods instead)
     """
-    # Validate implementation
-    valid_implementations = ["int", "bitvector"]
-    if implementation not in valid_implementations:
-        return {
-            "status": "error",
-            "error": f"Invalid implementation '{implementation}'. Must be one of: {valid_implementations}"
-        }
-
     # Validate approach
-    if implementation == "int":
-        valid_approaches = ["simple", "epoch_days", "hybrid_init_ymd", "hybrid_init_epoch", "alpha_beta"]
-    else:
-        valid_approaches = ["simple", "epoch_days", "hybrid", "alpha_beta"]
+    valid_approaches = ["simple", "epoch_days", "hybrid_init_ymd", "hybrid_init_epoch", "alpha_beta"]
     if approach not in valid_approaches:
         return {
             "status": "error",
-            "error": f"Invalid approach '{approach}' for implementation '{implementation}'. Must be one of: {valid_approaches}"
+            "error": f"Invalid approach '{approach}'. Must be one of: {valid_approaches}"
         }
 
     try:
@@ -153,7 +136,6 @@ def solve(
                 "constraints": constraints
             },
             approach=approach,
-            implementation=implementation,
             timeout_ms=timeout_ms,
             verbose=False,
             python_bounds=python_bounds,

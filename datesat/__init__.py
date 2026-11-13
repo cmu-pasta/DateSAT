@@ -8,14 +8,6 @@ from .api import DateSATBuilder
 from .core import Date, Period
 from .solver import solve, solve_from_json
 
-# Import bitvector implementations (moved to future_work/datesat_bounded/bitvector;
-# the code still works but is grouped with other bounded-domain variants that
-# are not discussed in the paper).
-from future_work.datesat_bounded.bitvector.simple_bv import SimpleSolver as BitVectorSimpleSolver
-from future_work.datesat_bounded.bitvector.epoch_days_bv import EpochDaysSolver as BitVectorEpochDaysSolver
-from future_work.datesat_bounded.bitvector.hybrid_bv import HybridSolver as BitVectorHybridSolver
-from future_work.datesat_bounded.bitvector.alpha_beta_bv import AlphaBetaSolver as BitVectorAlphaBetaSolver
-
 # Import integer implementations
 from .symbolic_int.simple_int import SimpleSolver as IntSimpleSolver
 from .symbolic_int.epoch_days_int import EpochDaysSolver as IntEpochDaysSolver
@@ -32,11 +24,6 @@ __all__ = [
     # High-level API
     "solve",
     "solve_from_json",
-    # Bitvector implementations
-    "BitVectorSimpleSolver",
-    "BitVectorEpochDaysSolver",
-    "BitVectorHybridSolver",
-    "BitVectorAlphaBetaSolver",
     # Integer implementations
     "IntSimpleSolver",
     "IntEpochDaysSolver",

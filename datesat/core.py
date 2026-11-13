@@ -164,11 +164,11 @@ class Date:
     def _defer_to(other) -> bool:
         """Whether a comparison with `other` should be handled by its reflected method.
 
-        Includes: symbolic DateVar, EvalDateVar (validation), EnumerationDateVar (baseline).
+        Includes: symbolic DateVar and EvalDateVar (validation).
         """
         other_cls = other.__class__
         other_name = other_cls.__name__
-        return (other_name in ("DateVar", "EvalDateVar", "EnumerationDateVar") or
+        return (other_name in ("DateVar", "EvalDateVar") or
                 (other_name == "DateVar" and getattr(other_cls, "__module__", "").startswith("datesat.symbolic")))
 
     def __eq__(self, other: "Date") -> bool:

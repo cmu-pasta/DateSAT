@@ -1,8 +1,8 @@
 """
 Unified API for DateSAT.
 
-This module provides a unified interface for both bitvector and integer
-approaches to DateSAT constraint solving.
+This module provides a unified interface to the DateSAT encodings, all of which
+translate into Z3 integer arithmetic.
 """
 
 from typing import Any, Dict, List, Union
@@ -27,7 +27,7 @@ class DateSATBuilder:
 
         Args:
             approach: Either "simple", "epoch_days", "hybrid_init_ymd", "hybrid_init_epoch", or "alpha_beta"
-            implementation: Either "int" or "bitvector" (default: "int")
+            implementation: "int", the only implementation (kept for compatibility)
             timeout_ms: Timeout in milliseconds (default: 600000 = 10 minutes)
             use_maxsat: If True, use MaxSAT optimization with soft constraints for dates near today
             python_bounds: If True, bound every date variable and every
@@ -36,7 +36,6 @@ class DateSATBuilder:
                 datetime, as the original implementation did. By default (False)
                 dates are unbounded: any calendar-valid proleptic Gregorian date
                 is allowed, so models may contain years below 1 or above 9999.
-                Int implementation only.
         """
         if approach == "router":
             raise ValueError(
@@ -48,59 +47,29 @@ class DateSATBuilder:
         self.timeout_ms = timeout_ms
         self.use_maxsat = use_maxsat
         self.python_bounds = python_bounds
-        if python_bounds and implementation != "int":
-            raise ValueError(
-                "python_bounds is only available for implementation='int'; the bitvector "
-                "implementation has its own fixed domain"
-            )
+        if implementation != "int":
+            raise ValueError(f"Unknown implementation: {implementation}. Must be 'int'")
 
-        # Import and dispatch the appropriate solver based on implementation.
-        # The int and bitvector implementations have different valid approaches:
-        # the int implementation splits hybrid into hybrid_init_ymd / hybrid_init_epoch,
-        # while the bitvector implementation keeps the single "hybrid" approach.
-        if implementation == "bitvector":
-            from future_work.datesat_bounded.bitvector.alpha_beta_bv import AlphaBetaSolver
-            from future_work.datesat_bounded.bitvector.simple_bv import SimpleSolver
-            from future_work.datesat_bounded.bitvector.epoch_days_bv import EpochDaysSolver
-            from future_work.datesat_bounded.bitvector.hybrid_bv import HybridSolver
+        from .symbolic_int.alpha_beta_int import AlphaBetaSolver
+        from .symbolic_int.simple_int import SimpleSolver
+        from .symbolic_int.epoch_days_int import EpochDaysSolver
+        from .symbolic_int.hybrid_init_epoch_int import HybridInitEpochSolver
+        from .symbolic_int.hybrid_init_ymd_int import HybridInitYmdSolver
 
-            if approach == "simple":
-                self.solver = SimpleSolver(timeout_ms=timeout_ms, use_maxsat=use_maxsat)
-            elif approach == "epoch_days":
-                self.solver = EpochDaysSolver(timeout_ms=timeout_ms, use_maxsat=use_maxsat)
-            elif approach == "hybrid":
-                self.solver = HybridSolver(timeout_ms=timeout_ms, use_maxsat=use_maxsat)
-            elif approach == "alpha_beta":
-                self.solver = AlphaBetaSolver(timeout_ms=timeout_ms, use_maxsat=use_maxsat)
-            else:
-                raise ValueError(
-                    f"Unknown approach for bitvector: {approach}. Must be 'simple', 'epoch_days', 'hybrid', or 'alpha_beta'"
-                )
-        elif implementation == "int":
-            from .symbolic_int.alpha_beta_int import AlphaBetaSolver
-            from .symbolic_int.simple_int import SimpleSolver
-            from .symbolic_int.epoch_days_int import EpochDaysSolver
-            from .symbolic_int.hybrid_init_epoch_int import HybridInitEpochSolver
-            from .symbolic_int.hybrid_init_ymd_int import HybridInitYmdSolver
-
-            kwargs = dict(timeout_ms=timeout_ms, use_maxsat=use_maxsat, python_bounds=python_bounds)
-            if approach == "simple":
-                self.solver = SimpleSolver(**kwargs)
-            elif approach == "epoch_days":
-                self.solver = EpochDaysSolver(**kwargs)
-            elif approach == "hybrid_init_ymd":
-                self.solver = HybridInitYmdSolver(**kwargs)
-            elif approach == "hybrid_init_epoch":
-                self.solver = HybridInitEpochSolver(**kwargs)
-            elif approach == "alpha_beta":
-                self.solver = AlphaBetaSolver(**kwargs)
-            else:
-                raise ValueError(
-                    f"Unknown approach for int: {approach}. Must be 'simple', 'epoch_days', 'hybrid_init_ymd', 'hybrid_init_epoch', or 'alpha_beta'"
-                )
+        kwargs = dict(timeout_ms=timeout_ms, use_maxsat=use_maxsat, python_bounds=python_bounds)
+        if approach == "simple":
+            self.solver = SimpleSolver(**kwargs)
+        elif approach == "epoch_days":
+            self.solver = EpochDaysSolver(**kwargs)
+        elif approach == "hybrid_init_ymd":
+            self.solver = HybridInitYmdSolver(**kwargs)
+        elif approach == "hybrid_init_epoch":
+            self.solver = HybridInitEpochSolver(**kwargs)
+        elif approach == "alpha_beta":
+            self.solver = AlphaBetaSolver(**kwargs)
         else:
             raise ValueError(
-                f"Unknown implementation: {implementation}. Must be 'int' or 'bitvector'"
+                f"Unknown approach: {approach}. Must be 'simple', 'epoch_days', 'hybrid_init_ymd', 'hybrid_init_epoch', or 'alpha_beta'"
             )
 
         self.constraints = []
@@ -115,42 +84,14 @@ class DateSATBuilder:
         return self.solver.add_date_var(name)
 
     def add_int_var(self, name: str, min_value: int = None, max_value: int = None) -> Any:
-        """Add a symbolic int variable compatible with the current implementation.
-        
-        In bitvector mode, creates a BitVec with automatic bounds to prevent overflow.
-        In int mode, creates an Int (unbounded by default).
-        
-        Args:
-            name: Variable name
-            min_value: Optional minimum value (default: 0 in bitvector mode, unbounded in int mode)
-            max_value: Optional maximum value (default: 8000 in bitvector mode, unbounded in int mode)
-        """
-        if self.implementation == "bitvector":
-            from z3 import BitVec, BitVecVal
-            from future_work.datesat_bounded.bitvector.bitwidths import INT_VAR_BITS
-            var = BitVec(name, INT_VAR_BITS)
-            
-            # Add automatic bounds to prevent bitvector overflow artifacts
-            # These bounds prevent Z3 from finding spurious solutions due to modular wraparound
-            # Keep values within 21-bit signed range (±1,048,575) to avoid overflow in arithmetic
-            if min_value is None:
-                min_value = 0  # Most integer variables represent non-negative quantities (counts, periods, etc.)
-            if max_value is None:
-                max_value = 8000   # Conservative bound to prevent arithmetic overflow in expressions like x*125
-            
-            # Add bound constraints
-            self.solver.add_constraint(var >= BitVecVal(min_value, INT_VAR_BITS))
-            self.solver.add_constraint(var <= BitVecVal(max_value, INT_VAR_BITS))
-        else:
-            from z3 import Int
-            var = Int(name)
-            
-            # Add optional bounds in int mode if specified
-            if min_value is not None:
-                self.solver.add_constraint(var >= min_value)
-            if max_value is not None:
-                self.solver.add_constraint(var <= max_value)
-        
+        """Add a symbolic Int variable, unbounded unless min_value / max_value are given."""
+        from z3 import Int
+        var = Int(name)
+        if min_value is not None:
+            self.solver.add_constraint(var >= min_value)
+        if max_value is not None:
+            self.solver.add_constraint(var <= max_value)
+
         # Track this variable for solution extraction
         self.int_vars[name] = var
         return var
@@ -167,8 +108,7 @@ class DateSATBuilder:
     def add_constraint(self, constraint: Any) -> None:
         """Add a constraint to the solver.
 
-        Accepts both Z3 BoolRef (for symbolic solvers) and ConstraintWrapper
-        (for enumeration baseline).
+        Accepts Z3 BoolRef constraints.
         """
         # Guard against None constraints
         if constraint is None:
@@ -196,12 +136,7 @@ class DateSATBuilder:
                 try:
                     value = model.evaluate(var, model_completion=True)
                     if value is not None:
-                        # Check if it's a BitVec or Int
-                        from z3 import is_bv
-                        if is_bv(value):
-                            int_values[name] = value.as_signed_long()
-                        else:
-                            int_values[name] = value.as_long()
+                        int_values[name] = value.as_long()
                 except Exception:
                     # Skip if we can't extract the value
                     pass

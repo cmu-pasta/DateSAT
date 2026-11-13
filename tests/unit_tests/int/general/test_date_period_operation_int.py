@@ -3,8 +3,6 @@ from dateutil.relativedelta import relativedelta
 
 from datesat.core import Date, Period
 from datesat.symbolic_int.alpha_beta_int import AlphaBetaSolver
-# Bounded twin for computing expected values under bounded-solver semantics.
-from future_work.datesat_bounded.core import Date as BoundedDate, Period as BoundedPeriod
 from datesat.symbolic_int.simple_int import SimpleSolver
 from datesat.symbolic_int.epoch_days_int import EpochDaysSolver
 from datesat.symbolic_int.hybrid_init_epoch_int import HybridInitEpochSolver
@@ -127,17 +125,6 @@ def python_date_plus_unbounded(base: Date, per: Period) -> Date:
     py_base = base.to_python_date()
     py_res = py_base + relativedelta(years=per.years, months=per.months, days=per.days)
     return Date(py_res.year, py_res.month, py_res.day, bounded=False)
-
-
-def python_date_plus_bounded(base: Date, per: Period) -> BoundedDate:
-    """
-    Compute base + period using the *bounded* Date/Period from future_work.
-    Raises ValueError when the result falls outside [1900-03-01, 2100-02-28],
-    matching the bounded solver's UNSAT response for out-of-range arithmetic.
-    """
-    bounded_base = BoundedDate(base.year, base.month, base.day)
-    bounded_per = BoundedPeriod(per.years, per.months, per.days)
-    return bounded_base + bounded_per
 
 
 def _solve_single_add(solver_cls, base: Date, per: Period) -> dict:

@@ -227,9 +227,7 @@ def test_solve_python_bounds_in_range_problem_still_sat(approach):
     assert r["dates"] == {"x": Date(2024, 1, 31), "y": Date(2024, 2, 29)}
 
 
-def test_builder_python_bounds_is_int_only():
-    with pytest.raises(ValueError, match="python_bounds"):
-        DateSATBuilder(approach="simple", implementation="bitvector", python_bounds=True)
+def test_builder_python_bounds():
     b = DateSATBuilder(approach="simple", python_bounds=True)
     assert b.python_bounds and b.solver.python_bounds
     assert not DateSATBuilder(approach="simple").solver.python_bounds

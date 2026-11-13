@@ -26,13 +26,95 @@ import warnings
 
 from .core import Date, Period, PYTHON_YEAR_MAX, PYTHON_YEAR_MIN
 from . import verus_oracle
-from future_work.datesat_bounded.enumeration_baseline import (
-    ConstraintWrapper,
-    Or_enumeration,
-    And_enumeration,
-    Not_enumeration,
-    Implies_enumeration,
-)
+
+
+# Deferred constraints and Boolean connectives for evaluating a model in Python
+def _wrap_constraint(constraint: Any) -> "ConstraintWrapper":
+    """Wrap a constraint in ConstraintWrapper if it's not already wrapped."""
+    if isinstance(constraint, ConstraintWrapper):
+        return constraint
+    elif isinstance(constraint, bool):
+        # Use default argument to capture value, not reference
+        return ConstraintWrapper(lambda c=constraint: c)
+    elif callable(constraint):
+        return ConstraintWrapper(constraint)
+    else:
+        # Check if this is a variable object with get_value() method (EvalBoolVar, EvalIntVar, etc.)
+        # These should be evaluated by calling get_value(), not by calling the object itself
+        if hasattr(constraint, "get_value"):
+            # Capture the object with a default argument and call get_value()
+            return ConstraintWrapper(lambda obj=constraint: bool(obj.get_value()))
+        # Try to convert to bool, capture value with default argument
+        return ConstraintWrapper(lambda c=constraint: bool(c))
+
+
+def Or_eval(*args) -> "ConstraintWrapper":
+    """Wrapper for Z3's Or() that works with ConstraintWrapper objects."""
+    wrapped_args = [_wrap_constraint(arg) for arg in args]
+    # Create tuple and capture as default argument to prevent closure issues
+    wrapped_args_tuple = tuple(wrapped_args)
+    return ConstraintWrapper(
+        func=lambda wrapped=wrapped_args_tuple: any(c.evaluate() for c in wrapped),
+        or_constraints=list(wrapped_args_tuple),
+    )
+
+
+def And_eval(*args) -> "ConstraintWrapper":
+    """Wrapper for Z3's And() that works with ConstraintWrapper objects."""
+    wrapped_args = [_wrap_constraint(arg) for arg in args]
+    # Create a tuple instead of list to ensure immutability and prevent accidental sharing
+    wrapped_args_tuple = tuple(wrapped_args)
+    return ConstraintWrapper(
+        func=lambda wrapped=wrapped_args_tuple: all(c.evaluate() for c in wrapped)
+    )
+
+
+def Not_eval(arg) -> "ConstraintWrapper":
+    """Wrapper for Z3's Not() that works with ConstraintWrapper objects."""
+    wrapped_arg = _wrap_constraint(arg)
+    # Capture as default argument to prevent closure issues
+    return ConstraintWrapper(func=lambda wrapped=wrapped_arg: not wrapped.evaluate())
+
+
+def Implies_eval(antecedent, consequent) -> "ConstraintWrapper":
+    """Wrapper for Z3's Implies() that works with ConstraintWrapper objects."""
+    wrapped_antecedent = _wrap_constraint(antecedent)
+    wrapped_consequent = _wrap_constraint(consequent)
+    # Explicitly capture as default arguments to avoid closure issues
+    return ConstraintWrapper(
+        func=lambda ant=wrapped_antecedent, cons=wrapped_consequent: not ant.evaluate()
+        or cons.evaluate()
+    )
+
+
+class ConstraintWrapper:
+    """Wrapper for deferred constraint evaluation."""
+
+    def __init__(
+        self, func, var_ref=None, concrete_value=None, rhs_ref=None, or_constraints=None
+    ):
+        self.func = func
+        self.var_ref = var_ref
+        self.concrete_value = concrete_value
+        self.rhs_ref = rhs_ref  # For equality constraints: x == expr, store expr here
+        self.or_constraints = (
+            or_constraints  # For OR constraints: list of ConstraintWrapper objects
+        )
+
+    def evaluate(self) -> bool:
+        try:
+            # If this is an OR constraint, evaluate any of the sub-constraints
+            if self.or_constraints is not None:
+                return any(c.evaluate() for c in self.or_constraints)
+            return bool(self.func())
+        except (ValueError, TypeError):
+            return False
+
+    # ★ prevent accidental boolean usage like: if (x == y): ...
+    def __bool__(self):
+        raise TypeError(
+            "Constraint objects are not truthy. Add them to the solver via add_constraint()."
+        )
 
 
 # Python's datetime.date covers years 1..9999. With python_bounds, every encoding
@@ -788,10 +870,10 @@ class EvalBoolVar:
         return ConstraintWrapper(lambda: not bool(self.get_value()))
 
     def __and__(self, other: Any) -> ConstraintWrapper:
-        return And_enumeration(self, other)
+        return And_eval(self, other)
 
     def __or__(self, other: Any) -> ConstraintWrapper:
-        return Or_enumeration(self, other)
+        return Or_eval(self, other)
 
 
 class EvalBuilder:
@@ -821,16 +903,16 @@ class EvalBuilder:
 
     # logical wrappers
     def Or(self, *args) -> ConstraintWrapper:
-        return Or_enumeration(*args)
+        return Or_eval(*args)
 
     def And(self, *args) -> ConstraintWrapper:
-        return And_enumeration(*args)
+        return And_eval(*args)
 
     def Not(self, arg) -> ConstraintWrapper:
-        return Not_enumeration(arg)
+        return Not_eval(arg)
 
     def Implies(self, antecedent, consequent) -> ConstraintWrapper:
-        return Implies_enumeration(antecedent, consequent)
+        return Implies_eval(antecedent, consequent)
 
     # constraint collector
     def add_constraint(self, constraint: Any) -> None:
@@ -841,10 +923,10 @@ class EvalBuilder:
         import builtins
 
         class MockZ3:
-            Or = staticmethod(lambda *args: Or_enumeration(*args))
-            And = staticmethod(lambda *args: And_enumeration(*args))
-            Not = staticmethod(lambda arg: Not_enumeration(arg))
-            Implies = staticmethod(lambda a, c: Implies_enumeration(a, c))
+            Or = staticmethod(lambda *args: Or_eval(*args))
+            And = staticmethod(lambda *args: And_eval(*args))
+            Not = staticmethod(lambda arg: Not_eval(arg))
+            Implies = staticmethod(lambda a, c: Implies_eval(a, c))
             Int = staticmethod(lambda *args: None)
             Bool = staticmethod(lambda *args: None)
 

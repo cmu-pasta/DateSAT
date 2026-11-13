@@ -5,7 +5,7 @@ Command-line interface for DateSAT.
 Usage:
     ./bin/datesat_cli.py < constraints.json
     ./bin/datesat_cli.py --file constraints.json
-    ./bin/datesat_cli.py --approach hybrid --implementation bitvector < constraints.json
+    ./bin/datesat_cli.py --approach alpha_beta < constraints.json
     
 The input should be a JSON file with the following format:
 {
@@ -74,8 +74,8 @@ Examples:
   # Read from file
   ./bin/datesat_cli.py --file constraints.json
   
-  # Use different approach and implementation
-  ./bin/datesat_cli.py --approach hybrid --implementation bitvector < constraints.json
+  # Use a different approach
+  ./bin/datesat_cli.py --approach alpha_beta < constraints.json
   
   # Get JSON output
   ./bin/datesat_cli.py --output json < constraints.json
@@ -102,17 +102,8 @@ Input format:
         "-a", "--approach",
         type=str,
         default="epoch_days",
-        choices=["simple", "epoch_days", "hybrid_init_ymd", "hybrid_init_epoch", "alpha_beta", "hybrid"],
-        help="Solver approach (default: epoch_days). hybrid_init_ymd / hybrid_init_epoch are "
-             "for --implementation int; hybrid is for --implementation bitvector"
-    )
-    
-    parser.add_argument(
-        "-i", "--implementation",
-        type=str,
-        default="int",
-        choices=["int", "bitvector"],
-        help="Implementation type (default: int)"
+        choices=["simple", "epoch_days", "hybrid_init_ymd", "hybrid_init_epoch", "alpha_beta"],
+        help="Solver approach (default: epoch_days)"
     )
     
     parser.add_argument(
@@ -147,7 +138,7 @@ Input format:
         action="store_true",
         help="Bound every date, including intermediate Date + Period results, to "
              "Python's datetime.date range (years 1..9999). By default dates are "
-             "unbounded. Int implementation only"
+             "unbounded"
     )
     
     args = parser.parse_args()
@@ -185,7 +176,6 @@ Input format:
         result = datesat.solve(
             constraints=constraint_data,
             approach=args.approach,
-            implementation=args.implementation,
             timeout_ms=args.timeout,
             verbose=not args.quiet,
             use_maxsat=args.maxsat,

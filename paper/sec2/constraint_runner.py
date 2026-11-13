@@ -65,9 +65,8 @@ def main():
 
     # 3) Execute the generated code with DateSATBuilder
     def create_builder():
-        # Options: approach="simple"|"epoch_days"|"alpha_beta"|"hybrid"
-        #          implementation="int"|"bv"
-        return DateSATBuilder(approach="simple", implementation="int")
+        # Options: approach="simple"|"epoch_days"|"alpha_beta"|"hybrid_init_ymd"|"hybrid_init_epoch"
+        return DateSATBuilder(approach="simple")
 
     exec_globals = {
         "Date": Date,

@@ -16,13 +16,11 @@ Use pytest markers to test specific symbolic backends:
 # Test specific backends
 pytest tests/ -m simple
 pytest tests/ -m epoch_days
-pytest tests/ -m hybrid
+pytest tests/ -m hybrid_init_ymd
+pytest tests/ -m hybrid_init_epoch
 pytest tests/ -m alpha_beta
 
-# Test specific encoding theory
-pytest tests/ -m int
-
-# Test specific encoding theory with specific method
+# Test a specific method within a directory
 pytest tests/unit_tests/int -m simple
 ```
 

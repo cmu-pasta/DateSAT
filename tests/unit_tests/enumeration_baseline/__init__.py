@@ -1,1 +1,0 @@
-# Enumeration baseline tests

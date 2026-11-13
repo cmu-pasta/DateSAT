@@ -45,11 +45,10 @@ def solve(
         declarations: Optional list of variable declarations, e.g., ["x: date", "y: date"]
             Only used if constraints is a list. If constraints is a dict, declarations
             are taken from the dict.
-        approach: Solver approach. For int implementation: "simple", "epoch_days", "hybrid_init_ymd",
+        approach: Solver approach: "simple", "epoch_days", "hybrid_init_ymd",
             "hybrid_init_epoch", "alpha_beta", or "router", which picks one of the others per
-            constraint with a trained model (see docs/router.md). For bitvector implementation:
-            "simple", "epoch_days", "hybrid", or "alpha_beta".
-        implementation: Implementation type - "int" or "bitvector"
+            constraint with a trained model (see docs/router.md).
+        implementation: "int", the only implementation (kept for compatibility)
         timeout_ms: Timeout in milliseconds (default: 600000 = 10 minutes)
         verbose: If True, print results to stdout (default: True)
         use_maxsat: If True, use MaxSAT soft constraints preferring dates near today

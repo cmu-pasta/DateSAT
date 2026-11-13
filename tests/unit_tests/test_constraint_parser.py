@@ -803,7 +803,7 @@ def test_mixed_operators_without_parentheses(parser):
 # -------------------------
 
 def test_boolean_operators_with_z3_solvers(parser):
-    """Test that boolean operators work with Z3-based solvers (int and bitvector)."""
+    """Test that boolean operators work with every Z3-based encoding."""
     from datesat.api import DateSATBuilder
     from datesat.core import Date
     
@@ -817,38 +817,30 @@ def test_boolean_operators_with_z3_solvers(parser):
     
     code = parser.parse_constraint_data(constraint_data)
     
-    # Test with int and bitvector implementations.
-    # The int implementation splits hybrid into hybrid_init_ymd / hybrid_init_epoch;
-    # the bitvector implementation keeps the single "hybrid" approach.
-    for implementation in ['int', 'bitvector']:
-        if implementation == 'int':
-            approaches = ['simple', 'epoch_days', 'hybrid_init_ymd', 'hybrid_init_epoch', 'alpha_beta']
-        else:
-            approaches = ['simple', 'epoch_days', 'hybrid', 'alpha_beta']
-        for approach in approaches:
-            builder = DateSATBuilder(approach=approach, implementation=implementation)
-            builder.enable_smtlib_print(False)  # Suppress output during tests
-            
-            exec_globals = {
-                'Date': Date,
-                'Period': __import__('datesat.core', fromlist=['Period']).Period,
-                'DateSATBuilder': lambda: builder,
-                'builder': builder,
-                'Or': __import__('z3', fromlist=['Or']).Or,
-                'And': __import__('z3', fromlist=['And']).And,
-                'Not': __import__('z3', fromlist=['Not']).Not,
-                'Implies': __import__('z3', fromlist=['Implies']).Implies,
-            }
-            
-            try:
-                exec(code, exec_globals)
-                result = builder.solve()
-                assert result['status'] in ['sat', 'unsat', 'timeout']  # Should be valid
-            except Exception as e:
-                # Some approaches might not support all constraint types, that's okay
-                # But boolean operators should be parseable
-                assert "boolean" not in str(e).lower() or "operator" not in str(e).lower(), \
-                    f"Boolean operator error in {approach}/{implementation}: {e}"
+    for approach in ['simple', 'epoch_days', 'hybrid_init_ymd', 'hybrid_init_epoch', 'alpha_beta']:
+        builder = DateSATBuilder(approach=approach)
+        builder.enable_smtlib_print(False)  # Suppress output during tests
+        
+        exec_globals = {
+            'Date': Date,
+            'Period': __import__('datesat.core', fromlist=['Period']).Period,
+            'DateSATBuilder': lambda: builder,
+            'builder': builder,
+            'Or': __import__('z3', fromlist=['Or']).Or,
+            'And': __import__('z3', fromlist=['And']).And,
+            'Not': __import__('z3', fromlist=['Not']).Not,
+            'Implies': __import__('z3', fromlist=['Implies']).Implies,
+        }
+        
+        try:
+            exec(code, exec_globals)
+            result = builder.solve()
+            assert result['status'] in ['sat', 'unsat', 'timeout']  # Should be valid
+        except Exception as e:
+            # Some approaches might not support all constraint types, that's okay
+            # But boolean operators should be parseable
+            assert "boolean" not in str(e).lower() or "operator" not in str(e).lower(), \
+                f"Boolean operator error in {approach}: {e}"
 
 
 def test_boolean_operators_satisfiable_case(parser):
@@ -1182,7 +1174,7 @@ def test_implication_integration_with_solver(parser):
     
     code = parser.parse_constraint_data(constraint_data)
     
-    builder = DateSATBuilder(approach='alpha_beta', implementation='bitvector')
+    builder = DateSATBuilder(approach='alpha_beta')
     builder.enable_smtlib_print(False)
     
     exec_globals = {
@@ -1485,7 +1477,7 @@ def test_full_workflow_with_new_features(parser):
     assert "a == k.month" in code
     
     # Execute with a real builder
-    builder = DateSATBuilder(approach='alpha_beta', implementation='bitvector')
+    builder = DateSATBuilder(approach='alpha_beta')
     builder.enable_smtlib_print(False)
     
     exec_globals = {
