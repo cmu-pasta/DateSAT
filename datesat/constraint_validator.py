@@ -17,6 +17,8 @@ semantics:
 
 "auto" (the default) uses the Verus oracle when it is built and falls back to
 Python with a warning otherwise. DATESAT_VALIDATION_SEMANTICS overrides the default.
+DateSATBench's output validation asks for "verus" explicitly, so it fails when the
+oracle is not built instead of falling back.
 Booleans, integers and date components are evaluated in Python either way.
 """
 
@@ -105,6 +107,7 @@ class _VerusSemantics:
 
 
 _PYTHON = _PythonSemantics()
+DEFAULT_SEMANTICS = "auto"
 _SEMANTICS: Any = _PYTHON
 _warned_fallback = False
 
@@ -112,7 +115,7 @@ _warned_fallback = False
 def _select_semantics(semantics: Optional[str]):
     global _warned_fallback
     if semantics is None:
-        semantics = os.environ.get("DATESAT_VALIDATION_SEMANTICS", "auto")
+        semantics = os.environ.get("DATESAT_VALIDATION_SEMANTICS", DEFAULT_SEMANTICS)
     if semantics == "python":
         return _PYTHON
     if semantics == "verus":

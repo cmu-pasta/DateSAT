@@ -36,7 +36,7 @@ def _run(cmd, requests):
 def verus(requests):
     """Answer protocol requests (e.g. "add_days 2024 2 28 1") with the Verus oracle."""
     if not VERUS_ORACLE.exists():
-        pytest.skip(f"Verus oracle not built: {VERUS_ORACLE} (see tests/spec_adequacy/README.md)")
+        pytest.skip(f"Verus oracle not built: {VERUS_ORACLE} (see tests/semantics_vs_libraries/README.md)")
     return _run([str(VERUS_ORACLE)], requests)
 
 

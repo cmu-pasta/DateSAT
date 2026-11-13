@@ -47,7 +47,8 @@ def solve(
             are taken from the dict.
         approach: Solver approach. For int implementation: "simple", "epoch_days", "hybrid_init_ymd",
             "hybrid_init_epoch", "alpha_beta", or "router", which picks one of the others per
-            constraint with a trained model (see docs/router.md). For bitvector implementation:
+            constraint with a trained model (see analysis/README.md in the
+            DateSATBench repository). For bitvector implementation:
             "simple", "epoch_days", "hybrid", or "alpha_beta".
         implementation: Implementation type - "int" or "bitvector"
         timeout_ms: Timeout in milliseconds (default: 600000 = 10 minutes)

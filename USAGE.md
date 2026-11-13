@@ -59,10 +59,8 @@ if result["status"] == "sat":
 
 ### Date Range and `python_bounds`
 
-By default dates are unbounded: any calendar-valid proleptic Gregorian date is
-allowed, so a solution may contain years below 1 or above 9999. The `Date`
-objects in the result handle any year; call `Date.to_python_date()` to get a
-`datetime.date`, which only works for years 1..9999.
+By default dates are unbounded: any calendar-valid proleptic Gregorian date is allowed, so a solution may contain years below 1 or above 9999. 
+The `Date` objects in the result handle any year; call `Date.to_python_date()` to get a `datetime.date`, which only works for years 1..9999.
 
 ```python
 import datesat
@@ -342,9 +340,9 @@ Both Python API and CLI return results with the following structure:
 }
 ```
 
-`Date` values are `datesat.Date` objects, not `datetime.date`. Without
-`python_bounds` they may lie outside years 1..9999; `Date.to_python_date()`
-converts to `datetime.date` and raises `ValueError` outside that range.
+`Date` values are `datesat.Date` objects, not `datetime.date`. 
+Without `python_bounds` they may lie outside years 1..9999; 
+`Date.to_python_date()` converts to `datetime.date` and raises `ValueError` outside that range.
 
 **Status values:**
 - `sat` - Constraints are satisfiable; solution fields are populated
@@ -397,8 +395,5 @@ result = builder.solve()  # Will print SMT-LIB
 
 ## Solver Approaches
 
-DateSAT provides several solvers with different performance characteristics,
-all encoded in Z3 integer arithmetic.
-
-In general, simple is often the slowest, and alpha beta table and epoch are relatively faster.
+DateSAT provides several solvers with different performance characteristics, all encoded in Z3 integer arithmetic.
 Please learn more by reading the paper.

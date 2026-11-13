@@ -15,7 +15,7 @@ Then, in this directory, run:
 If verification succeeds, you will see output like:
 
 ```
-verification results:: 138 verified, 0 errors
+verification results:: 152 verified, 0 errors
 ```
 
 ## File overview
@@ -42,31 +42,31 @@ verification results:: 138 verified, 0 errors
 The verified theorem statements are in [`src/main.rs`](src/main.rs). The equisatisfiability theorems state that for any well-formed DateSAT constraint, satisfiability under the core semantics (`Date`) is equivalent to satisfiability under each encoding:
 
 ```rust
-// Theorem 3: SimpleDate equisatisfiability
+// Theorem 4.2: Equisatisfiability of Simple encoding
 assert forall|ast: Ast| #![auto]
     ast.is_well_formed() implies
         ast.is_sat::<Date>() == ast.is_sat::<SimpleDate>()
     by { theorem_ast_simple_date_equisat(ast); }
 
-// Theorem 4: EpochDelta equisatisfiability
+// Theorem 4.3: Equisatisfiability of Epoch-based encoding
 assert forall|ast: Ast| #![auto]
     ast.is_well_formed() implies
         ast.is_sat::<Date>() == ast.is_sat::<EpochDelta>()
     by { theorem_ast_epoch_delta_equisat(ast); }
 
-// Theorem 5a: Hybrid (YMD-initial) equisatisfiability
+// Theorem 4.4: Equisatisfiability of Hybrid (init_ymd) encoding
 assert forall|ast: Ast| #![auto]
     ast.is_well_formed() implies
         ast.is_sat::<Date>() == ast.is_sat::<hybrid_ymd::Hybrid>()
     by { theorem_ast_hybrid_ymd_equisat(ast); }
 
-// Theorem 5b: Hybrid (epoch-initial) equisatisfiability
+// Theorem 4.5: Equisatisfiability of Hybrid (init_epoch) encoding
 assert forall|ast: Ast| #![auto]
     ast.is_well_formed() implies
         ast.is_sat::<Date>() == ast.is_sat::<hybrid_epoch::Hybrid>()
     by { theorem_ast_hybrid_epoch_equisat(ast); }
 
-// Theorem 6: AlphaBeta equisatisfiability
+// Theorem 4.6: Equisatisfiability of Alpha-Beta encoding
 assert forall|ast: Ast| #![auto]
     ast.is_well_formed() implies
         ast.is_sat::<Date>() == ast.is_sat::<AlphaBeta>()
@@ -218,7 +218,7 @@ pub open spec fn ab_congruent(d: Date, ab: AlphaBeta) -> bool {
 Three properties of congruence are established for each encoding:
 
 1. **Construction**: `from_ymd` produces congruent values (the base case).
-2. **Preservation under addition**: adding the same period to congruent values yields congruent results (the inductive step, which relies on Theorem 1).
+2. **Preservation under addition**: adding the same period to congruent values yields congruent results (the inductive step, which relies on Theorem 3.5).
 3. **Preservation of comparisons**: congruent pairs agree on ordering and equality (the bridge to boolean evaluation).
 
 These three properties suffice to propagate evaluation equivalence through the entire AST by structural induction, yielding equisatisfiability.
@@ -242,5 +242,5 @@ Build the oracle binary with
 
 When run, the binary answers line requests such as `add_period 2024 1 31 0 1 0` (answer: `2024 2 29`). Output is buffered; a blank input line flushes it, so a client can ask one question at a time. Only the line-parsing driver at the bottom of `oracle.rs` is unverified.
 
-The constraint validator ([`datesat/constraint_validator.py`](../datesat/constraint_validator.py)) uses the oracle to evaluate every date operation of a solver model (validity, ordering, Date + Period) when it is built, so a validated model satisfies its constraints under the reference semantics. See [`datesat/verus_oracle.py`](../datesat/verus_oracle.py). [`tests/spec_adequacy/`](../tests/spec_adequacy) uses the oracle to check that the reference semantics agrees with Python's `datetime` and with `java.time`, and that the hand transcriptions of the spec used by the implementation tests are faithful.
+The constraint validator ([`datesat/constraint_validator.py`](../datesat/constraint_validator.py)) uses the oracle to evaluate every date operation of a solver model (validity, ordering, Date + Period) when it is built, so a validated model satisfies its constraints under the reference semantics. See [`datesat/verus_oracle.py`](../datesat/verus_oracle.py). [`tests/semantics_vs_libraries/`](../tests/semantics_vs_libraries) uses the oracle to check that the reference semantics agrees with Python's `datetime` and with `java.time`.
 

@@ -1,34 +1,22 @@
 # Hybrid encoding, worked examples: `hybrid_init_ymd` vs `hybrid_init_epoch`
 
-The two hybrid variants share all of their operation code (`__add__`, the
-comparison operators, the lazy `_epoch_expr()` / `_ymd_expr()` derivers). The
-**only** difference between them is the representation a fresh user variable
-*starts in*:
+The two hybrid variants share all of their operation code (`__add__`, the comparison operators, the lazy `_epoch_expr()` / `_ymd_expr()` derivers). 
+The **only** difference between them is the representation a fresh user variable *starts in*:
 
-- `hybrid_init_ymd` — a user var starts with **Y/M/D** as the source of truth
-  (`y`, `m`, `d` materialized and constrained to a valid date); the epoch side is derived on demand.
-- `hybrid_init_epoch` — a user var starts with **epoch days** as the source of truth
-  (`epoch` materialized; any integer is a valid epoch day); the Y/M/D side is derived on demand.
+- `hybrid_init_ymd` — a user var starts with **Y/M/D** as the source of truth (`y`, `m`, `d` materialized and constrained to a valid date); the epoch side is derived on demand.
+- `hybrid_init_epoch` — a user var starts with **epoch days** as the source of truth (`epoch` materialized; any integer is a valid epoch day); the Y/M/D side is derived on demand.
 
-The starting representation is not a startup cost — declaring the Z3 integers is
-free. It matters because it decides, for each later operation, whether that
-operation runs **with no format conversion** or has to pay a conversion to the
-other side.
+The starting representation is not a startup cost — declaring the Z3 integers is free. 
+It matters because it decides, for each later operation, whether that operation runs **with no format conversion** or has to pay a conversion to the other side.
 
 ## The two conversions
 
 Every conversion in the examples below is one of these two:
 
-- **conversion: Y/M/D → epoch** — compute `epoch = days_since_epoch_from_ymd(y, m, d)`
-  and assert the link `x_epoch == …`. Needed when a variable currently held as
-  Y/M/D must be used in epoch form (day arithmetic, an epoch comparison).
-- **conversion: epoch → Y/M/D** — compute `y, m, d = ymd_from_days_since_epoch(epoch)`,
-  create the `x_year / x_month / x_day` integers, and assert the three linking
-  equalities. Needed when a variable currently held as epoch must expose its
-  components (`.year` / `.month` / `.day`, month/year arithmetic).
+- **conversion: Y/M/D → epoch** — compute `epoch = days_since_epoch_from_ymd(y, m, d)` and assert the link `x_epoch == …`. Needed when a variable currently held as Y/M/D must be used in epoch form (day arithmetic, an epoch comparison).
+- **conversion: epoch → Y/M/D** — compute `y, m, d = ymd_from_days_since_epoch(epoch)`, create the `x_year / x_month / x_day` integers, and assert the three linking equalities. Needed when a variable currently held as epoch must expose its components (`.year` / `.month` / `.day`, month/year arithmetic).
 
-When no conversion is noted, the representation the operation needs is already
-the source of truth, so the operation is **free** (no conversion).
+When no conversion is noted, the representation the operation needs is already the source of truth, so the operation is **free** (no conversion).
 
 ---
 
@@ -62,9 +50,7 @@ b.year == 2028
 # b.year: b is Y/M/D already -> returns b_year directly.  NO CONVERSION.
 ```
 
-**Total conversions: 0, and no epoch formula is emitted at all.** `a_epoch`,
-`b_epoch`, and `result_epoch` stay unconstrained free integers — nothing ever
-reads them, so the epoch link is never asserted.
+**Total conversions: 0, and no epoch formula is emitted at all.** `a_epoch`, `b_epoch`, and `result_epoch` stay unconstrained free integers — nothing ever reads them, so the epoch link is never asserted.
 
 ### `hybrid_init_epoch`
 
@@ -89,10 +75,7 @@ b.year == 2028
 # b.year: b now has Y/M/D (converted at the equality above) -> reuse.  NO CONVERSION.
 ```
 
-**Total conversions: 3** (epoch → Y/M/D for `a`; then Y/M/D → epoch for `result`
-*and* epoch → Y/M/D for `b` to reconcile the equality). Starting in epoch forces
-a conversion on every component touch and a reconciliation at the equality —
-worse fit here.
+**Total conversions: 3** (epoch → Y/M/D for `a`; then Y/M/D → epoch for `result` *and* epoch → Y/M/D for `b` to reconcile the equality). Starting in epoch forces a conversion on every component touch and a reconciliation at the equality — worse fit here.
 
 ---
 
@@ -123,9 +106,7 @@ a < b
 # Not(a >= b): a and b are both epoch now -> epoch comparison.  NO CONVERSION.
 ```
 
-**Total conversions: 3** (Y/M/D → epoch for `a`, Y/M/D → epoch for `b`, plus one
-dead epoch → Y/M/D on the intermediate). Y/M/D start pays to reach epoch
-everywhere — worse fit here.
+**Total conversions: 3** (Y/M/D → epoch for `a`, Y/M/D → epoch for `b`, plus one dead epoch → Y/M/D on the intermediate). Y/M/D start pays to reach epoch everywhere — worse fit here.
 
 ### `hybrid_init_epoch`
 
@@ -156,20 +137,12 @@ b == a + Period(0,0,10) + Period(0,1,0) + Period(0,0,20)
 a < b
 ```
 
-The chain is left-associative:
-`((((((a+P1)+P2)+P3)+P4)+P5)+P6)`, producing intermediates `r1 … r6`.
+Note that the chain is left-associative: `((((((a+P1)+P2)+P3)+P4)+P5)+P6)`, producing intermediates `r1 … r6`.
 
-- A **day add** (`P1=+10d`, `P3=+20d`, `P5=+30d`) wants its operand in **epoch**
-  and produces an **epoch-only** result.
-- A **month/year add** (`P2=+1mo`, `P4=+2y`, `P6=+3mo`) wants its operand in
-  **Y/M/D** and produces a **Y/M/D-only** result (lazy — no epoch link).
+- A **day add** (`P1=+10d`, `P3=+20d`, `P5=+30d`) wants its operand in **epoch** and produces an **epoch-only** result.
+- A **month/year add** (`P2=+1mo`, `P4=+2y`, `P6=+3mo`) wants its operand in **Y/M/D** and produces a **Y/M/D-only** result (lazy — no epoch link).
 
-Because the adds alternate day / month / day / month …, and each lazy result is
-materialized in only *one* representation, **every add finds its operand in the
-wrong representation and must convert it.** The chain ping-pongs. Both variants
-pay this; they differ only in *phase* — `hybrid_init_ymd` eats one extra conversion at
-the first add (converting `a`), while `hybrid_init_epoch` eats one extra pair at the
-final `b == r6` equality.
+Because the adds alternate day / month / day / month …, and each lazy result is materialized in only *one* representation, **every add finds its operand in the wrong representation and must convert it.** Both variants pay this; they differ only in *phase* — `hybrid_init_ymd` eats one extra conversion at the first add (converting `a`), while `hybrid_init_epoch` eats one extra pair at the final `b == r6` equality.
 
 ### `hybrid_init_ymd`
 
@@ -199,8 +172,7 @@ a < b
 #   but the formula is the heavier Or(y>.., And(y==.., Or(m>.., ...))) nest.
 ```
 
-**Total conversions: 6** — one per add (`a`, `r1`, `r2`, `r3`, `r4`, `r5`). The
-final `b == r6` and `a < b` are free (both sides already Y/M/D).
+**Total conversions: 6** — one per add (`a`, `r1`, `r2`, `r3`, `r4`, `r5`). The final `b == r6` and `a < b` are free (both sides already Y/M/D).
 
 ### `hybrid_init_epoch`
 
@@ -228,9 +200,7 @@ a < b
 # Not(a >= b): a epoch-only, b now epoch (converted above) -> epoch comparison.  NO CONVERSION.
 ```
 
-**Total conversions: 7** — five along the chain (`r1`…`r5`) plus two at the
-`b == r6` equality (reconcile `r6` and `b`). The final `a < b` is one integer
-inequality.
+**Total conversions: 7** — five along the chain (`r1`…`r5`) plus two at the `b == r6` equality (reconcile `r6` and `b`). The final `a < b` is one integer inequality.
 
 ---
 
@@ -239,10 +209,3 @@ inequality.
 - **Example 1** is Y/M/D-native → `hybrid_init_ymd` runs with **0 conversions** (and emits no epoch formula at all), `hybrid_init_epoch` pays **3** (epoch → Y/M/D for `a` and `b`, plus a Y/M/D → epoch to reconcile the equality).
 - **Example 2** is epoch-native → `hybrid_init_epoch` runs with **0 conversions**, `hybrid_init_ymd` pays **3** (Y/M/D → epoch for `a` and `b`, plus a reconciling conversion).
 - **Example 3** is a representation-alternating chain, so the two lazy variants **ping-pong**: because each lazy intermediate is materialized in only one representation, nearly every add converts its operand. `hybrid_init_ymd` pays **6**, `hybrid_init_epoch` pays **7**, differing only in phase.
-
-The headline — *some constraints go faster starting in Y/M/D, some starting in
-epoch* — is exactly right. The mechanism underneath it is: the starting
-representation decides which operations are free and which pay a
-**Y/M/D → epoch** or **epoch → Y/M/D** conversion, and the variant that starts in
-the representation the dominant operations prefer emits fewer (and simpler)
-formulas to Z3.

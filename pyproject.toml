@@ -37,5 +37,5 @@ analysis = [
 include = ["datesat*", "future_work*"]
 
 [tool.setuptools.package-data]
-# The router's bundled model (see docs/router.md).
+# The router's bundled model (see analysis/README.md in the DateSATBench repository).
 datesat = ["router/*.json"]
