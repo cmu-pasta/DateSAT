@@ -1,6 +1,6 @@
 """
-Differential tests for the part translation validation does not cover: the
-parser -> generated builder code -> DateVar composition, plus the Bool/Int glue.
+Differential tests of the whole pipeline, across all encodings: the parser ->
+generated builder code -> DateVar composition, plus the Bool/Int glue.
 
 This part is *tested, not proved*. Random well-formed ASTs over the Verus
 grammar (proofs/src/ast_eval.rs) are rendered to DateSAT constraint strings and
@@ -23,7 +23,7 @@ import datesat
 
 from . import reference_eval as ref
 
-pytestmark = pytest.mark.translation_validation
+pytestmark = pytest.mark.differential
 
 APPROACHES = ["simple", "epoch_days", "alpha_beta", "hybrid_init_ymd", "hybrid_init_epoch"]
 N_CASES = int(os.environ.get("DATESAT_DIFF_CASES", "25"))

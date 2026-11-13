@@ -220,11 +220,3 @@ Constraints are specified in JSON format with variable declarations and constrai
 ## Testing
 
 We provide a thorough testing set to aid future DateSAT solver implementation. See `tests/README.md` for more details.
-
-## Development
-
-### CI/CD Pipeline
-- **Trigger**: On each push to `dev` branch
-- **Coverage**: Automatically builds coverage site and commits to `docs/` directory
-- **GitHub Pages**: Serves coverage reports from `docs/` folder
-- **Coverage Collection**: Uses `coverage.py` via `pytest-cov` for branch and line coverage

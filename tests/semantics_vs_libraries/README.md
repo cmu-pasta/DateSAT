@@ -1,16 +1,16 @@
-# Spec adequacy and transcription checks
+# Reference semantics vs date libraries
 
 The Verus proofs in [`proofs/`](../../proofs) show that the encodings are
 equisatisfiable with a *reference* date semantics (`Date` in
 `semantics.rs`). Nothing proves that the reference semantics describes the real
-calendar. And the implementation checks in
-[`tests/translation_validation/`](../translation_validation) compare Python against
-a hand transcription of that spec. This directory checks both links against a
-**Verus-verified executable oracle**.
+calendar. This directory checks it against Python's `datetime`/`dateutil` and
+`java.time`, through a **Verus-verified executable oracle**. It also checks
+`reference_eval.py`, the Python port of the semantics that the differential tests
+([`tests/differential/`](../differential)) evaluate models with, against the same oracle.
 
 ```
 cd proofs && verus src/main.rs --compile -o build/datesat-oracle   # once
-pytest tests/spec_adequacy -n auto
+pytest tests/semantics_vs_libraries -n auto
 ```
 
 The oracle is [`proofs/src/oracle.rs`](../../proofs/src/oracle.rs). Each function is
@@ -19,16 +19,16 @@ only on `i64` overflow, and every test asserts that it never does. Only the
 line-parsing driver is unverified. Set `DATESAT_VERUS_ORACLE` to use a binary built
 elsewhere. Tests skip when the oracle (or `java`, for the java.time checks) is
 missing. The whole directory takes about 3 minutes on 8 workers. Every test is
-marked `spec_adequacy`.
+marked `semantics_vs_libraries`.
 
 | File | Role |
 |------|------|
 | [`oracles.py`](oracles.py) | Clients for the Verus oracle and the java.time oracle (same line protocol) |
 | [`JavaTimeOracle.java`](JavaTimeOracle.java) | java.time behind that protocol, run with the `java` source launcher |
-| [`test_reference_vs_libraries.py`](test_reference_vs_libraries.py) | Spec adequacy: reference semantics vs Python `datetime`/`relativedelta` and `java.time` |
-| [`test_transcriptions.py`](test_transcriptions.py) | `spec.py`, `reference_eval.py` and `_py_fsd` vs the Verus spec |
+| [`test_reference_vs_libraries.py`](test_reference_vs_libraries.py) | Reference semantics vs Python `datetime`/`relativedelta` and `java.time` |
+| [`test_reference_eval.py`](test_reference_eval.py) | `reference_eval.py` (used by the differential tests) vs the Verus spec |
 
-## 1. Spec adequacy: is the reference semantics the calendar?
+## 1. Is the reference semantics the calendar?
 
 The oracle is compared with two independent implementations of the proleptic
 Gregorian calendar: Python's `datetime` with `dateutil.relativedelta`, and
@@ -82,46 +82,28 @@ example not clamping, which sends Jan 31 + 1 month to early March. This is
 validation by testing, not a proof: the libraries are trusted, `add_period` is
 sampled rather than exhaustive, and nothing outside years −50,000..50,000 is checked.
 
-## 2. Transcriptions: is the implementation tested against the real spec?
+## 2. Is `reference_eval.py` the Verus spec?
 
-[`tests/translation_validation/`](../translation_validation) relies on three hand
-transcriptions of the Verus spec:
-* `spec.py`, the Z3 terms that the Python encodings are proved against;
-* `reference_eval.py`, the Python port the differential tests evaluate with;
-* `_py_fsd`, the Python epoch formula used by the literal-embedding check.
-
-Each is compared with the oracle:
-* `spec.py` terms are built once over free variables, then evaluated by
-  substituting concrete values and simplifying.
-* `from_simple_date`: all three copies, on every date of years 1..9999, plus 20,000
-  random dates in years −50,000..50,000.
+[`tests/differential/`](../differential) checks every solver model with
+`reference_eval.py`, a hand transcription of the Verus spec. It is compared with the
+oracle:
 * `leap` and `dim`: every year in −1200..10400 and every month.
 * `is_valid`: every year, every month 0..13, and the days where validity can change.
-* `add_months`, `add_period`, `lt` and `eq`, and the alpha helpers: structured and
-  random cases.
-* `spec.add_period_rel` (the closed-form relation that replaces the recursive
-  `add_days`) is checked to hold for the oracle's result and to fail for the days
-  on either side of it.
+* `lt`, `add_months` and `add_period`: structured and random cases.
 
-**Result:** all transcriptions agree with the Verus spec on every case. Injecting a
-bug into a transcription (a dropped 400-year leap rule in `spec.py`, an off-by-one
-in `reference_eval.py`'s `add_days`) makes these tests fail.
-
-Not checked this way: the congruence relations (`ed_congruent` and so on) and
-`spec.ab_lt`. They are predicates over symbolic values, a few lines each, and are
-checked by reading.
+**Result:** `reference_eval.py` agrees with the Verus spec on every case. Injecting a
+bug (an off-by-one in its `add_days`) makes these tests fail.
 
 ## The trust chain, with this directory
 
 ```
 reference semantics ≈ calendar        datetime + java.time, exhaustive/structured/random   (here, part 1)
 encodings ≡ reference semantics       Verus                                               (proofs/)
-spec.py ≡ Verus spec                  Verus oracle, exhaustive on the key functions        (here, part 2)
-Python terms ≡ spec.py                Z3                                                  (translation_validation/)
-parser and glue                       differential tests                                  (translation_validation/)
+reference_eval.py ≡ Verus spec        Verus oracle, exhaustive on the key functions        (here, part 2)
+implementation                        unit tests and differential tests                   (tests/unit_tests/, tests/differential/)
 ```
 
 What remains trusted: Verus, Z3, the oracle's line driver, `datetime`/`relativedelta`
-and `java.time` (as oracles of the calendar), the parser (tested only), and the
-congruence relations (checked by reading). All of this holds within the
+and `java.time` (as oracles of the calendar). The Python implementation of the
+encodings is tested, not proved. All of this holds within the
 implementation's domain of years 1..9999, plus the java.time checks beyond it.

@@ -1,5 +1,5 @@
 """
-Spec adequacy: does the Verus reference semantics (proofs/src/simple_date.rs) describe
+Does the Verus reference semantics (proofs/src/simple_date.rs) describe
 the real calendar?
 
 The Verus oracle (proofs/src/oracle.rs, proved equal to the spec functions) is compared
@@ -29,7 +29,7 @@ from dateutil.relativedelta import relativedelta
 from . import oracles
 from .oracles import date_answer, req
 
-pytestmark = pytest.mark.spec_adequacy
+pytestmark = pytest.mark.semantics_vs_libraries
 
 EPOCH = datetime.date(2000, 3, 1)
 YEAR_BLOCKS = [(lo, min(lo + 999, 9999)) for lo in range(1, 10000, 1000)]
