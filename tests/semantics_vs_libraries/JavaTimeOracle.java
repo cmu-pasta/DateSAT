@@ -5,7 +5,6 @@ import java.io.OutputStreamWriter;
 import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.Period;
-import java.time.temporal.ChronoUnit;
 
 /**
  * java.time as an independent oracle for the reference date semantics, speaking the
@@ -14,8 +13,6 @@ import java.time.temporal.ChronoUnit;
  * answer (a date it rejects, or arithmetic that leaves its range) print `none`.
  */
 public class JavaTimeOracle {
-    private static final LocalDate EPOCH = LocalDate.of(2000, 3, 1);
-
     private static String show(LocalDate d) {
         return d.getYear() + " " + d.getMonthValue() + " " + d.getDayOfMonth();
     }
@@ -43,8 +40,6 @@ public class JavaTimeOracle {
                 case "add_period":
                     return show(date(v, 0).plus(Period.of(
                         Math.toIntExact(v[3]), Math.toIntExact(v[4]), Math.toIntExact(v[5]))));
-                case "from_simple_date":
-                    return Long.toString(ChronoUnit.DAYS.between(EPOCH, date(v, 0)));
                 default:
                     throw new IllegalArgumentException("unknown request: " + op);
             }

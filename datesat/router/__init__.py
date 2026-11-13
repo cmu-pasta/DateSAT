@@ -1,6 +1,7 @@
 """
 The router approach: picks one of DateSat's int encodings for each constraint with a model
-trained in DateSATBench, and hands the constraint to it. See docs/router.md.
+trained in DateSATBench, and hands the constraint to it. See analysis/README.md in the DateSATBench repository
+(https://github.com/cmu-pasta/DateSATBench).
 """
 
 import time

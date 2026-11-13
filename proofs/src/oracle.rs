@@ -4,7 +4,7 @@ use vstd::arithmetic::div_mod::lemma_fundamental_div_mod_converse;
 use crate::*;
 
 // Executable counterparts of the reference semantics (semantics::Date), used as a
-// test oracle (see tests/spec_adequacy/) and to validate solver models
+// test oracle (see tests/semantics_vs_libraries/) and to validate solver models
 // (datesat/constraint_validator.py). Each one is proved to agree with its spec function
 // whenever it returns Some; it returns None only when a machine-integer operation
 // would overflow, so there are no overflow proofs. That the oracle returns Some on
